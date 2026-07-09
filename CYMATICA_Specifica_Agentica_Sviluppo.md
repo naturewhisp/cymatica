@@ -1,8 +1,8 @@
 # CYMATICA — Specifica completa per sviluppo agentico
 
 **Documento:** Specifica tecnica-operativa pronta per avvio prototipo  
-**Versione:** 0.3  
-**Data:** 2026-07-08  
+**Versione:** 0.4  
+**Data:** 2026-07-09  
 **Target primario:** Windows  
 **Target secondario da preservare:** Android  
 **Approccio consigliato:** sviluppo agentico incrementale con Google Antigravity 2.0 o IDE equivalente  
@@ -13,6 +13,17 @@
 ---
 
 ## 0. Changelog
+
+### 0.4 — 2026-07-09
+
+Questa revisione integra la valutazione del repository `naturewhisp/NatuStem` come riferimento per la futura pipeline di importazione musicale:
+
+- aggiunta una sezione dedicata a **NatuStem come riferimento tecnico/funzionale**, non come dipendenza diretta del runtime o del tool iniziale;
+- chiarito il principio **reference-first, reimplement-later** per la futura stem ingestion pipeline;
+- aggiornata la sezione Custom Track con il ruolo possibile di NatuStem come base concettuale per separazione stem, gestione output, log, modelli e setup CPU/GPU;
+- aggiornata la tabella dipendenze future con `audio-separator`, modelli Demucs/MDX e Python toolchain come elementi tool-only, mai runtime;
+- aggiunto uno spike dedicato nella roadmap per studiare NatuStem e implementare una pipeline CYMATICA-specifica, headless, testabile e orientata a `.cymlevel`;
+- aggiornati decision log, open questions e riferimenti tecnici.
 
 ### 0.3 — 2026-07-08
 
@@ -234,6 +245,8 @@ L’utente importa una traccia audio. Un tool offline esegue analisi musicale, e
 - generazione pacchetto `.cymlevel`;
 - livello rigiocabile con seed diversi.
 
+**Nota NatuStem:** il repository `naturewhisp/NatuStem` è rilevante come riferimento per la futura pipeline custom, perché affronta già il problema pratico della separazione locale di stem audio, scelta modello, setup CPU/GPU, gestione output e log. Non deve però diventare dipendenza diretta della Milestone 1 né del runtime del gioco.
+
 ---
 
 ## 5. Modello musicale: quattro canali funzionali
@@ -272,6 +285,68 @@ Strudel può essere utile come laboratorio di prototipazione per pattern musical
 **Decisione:** Strudel non deve diventare dipendenza runtime del gioco nella fase iniziale. Può stare in `research/strudel-patterns/` o in un tool/laboratorio separato. Le idee valide possono essere tradotte in una mini-DSL o in un sequencer C++ nativo ispirato a Strudel/Tidal.
 
 **Nota licenza:** qualsiasi integrazione diretta di pacchetti Strudel deve essere preceduta da license review, perché Strudel dichiara licenza AGPL-3.0. Per ora si usa come riferimento e ambiente di ricerca, non come componente distribuibile.
+
+### 5.3 NatuStem come riferimento per custom music
+
+`naturewhisp/NatuStem` può essere usato come **riferimento tecnico/funzionale** per la futura pipeline di stem ingestion, non come dipendenza diretta del gioco.
+
+Principio consigliato:
+
+```text
+reference-first, reimplement-later
+```
+
+Cioè:
+
+1. NatuStem resta repository separato.
+2. CYMATICA lo cita come riferimento per studiare una pipeline locale di separazione stem.
+3. Quando la custom music diventa prioritaria, CYMATICA implementa una pipeline propria, minimale, headless e testabile.
+4. Solo se emergerà un vantaggio concreto si valuterà il riuso diretto o l’estrazione di componenti da NatuStem.
+
+Aspetti di NatuStem utili come riferimento:
+
+- invocazione di `audio-separator`;
+- scelta e configurazione dei modelli;
+- gestione modalità CPU/GPU;
+- requisito FFmpeg;
+- generazione di stem `vocals`, `drums`, `bass`, `other`;
+- gestione output folder e collisioni di nome;
+- log e progress feedback;
+- vincoli pratici su Python e dipendenze Windows.
+
+Aspetti da **non** importare direttamente nella prima fase:
+
+- GUI Flet;
+- dipendenze Python come requisito del runtime;
+- ONNX/audio-separator come requisito della build del gioco;
+- modelli ML dentro il repo principale;
+- struttura applicativa monolitica se non refactorata in core/CLI/GUI.
+
+Output desiderato per una futura reimplementazione CYMATICA-specifica:
+
+```text
+work/song/
+├── source/
+│   └── original.mp3
+├── stems/
+│   ├── drums.wav
+│   ├── bass.wav
+│   ├── vocals.wav
+│   └── other.wav
+├── analysis/
+│   ├── beat_grid.json
+│   ├── stem_features.json
+│   └── archetype_map.json
+└── manifest.json
+```
+
+Questa pipeline dovrà poi convergere verso:
+
+```bash
+cymatica-tool ingest song.mp3 --out ./work/song
+cymatica-tool analyze ./work/song
+cymatica-tool package ./work/song --out ./CustomLevels/song.cymlevel
+```
 
 ---
 
@@ -798,9 +873,12 @@ CMakeLists.txt o cmake/*.cmake
 |---|---|---|---|---|
 | FFmpeg | conversione, normalizzazione, decoding tool | M7+ | eseguibile esterno configurabile o libreria solo se necessario | evitare linkage complesso all’inizio |
 | ONNX Runtime | inferenza stem separation | M8+ | pacchetto separato, CPU-only iniziale | non richiesto per game runtime |
+| audio-separator | backend possibile per separazione stem | M8+/research | tool-only Python, da valutare tramite NatuStem spike | non richiesto per game runtime |
 | Modelli source separation | stem extraction | M8+ | download manuale/cache tool | non committare modelli pesanti nel repo |
+| Python toolchain stem | prototipo/reimplementazione pipeline custom | M8+/tool | ambiente separato dal C++ runtime | usare solo per tool offline, mai runtime |
 | Essentia/librosa-equivalent | MIR avanzata | M7/M8+ | valutazione separata | evitare dipendenza pesante prima del formato stabile |
 | Strudel | research/pattern sketching | research | fuori runtime, eventualmente in `research/` | license review obbligatoria prima di integrazione |
+| NatuStem | riferimento stem ingestion | research/M8+ | repo esterno di riferimento, non dipendenza | utile per design pipeline, output e setup |
 
 ### 14.5 Dipendenze Android future
 
@@ -860,6 +938,8 @@ Template:
 | miniaudio | vendored snapshot | yes | audio | thirdparty/miniaudio | license review | store source + version note |
 | FFmpeg | TBD | no | tool CLI | external binary | license review | M7+ only |
 | ONNX Runtime | TBD | no | ingestion | external package | MIT | M8+ CPU-only first |
+| audio-separator | TBD | no | ingestion tool | Python package | license review | tool-only, informed by NatuStem spike |
+| NatuStem | external repo | no | research/reference | GitHub reference | license review | reference-first, not dependency |
 | Strudel | none | no | research | external/web | AGPL-3.0 | not runtime |
 ```
 
@@ -1355,6 +1435,27 @@ cymatica-tool package ./CustomLevels/SongName --format cymlevel
 
 La separazione stem è un acceleratore qualitativo, non una dipendenza critica. Il sistema deve funzionare anche con sola analisi del mix.
 
+### 20.6 NatuStem reference spike
+
+Quando si passerà alla custom music, NatuStem dovrà essere studiato come reference implementation, non importato automaticamente come dipendenza.
+
+Obiettivi dello spike:
+
+1. verificare dipendenze, licenze e versioni Python supportate;
+2. studiare invocazione `audio-separator`, selezione modello e gestione CPU/GPU;
+3. estrarre le convenzioni utili su output, rename, log e collisioni di cartelle/file;
+4. progettare una CLI CYMATICA-specifica headless;
+5. produrre manifest JSON stabile per i passaggi successivi di analisi e packaging;
+6. mantenere il fallback senza stem come comportamento obbligatorio.
+
+Possibile CLI futura:
+
+```bash
+cymatica-tool ingest song.mp3 --backend audio-separator --model htdemucs_ft --out ./work/song
+```
+
+Questa CLI dovrà essere autonoma rispetto alla GUI di NatuStem e non dovrà introdurre requisiti Python/ONNX nel target `cymatica_game`.
+
 ---
 
 ## 21. Roadmap
@@ -1523,6 +1624,28 @@ Criteri accettazione:
 - gameplay sincronizzato accettabile;
 - se FFmpeg manca, il tool spiega chiaramente come configurarlo.
 
+### Milestone 8A — NatuStem reference spike
+
+**Obiettivo:** studiare NatuStem e progettare una pipeline CYMATICA-specifica per stem ingestion.
+
+Deliverable:
+
+- breve report tecnico su NatuStem;
+- decisione su riuso diretto vs reimplementazione;
+- schema CLI headless;
+- formato `manifest.json` di ingestion;
+- output folder standardizzato;
+- lista dipendenze Python/tool-only;
+- license review preliminare;
+- test su missing FFmpeg, overwrite policy e model availability.
+
+Criteri accettazione:
+
+- NatuStem non è richiesto per compilare o avviare `cymatica_game`;
+- la pipeline proposta produce `drums.wav`, `bass.wav`, `vocals.wav`, `other.wav` o segnala chiaramente il fallback;
+- il fallback senza stem resta valido;
+- `docs/dependencies.md` documenta ogni requisito tool-only.
+
 ### Milestone 8 — Stem separation / ONNX
 
 **Obiettivo:** migliorare qualità custom.
@@ -1605,6 +1728,8 @@ Opzioni:
 
 ### P2 — Custom/generated content
 
+- NatuStem reference spike;
+- pipeline stem ingestion CYMATICA-specifica;
 - formato `.cymlevel`;
 - timeline loader;
 - tool CLI validate/inspect;
@@ -1727,6 +1852,9 @@ AGENTS.md
 | FFmpeg in Milestone 1 | Rifiutata | Non necessario per procedurale |
 | Strudel come runtime dependency | Rifiutata per ora | Utile per ricerca, licenza da verificare |
 | Strudel come research track | Accettata | Ottimo per pattern/prototipi musicali |
+| NatuStem come dipendenza runtime | Rifiutata | Tool Python/stem separation non deve entrare nel runtime del gioco |
+| NatuStem come riferimento custom music | Accettata | Accelera design della pipeline stem senza vincolare architettura |
+| Reference-first, reimplement-later per stem ingestion | Accettata | Riduce rischio e mantiene CYMATICA indipendente |
 | Motore fisico esterno in M1 | Rifiutato | Custom particle/bullet system sufficiente |
 | Particle system custom | Accettato | Necessario per identità visuale |
 | Flutter per core gameplay | Non raccomandato | Troppo FFI e latenza audio |
@@ -1755,6 +1883,9 @@ AGENTS.md
 13. FFmpeg sarà invocato come binario esterno o linkato come libreria?
 14. La community potrà distribuire pacchetti `.cymlevel` contenenti audio protetto da copyright?
 15. Serve una mini-DSL musicale nativa ispirata a Strudel/Tidal?
+16. NatuStem verrà solo studiato o refactorato in una libreria/CLI riusabile?
+17. Quale backend stem separation sarà preferito per il tool: audio-separator, ONNX diretto o altra pipeline?
+18. Quale licenza verrà scelta per CYMATICA e come impatta su tool, modelli e pacchetti custom?
 
 ---
 
@@ -1780,9 +1911,10 @@ Strategia consigliata:
 1. **Milestone 0:** repository, build, dependency inventory.
 2. **Milestone 1–4:** runtime procedurale giocabile.
 3. **Milestone 6–7:** formato pacchetto e tool CLI.
-4. **Milestone 8+:** stem/ONNX/custom music.
-5. **Milestone 9+:** Android.
-6. **Milestone 10+:** editor GUI.
+4. **Milestone 8A:** NatuStem reference spike e design pipeline stem.
+5. **Milestone 8+:** stem/ONNX/custom music.
+6. **Milestone 9+:** Android.
+7. **Milestone 10+:** editor GUI.
 
 ---
 
@@ -1799,4 +1931,6 @@ Strategia consigliata:
 - ONNX Runtime NNAPI Execution Provider: https://onnxruntime.ai/docs/execution-providers/NNAPI-ExecutionProvider.html
 - Strudel: https://strudel.cc/
 - Strudel project guide/license note: https://strudel.cc/technical-manual/project-start/
+- NatuStem reference repository: https://github.com/naturewhisp/NatuStem
+- audio-separator: https://github.com/nomadkaraoke/python-audio-separator
 - Google Antigravity docs: https://antigravity.google/docs
