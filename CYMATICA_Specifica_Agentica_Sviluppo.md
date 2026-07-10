@@ -1,7 +1,7 @@
 # CYMATICA — Specifica completa per sviluppo agentico
 
 **Documento:** Specifica tecnica-operativa pronta per avvio prototipo  
-**Versione:** 0.5  
+**Versione:** 0.6  
 **Data:** 2026-07-10  
 **Target primario:** Windows  
 **Target secondario da preservare:** Android  
@@ -13,6 +13,17 @@
 ---
 
 ## 0. Changelog
+
+### 0.6 — 2026-07-10
+
+Correzioni architetturali successive alla verifica del commit `96a7d36701ab7a23277edc8deaf39003b932df67`:
+
+- separati i flussi `audio → game/render` e `game → audio` in due contratti unidirezionali con ownership esplicita;
+- sostituita la descrizione troppo debole del simple double buffering con un protocollo di snapshot coerente basato su SPSC bounded queue, seqlock o triple buffering;
+- definito gameplay a fixed timestep, rendering variabile con interpolazione e clock audio come autorità temporale per gli eventi musicali;
+- riallineata Milestone 8 come reference spike esclusivamente analitico/progettuale, lasciando la produzione reale degli stem alla Milestone 9;
+- corretto il riepilogo finale della roadmap includendo Milestone 5;
+- aggiornato `AGENTS.md` con le sole regole operative necessarie per ownership dei flussi realtime e determinismo temporale.
 
 ### 0.5 — 2026-07-10
 
@@ -1146,7 +1157,7 @@ engine/
     └── custom_level_index.h/.cpp
 ```
 
-### 16.2 Thread model
+### 16.2 Thread model e autorità temporale
 
 #### Audio thread
 
@@ -1154,26 +1165,38 @@ Gestito da miniaudio.
 
 Responsabilità:
 
-- generare audio;
-- calcolare parametri normalizzati;
-- scrivere `AudioFrame`;
+- generare e mixare l’audio;
+- mantenere il clock audio monotono;
+- calcolare telemetria musicale normalizzata;
+- pubblicare `AudioTelemetryFrame` verso game/render;
+- leggere l’ultimo `AudioControlFrame` pubblicato dal game thread;
 - non allocare memoria nella callback;
 - non usare lock bloccanti nella callback;
 - non chiamare codice tool/offline.
 
-#### Game/render thread
+#### Game simulation thread
 
-Gestito dal loop raylib.
+Nel prototipo può coincidere con il thread principale raylib, ma la simulazione deve usare un **fixed timestep** indipendente dal frame rate di rendering.
 
 Responsabilità:
 
-- leggere ultimo `AudioFrame`;
-- aggiornare stato gameplay;
-- aggiornare player, proiettili, particelle, collisioni;
-- passare uniform allo shader;
-- renderizzare.
+- leggere l’ultimo `AudioTelemetryFrame`;
+- aggiornare stato gameplay, player, proiettili, particelle e collisioni a passo fisso;
+- pubblicare `AudioControlFrame` verso l’audio thread;
+- usare il clock audio come autorità temporale per beat, quantizzazione ed eventi musicali;
+- mantenere determinismo ragionevole tra 60, 120 FPS e frame rate variabile.
 
-### 16.3 AudioFrame
+#### Render phase
+
+Responsabilità:
+
+- interpolare lo stato visuale tra due step di simulazione quando necessario;
+- passare uniform allo shader;
+- renderizzare alla frequenza disponibile senza modificare le regole di gameplay.
+
+### 16.3 Contratti di scambio realtime
+
+I due flussi devono essere separati e unidirezionali. La telemetria musicale appartiene all’audio thread; Dissonanza, performance del giocatore, pausa e archetipo richiesto appartengono al game thread.
 
 ```cpp
 struct ChannelFrame {
@@ -1184,7 +1207,7 @@ struct ChannelFrame {
     float confidence;  // 0..1
 };
 
-struct AudioFrame {
+struct AudioTelemetryFrame {
     double audioTimeSeconds;
     float bpm;
     float beatPhase;       // 0..1
@@ -1197,8 +1220,14 @@ struct AudioFrame {
 
     float globalEnergy;
     float spectralFlux;
-    float dissonanceInfluence;
-    int archetypeId;
+    int detectedArchetypeId;
+};
+
+struct AudioControlFrame {
+    float dissonance;          // 0..1, authoritative game state
+    float playerPerformance;   // 0..1 or another documented normalized metric
+    int requestedArchetypeId;
+    bool paused;
 };
 ```
 
@@ -1207,18 +1236,26 @@ Convenzioni:
 - `pitchHz` è espresso in hertz e vale `0` quando non disponibile o non affidabile;
 - valori normalizzati sono limitati a `[0, 1]`;
 - `audioTimeSeconds` è monotono rispetto al clock audio;
-- il render thread consuma uno snapshot completo, mai campi aggiornati parzialmente.
+- ogni consumatore legge uno snapshot completo, mai campi aggiornati parzialmente;
+- nessuna struttura viene usata contemporaneamente come comando e telemetria;
+- il clock audio decide **quando** avviene un evento musicale, il fixed timestep decide **come** evolve il gameplay tra gli eventi.
 
-### 16.4 Double buffering
+### 16.4 Protocollo di scambio thread-safe
 
-Il passaggio audio → render deve usare double buffer o atomic index.
+Un semplice indice atomico su due buffer non è sufficiente se il produttore può riutilizzare uno slot mentre il consumatore lo sta copiando. L’implementazione deve adottare uno dei seguenti protocolli bounded e preallocati:
+
+- SPSC queue con politica latest-value/drop-oldest per la telemetria;
+- seqlock con contatore di generazione e retry della copia;
+- triple buffering con ownership esplicita degli slot.
 
 Requisiti:
 
-- audio thread scrive su buffer inattivo;
-- quando il frame è completo, aggiorna indice atomico;
-- render thread legge snapshot coerente;
-- nessun mutex pesante nella callback audio.
+- nessun mutex bloccante nella callback audio;
+- nessuna allocazione dopo l’inizializzazione;
+- il consumatore non osserva mai frame parzialmente aggiornati;
+- i frame di telemetria obsoleti possono essere scartati: interessa sempre lo stato più recente;
+- i comandi game → audio devono essere bounded, idempotenti o rappresentati come latest-value snapshot;
+- il protocollo scelto deve avere test concorrenti dedicati e documentazione dell’ownership.
 
 ---
 
@@ -1536,8 +1573,9 @@ Deliverable:
 
 - sequencer euclideo;
 - modal quantizer;
-- `AudioFrame`;
-- double buffer;
+- `AudioTelemetryFrame` e `AudioControlFrame`;
+- protocollo thread-safe bounded per entrambi i flussi;
+- fixed timestep gameplay sincronizzato al clock audio;
 - shader Chladni pilotato da audio;
 - parametri `m/n` dinamici;
 - debug overlay opzionale.
@@ -1547,6 +1585,8 @@ Criteri accettazione:
 - linee cambiano con il beat;
 - nessun crackling audio evidente;
 - nessuna race condition nota;
+- snapshot concorrenti mai parziali nei test;
+- comportamento gameplay equivalente a 60 e 120 FPS entro tolleranza definita;
 - test euclideo e quantizer passano.
 
 ### Milestone 2 — Player, Dissonanza e particelle base
@@ -1667,7 +1707,7 @@ Criteri accettazione:
 
 ### Milestone 8 — NatuStem reference spike
 
-**Obiettivo:** studiare NatuStem e progettare una pipeline CYMATICA-specifica per stem ingestion.
+**Obiettivo:** studiare NatuStem e progettare una pipeline CYMATICA-specifica per stem ingestion, senza introdurre ancora un backend produttivo.
 
 Deliverable:
 
@@ -1675,17 +1715,20 @@ Deliverable:
 - decisione su riuso diretto vs reimplementazione;
 - schema CLI headless;
 - formato `manifest.json` di ingestion;
-- output folder standardizzato;
+- output folder standardizzato atteso (`drums.wav`, `bass.wav`, `vocals.wav`, `other.wav`);
 - lista dipendenze Python/tool-only;
 - license review preliminare;
-- test su missing FFmpeg, overwrite policy e model availability.
+- test plan per missing FFmpeg, overwrite policy, model availability e fallback senza stem;
+- eventuale PoC non produttivo chiaramente isolato in `research/`, se utile alla decisione.
 
 Criteri accettazione:
 
 - NatuStem non è richiesto per compilare o avviare `cymatica_game`;
-- la pipeline proposta produce `drums.wav`, `bass.wav`, `vocals.wav`, `other.wav` o segnala chiaramente il fallback;
-- il fallback senza stem resta valido;
-- `docs/dependencies.md` documenta ogni requisito tool-only.
+- il contratto CLI, il manifest e il layout output sono documentati e validabili con fixture fittizie;
+- è registrata una decisione esplicita sul backend da implementare in Milestone 9;
+- il fallback senza stem resta parte obbligatoria del design;
+- `docs/dependencies.md` documenta ogni requisito tool-only considerato;
+- la produzione reale degli stem non è requisito di chiusura della Milestone 8.
 
 ### Milestone 9 — Stem separation / ONNX
 
@@ -1805,7 +1848,7 @@ Test obbligatori:
 - Euclidean sequencer;
 - modal quantizer;
 - Chladni evaluation;
-- double buffer;
+- protocollo di scambio thread-safe (SPSC/seqlock/triple buffer);
 - dash destination;
 - dissonance update;
 - object pool particelle;
@@ -1905,6 +1948,9 @@ AGENTS.md
 | AGENTS.md dedicato | Accettata | Contratto operativo separato per Antigravity e agenti equivalenti |
 | Dependency inventory | Obbligatorio | Evita ambiguità in C++/CMake |
 | Milestone attiva iniziale | Milestone 0 | Evita anticipazioni di scope da parte degli agenti |
+| Flussi realtime audio/game | Due contratti unidirezionali | Evita ownership ambiguo e dati bidirezionali nello stesso frame |
+| Autorità temporale gameplay | Fixed timestep con clock audio autoritativo per eventi musicali | Garantisce determinismo e indipendenza dal refresh rate |
+| Scambio thread-safe | SPSC, seqlock o triple buffering bounded | Un semplice double buffer non garantisce snapshot coerenti in ogni scheduling |
 | `.cymlevel` iniziale | Directory ispezionabile | Semplifica debug, validazione e versionamento del formato |
 
 ---
@@ -1952,7 +1998,7 @@ Se quella scena è divertente, il resto del progetto ha basi forti. Se quella sc
 Strategia consigliata:
 
 1. **Milestone 0:** repository, build, dependency inventory.
-2. **Milestone 1–4:** runtime procedurale giocabile.
+2. **Milestone 1–5:** runtime procedurale giocabile e cinque archetipi.
 3. **Milestone 6–7:** formato pacchetto e tool CLI.
 4. **Milestone 8:** NatuStem reference spike e design pipeline stem.
 5. **Milestone 9+:** stem/ONNX/custom music.

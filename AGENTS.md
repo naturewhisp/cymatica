@@ -37,7 +37,9 @@ Use C++20 and CMake with out-of-source builds. Keep a clean checkout reproducibl
 
 Prefer small modules, explicit ownership, RAII, deterministic updates and bounded work. Avoid hidden globals, unnecessary inheritance, broad rewrites and allocations in hot loops.
 
-The miniaudio callback is a real-time path: no allocation, blocking locks, file I/O, logging, UI access, inference or unbounded work. Exchange telemetry with the game thread through a preallocated lock-free or double-buffered mechanism.
+The miniaudio callback is a real-time path: no allocation, blocking locks, file I/O, logging, UI access, inference or unbounded work. Keep audio telemetry and game-to-audio control as separate unidirectional, preallocated channels. Use a bounded SPSC queue, seqlock or triple buffer; never rely on an unsafe two-slot swap.
+
+Run gameplay at a fixed timestep, use the audio clock as the authority for musical event timing, and keep rendering variable with interpolation where needed.
 
 Keep gameplay bullets, visual particles and shader effects separate. The shader is not the authoritative collision model.
 
