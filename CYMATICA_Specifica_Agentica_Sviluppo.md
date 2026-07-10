@@ -1,11 +1,11 @@
 # CYMATICA — Specifica completa per sviluppo agentico
 
 **Documento:** Specifica tecnica-operativa pronta per avvio prototipo  
-**Versione:** 0.4  
-**Data:** 2026-07-09  
+**Versione:** 0.5  
+**Data:** 2026-07-10  
 **Target primario:** Windows  
 **Target secondario da preservare:** Android  
-**Approccio consigliato:** sviluppo agentico incrementale con Google Antigravity 2.0 o IDE equivalente  
+**Approccio consigliato:** sviluppo agentico incrementale con Google Antigravity 2.0, Antigravity IDE o ambiente equivalente  
 **Stack core raccomandato per prototipo:** C++20, CMake, raylib, miniaudio, shader GLSL  
 **Stack differito:** ONNX Runtime, FFmpeg, stem separation, editor offline avanzato, Android technical preview  
 **Strategia repository:** monorepo modulare con distribuzioni separate per gioco e tool
@@ -13,6 +13,20 @@
 ---
 
 ## 0. Changelog
+
+### 0.5 — 2026-07-10
+
+Revisione finale pre-sviluppo:
+
+- allineata la terminologia a Google Antigravity 2.0, Antigravity IDE e ambienti agentici equivalenti;
+- resa sequenziale la roadmap, eliminando la numerazione intermedia `8A`;
+- chiarito che l’agente deve lavorare esclusivamente sulla milestone attiva e che il default iniziale è Milestone 0;
+- chiarite unità e convenzioni dei dati audio (`pitch_hz`, valori mancanti e snapshot thread-safe);
+- precisato che la Dissonanza non deve alterare in modo nascosto hitbox o regole di collisione;
+- definito `.cymlevel` come directory durante sviluppo, con archiviazione opzionale in seguito;
+- aggiornata la strategia miniaudio verso uno snapshot ufficiale versionato, preferendo `miniaudio.c` + `miniaudio.h` quando disponibile;
+- rimossa dalla struttura proposta la documentazione agentica ridondante rispetto a `AGENTS.md`;
+- semplificati requisiti Windows e policy di sicurezza/dipendenze.
 
 ### 0.4 — 2026-07-09
 
@@ -55,7 +69,7 @@ Questa revisione integra le decisioni e considerazioni emerse dopo la prima spec
 
 CYMATICA è un gioco **musical bullet hell** basato sulla **cimatica**: la musica non accompagna il livello, ma diventa la fonte fisica delle forme, dei colori, delle minacce e della struttura dell’arena.
 
-Il giocatore controlla un’entità luminosa, il **Seme**, dentro una piastra vibrante. Le frequenze musicali generano linee nodali, antinodi, onde d’urto, proiettili, fratture, particelle e anomalie. Il gameplay deve rimanere minimale nei controlli, ma ricco nella variazione ambientale: invece di aggiungere molte azioni al giocatore, il gioco cambia comportamento in base alla musica e all’archetipo cimatica attivo.
+Il giocatore controlla un’entità luminosa, il **Seme**, dentro una piastra vibrante. Le frequenze musicali generano linee nodali, antinodi, onde d’urto, proiettili, fratture, particelle e anomalie. Il gameplay deve rimanere minimale nei controlli, ma ricco nella variazione ambientale: invece di aggiungere molte azioni al giocatore, il gioco cambia comportamento in base alla musica e all’archetipo cimatico attivo.
 
 Il progetto prevede tre famiglie di contenuti:
 
@@ -375,7 +389,9 @@ Formula di riferimento:
 cos(n * pi * x) * cos(m * pi * y) - cos(m * pi * x) * cos(n * pi * y) = 0
 ```
 
-Nel gioco non serve simulazione fisica scientificamente perfetta. Serve una funzione sufficientemente coerente da generare pattern leggibili, belli e pilotabili.
+Per il prototipo, `x` e `y` sono coordinate normalizzate nel dominio `[-1, 1]`, mentre `m` e `n` sono modi interi positivi scelti entro un intervallo limitato e validato.
+
+Nel gioco non serve una simulazione fisica scientificamente perfetta. Serve una funzione sufficientemente coerente da generare pattern leggibili, belli e pilotabili.
 
 ### 6.3 Regole di mapping
 
@@ -412,7 +428,8 @@ Quando il giocatore viene colpito:
 - il mix audio si degrada;
 - le linee di Chladni tremano;
 - aumentano glitch, aberrazione cromatica e rumore;
-- sopra soglie alte, alcuni pattern diventano più instabili;
+- sopra soglie alte, la presentazione diventa più instabile, ma hitbox e regole di collisione restano coerenti e telegrafate;
+- la Dissonanza non deve introdurre modifiche nascoste alla geometria autoritativa del gameplay;
 - al 100% la traccia collassa in rumore/feedback e avviene il game over.
 
 Possibili soglie:
@@ -845,25 +862,27 @@ docs/build.md
 CMakeLists.txt o cmake/*.cmake
 ```
 
+La configurazione condivisa della build deve essere esposta tramite `CMakePresets.json`; eventuali override locali devono stare in `CMakeUserPresets.json` e non essere committati.
+
 ### 14.2 Requisiti minimi Windows
 
 | Requisito | Obbligatorio | Note |
 |---|---:|---|
 | Windows 10/11 x64 | sì | target primario sviluppo |
 | Git | sì | clone repo e submodule eventuali |
-| Visual Studio 2022/18 Insiders con MSVC C++ | sì | compilatore `cl.exe` |
+| Visual Studio o Build Tools con workload C++ desktop | sì | usare una versione supportata disponibile nell’ambiente; `cl.exe` deve essere raggiungibile dal terminale di build |
 | CMake | sì | anche se non globale nel PATH, va documentato path effettivo |
 | Ninja o MSBuild | consigliato | scegliere uno come default |
 | Python 3 | opzionale in M0, utile dopo | script tooling/test, non core runtime |
-| PowerShell | sì | comandi Windows e script utilità |
-| Antigravity 2.0 | consigliato | IDE agentico di riferimento |
+| PowerShell | consigliato | script di bootstrap e utilità Windows; non deve essere requisito implicito se non documentato |
+| Antigravity 2.0 / Antigravity IDE | consigliato | ambiente agentico di riferimento, non requisito della build |
 
 ### 14.3 Dipendenze runtime/prototipo
 
 | Dipendenza | Uso | Fase | Acquisizione consigliata | Note |
 |---|---|---|---|---|
 | raylib | finestra, input, rendering base, shader | M0+ | CMake `FetchContent` con versione/tag fissato | non vendorizzare subito, ma cache CMake ammessa |
-| miniaudio | audio low-level, callback, mixing/DSP | M0+ | vendorizzare `miniaudio.h` in `thirdparty/miniaudio/` | single-header, aggiornamento manuale controllato |
+| miniaudio | audio low-level, callback, mixing/DSP | M0+ | vendorizzare uno snapshot ufficiale versionato in `thirdparty/miniaudio/` | preferire `miniaudio.c` + `miniaudio.h` quando disponibili; licenza Public Domain oppure MIT-0 |
 | GLSL shader | Chladni, particelle, visual | M0+ | asset sorgente nel repo | nessuna dipendenza esterna |
 | doctest/Catch2 o test harness custom | test unitari | M0+ | FetchContent o vendored single-header | scegliere una sola soluzione |
 
@@ -872,11 +891,11 @@ CMakeLists.txt o cmake/*.cmake
 | Dipendenza | Uso | Fase | Acquisizione consigliata | Note |
 |---|---|---|---|---|
 | FFmpeg | conversione, normalizzazione, decoding tool | M7+ | eseguibile esterno configurabile o libreria solo se necessario | evitare linkage complesso all’inizio |
-| ONNX Runtime | inferenza stem separation | M8+ | pacchetto separato, CPU-only iniziale | non richiesto per game runtime |
-| audio-separator | backend possibile per separazione stem | M8+/research | tool-only Python, da valutare tramite NatuStem spike | non richiesto per game runtime |
-| Modelli source separation | stem extraction | M8+ | download manuale/cache tool | non committare modelli pesanti nel repo |
-| Python toolchain stem | prototipo/reimplementazione pipeline custom | M8+/tool | ambiente separato dal C++ runtime | usare solo per tool offline, mai runtime |
-| Essentia/librosa-equivalent | MIR avanzata | M7/M8+ | valutazione separata | evitare dipendenza pesante prima del formato stabile |
+| ONNX Runtime | inferenza stem separation | M9+ | pacchetto separato, CPU-only iniziale | non richiesto per game runtime |
+| audio-separator | backend possibile per separazione stem | M9+/research | tool-only Python, da valutare tramite NatuStem spike | non richiesto per game runtime |
+| Modelli source separation | stem extraction | M9+ | download manuale/cache tool | non committare modelli pesanti nel repo |
+| Python toolchain stem | prototipo/reimplementazione pipeline custom | M9+/tool | ambiente separato dal C++ runtime | usare solo per tool offline, mai runtime |
+| Essentia/librosa-equivalent | MIR avanzata | M7/M9+ | valutazione separata | evitare dipendenza pesante prima del formato stabile |
 | Strudel | research/pattern sketching | research | fuori runtime, eventualmente in `research/` | license review obbligatoria prima di integrazione |
 | NatuStem | riferimento stem ingestion | research/M8+ | repo esterno di riferimento, non dipendenza | utile per design pipeline, output e setup |
 
@@ -884,11 +903,11 @@ CMakeLists.txt o cmake/*.cmake
 
 | Dipendenza | Uso | Fase | Note |
 |---|---|---|---|
-| Android Studio / SDK | build e deploy | M9 | installazione sistema |
-| Android NDK | C++ cross compile | M9 | necessario per CMake Android |
-| Gradle | packaging Android | M9 | generato/gestito da toolchain Android |
-| AAudio/Oboe o backend miniaudio Android | low-latency audio | M9 | test su device reale obbligatorio |
-| ONNX Runtime Android/NNAPI | inferenza mobile opzionale | M8/M9+ | non prioritaria |
+| Android Studio / SDK | build e deploy | M10 | installazione sistema |
+| Android NDK | C++ cross compile | M10 | necessario per CMake Android |
+| Gradle | packaging Android | M10 | generato/gestito da toolchain Android |
+| AAudio/Oboe o backend miniaudio Android | low-latency audio | M10 | test su device reale obbligatorio |
+| ONNX Runtime Android/NNAPI | inferenza mobile opzionale | M9/M10+ | non prioritaria |
 
 ### 14.6 Policy di acquisizione dipendenze
 
@@ -901,7 +920,7 @@ Classificare ogni libreria in una di queste categorie:
    Scaricata automaticamente da CMake tramite `FetchContent` o script equivalente. Esempio: raylib.
 
 3. **Vendored dependency**  
-   Copiata nel repo sotto `thirdparty/`. Esempio: `miniaudio.h`.
+   Copiata nel repo sotto `thirdparty/`. Esempio: snapshot `miniaudio.c` + `miniaudio.h`.
 
 4. **External binary dependency**  
    Eseguibile esterno referenziato da path/config. Esempio: FFmpeg nella prima versione del tool.
@@ -923,7 +942,9 @@ Direttive:
 - non introdurre dipendenze nuove dentro il codice senza aggiornare CMake e documentazione;
 - non committare binari grandi o modelli ML nel repo principale;
 - tenere il runtime del gioco privo di dipendenze tool-only;
-- ONNX/FFmpeg/Strudel non devono essere richiesti per compilare `cymatica_game`.
+- ONNX/FFmpeg/Strudel non devono essere richiesti per compilare `cymatica_game`;
+- non eseguire installazioni globali, download non versionati o comandi distruttivi fuori dal repository senza approvazione esplicita;
+- registrare provenienza e checksum quando una dipendenza o un modello viene acquisito manualmente.
 
 ### 14.8 File consigliato `docs/dependencies.md`
 
@@ -935,9 +956,9 @@ Template:
 | Name | Version/Tag | Required | Used by | Acquisition | License | Notes |
 |---|---|---:|---|---|---|---|
 | raylib | TBD pinned tag | yes | game, renderer | CMake FetchContent | zlib/libpng | pin before M0 closes |
-| miniaudio | vendored snapshot | yes | audio | thirdparty/miniaudio | license review | store source + version note |
+| miniaudio | pinned official snapshot | yes | audio | thirdparty/miniaudio | Public Domain or MIT-0 | store source, version/commit and chosen license |
 | FFmpeg | TBD | no | tool CLI | external binary | license review | M7+ only |
-| ONNX Runtime | TBD | no | ingestion | external package | MIT | M8+ CPU-only first |
+| ONNX Runtime | TBD | no | ingestion | external package | MIT | M9+ CPU-only first |
 | audio-separator | TBD | no | ingestion tool | Python package | license review | tool-only, informed by NatuStem spike |
 | NatuStem | external repo | no | research/reference | GitHub reference | license review | reference-first, not dependency |
 | Strudel | none | no | research | external/web | AGPL-3.0 | not runtime |
@@ -964,6 +985,7 @@ Motivo:
 ```text
 cymatica/
 ├── CMakeLists.txt
+├── CMakePresets.json
 ├── cmake/
 │   ├── dependencies.cmake
 │   ├── options.cmake
@@ -1012,7 +1034,6 @@ cymatica/
     ├── build.md
     ├── dependencies.md
     ├── level-format.md
-    ├── agent-workflow.md
     └── roadmap.md
 ```
 
@@ -1158,7 +1179,7 @@ Responsabilità:
 struct ChannelFrame {
     float energy;      // 0..1
     float onset;       // 0..1
-    float pitch;       // normalized or Hz
+    float pitchHz;     // Hz; 0 when unavailable
     float density;     // 0..1
     float confidence;  // 0..1
 };
@@ -1180,6 +1201,13 @@ struct AudioFrame {
     int archetypeId;
 };
 ```
+
+Convenzioni:
+
+- `pitchHz` è espresso in hertz e vale `0` quando non disponibile o non affidabile;
+- valori normalizzati sono limitati a `[0, 1]`;
+- `audioTimeSeconds` è monotono rispetto al clock audio;
+- il render thread consuma uno snapshot completo, mai campi aggiornati parzialmente.
 
 ### 16.4 Double buffering
 
@@ -1305,6 +1333,8 @@ Regola:
 
 ## 19. Formato pacchetto livello
 
+Nella prima implementazione, `.cymlevel` indica una **directory con estensione convenzionale**, semplice da ispezionare, validare e versionare durante lo sviluppo. Un contenitore archivio compresso potrà essere aggiunto solo dopo la stabilizzazione del formato, mantenendo la stessa struttura logica interna.
+
 ### 19.1 Cartella livello
 
 Formato cartella:
@@ -1336,12 +1366,12 @@ Per custom iniziale, gli stem possono essere assenti. Il runtime deve accettare:
   "format_version": 1,
   "title": "Example Level",
   "artist": "Unknown",
-  "source": "procedural|custom|generated",
+  "source": "custom",
   "duration_seconds": 120.0,
   "bpm": 128.0,
   "default_archetype": "synthetic",
   "difficulty_estimate": 0.45,
-  "seed_policy": "fixed|randomized|daily",
+  "seed_policy": "randomized",
   "audio": {
     "mix": "audio/mix.ogg",
     "pulse": null,
@@ -1351,6 +1381,12 @@ Per custom iniziale, gli stem possono essere assenti. Il runtime deve accettare:
   }
 }
 ```
+
+Valori ammessi nella versione iniziale:
+
+- `source`: `procedural`, `custom`, `generated`;
+- `seed_policy`: `fixed`, `randomized`, `daily`;
+- `default_archetype`: identificatore stabile definito dal formato condiviso.
 
 ### 19.3 `cymatic_timeline.json`
 
@@ -1362,15 +1398,17 @@ Per custom iniziale, gli stem possono essere assenti. Il runtime deve accettare:
   "frames": [
     {
       "time": 0.00,
-      "pulse": { "energy": 0.0, "onset": 0.0, "pitch": 0.0, "density": 0.0, "confidence": 1.0 },
-      "body": { "energy": 0.2, "onset": 0.0, "pitch": 55.0, "density": 0.1, "confidence": 0.8 },
-      "texture": { "energy": 0.1, "onset": 0.0, "pitch": 440.0, "density": 0.2, "confidence": 0.7 },
-      "vector": { "energy": 0.0, "onset": 0.0, "pitch": 0.0, "density": 0.0, "confidence": 0.2 },
+      "pulse": { "energy": 0.0, "onset": 0.0, "pitch_hz": 0.0, "density": 0.0, "confidence": 1.0 },
+      "body": { "energy": 0.2, "onset": 0.0, "pitch_hz": 55.0, "density": 0.1, "confidence": 0.8 },
+      "texture": { "energy": 0.1, "onset": 0.0, "pitch_hz": 440.0, "density": 0.2, "confidence": 0.7 },
+      "vector": { "energy": 0.0, "onset": 0.0, "pitch_hz": 0.0, "density": 0.0, "confidence": 0.2 },
       "archetype": "synthetic"
     }
   ]
 }
 ```
+
+Il JSON è il formato di riferimento leggibile e validabile per il prototipo. Un encoding binario o compresso potrà essere aggiunto solo dopo profiling, senza cambiare la semantica del formato e mantenendo un convertitore/validator ufficiale.
 
 ---
 
@@ -1460,6 +1498,8 @@ Questa CLI dovrà essere autonoma rispetto alla GUI di NatuStem e non dovrà int
 
 ## 21. Roadmap
 
+La milestone attiva iniziale è **Milestone 0**. Un agente non deve anticipare deliverable di milestone successive senza una decisione esplicita registrata nel repository.
+
 ### Milestone 0 — Repository, build e dependency inventory
 
 **Obiettivo:** progetto compilabile su Windows con dipendenze censite.
@@ -1469,6 +1509,7 @@ Deliverable:
 - monorepo iniziale;
 - `docs/build.md`;
 - `docs/dependencies.md`;
+- `CMakePresets.json`;
 - CMake options;
 - raylib via FetchContent con tag fissato;
 - miniaudio vendored;
@@ -1624,7 +1665,7 @@ Criteri accettazione:
 - gameplay sincronizzato accettabile;
 - se FFmpeg manca, il tool spiega chiaramente come configurarlo.
 
-### Milestone 8A — NatuStem reference spike
+### Milestone 8 — NatuStem reference spike
 
 **Obiettivo:** studiare NatuStem e progettare una pipeline CYMATICA-specifica per stem ingestion.
 
@@ -1646,7 +1687,7 @@ Criteri accettazione:
 - il fallback senza stem resta valido;
 - `docs/dependencies.md` documenta ogni requisito tool-only.
 
-### Milestone 8 — Stem separation / ONNX
+### Milestone 9 — Stem separation / ONNX
 
 **Obiettivo:** migliorare qualità custom.
 
@@ -1665,7 +1706,7 @@ Criteri accettazione:
 - i tempi di elaborazione sono mostrati;
 - nessuna dipendenza GPU obbligatoria.
 
-### Milestone 9 — Android technical preview
+### Milestone 10 — Android technical preview
 
 **Obiettivo:** validare portabilità.
 
@@ -1685,7 +1726,7 @@ Criteri accettazione:
 - frame pacing misurato;
 - backlog problemi Android documentato.
 
-### Milestone 10 — Studio/editor GUI
+### Milestone 11 — Studio/editor GUI
 
 **Obiettivo:** creare editor visuale solo dopo stabilità formato/tool CLI.
 
@@ -1822,7 +1863,7 @@ Le istruzioni operative per Google Antigravity 2.0 o IDE agentici equivalenti no
 La regola adottata è:
 
 - questo documento descrive **vision, requisiti, architettura, milestone, vincoli tecnici e decisioni progettuali**;
-- `AGENTS.md` descrive **come gli agenti devono lavorare sul repository**: workflow, limiti, build/test, policy dipendenze, regole C++, audio callback, rendering, particelle, tool CLI, documentazione e review checklist.
+- `AGENTS.md` contiene solo le **regole operative minime**: avvio, milestone attiva, dipendenze, build, vincoli realtime, sicurezza e verifica.
 
 Quando il progetto viene aperto in Antigravity, l’agente deve ricevere il repository con entrambi i file:
 
@@ -1863,6 +1904,8 @@ AGENTS.md
 | Prompt operativi dentro specifica | Rifiutata | La specifica deve restare documento tecnico, non manuale operativo dell’agente |
 | AGENTS.md dedicato | Accettata | Contratto operativo separato per Antigravity e agenti equivalenti |
 | Dependency inventory | Obbligatorio | Evita ambiguità in C++/CMake |
+| Milestone attiva iniziale | Milestone 0 | Evita anticipazioni di scope da parte degli agenti |
+| `.cymlevel` iniziale | Directory ispezionabile | Semplifica debug, validazione e versionamento del formato |
 
 ---
 
@@ -1911,10 +1954,10 @@ Strategia consigliata:
 1. **Milestone 0:** repository, build, dependency inventory.
 2. **Milestone 1–4:** runtime procedurale giocabile.
 3. **Milestone 6–7:** formato pacchetto e tool CLI.
-4. **Milestone 8A:** NatuStem reference spike e design pipeline stem.
-5. **Milestone 8+:** stem/ONNX/custom music.
-6. **Milestone 9+:** Android.
-7. **Milestone 10+:** editor GUI.
+4. **Milestone 8:** NatuStem reference spike e design pipeline stem.
+5. **Milestone 9+:** stem/ONNX/custom music.
+6. **Milestone 10+:** Android.
+7. **Milestone 11+:** editor GUI.
 
 ---
 
@@ -1925,6 +1968,8 @@ Strategia consigliata:
 - raylib releases: https://github.com/raysan5/raylib/releases
 - miniaudio — libreria audio single-file con API low-level e node graph: https://miniaud.io/
 - miniaudio GitHub: https://github.com/mackron/miniaudio
+- miniaudio license: https://github.com/mackron/miniaudio/blob/master/LICENSE
+- miniaudio releases and `miniaudio.c` transition notes: https://github.com/mackron/miniaudio/releases
 - Android Oboe low latency audio: https://developer.android.com/games/sdk/oboe/low-latency-audio
 - Android Oboe library: https://developer.android.com/games/sdk/oboe
 - ONNX Runtime mobile: https://onnxruntime.ai/docs/tutorials/mobile/
@@ -1933,4 +1978,4 @@ Strategia consigliata:
 - Strudel project guide/license note: https://strudel.cc/technical-manual/project-start/
 - NatuStem reference repository: https://github.com/naturewhisp/NatuStem
 - audio-separator: https://github.com/nomadkaraoke/python-audio-separator
-- Google Antigravity docs: https://antigravity.google/docs
+- Google Antigravity documentation: https://antigravity.google/docs/overview
