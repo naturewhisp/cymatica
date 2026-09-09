@@ -1,2027 +1,3381 @@
-# CYMATICA — Specifica completa per sviluppo agentico
+# CYMATICA — Specifica tecnica per sviluppo agentico e generazione adattiva
 
-**Documento:** Specifica tecnica-operativa pronta per avvio prototipo  
-**Versione:** 0.6  
-**Data:** 2026-07-10  
-**Target primario:** Windows  
+**Documento:** specifica tecnica-operativa per prototipo e sviluppo incrementale  
+**Versione:** 0.7  
+**Data:** 2026-09-09  
+**Baseline revisionata:** commit `749609872eedd034abc96fe2e2d782ddb1167e19`  
+**Target primario:** Windows x64  
 **Target secondario da preservare:** Android  
-**Approccio consigliato:** sviluppo agentico incrementale con Google Antigravity 2.0, Antigravity IDE o ambiente equivalente  
-**Stack core raccomandato per prototipo:** C++20, CMake, raylib, miniaudio, shader GLSL  
-**Stack differito:** ONNX Runtime, FFmpeg, stem separation, editor offline avanzato, Android technical preview  
-**Strategia repository:** monorepo modulare con distribuzioni separate per gioco e tool
+**Stack core raccomandato:** C++20, CMake, raylib, miniaudio, shader GLSL  
+**Paradigma generativo:** AI ibrida, data-driven, vincolata, riproducibile e adattiva  
+**Strategia repository:** monorepo modulare, target e distribuzioni separate  
+**Documento di game/visual design:** `DESIGN.md`  
+**Regole operative per agenti:** `AGENTS.md`
 
 ---
 
 ## 0. Changelog
 
+### 0.7 — 2026-09-09
+
+Riscrittura sostanziale orientata al motore di intelligenza generativa e al modello non deterministico di CYMATICA:
+
+- introdotto il **Cymatic Intelligence Engine**, o **CIE**, come sottosistema esplicito e separato dal renderer, dal DSP e dalla simulazione;
+- definita un’architettura ibrida: regole, utility scoring, ricerca vincolata, player modeling e quality-diversity offline; i modelli ML restano opzionali e sostituibili;
+- sostituito il concetto di “livello generato” con quello di **politica generativa eseguita su orizzonte mobile**;
+- introdotti planning horizon, commit horizon, decision points musicali, fallback sicuri e runtime safety guard;
+- definita la riproducibilità del non determinismo tramite seed gerarchici, stream indipendenti, decision trace e versionamento delle policy;
+- dettagliato il player model multidimensionale e la dynamic difficulty con isteresi, limiti di variazione e confidence score;
+- introdotto un catalogo di pattern data-driven con grammatica, trasformazioni, cost model, telegraph contract e hard constraints;
+- definita una validazione conservativa di raggiungibilità per evitare configurazioni inevitabili o unfair;
+- introdotto un laboratorio offline con MAP-Elites/quality-diversity e procedural personas per generare e validare una libreria di pattern diversificata;
+- separata la specifica tecnica dal design creativo: la visione ludica, visuale, sonora e UX è ora formalizzata in `DESIGN.md`;
+- riorganizzati moduli C++, contratti dati, test, metriche, roadmap e criteri di accettazione attorno al motore generativo.
+
 ### 0.6 — 2026-07-10
 
-Correzioni architetturali successive alla verifica del commit `96a7d36701ab7a23277edc8deaf39003b932df67`:
+- separati i flussi `audio → game/render` e `game → audio`;
+- introdotti fixed timestep, clock audio autoritativo e protocollo di scambio bounded;
+- riallineate le milestone NatuStem/stem separation;
+- corrette ownership, replay e determinismo temporale.
 
-- separati i flussi `audio → game/render` e `game → audio` in due contratti unidirezionali con ownership esplicita;
-- sostituita la descrizione troppo debole del simple double buffering con un protocollo di snapshot coerente basato su SPSC bounded queue, seqlock o triple buffering;
-- definito gameplay a fixed timestep, rendering variabile con interpolazione e clock audio come autorità temporale per gli eventi musicali;
-- riallineata Milestone 8 come reference spike esclusivamente analitico/progettuale, lasciando la produzione reale degli stem alla Milestone 9;
-- corretto il riepilogo finale della roadmap includendo Milestone 5;
-- aggiornato `AGENTS.md` con le sole regole operative necessarie per ownership dei flussi realtime e determinismo temporale.
+### 0.5 e precedenti
 
-### 0.5 — 2026-07-10
-
-Revisione finale pre-sviluppo:
-
-- allineata la terminologia a Google Antigravity 2.0, Antigravity IDE e ambienti agentici equivalenti;
-- resa sequenziale la roadmap, eliminando la numerazione intermedia `8A`;
-- chiarito che l’agente deve lavorare esclusivamente sulla milestone attiva e che il default iniziale è Milestone 0;
-- chiarite unità e convenzioni dei dati audio (`pitch_hz`, valori mancanti e snapshot thread-safe);
-- precisato che la Dissonanza non deve alterare in modo nascosto hitbox o regole di collisione;
-- definito `.cymlevel` come directory durante sviluppo, con archiviazione opzionale in seguito;
-- aggiornata la strategia miniaudio verso uno snapshot ufficiale versionato, preferendo `miniaudio.c` + `miniaudio.h` quando disponibile;
-- rimossa dalla struttura proposta la documentazione agentica ridondante rispetto a `AGENTS.md`;
-- semplificati requisiti Windows e policy di sicurezza/dipendenze.
-
-### 0.4 — 2026-07-09
-
-Questa revisione integra la valutazione del repository `naturewhisp/NatuStem` come riferimento per la futura pipeline di importazione musicale:
-
-- aggiunta una sezione dedicata a **NatuStem come riferimento tecnico/funzionale**, non come dipendenza diretta del runtime o del tool iniziale;
-- chiarito il principio **reference-first, reimplement-later** per la futura stem ingestion pipeline;
-- aggiornata la sezione Custom Track con il ruolo possibile di NatuStem come base concettuale per separazione stem, gestione output, log, modelli e setup CPU/GPU;
-- aggiornata la tabella dipendenze future con `audio-separator`, modelli Demucs/MDX e Python toolchain come elementi tool-only, mai runtime;
-- aggiunto uno spike dedicato nella roadmap per studiare NatuStem e implementare una pipeline CYMATICA-specifica, headless, testabile e orientata a `.cymlevel`;
-- aggiornati decision log, open questions e riferimenti tecnici.
-
-### 0.3 — 2026-07-08
-
-Questa revisione separa la specifica tecnica dalle istruzioni operative per agenti:
-
-- rimossa dal documento la sezione con prompt operativi per Antigravity;
-- creato un file `AGENTS.md` separato, completo e pensato come contratto operativo per Google Antigravity 2.0 o IDE agentici equivalenti;
-- mantenuta nel documento solo una breve nota di collegamento verso `AGENTS.md`;
-- aggiornato il decision log con la scelta di spostare le regole operative degli agenti fuori dalla specifica;
-- confermata la priorità alla Milestone 0 e Milestone 1 senza ONNX, FFmpeg, Strudel runtime, Android e motori fisici esterni.
-
-### 0.2 — 2026-07-08
-
-Questa revisione integra le decisioni e considerazioni emerse dopo la prima specifica:
-
-- confermata la priorità alla **musica procedurale** nella fase iniziale;
-- rimandati tool avanzato, stem separation e import custom a milestone successive;
-- definita strategia **monorepo con target e distribuzioni separate**;
-- aggiunto capitolo dedicato a **dipendenze, prerequisiti e ambiente di sviluppo**;
-- aggiunta policy per dipendenze C++ senza package manager applicativo;
-- aggiunto uso possibile di **Strudel** come laboratorio/research track, non come dipendenza runtime;
-- aggiunto sistema **particellare custom** come modulo separato da bullet e fisica;
-- esplicitato che un motore fisico esterno non è necessario nella Milestone 1;
-- aggiornati roadmap, backlog e decision log.
+Le revisioni 0.2–0.5 hanno consolidato stack nativo, monorepo, dipendenze, particelle custom, NatuStem come riferimento, Strudel come research track, pacchetti `.cymlevel`, `AGENTS.md` e roadmap iniziale. Per il dettaglio storico fare riferimento alla cronologia Git.
 
 ---
 
-## 1. Executive summary
+## 1. Scopo del documento
 
-CYMATICA è un gioco **musical bullet hell** basato sulla **cimatica**: la musica non accompagna il livello, ma diventa la fonte fisica delle forme, dei colori, delle minacce e della struttura dell’arena.
+Questo documento descrive **come costruire CYMATICA**. Definisce:
 
-Il giocatore controlla un’entità luminosa, il **Seme**, dentro una piastra vibrante. Le frequenze musicali generano linee nodali, antinodi, onde d’urto, proiettili, fratture, particelle e anomalie. Il gameplay deve rimanere minimale nei controlli, ma ricco nella variazione ambientale: invece di aggiungere molte azioni al giocatore, il gioco cambia comportamento in base alla musica e all’archetipo cimatico attivo.
+- architettura software;
+- motore di generazione procedurale e adattiva;
+- contratti tra audio, AI, gameplay e rendering;
+- modello di non determinismo controllato;
+- fairness e validazione;
+- formato dei contenuti;
+- dipendenze e ambiente di sviluppo;
+- strategia di test;
+- roadmap implementativa.
 
-Il progetto prevede tre famiglie di contenuti:
-
-1. **Musica procedurale infinita**  
-   Sintesi audio in tempo reale con survival continuo. È la modalità prioritaria per il vertical slice.
-
-2. **Musica procedurale finita**  
-   Tracce generate offline o semi-offline da 1, 2 o 3 minuti, con timeline nota, dati strutturati e livello esportabile.
-
-3. **Musica custom importata**  
-   Brani dell’utente convertiti in pacchetti di livello tramite tool offline. Il tool analizzerà il brano, produrrà stem o canali funzionali, estrarrà parametri musicali e genererà una timeline giocabile.
-
-La priorità non è realizzare subito tutte le modalità. Il primo obiettivo è costruire una **vertical slice Windows** che dimostri:
-
-- audio procedurale stabile;
-- rendering cimatica in tempo reale;
-- movimento del Seme;
-- Quantum Dash;
-- Dissonanza;
-- sistema di proiettili leggibile;
-- sistema particellare visivo di base;
-- almeno due archetipi musicali;
-- loop di gameplay divertente per 60–90 secondi.
+Non è la fonte primaria per tono artistico, palette, motion language, UX, archetipi o sensazione di gioco: tali aspetti sono normativi in `DESIGN.md`. Quando una decisione tecnica contraddice una regola di design, il conflitto deve essere segnalato e risolto esplicitamente; non va nascosto nell’implementazione.
 
 ---
 
-## 2. Valutazione del brainstorming
+## 2. Executive summary
 
-### 2.1 Punti forti
+CYMATICA è un musical bullet hell nel quale musica, geometria, pericolo e colore sono prodotti da uno stesso sistema generativo. Il runtime non deve limitarsi a sincronizzare ostacoli con un file audio: deve costruire in tempo reale una **forma musicale**, una **curva di tensione** e una **sequenza di situazioni giocabili**, adattandole alla performance del giocatore senza perdere identità, fairness o coerenza sonora.
 
-Il brainstorming ha una base molto solida.
-
-**1. La cimatica è funzionale, non decorativa.**  
-Molti rhythm game usano la musica come timeline o trigger. CYMATICA può usare la musica come modello fisico: nodi, antinodi, risonanza, frequenza, dissonanza e saturazione diventano regole di gameplay.
-
-**2. Le modalità diverse hanno senso ludico.**  
-Musica custom, procedurale finita e procedurale infinita non sono semplici varianti di contenuto:
-
-- custom = scoperta e rigiocabilità su brani personali;
-- procedurale finita = livello generato ma validabile;
-- infinito = survival generativo reattivo.
-
-**3. I quattro canali funzionali risolvono il problema degli stem.**  
-La divisione in **Pulso, Corpo, Trama, Vettore** è migliore di una divisione rigida drums/bass/vocals/other, perché funziona anche con brani strumentali e musica procedurale senza voce.
-
-**4. Gli archetipi creano varietà senza moltiplicare i controlli.**  
-Il gioco modifica le regole ambientali in base alla natura musicale della traccia. Questo consente complessità progressiva senza sovraccaricare il giocatore con troppe azioni.
-
-**5. La Dissonanza è un’ottima barra salute diegetica.**  
-Se il giocatore sbaglia, non “perde solo vita”: la musica e la piastra si degradano. Questo lega errore, feedback audio, feedback visivo e difficoltà.
-
-### 2.2 Rischi principali
-
-#### Rischio 1 — Scope eccessivo
-
-Bullet hell, rhythm game, sintesi procedurale, cimatica, source separation, tool offline, editor livelli, Android e sviluppo agentico sono troppi assi di complessità per la prima fase.
-
-**Mitigazione:** partire da modalità procedurale infinita, vertical slice Windows, niente import custom, niente ONNX, niente editor GUI, niente Android reale nella prima milestone.
-
-#### Rischio 2 — Qualità audio procedurale
-
-La musica generata in tempo reale rischia di sembrare finta, piatta o ripetitiva.
-
-**Mitigazione:** evitare all’inizio una “AI composer” completa. Implementare un generatore ibrido con ritmi euclidei, scale modali, layering, sidechain, saturazione controllata, filtri, micro-variazioni e sound design curato.
-
-#### Rischio 3 — Leggibilità visuale
-
-Un tripudio di colori e particelle può diventare illeggibile in un bullet hell.
-
-**Mitigazione:** separare sempre elementi letali, elementi informativi, effetti estetici, preavvisi/telegraph e feedback di stato. La leggibilità viene prima dello spettacolo.
-
-#### Rischio 4 — Fairness tra gamepad e mouse/tastiera
-
-Il Quantum Dash rischia di essere troppo preciso con mouse e troppo approssimativo con controller.
-
-**Mitigazione:** definire un modello coerente:
-
-- controller = direzione analogica + distanza modulata/quantizzata;
-- mouse = destinazione puntata entro raggio massimo;
-- entrambi = safe landing assist, telegraph e cooldown comparabili.
-
-#### Rischio 5 — Importazione musica custom
-
-Stem separation, beat tracking e analisi MIR sono complessi e possono produrre risultati imperfetti.
-
-**Mitigazione:** il gioco non deve dipendere da stem perfetti. Il tool offline deve produrre canali funzionali e confidence score. Se lo stem vocale è assente o debole, il Vettore viene derivato da lead/pitch/energia nello stem Other o nel mix.
-
-#### Rischio 6 — Android e bassa latenza audio
-
-Android è critico per rhythm game e audio interattivo.
-
-**Mitigazione:** preservare l’architettura multi-platform, ma validare prima Windows. Per Android prevedere test di latenza dedicati e backend/configurazioni specifiche solo dopo stabilizzazione del core.
-
-#### Rischio 7 — Dipendenze C++ non tracciate
-
-Non usando un sistema a pacchetti applicativo come npm, le dipendenze potrebbero diventare ambigue: alcune saranno scaricate da CMake, alcune vendorizzate, altre installate a livello di sistema.
-
-**Mitigazione:** introdurre un capitolo formale `docs/dependencies.md`, mantenere una tabella dipendenze, definire chi scarica cosa e bloccare l’introduzione di nuove librerie senza aggiornamento documentale.
-
----
-
-## 3. Visione di prodotto
-
-### 3.1 High concept
-
-> CYMATICA è un bullet hell musicale in cui la musica diventa materia: frequenze, armoniche e dissonanze generano un’arena cimatica viva, colorata e pericolosa.
-
-### 3.2 Promessa al giocatore
-
-Ogni traccia produce una forma di sfida diversa.
-
-Una traccia EDM diventa una matrice ritmica letale. Un brano barocco diventa un organismo fluido di curve, archi e vortici. Una traccia metal frattura la piastra. Un brano ambient trasforma il gioco in navigazione ipnotica tra masse lente. Una traccia jazz/progressive crea poliritmie e disallineamenti percettivi.
-
-### 3.3 Pilastri di design
-
-1. **Musica incarnata**  
-   Ogni evento visivo o meccanico deve derivare da una proprietà musicale o da una regola di cimatica.
-
-2. **Controlli minimali, profondità ambientale**  
-   Il giocatore ha pochi input ma deve leggere un ambiente complesso e mutevole.
-
-3. **Non-determinismo controllato**  
-   La stessa traccia deve mantenere identità musicale ma generare variazioni di pattern, seed e minacce.
-
-4. **Leggibilità prima dello spettacolo**  
-   Colore, particelle e shader devono aumentare l’immersione senza compromettere la leggibilità.
-
-5. **Sviluppo agentico modulare**  
-   Il codice deve essere leggibile da agenti: moduli piccoli, contratti chiari, test automatici, dati testuali, poche dipendenze opache.
-
----
-
-## 4. Modalità di gioco
-
-### 4.1 Modalità Infinite Resonance
-
-Modalità prioritaria per il primo prototipo.
-
-**Descrizione:**  
-Musica generata in tempo reale. Il giocatore sopravvive finché riesce a mantenere bassa la Dissonanza.
-
-**Caratteristiche:**
-
-- durata infinita;
-- progressione dinamica della difficoltà;
-- generatore ritmico euclideo;
-- scale modali;
-- sintesi e parametri audio prodotti internamente;
-- archetipi selezionabili dal giocatore;
-- adattamento alla performance;
-- nessuna dipendenza da tool offline.
-
-**Obiettivo prototipo:**  
-Implementare Sintetico e Organico, poi aggiungere Fratturato.
-
-### 4.2 Modalità Generated Track
-
-Da sviluppare dopo il vertical slice.
-
-**Descrizione:**  
-Il tool genera una traccia finita da 1, 2 o 3 minuti e produce un pacchetto completo di musica + timeline gameplay.
-
-**Caratteristiche:**
-
-- generazione offline o semi-offline;
-- timeline completa nota prima del gameplay;
-- difficoltà stimabile prima dell’avvio;
-- possibile playtest automatico;
-- contenuto esportabile in formato pacchetto.
-
-### 4.3 Modalità Custom Track
-
-Da sviluppare dopo core gameplay e formato pacchetto.
-
-**Descrizione:**  
-L’utente importa una traccia audio. Un tool offline esegue analisi musicale, eventuale separazione stem e codifica in una timeline di parametri.
-
-**Caratteristiche:**
-
-- import MP3/WAV/OGG;
-- normalizzazione audio;
-- beat tracking;
-- onset detection;
-- energy envelope;
-- stima canali funzionali;
-- eventuale source separation;
-- generazione pacchetto `.cymlevel`;
-- livello rigiocabile con seed diversi.
-
-**Nota NatuStem:** il repository `naturewhisp/NatuStem` è rilevante come riferimento per la futura pipeline custom, perché affronta già il problema pratico della separazione locale di stem audio, scelta modello, setup CPU/GPU, gestione output e log. Non deve però diventare dipendenza diretta della Milestone 1 né del runtime del gioco.
-
----
-
-## 5. Modello musicale: quattro canali funzionali
-
-Il gioco non deve dipendere da strumenti specifici. Deve usare quattro funzioni musicali astratte.
-
-| Canale | Funzione | Origine custom possibile | Origine procedurale | Ruolo gameplay |
-|---|---|---|---|---|
-| **Pulso** | ritmo, attacco, transitori | kick, snare, percussioni, onset forti | sequencer euclideo | onde d’urto, trigger, telegraph ritmico |
-| **Corpo** | massa, basso, gravità | basso, sub, pad bassi | bass synth, drone | linee nodali, muri, labirinto |
-| **Trama** | densità, armonia, texture | synth, archi, chitarre, piano, accompagnamenti | arpeggi, pad, granular layer | micro-proiettili, pioggia energetica |
-| **Vettore** | lead, espressione, dinamismo | voce, violino solista, lead synth, assolo | lead synth procedurale | boss, inseguitori, attacchi mirati |
-
-### 5.1 Musica senza voce
-
-La voce non è obbligatoria. Se il tool non rileva un canale vocale affidabile, il Vettore viene ricavato dal contenuto più espressivo e dominante:
-
-- pitch saliente;
-- lead strumentale;
-- centroide spettrale alto;
-- energia melodica;
-- variazione dinamica;
-- eventi ad alta confidence nello stem Other o nel mix.
-
-### 5.2 Strudel come riferimento concettuale
-
-Strudel può essere utile come laboratorio di prototipazione per pattern musicali procedurali, soprattutto per:
-
-- pattern ciclici;
-- poliritmie;
-- trasformazioni ritmiche;
-- densità variabile;
-- probabilità controllata;
-- live sketching delle idee musicali degli archetipi.
-
-**Decisione:** Strudel non deve diventare dipendenza runtime del gioco nella fase iniziale. Può stare in `research/strudel-patterns/` o in un tool/laboratorio separato. Le idee valide possono essere tradotte in una mini-DSL o in un sequencer C++ nativo ispirato a Strudel/Tidal.
-
-**Nota licenza:** qualsiasi integrazione diretta di pacchetti Strudel deve essere preceduta da license review, perché Strudel dichiara licenza AGPL-3.0. Per ora si usa come riferimento e ambiente di ricerca, non come componente distribuibile.
-
-### 5.3 NatuStem come riferimento per custom music
-
-`naturewhisp/NatuStem` può essere usato come **riferimento tecnico/funzionale** per la futura pipeline di stem ingestion, non come dipendenza diretta del gioco.
-
-Principio consigliato:
+La scelta architetturale principale è un motore AI ibrido, non un modello neurale monolitico.
 
 ```text
-reference-first, reimplement-later
+Musical Form + Player Model + Archetype Policy
+                    |
+                    v
+          Cymatic Intelligence Engine
+                    |
+        +-----------+------------+
+        |                        |
+        v                        v
+  Music Intent Plan       Gameplay Pattern Plan
+        |                        |
+        v                        v
+  Audio Scheduler          Level Scheduler
+        |                        |
+        +-----------+------------+
+                    v
+          Shared Musical Clock
 ```
 
-Cioè:
+Il CIE deve:
 
-1. NatuStem resta repository separato.
-2. CYMATICA lo cita come riferimento per studiare una pipeline locale di separazione stem.
-3. Quando la custom music diventa prioritaria, CYMATICA implementa una pipeline propria, minimale, headless e testabile.
-4. Solo se emergerà un vantaggio concreto si valuterà il riuso diretto o l’estrazione di componenti da NatuStem.
+1. osservare musica, stato del giocatore e storico della run;
+2. definire il target di esperienza per i prossimi beat, battute e frasi;
+3. generare più candidati di livello;
+4. eliminare quelli che violano vincoli hard;
+5. classificare i restanti con utility score e novelty score;
+6. impegnare soltanto un breve tratto futuro;
+7. mantenere modificabile il resto dell’orizzonte;
+8. degradare verso pattern sicuri se il planner non produce una risposta in tempo;
+9. registrare seed e decisioni per riprodurre la run.
 
-Aspetti di NatuStem utili come riferimento:
+L’esperienza è quindi **non deterministica per il giocatore**, ma deve essere **riproducibile per sviluppo, test e bug report**.
 
-- invocazione di `audio-separator`;
-- scelta e configurazione dei modelli;
-- gestione modalità CPU/GPU;
-- requisito FFmpeg;
-- generazione di stem `vocals`, `drums`, `bass`, `other`;
-- gestione output folder e collisioni di nome;
-- log e progress feedback;
-- vincoli pratici su Python e dipendenze Windows.
+Per la vertical slice non è richiesto un modello ML. L’intelligenza iniziale deriva da:
 
-Aspetti da **non** importare direttamente nella prima fase:
+- modello gerarchico del tempo musicale;
+- utility AI;
+- pattern grammar;
+- generazione costruttiva stocastica;
+- ricerca bounded su candidati;
+- player model filtrato;
+- validator di raggiungibilità;
+- memoria di novità;
+- policy di pacing.
 
-- GUI Flet;
-- dipendenze Python come requisito del runtime;
-- ONNX/audio-separator come requisito della build del gioco;
-- modelli ML dentro il repo principale;
-- struttura applicativa monolitica se non refactorata in core/CLI/GUI.
-
-Output desiderato per una futura reimplementazione CYMATICA-specifica:
-
-```text
-work/song/
-├── source/
-│   └── original.mp3
-├── stems/
-│   ├── drums.wav
-│   ├── bass.wav
-│   ├── vocals.wav
-│   └── other.wav
-├── analysis/
-│   ├── beat_grid.json
-│   ├── stem_features.json
-│   └── archetype_map.json
-└── manifest.json
-```
-
-Questa pipeline dovrà poi convergere verso:
-
-```bash
-cymatica-tool ingest song.mp3 --out ./work/song
-cymatica-tool analyze ./work/song
-cymatica-tool package ./work/song --out ./CustomLevels/song.cymlevel
-```
+Machine learning, reinforcement learning e ONNX possono essere aggiunti in seguito solo dietro interfacce stabili e con fallback deterministico.
 
 ---
 
-## 6. Cimatica applicata al gameplay
+## 3. Valutazione della revisione 0.6
 
-### 6.1 Arena: la piastra vibrante
+### 3.1 Elementi confermati
 
-L’arena è una piastra bidimensionale. Le forme emergono dalla vibrazione.
+La revisione precedente contiene decisioni solide che restano valide:
 
-Concetti fisici tradotti in gioco:
+- procedurale infinito prima di musica custom e stem separation;
+- C++20/CMake/raylib/miniaudio per il core;
+- Windows come piattaforma di validazione;
+- Android preservato ma differito;
+- audio callback priva di allocazioni e blocchi;
+- fixed timestep indipendente dal rendering;
+- clock audio come autorità degli eventi musicali;
+- separazione tra bullet, particelle e shader;
+- niente motore fisico esterno nel core;
+- tool CLI e runtime come target separati;
+- NatuStem come riferimento, non dipendenza;
+- Strudel/Tidal come riferimento grammaticale, non runtime iniziale;
+- `.cymlevel` ispezionabile e versionato.
 
-| Concetto | Interpretazione gameplay |
+### 3.2 Lacuna principale
+
+La versione 0.6 descrive correttamente audio procedurale, mapping cimatica, archetipi e threading, ma non formalizza abbastanza il componente che prende decisioni. Mancano in particolare:
+
+- uno stato interno del director;
+- una rappresentazione esplicita dell’intento musicale;
+- un modello del giocatore con confidence;
+- una grammatica dei pattern;
+- un meccanismo di selezione tra candidati;
+- hard constraints verificabili;
+- un planning horizon distinto dal commit horizon;
+- una strategia di fallback temporizzata;
+- una politica di novità e memoria;
+- un sistema riproducibile di random stream;
+- metriche per stabilire se il generatore sta funzionando.
+
+Senza questi elementi, il rischio è produrre un insieme di trigger audio-visivi reattivi ma non un vero livello dinamico: musica e arena “si muovono”, tuttavia non costruiscono intenzionalmente tensione, variazione, recupero e climax.
+
+### 3.3 Correzione concettuale
+
+In CYMATICA un livello non è primariamente una lista di spawn. È una politica che, dato uno stato, produce il tratto successivo dell’esperienza.
+
+```text
+next_plan = policy(
+    musical_context,
+    player_model,
+    recent_history,
+    archetype_state,
+    safety_constraints,
+    seed_key
+)
+```
+
+La timeline rimane utile come output, replay, contenuto finito o pacchetto custom, ma nella modalità infinita è una **timeline prodotta incrementalmente**.
+
+---
+
+## 4. Principi architetturali non negoziabili
+
+### 4.1 Fairness prima della sorpresa
+
+Il sistema può sorprendere il giocatore, non può generare pericoli inevitabili, invisibili o incoerenti con gli strumenti disponibili. Ogni candidato deve superare vincoli hard prima di essere valutato esteticamente.
+
+### 4.2 Un’unica autorità temporale musicale
+
+Il clock audio monotono determina beat, battute, frasi e scadenze degli eventi. Gameplay e rendering non inferiscono il tempo musicale dal frame rate.
+
+### 4.3 Decisioni ai confini musicali
+
+La maggior parte delle decisioni AI avviene su boundary musicali, non ogni frame:
+
+- micro: sottodivisione/beat;
+- meso: battuta;
+- macro: frase/sezione.
+
+Correzioni di sicurezza possono avvenire immediatamente, ma non devono creare sincopi arbitrarie non previste dal design.
+
+### 4.4 Non determinismo isolato
+
+Ogni sottosistema possiede uno stream casuale indipendente. Cambiare particelle o camera shake non deve cambiare i pattern di gameplay.
+
+### 4.5 AI fuori dalla callback audio
+
+Nessuna ricerca, inferenza, allocazione, parsing, logging o validazione complessa deve avvenire nella callback miniaudio. L’audio callback esegue soltanto lavoro bounded e preallocato.
+
+### 4.6 Degradazione sicura
+
+Un planner lento, una policy corrotta o un archivio mancante non devono bloccare l’audio né creare caos. Il runtime deve possedere pattern fallback semplici, musicali e sicuri.
+
+### 4.7 Dati prima di scripting arbitrario
+
+Pattern, archetipi e policy sono descritti tramite dati versionati e validati. Nella prima fase non viene eseguito scripting utente nel runtime.
+
+### 4.8 Osservabilità nativa
+
+Ogni decisione rilevante deve essere spiegabile in debug:
+
+- candidati considerati;
+- vincoli falliti;
+- score;
+- seed/key;
+- motivo della scelta;
+- stato del player model;
+- deadline del planner.
+
+---
+
+## 5. Glossario operativo
+
+| Termine | Definizione |
 |---|---|
-| Nodo | zona stabile, linea di sabbia, struttura, muro |
-| Antinodo | zona energetica, emissione proiettili, instabilità |
-| Risonanza | stato favorevole, energia accumulata, potere del giocatore |
-| Dissonanza | danno, distorsione audio/visiva, perdita di controllo |
-| Frequenza crescente | geometria più densa e complessa |
-| Saturazione | difficoltà crescente nel tempo |
+| CIE | Cymatic Intelligence Engine, motore decisionale generativo |
+| Director | componente che decide pacing e target di esperienza |
+| Music Intent | rappresentazione simbolica futura della musica, prima del rendering audio |
+| Pattern | unità parametrica di minaccia/struttura/telegraph |
+| Candidate | istanza di pattern proposta ma non ancora impegnata |
+| Plan Chunk | segmento futuro validato e schedulabile |
+| Planning horizon | finestra futura considerata dal planner |
+| Commit horizon | parte del piano non più modificabile senza violare coerenza |
+| Decision point | boundary musicale in cui il director può scegliere |
+| Hard constraint | regola che rende un candidato valido o invalido |
+| Utility score | misura relativa della bontà di un candidato valido |
+| Novelty budget | quantità di variazione concessa in una finestra temporale |
+| Player model | stima filtrata delle capacità e dello stato del giocatore |
+| Experience target | vettore della pressione desiderata per il prossimo tratto |
+| Safety guard | controllo runtime conservativo sull’immediato futuro |
+| Decision trace | registro delle decisioni necessario per replay e diagnosi |
+| Policy version | identificatore immutabile della logica/configurazione generativa |
+| Semantic replay | rigenerazione tramite seed e policy compatibile |
+| Exact replay | riproduzione tramite input e decision trace già materializzato |
 
-### 6.2 Formula base di Chladni
+---
 
-Formula di riferimento:
+## 6. Modalità di gioco e substrato comune
+
+### 6.1 Infinite Resonance
+
+È la modalità prioritaria. Musica e livello sono pianificati a finestre mobili. Il CIE può adattare le parti non ancora impegnate sulla base della run.
+
+Caratteristiche:
+
+- durata indefinita;
+- macroforma ciclica ma non ripetitiva;
+- adattamento progressivo;
+- archetipi selezionabili o mescolabili;
+- nessuna dipendenza dal tool offline;
+- replay tramite seed, policy version e trace.
+
+### 6.2 Generated Track
+
+Il motore usa la stessa pipeline, ma produce una forma chiusa di durata scelta. Tutta la timeline può essere generata e validata prima del play.
+
+Vantaggi:
+
+- lookahead completo;
+- playtest automatico più profondo;
+- possibilità di ranking e rigenerazione;
+- esportazione in `.cymlevel`;
+- condivisione di seed o pacchetto.
+
+### 6.3 Custom Track
+
+Il tool offline produce un `MusicIntentTimeline` a partire da mix e, opzionalmente, stem. Il CIE non deve dipendere da stem perfetti: usa confidence e fallback.
+
+### 6.4 Substrato comune
+
+Le tre modalità convergono sugli stessi contratti, ma l’ownership cambia in base alla sorgente.
+
+**Procedurale live/generated:**
 
 ```text
-cos(n * pi * x) * cos(m * pi * y) - cos(m * pi * x) * cos(n * pi * y) = 0
+Form Policy + Player Model + Archetype Policy
+                     |
+                     v
+                    CIE
+              +------+------+
+              v             v
+       MusicIntent      PlanChunk
+              |             |
+              +------+------+ 
+                     v
+             Runtime Schedulers
 ```
 
-Per il prototipo, `x` e `y` sono coordinate normalizzate nel dominio `[-1, 1]`, mentre `m` e `n` sono modi interi positivi scelti entro un intervallo limitato e validato.
-
-Nel gioco non serve una simulazione fisica scientificamente perfetta. Serve una funzione sufficientemente coerente da generare pattern leggibili, belli e pilotabili.
-
-### 6.3 Regole di mapping
-
-- `Pulso` controlla trigger, onset, flash, onde d’urto.
-- `Corpo` controlla `m/n`, spessore e stabilità delle linee nodali.
-- `Trama` controlla densità di micro-proiettili e particelle.
-- `Vettore` controlla entità dinamiche, inseguitori e attacchi mirati.
-- `Dissonanza` introduce rumore, offset, glitch e perdita di purezza.
-
----
-
-## 7. Meccaniche base del giocatore
-
-### 7.1 Movimento
-
-Il giocatore controlla il **Seme**, una particella di luce/frequenza pura.
-
-Requisiti:
-
-- movimento fluido e responsivo;
-- supporto gamepad e mouse/tastiera;
-- arena delimitata;
-- hitbox piccola e leggibile;
-- trail visivo non confondibile con proiettili;
-- input latency misurabile.
-
-### 7.2 Dissonanza come salute
-
-La Dissonanza sostituisce la vita tradizionale.
-
-Quando il giocatore viene colpito:
-
-- aumenta Dissonanza;
-- il mix audio si degrada;
-- le linee di Chladni tremano;
-- aumentano glitch, aberrazione cromatica e rumore;
-- sopra soglie alte, la presentazione diventa più instabile, ma hitbox e regole di collisione restano coerenti e telegrafate;
-- la Dissonanza non deve introdurre modifiche nascoste alla geometria autoritativa del gameplay;
-- al 100% la traccia collassa in rumore/feedback e avviene il game over.
-
-Possibili soglie:
-
-| Dissonanza | Stato | Effetto |
-|---:|---|---|
-| 0–25% | Purezza | audio limpido, visual stabile |
-| 25–50% | Disturbo | leggera distorsione, jitter visivo |
-| 50–75% | Instabilità | difficoltà lettura, glitch evidenti |
-| 75–100% | Collasso | audio degradato, piastra instabile |
-| 100% | Silenzio/Rumore | game over |
-
-### 7.3 Graze
-
-Il Graze premia il rischio controllato.
-
-Il giocatore accumula Risonanza quando sfiora proiettili, muri o antinodi senza collisione.
-
-Requisiti:
-
-- distanza di graze chiara;
-- no farming banale;
-- ricompensa proporzionale al rischio;
-- feedback audio sottile;
-- interazione con Drop Shock.
-
-### 7.4 Drop Shock
-
-Il Drop Shock è l’abilità di rilascio della Risonanza.
-
-Effetti possibili:
-
-- pulizia temporanea della piastra;
-- conversione proiettili in particelle innocue;
-- reset locale della Dissonanza visiva;
-- apertura corridoi;
-- forte feedback audio sincronizzato al beat.
-
-Vincoli:
-
-- deve essere potente ma raro;
-- non deve risolvere ogni situazione;
-- deve essere quantizzato musicalmente;
-- deve avere telegraph chiaro.
-
----
-
-## 8. Quantum Dash
-
-### 8.1 Funzione ludica
-
-Il Quantum Dash è la meccanica centrale di mobilità avanzata.
-
-Non è solo una schivata: il Seme cambia fase/frequenza, attraversando alcune strutture ma diventando vulnerabile ad altre.
-
-### 8.2 Safe landing assist
-
-Per evitare frustrazione, il dash deve calcolare destinazioni valide.
-
-Regola:
-
-> Se la destinazione teorica cade dentro un muro o zona invalida, il sistema accorcia o estende il dash verso il punto sicuro più vicino lungo la traiettoria, entro limiti controllati.
-
-Questo assist non deve rendere il dash automatico: deve solo evitare fallimenti ingiusti da pochi pixel.
-
-### 8.3 Input gamepad
-
-- stick sinistro = direzione;
-- tap dash = distanza standard;
-- hold dash = preview di raggio/destinazione;
-- rilascio = esecuzione;
-- soft snap su nodi/corridoi vicini.
-
-### 8.4 Input mouse e tastiera
-
-- WASD = movimento;
-- mouse = destinazione dash;
-- se cursore dentro raggio massimo, destinazione esatta;
-- se cursore fuori raggio massimo, dash verso massimo raggio;
-- stesso cooldown e stesso rischio del gamepad.
-
-### 8.5 Varianti per archetipo
-
-| Archetipo | Variante dash |
-|---|---|
-| Sintetico | dash quantizzato su griglia/celle |
-| Organico | glide armonico, più curvo e fluido |
-| Fratturato | dash d’impatto, può rompere strutture ma genera schegge |
-| Etereo | dash lungo, cooldown alto, uso strategico |
-| Sincopato | dash attivato su levare/off-beat, input anticipato |
-
----
-
-## 9. Archetipi cimatici
-
-Gli archetipi sono **stati fisici della piastra**, non semplici generi musicali. Una traccia custom può cambiare archetipo nel tempo o mescolare più stati.
-
-### 9.1 Sintetico / Matriziale
-
-**Musiche tipiche:** EDM, techno, chiptune, cyberpunk.  
-**Identità:** rigidità, griglia, precisione, quantizzazione.
-
-Meccaniche:
-
-- muri ortogonali;
-- proiettili rettilinei;
-- pattern simmetrici;
-- dash a celle;
-- telegraph molto netto;
-- alto valore per riflessi e timing.
-
-### 9.2 Organico / Concentrico
-
-**Musiche tipiche:** classica, barocca, orchestrale, acustica.  
-**Identità:** curve, onde, flusso, dinamica.
-
-Meccaniche:
-
-- linee concentriche/ellittiche;
-- crescendi che comprimono arena;
-- particelle fluide;
-- Vettore su curve di Bézier;
-- graze continuo lungo linee curve;
-- gioco di posizionamento e lettura spaziale.
-
-### 9.3 Fratturato / Caotico
-
-**Musiche tipiche:** rock, metal, punk, noise, industrial.  
-**Identità:** saturazione, rottura, frattura, schegge.
-
-Meccaniche:
-
-- muri frastagliati;
-- strutture distruttibili;
-- shrapnel;
-- jitter controllato;
-- dash d’impatto;
-- rischio alto e improvvisazione.
-
-### 9.4 Etereo / Sospeso
-
-**Musiche tipiche:** ambient, drone, lo-fi, cinematic soft.  
-**Identità:** lentezza, nebbia, macroforme, ipnosi.
-
-Meccaniche:
-
-- blocchi grandi e lenti;
-- nebbia di Dissonanza;
-- dash lungo ma raro;
-- pianificazione;
-- danno nel tempo invece di impatti rapidi;
-- flow meditativo ma pericoloso.
-
-### 9.5 Sincopato / Spostato
-
-**Musiche tipiche:** jazz, progressive, IDM, math rock.  
-**Identità:** tempi dispari, poliritmia, off-beat, rotazioni.
-
-Meccaniche:
-
-- assi che ruotano;
-- pattern su ritmi sovrapposti;
-- Vettore in levare;
-- dash ritardato/anticipato;
-- spostamenti prospettici;
-- sfida cerebrale.
-
----
-
-## 10. Progressione temporale: saturazione della piastra
-
-### 10.1 Saturazione
-
-Più una traccia è lunga, più la piastra accumula energia. La difficoltà cresce senza dover aumentare soltanto il numero di proiettili.
-
-Fasi possibili:
-
-| Fase | Tempo indicativo | Effetto |
-|---|---:|---|
-| Cristallina | 0–60s | linee sottili, pattern leggibili |
-| Eccitazione | 60–180s | muri più spessi, più particelle, più pressione |
-| Turbolenza | 180s+ | sfaldamento, polvere letale, corridoi stretti |
-
-### 10.2 Effetti
-
-- aumento densità particellare;
-- incremento spessore nodale;
-- proiettili più frequenti;
-- telegraph più breve ma sempre presente;
-- Dissonanza più difficile da ridurre;
-- archetipi più estremi.
-
----
-
-## 11. Visual design
-
-### 11.1 Principio
-
-Il gioco deve essere minimale nelle forme primarie ma ricco in colore, movimento e metamorfosi. La musica deve letteralmente prendere forma e colore.
-
-### 11.2 HUD diegetico
-
-Evitare UI invasiva.
-
-- Dissonanza = degrado visivo/audio del Seme e della piastra;
-- tempo traccia = anello/oscilloscopio perimetrale;
-- beat = respiro luminoso dell’arena;
-- risonanza caricata = intensità del Seme;
-- cooldown dash = forma/alone del Seme;
-- Drop Shock pronto = pattern di risonanza interno al Seme.
-
-### 11.3 Palette per archetipi
-
-| Archetipo | Palette indicativa |
-|---|---|
-| Sintetico | nero, cyan elettrico, magenta, giallo acido |
-| Organico | antracite, oro caldo, verde smeraldo, bianco perla |
-| Fratturato | ferro bruciato, rosso lava, arancione, bianco fosforico |
-| Etereo | blu notte, indaco, viola spettrale, verde bioluminescente |
-| Sincopato | ottanio, corallo, lime, arancione bruciato |
-
-### 11.4 Requisiti di leggibilità
-
-- Le minacce devono avere silhouette nette.
-- Ogni attacco importante richiede telegraph.
-- I colori estetici non devono nascondere proiettili.
-- La Dissonanza non deve rendere il gioco illeggibile prima del game over.
-- Accessibilità: prevedere profili colore alternativi.
-
----
-
-## 12. Sistema particellare e fisica
-
-### 12.1 Decisione principale
-
-CYMATICA ha bisogno di un **sistema particellare custom**, ma non ha bisogno di un motore fisico esterno nella Milestone 1.
-
-Distinzione obbligatoria:
-
-| Sistema | Scopo | Collisione gameplay | Determinismo richiesto |
-|---|---|---:|---:|
-| Bullet system | proiettili e minacce | sì | alto |
-| Particle system | sabbia, scie, polvere, glow, glitch | no o limitata | medio |
-| Physics engine | rigid body, urti realistici, vincoli | eventuale | variabile |
-
-La separazione è critica:
+**Custom track:**
 
 ```text
-Bullet = entità di gameplay.
-Particle = effetto visivo.
-Physics = simulazione fisica opzionale, non core.
+Precomputed MusicIntentTimeline
+              |
+              v
+        CIE + Pattern Catalog
+              |
+              v
+          PlanChunk stream
+              |
+              v
+        Runtime Scheduler
 ```
 
-### 12.2 Particle system custom
+Nella modalità procedurale il CIE orchestra la pianificazione congiunta e produce un Music Intent canonico prima di audio e gameplay. Nella modalità custom riceve invece un intento estratto dalla traccia. In nessun caso il sistema deve creare un ciclo nel quale il director reagisce continuamente all’audio già renderizzato per ricostruire decisioni che conosceva in origine.
 
-Modulo proposto:
+---
+
+## 7. Modello musicale gerarchico
+
+### 7.1 Quattro canali funzionali
+
+Il sistema conserva i canali già definiti:
+
+| Canale | Funzione musicale | Funzione di gameplay |
+|---|---|---|
+| Pulso (`Pulse`) | ritmo, transienti, accenti | trigger, onde, emissioni, telegraph |
+| Corpo (`Body`) | basso, gravità, fondazione | geometria nodale, muri, spazio |
+| Trama (`Texture`) | armonia, densità, riempimento | micro-pattern, particelle, pressione diffusa |
+| Vettore (`Vector`) | lead, frase espressiva, direzione | inseguitori, boss-like actor, attacchi mirati |
+
+Il canale Vettore non coincide necessariamente con la voce. Può essere un lead strumentale o una componente saliente stimata.
+
+### 7.2 Livelli temporali
 
 ```text
-engine/
-├── particles/
-│   ├── particle.h
-│   ├── particle_system.h/.cpp
-│   ├── particle_emitters.h/.cpp
-│   ├── particle_presets.h
-│   └── particle_budget.h
-├── gameplay/
-│   ├── bullet.h
-│   ├── bullet_pool.h
-│   ├── bullet_patterns.h
-│   └── collision.h
-└── graphics/
-    ├── particle_renderer.h/.cpp
-    └── shaders/
-        ├── particles.vs
-        └── particles.fs
+sample -> audio block -> subdivision -> beat -> bar -> phrase -> section -> run form
 ```
 
-Struttura base:
+Ogni livello ha responsabilità diverse:
+
+- sample/audio block: DSP;
+- subdivision/beat: eventi ritmici e telegraph;
+- bar: selezione pattern e trasformazioni;
+- phrase: pacing, difficoltà, memoria di novità;
+- section: archetype blend, tonalità, orchestrazione;
+- run form: progressione, climax, recupero e meta-obiettivi.
+
+### 7.3 Music Intent, non analisi postuma
+
+Nella musica procedurale, audio e gameplay devono derivare dallo stesso intento simbolico. Il gioco non deve sintetizzare una cassa e poi eseguire FFT per scoprire che esiste una cassa.
+
+```text
+MusicIntentEvent
+  -> AudioEvent
+  -> GameplayIntentEvent
+  -> VisualIntentEvent
+```
+
+L’analisi del segnale resta utile per feedback, custom tracks, verifica o modulazioni timbriche, ma non è la fonte primaria della struttura quando il sistema conosce già la composizione.
+
+### 7.4 Rappresentazione minima
 
 ```cpp
-struct Particle {
-    Vector2 position;
-    Vector2 velocity;
-    float lifetime;
-    float age;
-    float size;
-    float rotation;
-    float angularVelocity;
-    Color color;
-    ParticleKind kind;
+struct MusicPosition {
+    std::uint64_t sampleFrame;
+    std::uint64_t subdivisionIndex;
+    std::uint64_t beatIndex;
+    std::uint64_t barIndex;
+    std::uint64_t phraseIndex;
+    float beatPhase; // [0, 1)
+};
+
+enum class MusicalRole : std::uint8_t {
+    Pulse,
+    Body,
+    Texture,
+    Vector
+};
+
+struct MusicIntentEvent {
+    MusicPosition at;
+    MusicalRole role;
+    std::uint32_t motifId;
+    float energy;       // [0, 1]
+    float tension;      // [0, 1]
+    float density;      // [0, 1]
+    float salience;     // [0, 1]
+    float pitchHz;      // 0 se non applicabile
+    std::uint32_t flags;
 };
 ```
 
-Regola di aggiornamento:
+
+---
+
+## 8. Cymatic Intelligence Engine
+
+### 8.1 Responsabilità
+
+Il CIE è il motore che trasforma contesto musicale, stato del giocatore e memoria della run in un piano futuro validato.
+
+Non è responsabile di:
+
+- produrre direttamente campioni audio;
+- disegnare shader;
+- risolvere collisioni frame per frame;
+- leggere file o modelli nella callback audio;
+- modificare retroattivamente eventi già impegnati;
+- garantire da solo il frame rate.
+
+È responsabile di:
+
+- pacing;
+- esperienza target;
+- generazione di candidati;
+- selezione di pattern;
+- controllo di varietà;
+- adattamento della difficoltà;
+- validazione preventiva;
+- pianificazione quantizzata;
+- spiegabilità e decision trace.
+
+### 8.2 Architettura logica
+
+```text
++-----------------------+       +-----------------------+
+| Music/Form State      |       | Player Model          |
+| beat/bar/phrase       |       | skill/stress/style    |
++-----------+-----------+       +-----------+-----------+
+            |                               |
+            +---------------+---------------+
+                            v
+                 +------------------------+
+                 | Experience Target      |
+                 | pressure/novelty/load  |
+                 +-----------+------------+
+                             v
+                 +------------------------+
+                 | Pacing Director        |
+                 | macro/meso decisions   |
+                 +-----------+------------+
+                             v
+                 +------------------------+
+                 | Candidate Generator    |
+                 | grammar + RNG streams  |
+                 +-----------+------------+
+                             v
+                 +------------------------+
+                 | Hard Constraint Gate   |
+                 | fairness/reachability  |
+                 +-----------+------------+
+                             v
+                 +------------------------+
+                 | Scorer + Selector      |
+                 | fit/novelty/cost       |
+                 +-----------+------------+
+                             v
+                 +------------------------+
+                 | Receding-Horizon Plan  |
+                 | commit + mutable tail  |
+                 +-----------+------------+
+                             v
+                 +------------------------+
+                 | Runtime Safety Guard   |
+                 +-----------+------------+
+                             v
+                       Schedulers
+```
+
+### 8.3 Layer del motore
+
+Il CIE è diviso in cinque layer, ciascuno sostituibile e testabile.
+
+#### Layer A — Perception and state
+
+Costruisce snapshot immutabili di:
+
+- MusicState;
+- PlayerModel;
+- RunHistory;
+- WorldState;
+- ResourceBudget;
+- active policy/version.
+
+#### Layer B — Experience management
+
+Decide che tipo di esperienza produrre nel prossimo orizzonte:
+
+- pressione;
+- precisione richiesta;
+- mobilità;
+- densità cognitiva;
+- rischio/rendimento;
+- novità;
+- recupero;
+- intensità estetica.
+
+#### Layer C — Content generation
+
+Istanzia pattern e trasformazioni compatibili con:
+
+- archetipo;
+- sezione musicale;
+- target di esperienza;
+- stato corrente;
+- capacità del giocatore;
+- budget CPU/GPU/entity.
+
+#### Layer D — Validation and selection
+
+Applica hard constraints e valuta i candidati validi.
+
+#### Layer E — Scheduling and observability
+
+Impegna una parte del piano, pubblica eventi, registra le decisioni e gestisce i fallback.
+
+### 8.4 Snapshot di input
+
+Il planner non legge oggetti mutabili sparsi nel runtime. Riceve un unico snapshot coerente:
 
 ```cpp
-particle.position += particle.velocity * dt;
-particle.velocity += cymaticFieldForce * dt;
-particle.age += dt;
-particle.size *= decay;
+struct DirectorInput {
+    MusicState music;
+    PlayerModelSnapshot player;
+    WorldSnapshot world;
+    RunHistorySummary history;
+    ExperiencePolicy policy;
+    ResourceBudget budget;
+    SeedContext seed;
+    DirectorDeadline deadline;
+};
 ```
 
-Dove `cymaticFieldForce` è guidata da audio e piastra:
+Requisiti:
 
-```text
-fieldForce =
-    chladni_gradient(position, audio_frame)
-  + pulse_impulse
-  + dissonance_noise
-  + archetype_wind
+- trivially copyable o composto da handle immutabili;
+- nessun puntatore a oggetti con lifetime ambiguo;
+- dimensione bounded;
+- schema versionato per trace e test;
+- generato sul game thread e consegnato al planning worker.
+
+### 8.5 Output del planner
+
+```cpp
+struct PlanChunk {
+    PlanChunkId id;
+    PolicyVersion policyVersion;
+    MusicPosition begin;
+    MusicPosition commitUntil;
+    MusicPosition plannedUntil;
+    ExperienceTarget target;
+    std::vector<PlannedEvent> events; // allocata fuori dai path realtime
+    ValidationSummary validation;
+    SelectionExplanation explanation;
+    std::uint64_t contentHash;
+};
 ```
 
-### 12.3 Budget e performance
+Nel runtime la rappresentazione può essere convertita in buffer preallocati prima della pubblicazione. `std::vector` è ammesso nel worker/planner, non nella callback audio.
 
-Milestone 1:
+### 8.6 Ciclo decisionale di riferimento
 
-- CPU particle system;
-- object pooling;
-- niente allocazioni per frame;
-- target iniziale 2.000–5.000 particelle;
-- limite dinamico scalabile;
-- nessun compute shader obbligatorio;
-- nessun motore fisico esterno.
+Il CIE deve avere un ciclo esplicito, non una catena di callback implicite:
 
-Milestone successive:
+```cpp
+PlanResult CymaticDirector::buildNextPlan(const DirectorInput& in) {
+    DirectorState nextState = pacing_.advance(state_, in);
+    ExperienceTarget target = targetController_.compute(nextState, in);
 
-- renderer dedicato;
-- texture atlas o mesh batching;
-- preset per archetipi;
-- particelle attratte/respinte da nodi e antinodi;
-- eventuale GPU particles solo se necessario;
-- fallback CPU obbligatorio per Android.
+    CandidateBatch batch;
+    generator_.generate(target, in, batch);
 
-### 12.4 Comportamento per archetipo
+    ValidCandidateSet valid;
+    for (PatternCandidate& candidate : batch) {
+        ValidationResult result = validator_.validate(candidate, in);
+        if (result.accepted) {
+            scorer_.score(candidate, target, in);
+            valid.push(std::move(candidate));
+        } else {
+            explanation_.recordRejection(candidate, result);
+        }
+        if (in.deadline.softExpired()) {
+            break;
+        }
+    }
 
-| Archetipo | Particelle |
-|---|---|
-| Sintetico | quadrate, rettilinee, scie digitali, dissolvenza a step |
-| Organico | sabbia fluida, moto orbitale, scie morbide |
-| Fratturato | schegge, scintille, frammenti veloci, jitter |
-| Etereo | nebbia, particelle lente, drift inerziale |
-| Sincopato | impulsi irregolari, rotazioni improvvise, split cromatici |
+    PatternCandidate selected = valid.empty()
+        ? fallback_.instantiate(target, in)
+        : selector_.select(valid, in.seed, target);
 
-### 12.5 Motori fisici esterni
+    PlanChunk chunk = planner_.composeCommittedPrefix(selected, in);
+    safety_.assertPlanInvariants(chunk, in);
+    trace_.record(nextState, target, selected, chunk);
+    state_ = nextState;
+    return chunk;
+}
+```
 
-Non integrare Box2D o simili nella Milestone 1.
+L’implementazione reale può separare le fasi in job, ma deve conservare:
 
-Potrebbero essere valutati solo più avanti per:
+- input snapshot unico;
+- hard gate prima dello score;
+- deadline osservabile;
+- fallback sempre disponibile;
+- pubblicazione atomica del risultato;
+- trace di decisione.
 
-- helper collisione;
-- prototipi specifici;
-- modalità speciali con oggetti fisici;
-- tooling/debug.
+### 8.7 Stato persistente del director
 
-Per il core loop, collisioni e pattern devono restare deterministici, semplici e controllabili.
+Lo stato è piccolo, versionato e serializzabile:
+
+```cpp
+struct DirectorState {
+    PacingState pacing;
+    ExperienceTarget previousTarget;
+    float recoveryDebt;
+    float noveltyDebt;
+    std::uint64_t nextDecisionId;
+    PatternHistoryWindow recentPatterns;
+    ArchetypeBlend activeBlend;
+    std::uint32_t consecutiveFallbacks;
+};
+```
+
+Non conservare nel director puntatori alle entità runtime. Lo stato deve poter essere incluso in un replay checkpoint e confrontato nei test.
 
 ---
 
-## 13. Stack tecnologico
+## 9. Pacing Director
 
-### 13.1 Scelta raccomandata per prototipo
+### 9.1 Stato di pacing
 
-**C++20 + CMake + raylib + miniaudio**
+Il director usa una macchina a stati gerarchica guidata da forma musicale e performance.
 
-Motivazione:
+Stati macro raccomandati:
 
-- controllo diretto su loop audio e rendering;
-- poche dipendenze;
-- codice testuale, adatto ad agenti;
-- build deterministica;
-- buona portabilità;
-- prototipo veloce;
-- basso overhead;
-- possibilità di dist separate per gioco e tool.
+```text
+INTRO
+EXPOSITION
+BUILD
+PRESSURE
+DROP
+RECOVERY
+VARIATION
+CLIMAX
+RESOLUTION
+```
 
-### 13.2 Motivi per non partire da Flutter
+Nella modalità infinita, `RESOLUTION` può condurre a una nuova `EXPOSITION` con trasformazione di tonalità, archetipo o densità.
 
-Flutter può essere utile per tool/editor o app companion, ma non è la scelta più sicura per il core game prototipo perché:
+### 9.2 Regole di transizione
 
-- audio a bassa latenza richiederebbe comunque codice nativo;
-- rendering bullet hell massivo richiederebbe CustomPainter/shader/FFI;
-- il rischio è costruire due stack invece di uno;
-- per un agente, FFI + Dart + C++ aumenta i punti di rottura.
+Le transizioni normali avvengono su frase o battuta. Un colpo subito dal giocatore non deve causare un cambio istantaneo e percepibile come rubber-banding.
 
-Flutter può restare candidato per un futuro editor/launcher, ma non per il primo core gameplay.
+Esempio:
 
-### 13.3 Motivi per non partire da Unity/Unreal/FMOD/Wwise
+```text
+BUILD -> PRESSURE
+quando:
+- phrase boundary;
+- energia musicale prevista > soglia;
+- player confidence sufficiente;
+- nessun recovery debt attivo.
 
-Unity, FMOD, Wwise e Unreal/MetaSounds sono potenti, ma nel contesto di sviluppo agentico hanno più superfici opache:
+PRESSURE -> RECOVERY
+quando:
+- pressione cumulativa supera target;
+- dissonanza cresce rapidamente;
+- safety margin si riduce;
+- sezione musicale consente una distensione.
+```
 
-- asset database;
-- editor visuali;
-- file progetto complessi;
-- workflow non interamente testuale;
-- più difficile generare e verificare modifiche da terminale.
+### 9.3 Recovery debt
 
-La scelta nativa non esclude di ispirarsi a MetaSounds/FMOD/Wwise. Il progetto può replicare parte del loro modello tramite codice C++ e node graph/audio routing in miniaudio o moduli interni.
+Ogni tratto ad alta pressione accumula un debito di recupero. Il director deve ripagarlo con spazio, densità o velocità ridotte entro un limite di frasi.
 
-### 13.4 Motivi per considerare Godot in futuro
+```cpp
+recoveryDebt += pressureAboveBaseline * duration;
+recoveryDebt -= recoveryStrength * duration;
+```
 
-Godot resta una valida seconda scelta se si desidera un engine 2D completo e open-source. È più testuale di Unity/Unreal, ma introduce comunque scene, import asset e GDExtension.
+Il debito evita sequenze casuali di picchi consecutivi e rende la curva più musicale.
 
-Per ora non è la strada primaria.
+### 9.4 Tension curve
+
+Il director mantiene due valori distinti:
+
+- `musicalTension`: richiesta dalla composizione;
+- `gameplayPressure`: pressione effettiva stimata.
+
+Non devono coincidere sempre. Un crescendo può aumentare spettacolo e densità visuale senza rendere subito più strette le hitbox. La differenza consente anticipazione e respirazione.
+
+### 9.5 Experience target
+
+```cpp
+struct ExperienceTarget {
+    float pressure;          // esposizione a pericoli
+    float precisionDemand;   // accuratezza movimento richiesta
+    float mobilityDemand;    // distanza/ritmo degli spostamenti
+    float rhythmDemand;      // importanza del timing musicale
+    float cognitiveLoad;     // numero di flussi/regole simultanei
+    float grazeOpportunity;  // opportunità di rischio volontario
+    float novelty;           // distanza dal recente
+    float spectacle;         // intensità VFX non letale
+    float recovery;          // spazio e stabilità desiderati
+};
+```
+
+Il target è un vettore. Ridurre la difficoltà non significa soltanto rallentare i proiettili: può significare mantenere velocità ma ridurre simultaneità, aumentare telegraph o ampliare corridoi.
 
 ---
 
-## 14. Ambiente di sviluppo e dipendenze
+## 10. Player model e adattamento
 
-### 14.1 Principio
+### 10.1 Perché non basta un singolo livello di abilità
 
-Poiché il progetto non usa un package manager applicativo come npm, tutte le dipendenze devono essere censite, classificate e rese riproducibili.
+Un giocatore può essere bravo nei micro-movimenti ma scarso nel dash, oppure aggressivo nel graze ma vulnerabile alla poliritmia. Il modello deve essere multidimensionale.
 
-Ogni dipendenza deve avere:
+```cpp
+struct PlayerSkillVector {
+    float movementPrecision;
+    float spatialPlanning;
+    float dashExecution;
+    float rhythmicTiming;
+    float hazardTracking;
+    float recoveryControl;
+    float grazeControl;
+};
 
-- nome;
-- ruolo;
-- obbligatoria/opzionale;
-- fase di utilizzo;
-- modalità di acquisizione;
-- versione/pin;
-- licenza;
-- piattaforme target;
-- note per build agentica.
-
-Ogni nuova dipendenza richiede aggiornamento di:
-
-```text
-docs/dependencies.md
-docs/build.md
-CMakeLists.txt o cmake/*.cmake
+struct PlayerStateEstimate {
+    PlayerSkillVector skill;
+    float stress;
+    float flow;
+    float fatigue;
+    float confidence;
+    float adaptationReadiness;
+};
 ```
 
-La configurazione condivisa della build deve essere esposta tramite `CMakePresets.json`; eventuali override locali devono stare in `CMakeUserPresets.json` e non essere committati.
+### 10.2 Osservazioni
 
-### 14.2 Requisiti minimi Windows
+Il sistema può derivare segnali locali, senza telemetria remota obbligatoria:
 
-| Requisito | Obbligatorio | Note |
-|---|---:|---|
-| Windows 10/11 x64 | sì | target primario sviluppo |
-| Git | sì | clone repo e submodule eventuali |
-| Visual Studio o Build Tools con workload C++ desktop | sì | usare una versione supportata disponibile nell’ambiente; `cl.exe` deve essere raggiungibile dal terminale di build |
-| CMake | sì | anche se non globale nel PATH, va documentato path effettivo |
-| Ninja o MSBuild | consigliato | scegliere uno come default |
-| Python 3 | opzionale in M0, utile dopo | script tooling/test, non core runtime |
-| PowerShell | consigliato | script di bootstrap e utilità Windows; non deve essere requisito implicito se non documentato |
-| Antigravity 2.0 / Antigravity IDE | consigliato | ambiente agentico di riferimento, non requisito della build |
+- collisioni per minuto;
+- near miss e graze;
+- distanza media dalle minacce;
+- errori di dash;
+- destinazioni corrette dal safe landing;
+- tempo in zone a bassa mobilità;
+- input reversal rate;
+- frequenza di movimento;
+- tempo di reazione dopo telegraph;
+- uso eccessivo o mancato del Drop Shock;
+- variazione della Dissonanza;
+- sopravvivenza per pattern family;
+- accuratezza rispetto a beat/off-beat;
+- abbandono o restart volontario.
 
-### 14.3 Dipendenze runtime/prototipo
+Questi segnali sono proxy e non vanno interpretati come emozioni certe.
 
-| Dipendenza | Uso | Fase | Acquisizione consigliata | Note |
-|---|---|---|---|---|
-| raylib | finestra, input, rendering base, shader | M0+ | CMake `FetchContent` con versione/tag fissato | non vendorizzare subito, ma cache CMake ammessa |
-| miniaudio | audio low-level, callback, mixing/DSP | M0+ | vendorizzare uno snapshot ufficiale versionato in `thirdparty/miniaudio/` | preferire `miniaudio.c` + `miniaudio.h` quando disponibili; licenza Public Domain oppure MIT-0 |
-| GLSL shader | Chladni, particelle, visual | M0+ | asset sorgente nel repo | nessuna dipendenza esterna |
-| doctest/Catch2 o test harness custom | test unitari | M0+ | FetchContent o vendored single-header | scegliere una sola soluzione |
+### 10.3 Filtraggio e confidence
 
-### 14.4 Dipendenze tool/offline future
+Non adattare su un singolo errore. Ogni metrica usa:
 
-| Dipendenza | Uso | Fase | Acquisizione consigliata | Note |
-|---|---|---|---|---|
-| FFmpeg | conversione, normalizzazione, decoding tool | M7+ | eseguibile esterno configurabile o libreria solo se necessario | evitare linkage complesso all’inizio |
-| ONNX Runtime | inferenza stem separation | M9+ | pacchetto separato, CPU-only iniziale | non richiesto per game runtime |
-| audio-separator | backend possibile per separazione stem | M9+/research | tool-only Python, da valutare tramite NatuStem spike | non richiesto per game runtime |
-| Modelli source separation | stem extraction | M9+ | download manuale/cache tool | non committare modelli pesanti nel repo |
-| Python toolchain stem | prototipo/reimplementazione pipeline custom | M9+/tool | ambiente separato dal C++ runtime | usare solo per tool offline, mai runtime |
-| Essentia/librosa-equivalent | MIR avanzata | M7/M9+ | valutazione separata | evitare dipendenza pesante prima del formato stabile |
-| Strudel | research/pattern sketching | research | fuori runtime, eventualmente in `research/` | license review obbligatoria prima di integrazione |
-| NatuStem | riferimento stem ingestion | research/M8+ | repo esterno di riferimento, non dipendenza | utile per design pipeline, output e setup |
+- EWMA o filtro equivalente;
+- finestra minima di campioni;
+- confidence crescente con osservazioni valide;
+- decadimento nel tempo;
+- separazione per pattern family/archetipo.
 
-### 14.5 Dipendenze Android future
+Esempio:
 
-| Dipendenza | Uso | Fase | Note |
+```cpp
+estimate = lerp(estimate, observation, alpha);
+confidence = min(1.0f, confidence + validSampleWeight);
+```
+
+### 10.4 Challenge corridor
+
+Ogni preset di difficoltà definisce un intervallo desiderato, non un valore assoluto.
+
+```text
+too low pressure -> boredom risk
+inside corridor  -> flow target
+too high pressure -> frustration risk
+```
+
+Il director adatta il livello per restare nel corridoio, ma con variazioni intenzionali: un climax può superarlo brevemente; un recovery può stare sotto.
+
+### 10.5 Limiti dell’adattamento
+
+Regole obbligatorie:
+
+- variazione massima per frase;
+- isteresi per evitare oscillazioni;
+- cooldown dopo un cambio importante;
+- nessun cambio retroattivo;
+- nessuna modifica nascosta a hitbox o invulnerabilità;
+- nessun annullamento di un attacco già telegrafato;
+- ogni assist deve appartenere a una policy dichiarata;
+- adattamento disattivabile in modalità challenge/seeded leaderboard.
+
+### 10.6 Preset
+
+| Preset | Corridoio | Adattamento | Note |
 |---|---|---|---|
-| Android Studio / SDK | build e deploy | M10 | installazione sistema |
-| Android NDK | C++ cross compile | M10 | necessario per CMake Android |
-| Gradle | packaging Android | M10 | generato/gestito da toolchain Android |
-| AAudio/Oboe o backend miniaudio Android | low-latency audio | M10 | test su device reale obbligatorio |
-| ONNX Runtime Android/NNAPI | inferenza mobile opzionale | M9/M10+ | non prioritaria |
+| Assistito | largo, pressione bassa | forte ma graduale | telegraph esteso, recovery frequente |
+| Standard | medio | moderato | esperienza prevista principale |
+| Intenso | alto | limitato | maggiore simultaneità |
+| Pure Seed | fisso | disattivato | confrontabilità e replay |
+| Training | mirato | orientato a una skill | pattern family selettive |
 
-### 14.6 Policy di acquisizione dipendenze
+### 10.7 Privacy
 
-Classificare ogni libreria in una di queste categorie:
+Il player model è locale per default. Qualunque invio di telemetria richiede consenso, documentazione, minimizzazione e separazione da dati identificativi.
 
-1. **System dependency**  
-   Installata nel sistema operativo o nella toolchain. Esempi: MSVC, CMake, Git, Android SDK.
+### 10.8 Stima della pressione osservata
 
-2. **CMake-fetched dependency**  
-   Scaricata automaticamente da CMake tramite `FetchContent` o script equivalente. Esempio: raylib.
+Per la prima implementazione, calcolare una misura esplicita e ispezionabile:
 
-3. **Vendored dependency**  
-   Copiata nel repo sotto `thirdparty/`. Esempio: snapshot `miniaudio.c` + `miniaudio.h`.
-
-4. **External binary dependency**  
-   Eseguibile esterno referenziato da path/config. Esempio: FFmpeg nella prima versione del tool.
-
-5. **Model/data dependency**  
-   File pesante non committato nel repo. Esempio: modelli ONNX per source separation.
-
-6. **Research-only dependency**  
-   Usata per esperimenti, non inclusa nei build distribuibili. Esempio: Strudel.
-
-### 14.7 Regole per Antigravity
-
-Antigravity può scaricare dipendenze se l’ambiente lo consente, ma il progetto non deve dipendere implicitamente da questa capacità.
-
-Direttive:
-
-- se una dipendenza viene scaricata automaticamente, documentare URL, versione/tag e cache path;
-- se una dipendenza va scaricata manualmente, indicare istruzioni precise in `docs/dependencies.md`;
-- non introdurre dipendenze nuove dentro il codice senza aggiornare CMake e documentazione;
-- non committare binari grandi o modelli ML nel repo principale;
-- tenere il runtime del gioco privo di dipendenze tool-only;
-- ONNX/FFmpeg/Strudel non devono essere richiesti per compilare `cymatica_game`;
-- non eseguire installazioni globali, download non versionati o comandi distruttivi fuori dal repository senza approvazione esplicita;
-- registrare provenienza e checksum quando una dipendenza o un modello viene acquisito manualmente.
-
-### 14.8 File consigliato `docs/dependencies.md`
-
-Template:
-
-```markdown
-# CYMATICA Dependencies
-
-| Name | Version/Tag | Required | Used by | Acquisition | License | Notes |
-|---|---|---:|---|---|---|---|
-| raylib | TBD pinned tag | yes | game, renderer | CMake FetchContent | zlib/libpng | pin before M0 closes |
-| miniaudio | pinned official snapshot | yes | audio | thirdparty/miniaudio | Public Domain or MIT-0 | store source, version/commit and chosen license |
-| FFmpeg | TBD | no | tool CLI | external binary | license review | M7+ only |
-| ONNX Runtime | TBD | no | ingestion | external package | MIT | M9+ CPU-only first |
-| audio-separator | TBD | no | ingestion tool | Python package | license review | tool-only, informed by NatuStem spike |
-| NatuStem | external repo | no | research/reference | GitHub reference | license review | reference-first, not dependency |
-| Strudel | none | no | research | external/web | AGPL-3.0 | not runtime |
+```text
+observedPressure =
+    w_exposure    * timeToCollisionExposure
+  + w_compression * spatialCompression
+  + w_actions     * requiredActionRate
+  + w_tracking    * simultaneousFlowCount
+  + w_precision   * corridorPrecision
+  + w_failure     * recentFailureSignal
 ```
+
+Dove:
+
+- `timeToCollisionExposure` cresce quando più hazard hanno TTC breve;
+- `spatialCompression` misura la riduzione dell’area raggiungibile;
+- `requiredActionRate` stima cambi direzione, dash e finestre per secondo;
+- `simultaneousFlowCount` misura il carico di tracking;
+- `corridorPrecision` misura margini rispetto a hitbox/velocità;
+- `recentFailureSignal` usa collisioni e crescita Dissonanza filtrate.
+
+Pesi e normalizzazioni sono policy data-driven. Registrare breakdown e non usare il solo numero finale per debug.
+
+### 10.9 Controller adattivo iniziale
+
+Usare un controller conservativo aggiornato su phrase boundary:
+
+```text
+error = targetPressure - observedPressure
+rawAdjustment = Kp * error + Ki * accumulatedError
+adjustment = clamp(rawAdjustment, -maxDeltaPerPhrase, +maxDeltaPerPhrase)
+```
+
+Applicare poi:
+
+- dead zone/isteresi;
+- confidence multiplier;
+- recovery debt;
+- limiti del preset;
+- smoothing;
+- quantizzazione a cambi semantici consentiti.
+
+Il controller non modifica direttamente velocità o densità. Aggiorna `ExperienceTarget`; il candidate generator sceglie una configurazione valida che soddisfa il nuovo target.
+
+### 10.10 Confidence gating
+
+```text
+if playerModel.confidence < minimum:
+    use preset baseline
+elif adaptationReadiness is low:
+    limit delta
+else:
+    apply bounded adjustment
+```
+
+Questo evita che i primi secondi della run determinino una classificazione permanente.
 
 ---
 
-## 15. Repository, target e distribuzioni
+## 11. Generazione dei candidati
 
-### 15.1 Decisione
+### 11.1 Pattern come unità semantica
 
-Il tool deve stare **nello stesso repo** del gioco, ma come **target separato** e con **distribuzione separata**.
+Un pattern non è una routine di spawn opaca. È una risorsa con metadati, parametri, vincoli e descrittori.
 
-Motivo:
+Esempio concettuale:
 
-- gioco e tool condividono formato dati, archetipi, matematica e validatori;
-- il gioco deve restare snello;
-- il tool può avere dipendenze pesanti;
-- il formato `.cymlevel` va evoluto insieme al runtime;
-- un monorepo è più adatto allo sviluppo agentico nelle prime fasi.
+```json
+{
+  "schema_version": 1,
+  "id": "synthetic.crossfire.v1",
+  "generator": "cartesian_crossfire",
+  "roles": ["pressure", "rhythmic_precision"],
+  "archetypes": ["synthetic"],
+  "duration_beats": { "min": 2, "max": 8 },
+  "telegraph_beats": 0.5,
+  "parameters": {
+    "lane_count": { "type": "int", "min": 3, "max": 9 },
+    "speed": { "type": "float", "min": 0.15, "max": 0.75 },
+    "gap_width": { "type": "float", "min": 0.08, "max": 0.35 }
+  },
+  "hard_limits": {
+    "min_safe_area": 0.10,
+    "max_simultaneous_hazards": 256,
+    "requires_dash": false
+  },
+  "descriptors": {
+    "symmetry": 0.95,
+    "curvature": 0.0,
+    "rhythm_complexity": 0.35
+  }
+}
+```
 
-### 15.2 Struttura consigliata
+### 11.2 Registro nativo dei generatori
+
+Il campo `generator` risolve una funzione C++ registrata in modo esplicito:
+
+```cpp
+using PatternGeneratorFn = GenerateResult(*)(
+    const PatternDefinition&,
+    const PatternParameters&,
+    const GenerationContext&,
+    EventBuffer&
+);
+```
+
+Nella prima fase non usare reflection complessa o plugin binari. Il registro deve fallire chiaramente se l’identificatore è sconosciuto.
+
+### 11.3 Grammatica dei pattern
+
+La grammatica compone:
+
+```text
+motif + emitter topology + temporal pattern + spatial transform + modulation
+```
+
+Esempi:
+
+- motif: pulse burst, rotating wall, pursuit curve;
+- topology: radial, cartesian, nodal, edge, focal point;
+- temporal pattern: straight, euclidean, polymetric, call-response;
+- transform: rotate, mirror, phase-shift, invert, dilate;
+- modulation: energy, tension, player-relative offset, archetype blend.
+
+La grammatica produce varietà senza generare combinazioni arbitrarie: ogni trasformazione dichiara compatibilità e impatto sui descrittori.
+
+### 11.4 Candidate batch
+
+A ogni decision point il generatore crea un batch bounded, per esempio 16–64 candidati, in funzione del budget.
+
+Pseudo-flusso:
+
+```cpp
+for each family compatible with context:
+    for sample in allocatedSamples(family):
+        params = sampleParameters(randomKey);
+        candidate = generate(family, params, context);
+        if hardValidator.accepts(candidate):
+            candidate.score = scorer.evaluate(candidate, context);
+            valid.push(candidate);
+return selector.choose(valid);
+```
+
+Il numero è configurabile. Il runtime deve restare corretto anche con un solo candidato e con zero candidati validi.
+
+### 11.5 Trasformazioni player-relative
+
+Un pattern può orientarsi rispetto al giocatore, ma deve evitare inseguimento perfetto e imprevedibile. Le trasformazioni player-relative usano:
+
+- posizione campionata a un decision point;
+- predizione limitata e smussata;
+- offset massimo;
+- telegraph aggiornato coerentemente;
+- nessuna correzione dell’ultimo istante dopo il commit.
+
+### 11.6 Memoria della run
+
+Il generatore mantiene un sommario bounded:
+
+- ultime family;
+- ultimi descrittori;
+- pattern falliti/subiti;
+- trasformazioni recenti;
+- palette/archetype blend;
+- motivi musicali usati;
+- novelty debt;
+- recovery debt.
+
+Questo impedisce ripetizioni locali anche se la distribuzione globale è ricca.
+
+
+---
+
+## 12. Validazione hard e fairness
+
+### 12.1 Principio
+
+La validità è binaria; la qualità è graduata. Un candidato invalido non può vincere grazie a uno score estetico elevato.
+
+### 12.2 Classi di hard constraint
+
+#### Temporali
+
+- telegraph minimo;
+- nessun evento prima del commit boundary;
+- durata compatibile con frase/battuta;
+- rate di spawn sotto limite;
+- nessun cambio di regola senza preavviso.
+
+#### Spaziali
+
+- nessuno spawn letale dentro hitbox + margine;
+- area sicura minima;
+- corridoio raggiungibile;
+- velocità di chiusura sotto limite;
+- destinazioni dash valide quando il pattern richiede dash;
+- margine contro discretizzazione e floating point.
+
+#### Di capacità
+
+- numero massimo di entità;
+- budget particellare separato;
+- costo shader/pattern entro quality tier;
+- memoria bounded;
+- eventi per tick entro limite.
+
+#### Di leggibilità
+
+- telegraph visibile rispetto alla palette;
+- minacce distinguibili dagli effetti;
+- nessun lampeggio oltre profilo accessibilità;
+- pattern simultanei limitati per cognitive load.
+
+#### Musicali
+
+- eventi quantizzati secondo policy;
+- accenti compatibili con Music Intent;
+- trasformazioni che non distruggono la frase;
+- recovery e climax coerenti con pacing state.
+
+### 12.3 Reachability validator
+
+Il validator usa una rappresentazione gameplay semplificata e conservativa, indipendente dallo shader.
+
+Approccio raccomandato per il prototipo:
+
+1. discretizzare l’arena in una griglia, per esempio 64×36 celle logiche;
+2. campionare il futuro a 10–30 step al secondo sull’orizzonte del candidato;
+3. marcare celle occupate da hazard con margine;
+4. propagare l’insieme di celle raggiungibili dal giocatore in base a velocità, accelerazione e confini;
+5. aggiungere archi di transizione dash se disponibili;
+6. rifiutare il candidato se l’insieme raggiungibile diventa vuoto;
+7. calcolare minimi di safe area, corridor width e escape count.
+
+```text
+R(t + dt) = reachable_neighbors(R(t), movement_envelope)
+            - blocked_cells(t + dt)
+            + valid_dash_landings(t + dt)
+```
+
+Il validator deve sovrastimare il pericolo, non sottostimarlo.
+
+### 12.4 Modelli di controllo
+
+Per evitare che un solo bot determini la fairness, validare almeno contro envelope distinti:
+
+- novice movement envelope;
+- standard envelope;
+- expert envelope;
+- no-dash envelope quando il pattern non dichiara dash obbligatorio;
+- cooldown-aware dash envelope.
+
+Un pattern può dichiarare il profilo minimo richiesto, ma deve essere selezionato solo se compatibile con modalità e player model.
+
+### 12.5 Runtime safety guard
+
+Il validator preventivo non sostituisce un guard immediato. Prima di pubblicare eventi letali, il runtime controlla l’orizzonte breve:
+
+- spawn non sovrapposto;
+- almeno una via di fuga;
+- contatori entità;
+- telegraph effettivamente emesso;
+- stato dash coerente;
+- plan chunk non scaduto.
+
+Azioni possibili in caso di fallimento:
+
+1. cancellare l’evento non ancora visibile;
+2. degradarlo a VFX non letale;
+3. ampliare gap o ritardare spawn;
+4. inserire un safe pulse;
+5. passare a fallback recovery.
+
+Queste azioni devono essere registrate nel trace.
+
+### 12.6 Fairness metrica
+
+Metriche minime per candidato:
+
+```cpp
+struct FairnessMetrics {
+    float minReachableArea;
+    float meanReachableArea;
+    float minCorridorWidth;
+    float minReactionSeconds;
+    float dashDependency;
+    float unavoidableRisk;
+    std::uint32_t escapeRouteCountMin;
+};
+```
+
+`unavoidableRisk` deve essere zero per contenuto standard. Eventuali modalità sperimentali non possono cambiare questa regola senza decisione di design esplicita.
+
+---
+
+## 13. Scoring e selezione
+
+### 13.1 Funzione di utility
+
+Dopo il gate hard, ogni candidato riceve score normalizzati:
+
+```text
+utility =
+    w_fit       * targetFit
+  + w_music     * musicalCoherence
+  + w_novelty   * novelty
+  + w_style     * archetypeIdentity
+  + w_flow      * transitionQuality
+  + w_afford    * grazeAndDashAffordance
+  - w_cost      * performanceCost
+  - w_repeat    * repetitionPenalty
+  - w_risk      * fairnessMarginPenalty
+```
+
+I pesi sono dati di policy, non costanti sparse nel codice.
+
+### 13.2 Target fit
+
+Confronta i descrittori del candidato con `ExperienceTarget`:
+
+```text
+targetFit = 1 - normalized_distance(candidate.descriptors, target)
+```
+
+Le dimensioni possono avere tolleranze diverse. La distanza non deve assumere che più pressione sia sempre meglio.
+
+### 13.3 Novelty score
+
+La novità è distanza dallo storico recente, non casualità assoluta.
+
+Descrittori consigliati:
+
+- densità;
+- simmetria;
+- curvatura;
+- direzione dominante;
+- velocità;
+- ritmo;
+- numero di flussi;
+- dash demand;
+- graze opportunity;
+- safe-area profile;
+- archetype blend.
+
+La novelty è limitata da un budget. Troppa novità consecutiva riduce leggibilità e apprendimento.
+
+### 13.4 Selezione stocastica controllata
+
+Scegliere sempre il massimo rende il sistema prevedibile e può produrre convergenza locale. Il selector può campionare tra i migliori candidati:
+
+```text
+P(candidate_i) = softmax(utility_i / temperature)
+```
+
+Regole:
+
+- temperature bassa in climax/challenge;
+- temperature più alta in exposition/variation;
+- top-k limitato;
+- candidati quasi al limite di fairness penalizzati;
+- seed/key registrati;
+- modalità Pure Seed completamente riproducibile.
+
+### 13.5 Explanation record
+
+```cpp
+struct SelectionExplanation {
+    PatternId selected;
+    float utility;
+    float targetFit;
+    float novelty;
+    float musicalCoherence;
+    float performanceCost;
+    std::array<RejectedCandidateReason, kMaxLoggedRejections> rejected;
+};
+```
+
+In release può essere ridotto; in debug è fondamentale per capire perché il director produce una certa run.
+
+---
+
+## 14. Pianificazione a orizzonte mobile
+
+### 14.1 Due orizzonti
+
+- **Planning horizon:** futuro su cui il planner ragiona, tipicamente 2–8 battute.
+- **Commit horizon:** tratto già garantito al player/audio, tipicamente 0.5–1 battuta o un valore coerente con il telegraph massimo.
+
+```text
+now | committed events | mutable planned tail | unknown future
+```
+
+Il planning horizon può variare con BPM e hardware; il commit horizon non può essere più corto del telegraph necessario.
+
+### 14.2 Receding-horizon planning
+
+A ogni decision point:
+
+1. conserva il prefisso impegnato;
+2. aggiorna player model e pacing;
+3. genera candidati per la coda mutabile;
+4. valida e seleziona;
+5. pubblica il nuovo chunk;
+6. avanza il commit boundary.
+
+### 14.3 Beam search bounded
+
+Per transizioni di più pattern, usare un beam search piccolo:
+
+- beam width: 4–8 iniziale;
+- profondità: 2–4 pattern;
+- budget temporale hard;
+- pruning immediato sui vincoli;
+- cache di risultati geometrici;
+- fallback se deadline superata.
+
+La configurazione va profilata. Non inserire numeri elevati per “più intelligenza” senza misurazione.
+
+### 14.4 Deadline
+
+Il planner riceve una deadline legata al commit horizon. Non è ammesso attendere indefinitamente.
+
+```cpp
+if (clock.now() >= deadline.soft) {
+    stopExpandingCandidates();
+}
+if (clock.now() >= deadline.hard) {
+    publishBestValidOrFallback();
+}
+```
+
+### 14.5 Fallback library
+
+Ogni archetipo deve possedere almeno:
+
+- neutral sustain;
+- safe pulse;
+- recovery corridor;
+- low-density transition;
+- resolution pattern.
+
+I fallback:
+
+- sono prevalidati;
+- non richiedono ricerca;
+- rispettano il Music Intent;
+- possono essere parametrizzati soltanto entro range sicuri;
+- non devono risultare come freeze o errore evidente.
+
+### 14.6 Late planner policy
+
+Se il planner è in ritardo:
+
+1. riusa un fallback coerente;
+2. riduce novelty e cognitive load;
+3. non salta il clock musicale;
+4. registra `PlannerDeadlineMiss`;
+5. non blocca mai audio o game thread.
+
+---
+
+## 15. Non determinismo controllato e riproducibilità
+
+### 15.1 Obiettivo
+
+CYMATICA deve sembrare vivo e non memorizzabile completamente. Allo stesso tempo, un bug deve poter essere riprodotto.
+
+### 15.2 Seed hierarchy
+
+```text
+run_seed
+├── music_form_stream
+├── harmony_stream
+├── rhythm_stream
+├── director_stream
+├── pattern_stream
+├── adaptation_stream
+├── audio_humanization_stream
+├── vfx_stream
+└── cosmetic_stream
+```
+
+Gli stream di gameplay non dipendono da VFX o audio humanization.
+
+### 15.3 Random key stateless
+
+Per ridurre l’accoppiamento all’ordine delle chiamate, usare una funzione pseudo-casuale indicizzata:
+
+```cpp
+struct RandomKey {
+    std::uint64_t runSeed;
+    std::uint32_t streamId;
+    std::uint64_t decisionId;
+    std::uint32_t sampleIndex;
+};
+
+std::uint64_t randomU64(RandomKey key);
+```
+
+L’implementazione può usare un mixer stabile documentato o un counter-based generator. L’algoritmo scelto deve avere test vector e non può cambiare senza incrementare `rng_version`.
+
+Non usare `std::hash` per output persistenti: la stabilità tra implementazioni non è garantita.
+
+### 15.4 Seed derivation
+
+```text
+stream_seed = stable_mix(run_seed, stream_id, policy_version)
+value       = stable_mix(stream_seed, decision_id, sample_index)
+```
+
+Il sistema non ha bisogno di conservare uno stato globale mutabile per ogni chiamata, e il risultato resta stabile anche se un altro stream consuma più numeri.
+
+### 15.5 Decision identity
+
+Ogni decision point ha ID deterministico derivato dalla posizione musicale e dalla run:
+
+```text
+decision_id = hash(section, phrase, bar, decision_slot, policy_version)
+```
+
+### 15.6 Replay levels
+
+#### Exact replay
+
+Contiene:
+
+- build/content hash;
+- policy version;
+- run seed;
+- decision trace materializzato;
+- input trace o snapshot necessari;
+- correzioni del safety guard.
+
+È il formato per bug e test regression.
+
+#### Semantic replay
+
+Contiene seed e parametri principali. È riproducibile solo con versioni compatibili di policy, generatori e contenuti.
+
+#### Share seed
+
+È un’esperienza equivalente destinata ai giocatori; non promette identità tra versioni del gioco.
+
+### 15.7 Run record
+
+```json
+{
+  "schema_version": 1,
+  "build_id": "git:7496098+working",
+  "policy_version": "cie-policy-0.1.0",
+  "rng_version": 1,
+  "run_seed": "0x6e51a0b7d44c1f23",
+  "mode": "infinite",
+  "difficulty_policy": "standard-adaptive",
+  "decisions": [],
+  "runtime_interventions": [],
+  "final_metrics": {}
+}
+```
+
+### 15.8 Versioning compatibility
+
+Una modifica a uno dei seguenti elementi può invalidare il semantic replay:
+
+- RNG algorithm;
+- pattern generator;
+- hard constraints;
+- score weights;
+- pattern catalog;
+- music grammar;
+- fixed timestep;
+- collision geometry.
+
+Il progetto non deve fingere compatibilità quando non esiste.
+
+---
+
+## 16. Motore di musica procedurale
+
+### 16.1 Obiettivo
+
+Il motore musicale deve creare continuità, memoria e forma. Randomizzare note valide in una scala non è sufficiente.
+
+### 16.2 Pipeline gerarchica
+
+```text
+Run Form Planner
+      v
+Section/Phrase Planner
+      v
+Harmony + Motif Planner
+      v
+Rhythm Planner
+      v
+Four-Role Orchestrator
+      v
+Event Scheduler
+      v
+DSP/Synthesis Graph
+```
+
+### 16.3 Form planner
+
+Genera una curva a medio termine:
+
+- durata indicativa delle sezioni;
+- energia;
+- tensione;
+- tonalità/modalità;
+- archetipo dominante;
+- densità;
+- punti di recovery e climax.
+
+Nella modalità infinita usa una grammatica con memoria per evitare cicli identici.
+
+### 16.4 Motif memory
+
+Ogni sezione introduce pochi motivi identificabili. Il sistema può:
+
+- ripetere;
+- trasporre;
+- invertire intervalli;
+- variare ritmo;
+- frammentare;
+- call-and-response;
+- cambiare orchestrazione.
+
+La probabilità di trasformazione dipende da novelty budget e pacing.
+
+### 16.5 Rhythm planner
+
+Supporta:
+
+- griglie regolari;
+- Euclidean rhythms;
+- polymeter;
+- sincopi;
+- density curves;
+- fill limitati a boundary;
+- humanization bounded.
+
+Ogni evento ritmico produce anche un’intenzione di gameplay, non necessariamente una minaccia.
+
+### 16.6 Harmony planner
+
+Per il prototipo:
+
+- scale e modi espliciti;
+- progressioni finite per archetipo;
+- voice-leading semplice;
+- tension/release controllata;
+- bass note e chord tones coerenti;
+- dissonanze musicali volontarie distinte dalla Dissonanza di salute.
+
+La Dissonanza gameplay non deve automaticamente introdurre note casualmente stonate: deve degradare il suono con una policy musicalmente controllata.
+
+### 16.7 Four-role orchestrator
+
+Assegna eventi a Pulso, Corpo, Trama e Vettore. Ogni ruolo produce:
+
+- eventi audio;
+- intensità;
+- descrittori per il CIE;
+- eventuale affordance di gameplay.
+
+### 16.8 Sintesi
+
+Approccio iniziale ibrido:
+
+- oscillatori band-limited dove possibile;
+- sample proprietari o con licenza verificata per transienti;
+- physical modeling semplice per membrane/stringhe;
+- granular texture con pool preallocato;
+- ADSR;
+- filtri;
+- saturazione;
+- delay/reverb bounded;
+- sidechain;
+- limiter finale.
+
+### 16.9 Pianificazione audio ahead-of-time
+
+Il Music Planner opera fuori dalla callback e produce eventi con anticipo. La callback consuma una coda SPSC preallocata di eventi timestamped.
+
+```cpp
+struct ScheduledAudioEvent {
+    std::uint64_t sampleFrame;
+    AudioEventType type;
+    VoiceId voice;
+    float valueA;
+    float valueB;
+    std::uint32_t flags;
+};
+```
+
+La callback non decide la forma musicale; esegue eventi già pianificati e applica controlli latest-value.
+
+### 16.10 Adattamento musicale
+
+La performance può influenzare il futuro musicale, ma solo in regioni mutabili:
+
+- densità della prossima frase;
+- apertura filtro;
+- orchestrazione;
+- tensione;
+- complessità ritmica;
+- probabilità di variazione;
+- durata del recovery.
+
+Non modificare retroattivamente note già schedulate né introdurre click, salto di fase o desincronizzazione.
+
+### 16.11 Strudel/Tidal come riferimento
+
+Strudel e Tidal sono utili per studiare pattern ciclici, mini-notation, trasformazioni e randomizzazione. CYMATICA deve derivare una grammatica nativa più piccola, tipizzata e orientata a Music Intent. Non dipendere da Strudel nel runtime senza decisione esplicita su licenza e stack.
+
+
+---
+
+## 17. Livelli dinamici
+
+### 17.1 Livello come flusso di intenti
+
+Il runtime non riceve direttamente “sparare proiettile X”. Riceve eventi semantici che il realizer trasforma in entità concrete.
+
+```cpp
+enum class PlannedEventType : std::uint8_t {
+    Telegraph,
+    HazardPattern,
+    CymaticField,
+    VectorActor,
+    SafeWindow,
+    GrazeOpportunity,
+    DropShockAffordance,
+    PaletteTransition,
+    CameraAccent,
+    VfxOnly
+};
+```
+
+### 17.2 Pipeline di realizzazione
+
+```text
+Pattern candidate
+  -> validated PatternPlan
+  -> PlannedEvent stream
+  -> Runtime Scheduler
+  -> Authoritative gameplay primitives
+  -> Rendering/VFX representation
+```
+
+Le primitive gameplay sono autoritative; shader e particelle le rappresentano ma non ne sostituiscono la collisione.
+
+### 17.3 Cymatic field model
+
+La geometria visuale parte da una funzione di Chladni o da famiglie correlate.
+
+```text
+F(x, y) = cos(n*pi*x)*cos(m*pi*y)
+        - cos(m*pi*x)*cos(n*pi*y)
+```
+
+Parametri dinamici:
+
+- `m`, `n` interi bounded;
+- rotazione;
+- phase offset;
+- thickness;
+- threshold;
+- polarity;
+- deformation;
+- blend con altra modalità;
+- archetype transform.
+
+Il gameplay non usa direttamente ogni pixel della funzione. Un `CymaticFieldSampler` genera:
+
+- curve o segmenti principali;
+- regioni nodali;
+- regioni antinodali;
+- spawn anchors;
+- collision proxies;
+- occupancy grid per validator.
+
+### 17.4 Pattern families iniziali
+
+Catalogo minimo:
+
+1. `RadialPulse`
+2. `CartesianCrossfire`
+3. `NodalCorridor`
+4. `RotatingArc`
+5. `ExpandingRing`
+6. `VectorPursuit`
+7. `FractureBurst`
+8. `DriftField`
+9. `PolymetricOverlay`
+10. `RecoveryWindow`
+
+Ogni family deve avere almeno:
+
+- una configurazione safe baseline;
+- range parametri;
+- test di determinismo;
+- test del validator;
+- cost estimate;
+- descrittori;
+- telegraph renderer;
+- una rappresentazione di debug.
+
+### 17.5 Archetype policy
+
+Gli archetipi non sono classi C++ rigide. Sono policy e vincoli che influenzano:
+
+- pattern family ammesse;
+- distribuzione dei parametri;
+- trasformazioni;
+- tension curve;
+- palette/motion via `DESIGN.md`;
+- preferenza di score;
+- fallback library;
+- modalità di dash compatibili.
+
+```cpp
+struct ArchetypePolicy {
+    ArchetypeId id;
+    PatternFamilyMask allowedFamilies;
+    DescriptorVector preferredCenter;
+    DescriptorVector preferredTolerance;
+    ScoreWeights scoreWeights;
+    SafetyProfile safety;
+    PacingProfile pacing;
+};
+```
+
+### 17.6 Archetype blending
+
+Una sezione può mescolare due archetipi con peso continuo, ma le regole gameplay non devono cambiare in modo ambiguo.
+
+Regole:
+
+- blend visuale continuo;
+- pattern family composabili;
+- una sola policy primaria per dash e collisioni in ogni intervallo impegnato;
+- transizione telegrafata;
+- nessun cambio di input semantics durante un’azione già iniziata.
+
+### 17.7 Saturazione della piastra
+
+La saturazione è un modificatore di lungo periodo, distinto dalla difficoltà adattiva.
+
+```cpp
+struct SaturationState {
+    float energyAccumulation;
+    float instability;
+    float fractureProbability;
+    float recoveryResistance;
+};
+```
+
+Il director usa la saturazione per rendere più estreme le versioni degli archetipi, ma resta vincolato dalla fairness e dal challenge corridor.
+
+### 17.8 Non determinismo strutturale
+
+La varietà deve emergere da più livelli:
+
+- forma musicale;
+- sequenza di pattern family;
+- parametri;
+- trasformazioni;
+- orientamento;
+- archetipo/blend;
+- risposta al player model;
+- selezione stocastica top-k;
+- micro-humanization non gameplay.
+
+Non affidarsi a una singola chiamata casuale per “rendere diverso” un livello.
+
+---
+
+## 18. AI Lab offline e quality-diversity
+
+### 18.1 Motivazione
+
+Il runtime non deve esplorare ciecamente l’intero spazio. Una parte consistente della creatività può essere preparata offline generando pattern, simulandoli e organizzandoli in un archivio di soluzioni valide e diverse.
+
+### 18.2 MAP-Elites / quality-diversity
+
+Il laboratorio può usare MAP-Elites o un algoritmo equivalente per riempire celle definite da descrittori.
+
+Esempio di spazio:
+
+```text
+axis 1: density
+axis 2: symmetry
+axis 3: dash demand
+axis 4: curvature
+axis 5: rhythm complexity
+axis 6: safe-area profile
+```
+
+Ogni cella conserva uno o più elite che massimizzano qualità sotto quella combinazione.
+
+Vantaggi per CYMATICA:
+
+- non ottenere soltanto “il pattern migliore”;
+- costruire varietà controllata;
+- scegliere online un candidato vicino al target;
+- mantenere stili differenti ma validi;
+- ispezionare buchi nel design space.
+
+### 18.3 Genoma di pattern
+
+Un individuo può essere rappresentato da:
+
+- family ID;
+- parametri numerici;
+- temporal grammar;
+- spatial transform chain;
+- field modes;
+- telegraph profile;
+- optional vector actor behavior;
+- seed locale.
+
+### 18.4 Fitness
+
+La fitness deve combinare:
+
+- validità hard;
+- margine di fairness;
+- coerenza musicale;
+- aderenza all’archetipo;
+- leggibilità;
+- costo runtime;
+- affordance di graze/dash;
+- qualità della transizione;
+- robustezza a più player persona.
+
+La qualità estetica automatica è imperfetta: prevedere rating umano e blacklist/curation.
+
+### 18.5 Procedural personas
+
+Bot/playtester minimi:
+
+| Persona | Comportamento |
+|---|---|
+| Novice | reazione lenta, poca previsione, dash conservativo |
+| Survivor | massimizza distanza e sopravvivenza |
+| Grazer | cerca rischio e score |
+| Dasher | usa frequentemente il cambio di fase |
+| Rhythm Expert | ottimo timing, mobilità media |
+| Spatial Expert | pianificazione alta, timing medio |
+| Stress Bot | introduce ritardo e errori crescenti |
+
+Non servono subito agenti RL. Una combinazione di ricerca best-first, steering e policy parametriche è sufficiente per la prima validazione.
+
+### 18.6 Fast simulation
+
+Il lab usa una simulazione headless semplificata:
+
+- stessa logica autoritativa di collisione;
+- rendering disabilitato;
+- timestep accelerabile;
+- output metriche;
+- seed fissati;
+- batch paralleli;
+- timeout per candidato.
+
+### 18.7 Archive format
+
+```json
+{
+  "schema_version": 1,
+  "generator_version": "pattern-gen-0.1.0",
+  "validator_version": "fairness-0.1.0",
+  "descriptor_axes": [
+    { "name": "density", "bins": 10 },
+    { "name": "symmetry", "bins": 8 },
+    { "name": "dash_demand", "bins": 6 }
+  ],
+  "entries": []
+}
+```
+
+L’archivio distribuibile deve contenere definizioni/parametri, non modelli o asset non necessari.
+
+### 18.8 Uso online
+
+Il runtime può:
+
+1. cercare celle vicine all’ExperienceTarget;
+2. filtrare per archetipo e budget;
+3. applicare mutazioni bounded;
+4. rivalidare il risultato;
+5. selezionare con novelty e utility.
+
+L’archivio accelera e migliora la varietà, ma non è un single point of failure: il constructive generator e i fallback devono funzionare senza di esso.
+
+### 18.9 Surrogate model futuro
+
+Quando esistono abbastanza dati, un modello leggero può stimare fitness o probabilità di successo e ridurre simulazioni costose. Deve:
+
+- essere opzionale;
+- avere confidence;
+- non bypassare hard constraints;
+- essere versionato;
+- avere fallback al calcolo esplicito;
+- dimostrare un beneficio misurabile prima dell’integrazione runtime.
+
+---
+
+## 19. Moduli ML opzionali
+
+### 19.1 Regola generale
+
+Il termine “AI” non obbliga a usare una rete neurale. Il core deve funzionare con sistemi simbolici e search-based. I modelli appresi possono migliorare singoli componenti.
+
+### 19.2 Candidati futuri
+
+#### Player model estimator
+
+Input: metriche recenti.  
+Output: skill vector, stress/flow proxy, confidence.
+
+#### Pattern preference model
+
+Input: player history + descrittori.  
+Output: preferenza o retention proxy.
+
+#### Contextual bandit
+
+Seleziona pattern family tra opzioni valide, apprendendo reward locali senza controllare direttamente la safety.
+
+#### Archetype/section classifier
+
+Per musica custom, stima sezioni e blend archetipi da feature MIR/stem.
+
+#### Fitness surrogate
+
+Stima costo/qualità di candidati offline o online.
+
+#### Music continuation model
+
+Solo dopo una base simbolica stabile; deve produrre Music Intent o MIDI-like events, non audio opaco privo di timing semantico.
+
+### 19.3 Inference boundary
+
+Ogni modello espone:
+
+```cpp
+struct ModelResult {
+    bool valid;
+    float confidence;
+    ModelVersion version;
+    FixedSizeOutput output;
+};
+```
+
+Se `valid == false`, confidence è bassa o deadline superata, usare la policy non-ML.
+
+### 19.4 ONNX Runtime
+
+ONNX Runtime resta tool/future runtime dependency opzionale. Non introdurlo nella vertical slice. Nessuna inferenza nella callback audio.
+
+### 19.5 Training data
+
+Non assumere di possedere dataset adeguati. Prima di training:
+
+- definire target e metrica;
+- stabilire provenienza e licenza;
+- anonimizzare playtrace;
+- separare train/validation/test per seed e pattern family;
+- evitare leakage tra varianti quasi identiche;
+- registrare model card e dataset card.
+
+
+---
+
+## 20. Architettura runtime e threading
+
+### 20.1 Thread/phase model
+
+Configurazione minima:
+
+```text
+Audio callback thread      hard realtime-like, bounded
+Main/game thread           fixed simulation + input
+Render phase               variable rate, main thread
+Planning worker            bounded AI generation/search
+I/O/tool workers           fuori gameplay realtime
+```
+
+### 20.2 Audio callback
+
+Consentito:
+
+- consumare eventi audio già schedulati;
+- generare/mixare campioni;
+- aggiornare DSP preallocato;
+- leggere `AudioControlFrame` latest-value;
+- pubblicare telemetria compatta;
+- incrementare clock sample-accurate.
+
+Vietato:
+
+- heap allocation/free;
+- mutex bloccanti;
+- file I/O;
+- log;
+- parsing;
+- ricerca AI;
+- inferenza;
+- accesso a renderer o UI;
+- lavoro non bounded.
+
+### 20.3 Game simulation
+
+Default proposto per vertical slice:
+
+- fixed timestep 120 Hz;
+- accumulator con limite massimo di catch-up;
+- rendering interpolato;
+- collisioni autoritative a tick fisso;
+- eventi musicali attivati in base al clock audio;
+- nessun avanzamento gameplay dipendente da FPS.
+
+Il valore 120 Hz è una configurazione iniziale, non dogma. Deve essere profilato; un profilo 60 Hz può essere necessario su Android.
+
+### 20.4 Planning worker
+
+Il planning worker:
+
+- riceve `DirectorInput` immutabile;
+- genera e valuta candidati;
+- rispetta deadline;
+- pubblica `PlanChunk` validato;
+- può allocare entro limiti noti;
+- non modifica lo stato autoritativo;
+- non chiama API raylib/miniaudio non thread-safe;
+- conserva cache owned dal worker.
+
+### 20.5 Comunicazione
+
+Canali distinti:
+
+```text
+Audio -> Game:      AudioTelemetryFrame latest-value
+Game -> Audio:      AudioControlFrame latest-value
+Music Planner -> Audio: ScheduledAudioEvent SPSC
+Game -> AI Worker:  DirectorInput mailbox/SPSC
+AI Worker -> Game:  PlanChunk mailbox/SPSC
+Game -> Telemetry:  bounded event log buffer
+```
+
+### 20.6 Snapshot protocol
+
+Sono ammesse:
+
+- SPSC bounded queue;
+- seqlock per latest-value trivially-copyable;
+- triple buffer con ownership esplicita.
+
+Non usare un semplice two-slot swap senza impedire che il producer riscriva uno slot durante la copia del consumer.
+
+### 20.7 Backpressure
+
+Politiche:
+
+- telemetry audio: drop old, keep latest;
+- control audio: latest-value/idempotente;
+- scheduled audio events: non perdere; pianificare capacity e segnalare overflow;
+- plan chunks: sostituire solo la coda non impegnata;
+- debug logs: drop con contatore, mai bloccare gameplay.
+
+### 20.8 Pause e device loss
+
+Definire una state machine esplicita:
+
+```text
+Running -> Pausing -> Paused -> Resuming
+Running -> DeviceLost -> Recovering -> Running/Fatal
+```
+
+Durante recovery:
+
+- non avanzare eventi gameplay musicali senza clock valido;
+- congelare o riconciliare accumulator;
+- invalidare piani oltre boundary se necessario;
+- non produrre burst di eventi arretrati.
+
+---
+
+## 21. Struttura C++ proposta
 
 ```text
 cymatica/
 ├── CMakeLists.txt
 ├── CMakePresets.json
-├── cmake/
-│   ├── dependencies.cmake
-│   ├── options.cmake
-│   └── platform.cmake
+├── AGENTS.md
+├── DESIGN.md
+├── CYMATICA_Specifica_Agentica_Sviluppo.md
 ├── apps/
 │   ├── cymatica_game/
-│   │   ├── main.cpp
-│   │   └── CMakeLists.txt
 │   ├── cymatica_tool_cli/
-│   │   ├── main.cpp
-│   │   └── CMakeLists.txt
-│   └── cymatica_studio/
-│       ├── main.cpp
-│       └── CMakeLists.txt
+│   └── cymatica_lab_cli/
 ├── engine/
 │   ├── core/
+│   │   ├── fixed_step_clock.*
+│   │   ├── run_context.*
+│   │   └── version_ids.*
 │   ├── audio/
-│   ├── graphics/
+│   │   ├── audio_engine.*
+│   │   ├── audio_scheduler.*
+│   │   ├── synthesis_graph.*
+│   │   ├── music_clock.*
+│   │   └── realtime_exchange.*
+│   ├── music/
+│   │   ├── form_planner.*
+│   │   ├── phrase_planner.*
+│   │   ├── rhythm_planner.*
+│   │   ├── harmony_planner.*
+│   │   ├── motif_memory.*
+│   │   └── music_intent.*
+│   ├── intelligence/
+│   │   ├── director.*
+│   │   ├── pacing_state.*
+│   │   ├── experience_target.*
+│   │   ├── player_model.*
+│   │   ├── candidate_generator.*
+│   │   ├── candidate_scorer.*
+│   │   ├── receding_horizon_planner.*
+│   │   ├── fallback_library.*
+│   │   └── explanation.*
+│   ├── generation/
+│   │   ├── pattern_catalog.*
+│   │   ├── pattern_definition.*
+│   │   ├── pattern_registry.*
+│   │   ├── pattern_transform.*
+│   │   └── generators/
+│   ├── validation/
+│   │   ├── hard_constraint_gate.*
+│   │   ├── reachability_grid.*
+│   │   ├── fairness_metrics.*
+│   │   └── runtime_safety_guard.*
 │   ├── gameplay/
+│   │   ├── player.*
+│   │   ├── quantum_dash.*
+│   │   ├── dissonance.*
+│   │   ├── bullet_pool.*
+│   │   ├── collision.*
+│   │   └── plan_realizer.*
+│   ├── graphics/
+│   │   ├── cymatic_renderer.*
+│   │   ├── telegraph_renderer.*
+│   │   ├── palette.*
+│   │   └── debug_overlay.*
 │   ├── particles/
+│   │   ├── particle_pool.*
+│   │   ├── particle_emitters.*
+│   │   └── particle_renderer.*
+│   ├── replay/
+│   │   ├── seed_bank.*
+│   │   ├── decision_trace.*
+│   │   ├── run_record.*
+│   │   └── replay_player.*
 │   └── level_runtime/
-├── toolchain/
-│   ├── ingestion/
-│   ├── analysis/
-│   ├── packaging/
-│   └── preview/
+│       ├── level_loader.*
+│       ├── timeline_player.*
+│       └── custom_level_index.*
 ├── shared/
-│   ├── cymatica_format/
-│   ├── archetypes/
+│   ├── schemas/
 │   ├── math/
-│   └── utils/
-├── thirdparty/
-│   └── miniaudio/
+│   ├── serialization/
+│   └── identifiers/
+├── toolchain/
+│   ├── analysis/
+│   ├── ingestion/
+│   ├── packaging/
+│   ├── quality_diversity/
+│   └── personas/
+├── data/
+│   ├── patterns/
+│   ├── policies/
+│   ├── archetypes/
+│   ├── music/
+│   └── fallback/
 ├── assets/
 │   ├── shaders/
-│   ├── presets/
-│   └── test_audio/
-├── research/
-│   └── strudel-patterns/
+│   ├── samples/
+│   └── presets/
 ├── tests/
 │   ├── unit/
 │   ├── integration/
-│   └── golden/
+│   ├── property/
+│   ├── replay/
+│   ├── concurrency/
+│   ├── performance/
+│   └── fixtures/
 └── docs/
     ├── architecture.md
     ├── build.md
     ├── dependencies.md
     ├── level-format.md
-    └── roadmap.md
+    ├── ai-policy-format.md
+    └── replay-format.md
 ```
 
-### 15.3 Dipendenze tra target
-
-Regola architetturale:
-
-```text
-cymatica_game dipende da shared + engine.
-cymatica_tool_cli dipende da shared + toolchain.
-cymatica_studio dipende da shared + toolchain + eventuale preview engine.
-Il gioco non deve dipendere da ONNX, FFmpeg, Strudel o modelli ML.
-```
-
-Target CMake consigliati:
+### 21.1 Target CMake
 
 ```text
 cymatica_shared
-cymatica_engine
+cymatica_core
+cymatica_audio
+cymatica_music
+cymatica_intelligence
+cymatica_generation
+cymatica_validation
+cymatica_gameplay
+cymatica_graphics
+cymatica_particles
+cymatica_replay
 cymatica_game
-cymatica_toolchain
-cymatica_tool_cli
-cymatica_studio        # futuro/opzionale
+cymatica_toolchain          optional
+cymatica_tool_cli           optional
+cymatica_lab_cli            optional
 ```
 
-Opzioni CMake:
+### 21.2 Direzione delle dipendenze
 
-```cmake
-option(CYMATICA_BUILD_GAME "Build CYMATICA game runtime" ON)
-option(CYMATICA_BUILD_TOOLS "Build CYMATICA offline tools" OFF)
-option(CYMATICA_BUILD_STUDIO "Build CYMATICA graphical studio" OFF)
-option(CYMATICA_ENABLE_ONNX "Enable ONNX Runtime integration" OFF)
-option(CYMATICA_ENABLE_FFMPEG "Enable FFmpeg ingestion" OFF)
-option(CYMATICA_ENABLE_ANDROID "Enable Android build settings" OFF)
+Direzione ammessa:
+
+- `shared` non dipende da moduli engine;
+- `core` dipende solo da `shared`;
+- `music`, `generation`, `validation` e `replay` dipendono da `shared/core`;
+- `intelligence` dipende dai contratti di `music`, `generation`, `validation` e `replay`, non dai rispettivi dettagli grafici o audio-device;
+- `gameplay`, `audio` e `graphics` consumano piani e contratti stabili;
+- `cymatica_game` compone i moduli senza invertire le dipendenze;
+- `toolchain` può riusare i moduli headless, ma il runtime non dipende dalla toolchain.
+
+Vincoli:
+
+- `intelligence` non dipende da raylib;
+- `validation` funziona headless;
+- `music` produce intenti senza richiedere device audio;
+- `audio` non dipende dal gameplay concreto;
+- `graphics` non è autorità collisione;
+- toolchain e ML non entrano nel target game per default.
+
+### 21.3 Interfacce piccole
+
+Esempio:
+
+```cpp
+class IDirectorPolicy {
+public:
+    virtual ~IDirectorPolicy() = default;
+    virtual ExperienceTarget computeTarget(
+        const DirectorInput&) const = 0;
+};
+
+class IHardValidator {
+public:
+    virtual ~IHardValidator() = default;
+    virtual ValidationResult validate(
+        const PatternCandidate&,
+        const ValidationContext&) const = 0;
+};
 ```
 
-### 15.4 Distribuzione
-
-Dist separate:
-
-```text
-dist/
-├── game/
-│   ├── CYMATICA.exe
-│   └── assets/
-├── tools/
-│   ├── cymatica-tool-cli.exe
-│   └── README-tool.md
-├── studio/
-│   ├── cymatica-studio.exe
-│   └── assets/
-└── examples/
-    └── custom_levels/
-```
-
-Regola:
-
-> Stesso repo sì. Stessa dist no.
-
-### 15.5 Quando separare in due repo
-
-Separare il tool in un repo autonomo solo se diventa prodotto indipendente, con:
-
-- ciclo release separato;
-- plugin marketplace;
-- modelli scaricabili;
-- editor community avanzato;
-- dipendenze molto diverse;
-- team/manutenzione separata.
-
-Prima di quel punto, due repo aumentano solo attrito.
+Non creare una gerarchia profonda. Dove possibile preferire value types, funzioni pure e composizione.
 
 ---
 
-## 16. Architettura software runtime
+## 22. Contratti dati principali
 
-### 16.1 Moduli principali runtime
-
-```text
-engine/
-├── audio/
-│   ├── audio_engine.h/.cpp
-│   ├── synthesizer.h/.cpp
-│   ├── euclidean_sequencer.h/.cpp
-│   ├── modal_quantizer.h/.cpp
-│   ├── audio_frame.h
-│   └── audio_buffer_exchange.h/.cpp
-├── graphics/
-│   ├── cymatic_renderer.h/.cpp
-│   ├── particle_renderer.h/.cpp
-│   ├── shader_uniforms.h
-│   └── palette.h/.cpp
-├── gameplay/
-│   ├── game_state.h/.cpp
-│   ├── player.h/.cpp
-│   ├── quantum_dash.h/.cpp
-│   ├── dissonance.h/.cpp
-│   ├── bullet.h/.cpp
-│   ├── bullet_pool.h/.cpp
-│   ├── bullet_patterns.h/.cpp
-│   ├── resonance_node.h/.cpp
-│   └── archetype_runtime.h/.cpp
-├── particles/
-│   ├── particle_system.h/.cpp
-│   ├── particle_emitters.h/.cpp
-│   └── particle_presets.h/.cpp
-└── level_runtime/
-    ├── level_loader.h/.cpp
-    ├── timeline_player.h/.cpp
-    └── custom_level_index.h/.cpp
-```
-
-### 16.2 Thread model e autorità temporale
-
-#### Audio thread
-
-Gestito da miniaudio.
-
-Responsabilità:
-
-- generare e mixare l’audio;
-- mantenere il clock audio monotono;
-- calcolare telemetria musicale normalizzata;
-- pubblicare `AudioTelemetryFrame` verso game/render;
-- leggere l’ultimo `AudioControlFrame` pubblicato dal game thread;
-- non allocare memoria nella callback;
-- non usare lock bloccanti nella callback;
-- non chiamare codice tool/offline.
-
-#### Game simulation thread
-
-Nel prototipo può coincidere con il thread principale raylib, ma la simulazione deve usare un **fixed timestep** indipendente dal frame rate di rendering.
-
-Responsabilità:
-
-- leggere l’ultimo `AudioTelemetryFrame`;
-- aggiornare stato gameplay, player, proiettili, particelle e collisioni a passo fisso;
-- pubblicare `AudioControlFrame` verso l’audio thread;
-- usare il clock audio come autorità temporale per beat, quantizzazione ed eventi musicali;
-- mantenere determinismo ragionevole tra 60, 120 FPS e frame rate variabile.
-
-#### Render phase
-
-Responsabilità:
-
-- interpolare lo stato visuale tra due step di simulazione quando necessario;
-- passare uniform allo shader;
-- renderizzare alla frequenza disponibile senza modificare le regole di gameplay.
-
-### 16.3 Contratti di scambio realtime
-
-I due flussi devono essere separati e unidirezionali. La telemetria musicale appartiene all’audio thread; Dissonanza, performance del giocatore, pausa e archetipo richiesto appartengono al game thread.
+### 22.1 Audio telemetry e control
 
 ```cpp
 struct ChannelFrame {
-    float energy;      // 0..1
-    float onset;       // 0..1
-    float pitchHz;     // Hz; 0 when unavailable
-    float density;     // 0..1
-    float confidence;  // 0..1
+    float energy;
+    float onset;
+    float pitchHz;
+    float density;
+    float confidence;
 };
 
 struct AudioTelemetryFrame {
     double audioTimeSeconds;
+    std::uint64_t sampleFrame;
     float bpm;
-    float beatPhase;       // 0..1
-    float beatConfidence;  // 0..1
-
+    float beatPhase;
+    float beatConfidence;
     ChannelFrame pulse;
     ChannelFrame body;
     ChannelFrame texture;
     ChannelFrame vector;
-
     float globalEnergy;
     float spectralFlux;
-    int detectedArchetypeId;
+    std::uint32_t detectedArchetypeId;
 };
 
 struct AudioControlFrame {
-    float dissonance;          // 0..1, authoritative game state
-    float playerPerformance;   // 0..1 or another documented normalized metric
-    int requestedArchetypeId;
+    float dissonance;
+    float playerPerformance;
+    std::uint32_t requestedArchetypeId;
     bool paused;
 };
 ```
 
-Convenzioni:
+### 22.2 World snapshot
 
-- `pitchHz` è espresso in hertz e vale `0` quando non disponibile o non affidabile;
-- valori normalizzati sono limitati a `[0, 1]`;
-- `audioTimeSeconds` è monotono rispetto al clock audio;
-- ogni consumatore legge uno snapshot completo, mai campi aggiornati parzialmente;
-- nessuna struttura viene usata contemporaneamente come comando e telemetria;
-- il clock audio decide **quando** avviene un evento musicale, il fixed timestep decide **come** evolve il gameplay tra gli eventi.
-
-### 16.4 Protocollo di scambio thread-safe
-
-Un semplice indice atomico su due buffer non è sufficiente se il produttore può riutilizzare uno slot mentre il consumatore lo sta copiando. L’implementazione deve adottare uno dei seguenti protocolli bounded e preallocati:
-
-- SPSC queue con politica latest-value/drop-oldest per la telemetria;
-- seqlock con contatore di generazione e retry della copia;
-- triple buffering con ownership esplicita degli slot.
-
-Requisiti:
-
-- nessun mutex bloccante nella callback audio;
-- nessuna allocazione dopo l’inizializzazione;
-- il consumatore non osserva mai frame parzialmente aggiornati;
-- i frame di telemetria obsoleti possono essere scartati: interessa sempre lo stato più recente;
-- i comandi game → audio devono essere bounded, idempotenti o rappresentati come latest-value snapshot;
-- il protocollo scelto deve avere test concorrenti dedicati e documentazione dell’ownership.
-
----
-
-## 17. Pipeline grafica
-
-### 17.1 Shader Chladni
-
-Lo shader riceve uniform:
-
-```text
-u_time
-u_pulse
-u_body_energy
-u_texture_density
-u_vector_energy
-u_mode_m
-u_mode_n
-u_dissonance
-u_archetype
-u_saturation
+```cpp
+struct WorldSnapshot {
+    Vec2 playerPosition;
+    Vec2 playerVelocity;
+    float dashCooldownSeconds;
+    float resonance;
+    float dissonance;
+    FixedSpan<HazardSummary> hazards;
+    FixedSpan<BarrierSummary> barriers;
+    ArenaBounds arena;
+    std::uint32_t activeBulletCount;
+    std::uint32_t activeParticleCount;
+};
 ```
 
-Calcola una funzione Chladni approssimata e produce linee nodali, distorsioni e colori.
+### 22.3 Pattern candidate
 
-### 17.2 Output shader
-
-Output minimi:
-
-- linee nodali;
-- antinodi o regioni di energia;
-- glitch Dissonanza;
-- palette per archetipo;
-- telegraph layer;
-- debug mode opzionale.
-
-### 17.3 Collisioni con geometria cimatica
-
-Non fare collisione pixel-perfect sullo shader nella Milestone 1.
-
-Approccio consigliato:
-
-- gameplay usa rappresentazione semplificata CPU;
-- shader è visualizzazione coerente ma non autorità fisica;
-- bullet/muri hanno primitive collisione leggibili;
-- eventuale sampling della funzione Chladni solo per zone nodali principali.
-
----
-
-## 18. Audio procedurale
-
-### 18.1 Obiettivo prototipo
-
-La musica procedurale deve essere sufficientemente credibile, non necessariamente finale.
-
-Obiettivo minimo:
-
-- beat euclideo;
-- bass/body layer;
-- texture/arpeggio;
-- vector/lead semplice;
-- mix con sidechain base;
-- Dissonanza audio;
-- variazione progressiva.
-
-### 18.2 Sequencer euclideo
-
-Implementare funzione `E(k, n)`.
-
-Esempio:
-
-```text
-E(5, 8) = X . X X . X X .
+```cpp
+struct PatternCandidate {
+    PatternId pattern;
+    PatternParameters parameters;
+    DescriptorVector descriptors;
+    EventBuffer events;
+    OccupancyForecast occupancy;
+    FairnessMetrics fairness;
+    CostEstimate cost;
+    UtilityBreakdown score;
+    RandomKey generationKey;
+};
 ```
 
-Usi:
+### 22.4 Planned event
 
-- Pulso;
-- hi-hat/texture;
-- poliritmia Sincopato;
-- aumento complessità con Graze/performance.
+```cpp
+struct PlannedEvent {
+    EventId id;
+    PlannedEventType type;
+    std::uint64_t startSampleFrame;
+    std::uint64_t telegraphSampleFrame;
+    std::uint32_t generatorId;
+    FixedPayload payload;
+    std::uint32_t flags;
+};
+```
 
-### 18.3 Quantizzatore modale
+### 22.5 Policy version
 
-Il generatore melodico deve quantizzare su scale definite.
-
-Esempi:
-
-- minore naturale;
-- frigio dominante;
-- pentatonica minore;
-- dorico;
-- scala esatonale per Sincopato/Etereo.
-
-Ogni nota casuale viene forzata al grado più vicino.
-
-### 18.4 Dissonanza audio
-
-La Dissonanza modula:
-
-- bitcrushing leggero;
-- saturation;
-- band-pass/low-pass;
-- stereo wobble;
-- rumore controllato;
-- pitch instability.
-
-Regola:
-
-> La Dissonanza deve comunicare pericolo senza rendere sgradevole il gioco troppo presto.
+```cpp
+struct PolicyVersion {
+    std::uint32_t schema;
+    std::uint32_t major;
+    std::uint32_t minor;
+    std::uint64_t contentHash;
+};
+```
 
 ---
 
-## 19. Formato pacchetto livello
+## 23. Formati dati
 
-Nella prima implementazione, `.cymlevel` indica una **directory con estensione convenzionale**, semplice da ispezionare, validare e versionare durante lo sviluppo. Un contenitore archivio compresso potrà essere aggiunto solo dopo la stabilizzazione del formato, mantenendo la stessa struttura logica interna.
+### 23.1 Policy file
 
-### 19.1 Cartella livello
+```json
+{
+  "schema_version": 1,
+  "policy_id": "standard-adaptive",
+  "policy_version": "0.1.0",
+  "difficulty_corridor": {
+    "pressure_min": 0.40,
+    "pressure_max": 0.68
+  },
+  "adaptation": {
+    "max_delta_per_phrase": 0.08,
+    "hysteresis": 0.05,
+    "cooldown_phrases": 1
+  },
+  "planning": {
+    "horizon_bars": 4,
+    "commit_beats": 1,
+    "candidate_budget": 32,
+    "beam_width": 4
+  }
+}
+```
 
-Formato cartella:
+### 23.2 Pattern schema
+
+Ogni pattern file deve essere validato al caricamento. Il progetto deve fornire JSON Schema o validatore equivalente per:
+
+- tipi;
+- range;
+- ID univoci;
+- generator registrato;
+- compatibilità archetipi;
+- telegraph non negativo;
+- hard limits;
+- transform chain valida.
+
+### 23.3 `.cymlevel`
+
+Durante sviluppo, `.cymlevel` è una directory ispezionabile:
 
 ```text
-MySong.cymlevel/
+Example.cymlevel/
 ├── level_info.json
-├── cymatic_timeline.json
+├── music_intent.json
+├── plan_timeline.json
 ├── audio/
 │   ├── mix.ogg
 │   ├── pulse.ogg
 │   ├── body.ogg
 │   ├── texture.ogg
 │   └── vector.ogg
+├── replay/
+│   └── generation_trace.json
 └── preview/
     └── cover.png
 ```
 
-Per custom iniziale, gli stem possono essere assenti. Il runtime deve accettare:
+File opzionali devono essere dichiarati nel manifest. Il runtime deve supportare almeno:
 
-- solo timeline;
-- timeline + mix;
-- timeline + stem funzionali.
+- timeline + audio mix;
+- timeline + quattro ruoli;
+- Music Intent + seed per rigenerazione compatibile;
+- livello fittizio senza audio per test.
 
-### 19.2 `level_info.json`
+### 23.4 Schema evolution
 
-```json
-{
-  "format_version": 1,
-  "title": "Example Level",
-  "artist": "Unknown",
-  "source": "custom",
-  "duration_seconds": 120.0,
-  "bpm": 128.0,
-  "default_archetype": "synthetic",
-  "difficulty_estimate": 0.45,
-  "seed_policy": "randomized",
-  "audio": {
-    "mix": "audio/mix.ogg",
-    "pulse": null,
-    "body": null,
-    "texture": null,
-    "vector": null
-  }
-}
-```
+Regole:
 
-Valori ammessi nella versione iniziale:
-
-- `source`: `procedural`, `custom`, `generated`;
-- `seed_policy`: `fixed`, `randomized`, `daily`;
-- `default_archetype`: identificatore stabile definito dal formato condiviso.
-
-### 19.3 `cymatic_timeline.json`
-
-```json
-{
-  "format_version": 1,
-  "frame_rate": 50,
-  "channels": ["pulse", "body", "texture", "vector"],
-  "frames": [
-    {
-      "time": 0.00,
-      "pulse": { "energy": 0.0, "onset": 0.0, "pitch_hz": 0.0, "density": 0.0, "confidence": 1.0 },
-      "body": { "energy": 0.2, "onset": 0.0, "pitch_hz": 55.0, "density": 0.1, "confidence": 0.8 },
-      "texture": { "energy": 0.1, "onset": 0.0, "pitch_hz": 440.0, "density": 0.2, "confidence": 0.7 },
-      "vector": { "energy": 0.0, "onset": 0.0, "pitch_hz": 0.0, "density": 0.0, "confidence": 0.2 },
-      "archetype": "synthetic"
-    }
-  ]
-}
-```
-
-Il JSON è il formato di riferimento leggibile e validabile per il prototipo. Un encoding binario o compresso potrà essere aggiunto solo dopo profiling, senza cambiare la semantica del formato e mantenendo un convertitore/validator ufficiale.
+- `schema_version` obbligatorio;
+- parser fail-fast su major incompatibile;
+- migration tool per formati persistenti;
+- unknown fields ignorabili solo se specificato;
+- enum serializzati con stringhe stabili;
+- float non finiti vietati;
+- hash dei contenuti registrato.
 
 ---
 
-## 20. Tool offline
+## 24. Rendering, particelle e fisica
 
-### 20.1 Ruolo
+### 24.1 Separazione autoritativa
 
-Il tool offline non è necessario per il primo prototipo. Diventerà necessario per musica custom e generated tracks.
+```text
+Gameplay primitive = collisione e regole
+Shader field       = rappresentazione cimatica
+Particle           = VFX, salvo tipo esplicitamente gameplay
+```
 
-La prima versione deve essere **CLI**, non GUI.
+### 24.2 Particle system
 
-### 20.2 Collocazione nel repo
+Resta custom, object-pooled e budgeted. Può essere guidato da campi cimatici, ma non deve influenzare implicitamente il validator.
+
+Budget iniziale:
+
+- 2.000–5.000 particelle CPU;
+- pool preallocato;
+- no allocation per frame;
+- LOD e drop cosmetico;
+- fallback Android;
+- GPU particles soltanto dopo profiling.
+
+### 24.3 Bullet system
+
+Requisiti:
+
+- deterministic update;
+- pool preallocato;
+- primitive collisione semplici;
+- stable IDs;
+- spawn da `PlannedEvent`;
+- separazione telegraph/hazard;
+- debug overlay di hitbox e traiettorie.
+
+### 24.4 Motore fisico esterno
+
+Non necessario per il core. Valutarlo soltanto per modalità specifiche o tooling, senza sostituire la simulazione deterministica dei pattern.
+
+### 24.5 Visual design
+
+Palette, layer, motion, HUD diegetico, archetipi e accessibilità sono definiti in `DESIGN.md`.
+
+
+---
+
+## 25. Testing strategy
+
+### 25.1 Test unitari
+
+Obbligatori per:
+
+- beat/bar/phrase conversion;
+- Euclidean rhythm;
+- modal quantizer e voice-leading helpers;
+- stable random mixer e test vector;
+- seed derivation e stream isolation;
+- pattern parameter validation;
+- score function;
+- hysteresis e challenge corridor;
+- player model filters;
+- fixed timestep accumulator;
+- serialization/versioning;
+- object pools;
+- field sampler;
+- collision primitives;
+- safe landing assist.
+
+### 25.2 Property-based test
+
+Proprietà consigliate:
+
+- stesso input + stessa policy + stesso seed = stesso decision trace;
+- cambiare `vfx_stream` non cambia gameplay trace;
+- ogni candidato accettato mantiene reachable set non vuoto;
+- ogni hazard ha telegraph precedente;
+- nessun evento è schedulato nel passato;
+- valori normalizzati restano in `[0,1]`;
+- pool non supera capacity;
+- parser non accetta NaN/Infinity;
+- una policy invalida non provoca crash;
+- un planner senza candidati produce fallback.
+
+### 25.3 Metamorphic test
+
+- esecuzione a 60 e 120 FPS produce stesso stato fixed-step;
+- rendering disabilitato non cambia gameplay;
+- particelle disabilitate non cambiano collisioni;
+- ordine dei job offline non cambia output indicizzato per RandomKey;
+- variazioni non autoritative del sound design non cambiano il plan;
+- replay exact riproduce hash periodici dello stato.
+
+### 25.4 Concurrency test
+
+- producer/consumer con scheduling casuale;
+- overflow bounded;
+- seqlock retry;
+- nessun frame parziale;
+- device stop/start;
+- planner deadline miss;
+- shutdown durante plan in corso;
+- sanitizers dove supportati.
+
+### 25.5 Fuzzing
 
 Target:
 
-```text
-apps/cymatica_tool_cli
-```
+- JSON schema/parser;
+- pattern parameters;
+- plan timeline;
+- replay file;
+- arithmetic dei sample frame;
+- transform chain;
+- malformed `.cymlevel`;
+- archive quality-diversity.
 
-Dipendenze:
+### 25.6 Automated playtest
 
-```text
-shared/cymatica_format
-toolchain/packaging
-toolchain/analysis   # solo quando necessario
-```
+Ogni build significativa esegue un set ridotto di seed con più personas. Nightly/locale esteso:
 
-Il tool non deve essere richiesto per compilare il gioco.
+- migliaia di seed;
+- distribuzione deaths;
+- unreachable rate;
+- planner fallback rate;
+- pattern coverage;
+- archetype coverage;
+- mean/percentile entity count;
+- deadline misses;
+- duplicate sequence rate;
+- recovery debt violations.
 
-### 20.3 CLI iniziale
+### 25.7 Golden traces
 
-Prima dei file audio reali:
+Conservare fixture piccole con:
 
-```bash
-cymatica-tool new-level --name test_procedural
-cymatica-tool validate path/to/level.cymlevel
-cymatica-tool inspect path/to/level.cymlevel
-```
+- policy version;
+- seed;
+- expected decision IDs;
+- expected plan hash;
+- state hash ogni N tick.
 
-Quando il formato è stabile:
+Aggiornare golden soltanto con review esplicita, non automaticamente dopo un fallimento.
 
-```bash
-cymatica-tool ingest song.mp3 --out ./CustomLevels/SongName
-cymatica-tool analyze ./CustomLevels/SongName
-cymatica-tool package ./CustomLevels/SongName --format cymlevel
-```
+### 25.8 Manual test
 
-### 20.4 Pipeline custom futura
-
-1. Import file audio.
-2. Convert/normalize con FFmpeg.
-3. Analisi globale: durata, loudness, BPM, beat grid.
-4. Analisi locale: onset, RMS, spectral flux, pitch salience.
-5. Separazione stem opzionale.
-6. Mappatura a Pulso/Corpo/Trama/Vettore.
-7. Segmentazione archetipi.
-8. Stima difficoltà.
-9. Esportazione pacchetto.
-10. Validazione pacchetto.
-
-### 20.5 Regola importante
-
-La separazione stem è un acceleratore qualitativo, non una dipendenza critica. Il sistema deve funzionare anche con sola analisi del mix.
-
-### 20.6 NatuStem reference spike
-
-Quando si passerà alla custom music, NatuStem dovrà essere studiato come reference implementation, non importato automaticamente come dipendenza.
-
-Obiettivi dello spike:
-
-1. verificare dipendenze, licenze e versioni Python supportate;
-2. studiare invocazione `audio-separator`, selezione modello e gestione CPU/GPU;
-3. estrarre le convenzioni utili su output, rename, log e collisioni di cartelle/file;
-4. progettare una CLI CYMATICA-specifica headless;
-5. produrre manifest JSON stabile per i passaggi successivi di analisi e packaging;
-6. mantenere il fallback senza stem come comportamento obbligatorio.
-
-Possibile CLI futura:
-
-```bash
-cymatica-tool ingest song.mp3 --backend audio-separator --model htdemucs_ft --out ./work/song
-```
-
-Questa CLI dovrà essere autonoma rispetto alla GUI di NatuStem e non dovrà introdurre requisiti Python/ONNX nel target `cymatica_game`.
+- qualità e ripetitività musicale;
+- game feel del movimento;
+- leggibilità;
+- fairness percepita;
+- sorpresa senza caos;
+- transizioni archetipi;
+- audio crackle;
+- input lag;
+- photosensitivity profile;
+- controller/mouse parity;
+- qualità dei recovery;
+- comportamento dopo lunga durata.
 
 ---
 
-## 21. Roadmap
+## 26. Metriche e osservabilità
 
-La milestone attiva iniziale è **Milestone 0**. Un agente non deve anticipare deliverable di milestone successive senza una decisione esplicita registrata nel repository.
+### 26.1 Metriche del planner
+
+- decision latency p50/p95/p99;
+- candidate count;
+- valid candidate ratio;
+- rejection reasons;
+- fallback rate;
+- score distribution;
+- archive hit rate;
+- planning horizon coverage;
+- commit slack;
+- runtime intervention rate.
+
+### 26.2 Metriche gameplay
+
+- hit rate per pattern family;
+- graze rate;
+- dash correction rate;
+- safe area percentile;
+- pressure target vs measured;
+- recovery debt;
+- time in challenge corridor;
+- deaths per archetype;
+- player model confidence.
+
+### 26.3 Metriche di varietà
+
+- pattern family entropy;
+- transform entropy;
+- n-gram repetition su sequenze pattern;
+- descriptor coverage;
+- novelty medio e varianza;
+- distanza tra run con seed differenti;
+- distanza tra retry con stessa traccia e seed differente.
+
+### 26.4 Debug overlay
+
+Modalità debug deve poter mostrare:
+
+- music clock;
+- beat/bar/phrase;
+- pacing state;
+- ExperienceTarget;
+- player model e confidence;
+- pattern corrente/prossimo;
+- commit/planning horizon;
+- reachability grid;
+- safe routes;
+- score breakdown;
+- seed/decision ID;
+- entity budgets;
+- audio underrun e planner deadline miss.
+
+### 26.5 Trace levels
+
+```text
+OFF
+ERRORS_ONLY
+DECISIONS
+FULL_CANDIDATES
+REPLAY_EXACT
+```
+
+Il livello `FULL_CANDIDATES` non è adatto a release normale e deve essere bounded o scritto fuori dal path realtime.
+
+---
+
+## 27. Performance budget iniziale
+
+### 27.1 Windows vertical slice
+
+| Voce | Target |
+|---|---:|
+| Gameplay fixed step | 120 Hz iniziale |
+| Rendering | 60 FPS minimo, 120 desiderabile |
+| Frame time a 60 FPS | < 16,6 ms |
+| Sim tick p95 | < 4 ms |
+| Planner medio per decision point | < 4 ms worker time |
+| Planner hard budget iniziale | 8 ms, configurabile |
+| Audio allocation | 0 dopo init |
+| Planner deadline miss | < 0,1% in soak test |
+| Runtime safety interventions | prossime a zero su catalogo validato |
+| Audio underrun | 0 in test nominale |
+
+I numeri sono budget iniziali da validare, non garanzie già dimostrate.
+
+### 27.2 Candidate budget adattivo
+
+Se il worker è sotto pressione:
+
+1. ridurre candidate count;
+2. ridurre beam width;
+3. usare archive lookup;
+4. evitare trasformazioni costose;
+5. scegliere fallback;
+6. non ridurre telegraph o fairness.
+
+### 27.3 Entity budget
+
+Separare:
+
+- gameplay bullets;
+- barriers;
+- vector actors;
+- telegraphs;
+- particles;
+- trails;
+- debug primitives.
+
+Le entità cosmetiche sono le prime da degradare.
+
+### 27.4 Android futuro
+
+- fixed tick configurabile 60/120;
+- quality tiers;
+- shader fallback;
+- particle budget adattivo;
+- planner budget ridotto;
+- benchmark su device reali;
+- test AAudio/miniaudio backend;
+- nessuna inferenza ML obbligatoria.
+
+---
+
+## 28. Ambiente di sviluppo e dipendenze
+
+### 28.1 Requisiti Windows
+
+| Requisito | Stato | Note |
+|---|---:|---|
+| Windows 10/11 x64 | obbligatorio | target primario |
+| Git | obbligatorio | repository |
+| Visual Studio/Build Tools C++ | obbligatorio | MSVC |
+| CMake | obbligatorio | build |
+| Ninja o MSBuild | uno richiesto | preset documentato |
+| PowerShell | consigliato | bootstrap e script |
+| Python 3 | opzionale inizialmente | tool/lab futuri |
+| Antigravity IDE | consigliato | non requisito di build |
+
+### 28.2 Dipendenze core
+
+| Dipendenza | Scopo | Acquisizione | Vincolo |
+|---|---|---|---|
+| raylib | window/input/render/shader | `FetchContent` pinned | versione registrata |
+| miniaudio | device, mixing, DSP | snapshot ufficiale vendored | sorgente, commit/tag e licenza registrati |
+| test framework | unit/property test | una sola soluzione pinned | decidere in M0 |
+| JSON parser/schema | contenuti e trace | valutare minimal/pinned | non introdurre più parser |
+
+Una libreria JSON diventa probabilmente necessaria prima dei formati data-driven. La scelta deve essere esplicita in M0/M1 e documentata; non implementare un parser JSON artigianale.
+
+### 28.3 Dipendenze AI
+
+Il CIE v1 non richiede framework AI esterni. Algoritmi di utility, search, player model e validator sono implementati nel progetto.
+
+Possibili future:
+
+| Dipendenza | Uso | Fase |
+|---|---|---|
+| ONNX Runtime | inferenza opzionale | post vertical slice |
+| Random123 o equivalente | counter-based RNG | solo se preferito all’implementazione interna |
+| libreria optimization/QD | lab offline | valutazione separata |
+| Python scientific stack | esperimenti offline | ambiente isolato |
+
+Ogni dipendenza deve superare review di licenza, portabilità, dimensione, manutenzione e beneficio.
+
+### 28.4 Dipendenze tool/custom music
+
+| Dipendenza | Uso | Regola |
+|---|---|---|
+| FFmpeg | decode/convert/normalize | tool-only, path configurabile |
+| audio-separator | backend sperimentale stem | tool/research-only |
+| modelli Demucs/MDX | stem | cache esterna, non committare |
+| NatuStem | riferimento | non dipendenza automatica |
+| Essentia/librosa-equivalent | MIR | valutare dopo formato stabile |
+| Strudel | sketch musicale | research-only salvo decisione diversa |
+
+### 28.5 Dependency inventory
+
+`docs/dependencies.md` deve contenere:
+
+- versione/tag/commit;
+- URL/provenienza;
+- checksum se manuale;
+- licenza;
+- target che la usa;
+- modalità acquisizione;
+- piattaforme;
+- owner interno;
+- data ultimo review;
+- rischi.
+
+### 28.6 Download agentici
+
+Un agente può scaricare dipendenze se consentito, ma deve:
+
+- usare fonte ufficiale;
+- pinning esplicito;
+- non installare globalmente senza approvazione;
+- non eseguire binari non verificati;
+- registrare i passaggi;
+- fornire alternativa manuale;
+- non rendere la build dipendente dalla cache personale.
+
+---
+
+## 29. Repository e distribuzioni
+
+### 29.1 Monorepo
+
+Gioco, lab e tool restano nello stesso repo finché condividono formati e cicli di sviluppo.
+
+### 29.2 Distribuzioni
+
+```text
+dist/
+├── game/
+├── tools/
+├── lab/       # interno, non necessariamente pubblico
+└── examples/
+```
+
+Il gioco non distribuisce automaticamente:
+
+- ONNX Runtime;
+- Python;
+- FFmpeg;
+- modelli stem;
+- Strudel;
+- NatuStem;
+- archive/debug trace non necessari.
+
+### 29.3 CMake options
+
+```cmake
+option(CYMATICA_BUILD_GAME "Build game runtime" ON)
+option(CYMATICA_BUILD_TESTS "Build tests" ON)
+option(CYMATICA_BUILD_TOOLS "Build offline tools" OFF)
+option(CYMATICA_BUILD_LAB "Build AI/QD lab" OFF)
+option(CYMATICA_ENABLE_ONNX "Enable optional ONNX models" OFF)
+option(CYMATICA_ENABLE_FFMPEG "Enable FFmpeg tool integration" OFF)
+option(CYMATICA_ENABLE_TRACE "Enable extended decision traces" OFF)
+```
+
+---
+
+## 30. Tool offline, NatuStem e custom music
+
+### 30.1 Ordine corretto
+
+1. stabilizzare Music Intent;
+2. stabilizzare pattern/plan format;
+3. creare validator/inspect CLI;
+4. importare musica senza stem;
+5. studiare NatuStem;
+6. scegliere backend stem;
+7. aggiungere separazione opzionale;
+8. mantenere fallback mix-only.
+
+### 30.2 NatuStem
+
+NatuStem resta un riferimento tecnico per:
+
+- setup FFmpeg;
+- `audio-separator`;
+- modelli;
+- CPU/GPU;
+- naming output;
+- log;
+- overwrite;
+- gestione errori.
+
+La pipeline CYMATICA deve essere headless, testabile e orientata a manifest. Il riuso diretto va deciso solo dopo uno spike e una license review.
+
+### 30.3 CLI target
+
+```bash
+cymatica-tool validate Level.cymlevel
+cymatica-tool inspect Level.cymlevel
+cymatica-tool analyze song.wav --out work/song
+cymatica-tool ingest song.mp3 --out work/song
+cymatica-tool package work/song --out CustomLevels/Song.cymlevel
+```
+
+### 30.4 Manifest ingestion
+
+Deve registrare:
+
+- input hash;
+- decoder/versione;
+- sample rate;
+- durata;
+- backend stem;
+- modello/versione;
+- parametri;
+- file prodotti;
+- confidence;
+- warning;
+- tempi;
+- licenze/provenienza modello dove applicabile.
+
+---
+
+## 31. Sviluppo agentico
+
+### 31.1 Fonti normative
+
+- `CYMATICA_Specifica_Agentica_Sviluppo.md`: architettura, roadmap, contratti;
+- `DESIGN.md`: game, visual, audio e UX design;
+- `AGENTS.md`: regole operative concise;
+- schema e test: comportamento eseguibile.
+
+### 31.2 Task slicing
+
+Ogni task deve:
+
+- appartenere a una milestone;
+- avere acceptance criteria;
+- modificare moduli minimi;
+- includere test;
+- aggiornare documentazione quando cambia un contratto;
+- riportare comandi eseguiti;
+- evitare lavoro futuro non richiesto.
+
+### 31.3 Decision record
+
+Decisioni che cambiano policy generativa, fairness, timing o replay devono essere registrate nel documento o in ADR dedicato.
+
+### 31.4 No “AI magic”
+
+L’agente non deve introdurre modelli, framework o prompt runtime per soddisfare genericamente il requisito “AI”. Deve indicare:
+
+- problema preciso;
+- baseline non-ML;
+- metrica;
+- dataset;
+- costo runtime;
+- fallback;
+- licenza;
+- criterio di rimozione.
+
+
+---
+
+## 32. Roadmap revisionata
+
+La milestone attiva iniziale resta **Milestone 0**. La vertical slice completa termina con Milestone 7.
 
 ### Milestone 0 — Repository, build e dependency inventory
 
-**Obiettivo:** progetto compilabile su Windows con dipendenze censite.
+**Obiettivo:** baseline Windows riproducibile.
 
 Deliverable:
 
-- monorepo iniziale;
+- struttura monorepo minima;
+- `CMakePresets.json`;
 - `docs/build.md`;
 - `docs/dependencies.md`;
-- `CMakePresets.json`;
-- CMake options;
-- raylib via FetchContent con tag fissato;
-- miniaudio vendored;
-- `cymatica_game` compilabile;
-- finestra raylib;
-- audio callback che emette tono/test beat;
-- shader caricato da file;
-- nessun tool obbligatorio.
+- raylib pinned;
+- miniaudio snapshot pinned;
+- test framework scelto;
+- target `cymatica_game` e `cymatica_tests`;
+- finestra, input, tono audio e shader test;
+- CI Windows se disponibile.
 
-Criteri accettazione:
+Accettazione:
 
-- build pulita da terminale MSVC;
-- eseguibile avviabile;
-- nessun crash in chiusura;
-- audio udibile;
-- shader visibile;
-- dipendenze documentate.
+- clean checkout configurabile e compilabile da comandi documentati;
+- eseguibile avviabile e chiudibile senza crash;
+- dipendenze e licenze censite;
+- nessun tool futuro richiesto.
 
-### Milestone 1 — Piastra cimatica e audio procedurale minimo
+### Milestone 1 — Tempo, seed e contratti deterministici
 
-**Obiettivo:** prima sinestesia audio-visuale.
+**Obiettivo:** fondazione del runtime non deterministico riproducibile.
 
 Deliverable:
 
-- sequencer euclideo;
-- modal quantizer;
+- `MusicClock` sample-based;
+- fixed timestep;
+- `MusicPosition`;
+- `SeedBank` e `RandomKey` stable;
+- stream IDs separati;
 - `AudioTelemetryFrame` e `AudioControlFrame`;
-- protocollo thread-safe bounded per entrambi i flussi;
-- fixed timestep gameplay sincronizzato al clock audio;
-- shader Chladni pilotato da audio;
-- parametri `m/n` dinamici;
-- debug overlay opzionale.
+- scambio thread-safe;
+- `RunRecord` minimale;
+- golden test seed/clock.
 
-Criteri accettazione:
+Accettazione:
 
-- linee cambiano con il beat;
-- nessun crackling audio evidente;
-- nessuna race condition nota;
-- snapshot concorrenti mai parziali nei test;
-- comportamento gameplay equivalente a 60 e 120 FPS entro tolleranza definita;
-- test euclideo e quantizer passano.
+- stesso seed produce stessi test vector;
+- VFX stream non modifica gameplay stream;
+- 60/120 FPS producono stato equivalente;
+- snapshot concorrenti coerenti;
+- zero allocation nella callback dopo init.
 
-### Milestone 2 — Player, Dissonanza e particelle base
+### Milestone 2 — Music Intent e musica procedurale v1
 
-**Obiettivo:** primo loop giocabile e feedback visivo.
+**Obiettivo:** prima forma musicale simbolica condivisa.
 
 Deliverable:
 
-- movimento player;
-- collisione base con proiettili;
-- Dissonanza;
-- feedback audio/visuale;
-- particle system CPU object-pooled;
-- trail del Seme;
-- game over;
-- reset.
+- form/phrase skeleton;
+- Pulso/Corpo/Trama/Vettore;
+- Euclidean rhythm;
+- scale/modi;
+- motif memory minima;
+- `MusicIntentEvent`;
+- scheduler ahead-of-time;
+- synth/mix base;
+- telemetria coerente.
 
-Criteri accettazione:
+Accettazione:
 
-- il giocatore può perdere;
-- la Dissonanza è percepibile;
-- lo stato è leggibile;
-- nessuna allocazione per frame nel sistema particellare core;
-- gameplay minimo di 60 secondi.
+- musica continua 3 minuti senza crackle;
+- almeno due sezioni distinguibili;
+- intent e audio restano sincronizzati;
+- stesso seed produce stesso event trace;
+- la callback esegue, non pianifica.
 
-### Milestone 3 — Quantum Dash e Graze
+### Milestone 3 — Pattern catalog e generatore costruttivo
+
+**Obiettivo:** produrre livelli da Music Intent senza adattamento.
+
+Deliverable:
+
+- pattern schema;
+- registry nativo;
+- almeno cinque pattern family;
+- transform chain;
+- candidate generator;
+- plan/event scheduler;
+- bullet/barrier pools;
+- telegraph primitives;
+- debug view.
+
+Accettazione:
+
+- catalogo validato al caricamento;
+- pattern deterministici per key;
+- nessun hazard privo di telegraph;
+- budget entità rispettato;
+- livello di 60–90 secondi giocabile con policy fissa.
+
+### Milestone 4 — Fairness validator e headless simulation
+
+**Obiettivo:** impedire pattern inevitabili.
+
+Deliverable:
+
+- occupancy forecast;
+- reachability grid;
+- movement/dash envelope;
+- hard constraint gate;
+- fairness metrics;
+- runtime safety guard;
+- headless simulation;
+- property tests.
+
+Accettazione:
+
+- zero reachable-set collapse nei seed approvati;
+- candidati invalidi spiegati;
+- safety guard non blocca il frame;
+- fallback attivabile e musicale;
+- batch di almeno 1.000 seed senza crash.
+
+### Milestone 5 — Player loop completo
 
 **Obiettivo:** game feel centrale.
 
 Deliverable:
 
-- dash standard;
-- destinazione visualizzata;
-- safe landing assist;
-- cooldown;
-- graze;
-- carica Risonanza.
-
-Criteri accettazione:
-
-- dash affidabile con gamepad e mouse/tastiera;
-- nessuna destinazione ingiusta evidente;
-- graze non farmabile in modo banale.
-
-### Milestone 4 — Drop Shock e archetipi
-
-**Obiettivo:** identità meccanica.
-
-Deliverable:
-
-- Drop Shock;
-- archetipo Sintetico;
-- archetipo Organico;
-- palette e shader differenziati;
-- pattern proiettili differenziati;
-- preset particellari per archetipo.
-
-Criteri accettazione:
-
-- i due archetipi si giocano diversamente;
-- Drop Shock è utile ma non dominante;
-- la difficoltà scala con saturazione.
-
-### Milestone 5 — Fratturato, Etereo, Sincopato
-
-**Obiettivo:** espansione varietà.
-
-Deliverable:
-
-- tre archetipi rimanenti;
-- regole dash specifiche opzionali;
-- pattern e palette;
-- particelle differenziate;
-- bilanciamento base.
-
-Criteri accettazione:
-
-- ogni archetipo è riconoscibile;
-- nessun archetipo rompe leggibilità o performance.
-
-### Milestone 6 — Pacchetti livello e timeline
-
-**Obiettivo:** preparare custom/generated.
-
-Deliverable:
-
-- `cymatica_format` shared;
-- loader `level_info.json`;
-- loader `cymatic_timeline.json`;
-- playback dati timeline;
-- cartella custom levels;
-- menu resonance node per selezione;
-- `cymatica_tool_cli validate`.
-
-Criteri accettazione:
-
-- un pacchetto fittizio viene caricato;
-- il livello usa la timeline invece dell’audio procedurale live;
-- errori JSON gestiti chiaramente.
-
-### Milestone 7 — Tool offline minimo
-
-**Obiettivo:** generare pacchetti da audio reale senza stem separation.
-
-Deliverable:
-
-- CLI tool;
-- FFmpeg integration documentata;
-- analisi RMS/onset/beat semplificata;
-- export `.cymlevel`.
-
-Criteri accettazione:
-
-- un file WAV/MP3 viene convertito in pacchetto;
-- il gioco carica il pacchetto;
-- gameplay sincronizzato accettabile;
-- se FFmpeg manca, il tool spiega chiaramente come configurarlo.
-
-### Milestone 8 — NatuStem reference spike
-
-**Obiettivo:** studiare NatuStem e progettare una pipeline CYMATICA-specifica per stem ingestion, senza introdurre ancora un backend produttivo.
-
-Deliverable:
-
-- breve report tecnico su NatuStem;
-- decisione su riuso diretto vs reimplementazione;
-- schema CLI headless;
-- formato `manifest.json` di ingestion;
-- output folder standardizzato atteso (`drums.wav`, `bass.wav`, `vocals.wav`, `other.wav`);
-- lista dipendenze Python/tool-only;
-- license review preliminare;
-- test plan per missing FFmpeg, overwrite policy, model availability e fallback senza stem;
-- eventuale PoC non produttivo chiaramente isolato in `research/`, se utile alla decisione.
-
-Criteri accettazione:
-
-- NatuStem non è richiesto per compilare o avviare `cymatica_game`;
-- il contratto CLI, il manifest e il layout output sono documentati e validabili con fixture fittizie;
-- è registrata una decisione esplicita sul backend da implementare in Milestone 9;
-- il fallback senza stem resta parte obbligatoria del design;
-- `docs/dependencies.md` documenta ogni requisito tool-only considerato;
-- la produzione reale degli stem non è requisito di chiusura della Milestone 8.
-
-### Milestone 9 — Stem separation / ONNX
-
-**Obiettivo:** migliorare qualità custom.
-
-Deliverable:
-
-- modulo sperimentale ONNX;
-- CPU-only prima;
-- eventuale NNAPI/DirectML dopo;
-- fallback senza stem;
-- cache locale;
-- modelli esterni non committati.
-
-Criteri accettazione:
-
-- se ONNX fallisce, il tool produce comunque un livello;
-- i tempi di elaborazione sono mostrati;
-- nessuna dipendenza GPU obbligatoria.
-
-### Milestone 10 — Android technical preview
-
-**Obiettivo:** validare portabilità.
-
-Deliverable:
-
-- toolchain Android NDK;
-- build Android;
-- input touch/controller;
-- test audio latency;
-- profilo performance;
-- fallback grafico/particellare.
-
-Criteri accettazione:
-
-- app avviabile su dispositivo reale;
-- audio stabile;
-- frame pacing misurato;
-- backlog problemi Android documentato.
-
-### Milestone 11 — Studio/editor GUI
-
-**Obiettivo:** creare editor visuale solo dopo stabilità formato/tool CLI.
-
-Opzioni:
-
-- GUI nativa C++/raylib se minimale;
-- Flutter/desktop se serve UI complessa;
-- web-based tool se più semplice per preview e distribuzione;
-- nessuna decisione prima di M6/M7.
-
----
-
-## 22. Backlog prioritizzato
-
-### P0 — Necessario per vertical slice
-
-- build Windows;
-- dependency inventory;
-- audio callback;
-- shader Chladni;
-- player movement;
+- movimento;
 - Dissonanza;
 - Quantum Dash;
-- proiettili base;
-- particle system CPU base;
-- due archetipi;
-- test core.
-
-### P1 — Necessario per prototipo convincente
-
-- Drop Shock;
+- safe landing assist;
 - Graze;
-- resonance nodes menu;
-- saturazione piastra;
-- palette archetipi;
-- particle presets;
-- debug overlay;
-- input gamepad completo;
-- calibrazione audio/video di base.
-
-### P2 — Custom/generated content
-
-- NatuStem reference spike;
-- pipeline stem ingestion CYMATICA-specifica;
-- formato `.cymlevel`;
-- timeline loader;
-- tool CLI validate/inspect;
-- generated finite tracks;
-- custom track senza stem.
-
-### P3 — Advanced audio/AI
-
-- stem separation;
-- ONNX Runtime;
-- modelli locali;
-- playtesting automatico;
-- analisi MIR avanzata;
-- editor visuale.
-
-### P4 — Platform expansion
-
-- Android technical preview;
-- input touch;
-- performance mobile;
-- packaging;
-- eventuale cloud/community sharing.
-
----
-
-## 23. Testing strategy
-
-### 23.1 Unit test
-
-Test obbligatori:
-
-- Euclidean sequencer;
-- modal quantizer;
-- Chladni evaluation;
-- protocollo di scambio thread-safe (SPSC/seqlock/triple buffer);
-- dash destination;
-- dissonance update;
-- object pool particelle;
-- particle budget;
-- level manifest parser;
-- dependency config parser se presente.
-
-### 23.2 Integration test
-
-- audio thread produce frame;
-- render thread consuma frame;
-- shader riceve uniform;
-- player collide con bullet;
-- particle system non alloca oltre init;
-- game state resetta correttamente;
-- tool CLI valida pacchetto fittizio.
-
-### 23.3 Manual test checklist
-
-- audio crackle;
-- input lag;
-- leggibilità minacce;
-- dash fairness;
-- bilanciamento Dissonanza;
-- performance con 1k/5k/10k proiettili;
-- performance con 1k/5k particelle;
+- Risonanza;
+- Drop Shock;
+- particelle CPU;
 - gamepad e mouse/tastiera;
-- shader leggibile con Dissonanza alta.
+- HUD diegetico minimo.
 
-### 23.4 Performance budget iniziale
+Accettazione:
 
-Target Windows:
+- controlli leggibili e comparabili;
+- nessuna modifica nascosta delle hitbox;
+- dash affidabile;
+- graze non farmabile banalmente;
+- partita completa con game over/restart.
 
-- 60 FPS minimo;
-- 120 FPS desiderabile;
-- audio callback senza allocazioni;
-- frame time stabile sotto 16.6 ms;
-- nessun hitch percepibile su shader reload disattivato in release.
+### Milestone 6 — CIE Director v1 e livello adattivo
 
-Target Android futuro:
+**Obiettivo:** trasformare la generazione in experience management.
 
-- 60 FPS;
-- qualità shader scalabile;
-- numero proiettili adattivo;
-- budget particellare adattivo;
-- audio low-latency profile;
-- fallback grafico.
+Deliverable:
+
+- `PlayerModel` multidimensionale;
+- `ExperienceTarget`;
+- pacing state machine;
+- recovery debt;
+- candidate scoring;
+- novelty memory;
+- stochastic top-k selector;
+- planning/commit horizon;
+- planning worker/deadline;
+- explanation trace;
+- preset Standard e Pure Seed.
+
+Accettazione:
+
+- adattamento solo su boundary consentiti;
+- nessun rubber-banding immediato;
+- planner deadline miss gestito con fallback;
+- trace spiega ogni scelta;
+- Pure Seed produce replay stabile;
+- target pressure e pressione misurata convergono entro tolleranza definita.
+
+### Milestone 7 — Archetipi e vertical slice di qualità
+
+**Obiettivo:** dimostrare l’identità di CYMATICA.
+
+Deliverable:
+
+- Sintetico e Organico completi;
+- almeno un terzo archetipo dimostrativo;
+- archetype policies data-driven;
+- palette/motion secondo `DESIGN.md`;
+- saturazione;
+- transizioni;
+- accessibility profile;
+- performance pass;
+- sessione infinita di almeno 10 minuti.
+
+Accettazione:
+
+- archetipi riconoscibili a vista e nel gameplay;
+- variazione senza perdita di leggibilità;
+- run diverse mostrano diversità misurabile;
+- nessun audio underrun nominale;
+- 60 FPS minimo sul target Windows;
+- vertical slice ritenuta divertente da playtest umano.
+
+### Milestone 8 — AI Lab e quality-diversity
+
+**Obiettivo:** costruire una libreria ampia di pattern validati.
+
+Deliverable:
+
+- `cymatica_lab_cli`;
+- batch generation;
+- descriptor extraction;
+- MAP-Elites o equivalente;
+- procedural personas;
+- archive format;
+- dashboard/report testuale;
+- curation/blacklist.
+
+Accettazione:
+
+- archive con coverage misurabile;
+- pattern valutati su più personas;
+- runtime funziona senza archive;
+- archive versionato e validato;
+- nessun candidato invalido entra come elite.
+
+### Milestone 9 — Pacchetti, timeline e tool CLI
+
+**Obiettivo:** preparare contenuti finiti e custom.
+
+Deliverable:
+
+- `.cymlevel` schema;
+- loader;
+- migration/versioning base;
+- `validate`, `inspect`, `package`;
+- custom level index;
+- generated finite export;
+- generation trace opzionale.
+
+Accettazione:
+
+- fixture valida caricata;
+- fixture corrotta rifiutata chiaramente;
+- Generated Track esportabile e rigiocabile;
+- tool non richiesto per compilare game.
+
+### Milestone 10 — Custom audio mix-only
+
+**Obiettivo:** generare livelli da brani senza stem.
+
+Deliverable:
+
+- FFmpeg integration tool-only;
+- duration/loudness/beat/onset/feature extraction;
+- section segmentation iniziale;
+- Music Intent timeline con confidence;
+- mapping a quattro ruoli approssimato;
+- fallback robusti.
+
+Accettazione:
+
+- più generi producono livelli caricabili;
+- assenza di beat stabile gestita;
+- confidence guida la conservatività;
+- nessuna dipendenza tool entra nel game runtime.
+
+### Milestone 11 — NatuStem spike e stem separation opzionale
+
+**Obiettivo:** valutare e aggiungere separazione come miglioramento, non requisito.
+
+Deliverable:
+
+- report NatuStem;
+- decisione backend;
+- manifest ingestion;
+- optional audio-separator/ONNX path;
+- CPU-only baseline;
+- cache;
+- fallback mix-only;
+- license/model review.
+
+Accettazione:
+
+- fallimento stem non impedisce il pacchetto;
+- modelli non committati;
+- output e provenance registrati;
+- runtime game indipendente.
+
+### Milestone 12 — Android technical preview
+
+**Obiettivo:** verificare portabilità reale.
+
+Deliverable:
+
+- NDK/Gradle build;
+- input touch/controller;
+- device audio tests;
+- quality tiers;
+- performance profile;
+- fallback fixed tick/particle/shader.
+
+Accettazione:
+
+- app avviabile su device reale;
+- audio stabile;
+- latenza misurata;
+- 60 FPS sul profilo target o backlog documentato;
+- CIE rispetta budget ridotti.
+
+### Milestone 13 — Studio/editor
+
+**Obiettivo:** offrire authoring visuale dopo la stabilità dei formati.
+
+Possibili stack:
+
+- C++/raylib per UI minima;
+- Flutter desktop per UI complessa;
+- web app separata;
+- altra soluzione valutata con prototipo.
+
+Nessuna scelta definitiva prima di M9–M10.
 
 ---
 
-## 24. Sviluppo agentico e AGENTS.md
+## 33. Backlog prioritizzato
 
-Le istruzioni operative per Google Antigravity 2.0 o IDE agentici equivalenti non sono più mantenute come prompt interni a questa specifica.
+### P0 — Fondazione e vertical slice
 
-La regola adottata è:
+- M0–M7;
+- clock/seed/replay;
+- Music Intent;
+- pattern grammar;
+- validator;
+- CIE v1;
+- player model;
+- tre archetipi;
+- test e trace.
 
-- questo documento descrive **vision, requisiti, architettura, milestone, vincoli tecnici e decisioni progettuali**;
-- `AGENTS.md` contiene solo le **regole operative minime**: avvio, milestone attiva, dipendenze, build, vincoli realtime, sicurezza e verifica.
+### P1 — Robustezza generativa
 
-Quando il progetto viene aperto in Antigravity, l’agente deve ricevere il repository con entrambi i file:
+- AI Lab;
+- quality-diversity;
+- personas;
+- archive;
+- long-run repetition metrics;
+- accessibility tuning;
+- challenge presets.
 
-```text
-CYMATICA_Specifica_Agentica_Sviluppo.md
-AGENTS.md
-```
+### P2 — Contenuti finiti/custom
 
-`AGENTS.md` deve essere trattato come contratto operativo del repository. Se una regola operativa cambia, aggiornare `AGENTS.md`. Se cambia una decisione di prodotto, architettura o milestone, aggiornare questa specifica.
+- `.cymlevel`;
+- tool CLI;
+- Generated Track;
+- mix-only custom;
+- NatuStem spike;
+- stem separation opzionale.
+
+### P3 — ML avanzato
+
+- contextual bandit;
+- surrogate fitness;
+- learned player model;
+- section/archetype classifier;
+- music continuation model;
+- automatic curation support.
+
+### P4 — Espansione
+
+- Android;
+- editor;
+- community sharing;
+- co-op locale;
+- leaderboard Pure Seed;
+- modding sicuro.
 
 ---
 
-## 25. Decision log
+## 34. Decision log
 
 | Decisione | Stato | Motivazione |
 |---|---:|---|
-| Cimatica come base scientifica | Accettata | Differenzia gameplay e visual |
-| Dissonanza al posto della vita | Accettata | Integra audio, rischio e feedback |
-| Canali Pulso/Corpo/Trama/Vettore | Accettata | Funziona con voce, strumentale e procedurale |
-| 5 archetipi cimatici | Accettata | Varietà senza moltiplicare controlli |
-| Procedurale prima del custom | Accettata | Riduce rischio e valida game feel |
-| C++20/CMake/raylib/miniaudio per core | Accettata per prototipo | Adatto ad agenti e performance |
-| Tool nello stesso repo | Accettata | Condivide formato e codice shared |
-| Tool nella stessa distribuzione del gioco | Rifiutata | Dist separate per runtime snello |
-| Tool GUI subito | Rifiutata | Prima CLI e formato stabile |
-| ONNX in Milestone 1 | Rifiutata | Troppo rischio/scope |
-| FFmpeg in Milestone 1 | Rifiutata | Non necessario per procedurale |
-| Strudel come runtime dependency | Rifiutata per ora | Utile per ricerca, licenza da verificare |
-| Strudel come research track | Accettata | Ottimo per pattern/prototipi musicali |
-| NatuStem come dipendenza runtime | Rifiutata | Tool Python/stem separation non deve entrare nel runtime del gioco |
-| NatuStem come riferimento custom music | Accettata | Accelera design della pipeline stem senza vincolare architettura |
-| Reference-first, reimplement-later per stem ingestion | Accettata | Riduce rischio e mantiene CYMATICA indipendente |
-| Motore fisico esterno in M1 | Rifiutato | Custom particle/bullet system sufficiente |
-| Particle system custom | Accettato | Necessario per identità visuale |
-| Flutter per core gameplay | Non raccomandato | Troppo FFI e latenza audio |
-| Android in prima milestone | Rimandato | Prima validare core Windows |
-| UI tradizionale complessa | Evitata | Menu come resonance nodes |
-| Prompt operativi dentro specifica | Rifiutata | La specifica deve restare documento tecnico, non manuale operativo dell’agente |
-| AGENTS.md dedicato | Accettata | Contratto operativo separato per Antigravity e agenti equivalenti |
-| Dependency inventory | Obbligatorio | Evita ambiguità in C++/CMake |
-| Milestone attiva iniziale | Milestone 0 | Evita anticipazioni di scope da parte degli agenti |
-| Flussi realtime audio/game | Due contratti unidirezionali | Evita ownership ambiguo e dati bidirezionali nello stesso frame |
-| Autorità temporale gameplay | Fixed timestep con clock audio autoritativo per eventi musicali | Garantisce determinismo e indipendenza dal refresh rate |
-| Scambio thread-safe | SPSC, seqlock o triple buffering bounded | Un semplice double buffer non garantisce snapshot coerenti in ogni scheduling |
-| `.cymlevel` iniziale | Directory ispezionabile | Semplifica debug, validazione e versionamento del formato |
+| Procedurale infinito prima del custom | Accettata | valida il nucleo del gioco |
+| CIE ibrido, non modello neurale monolitico | Accettata | controllo, spiegabilità e fallback |
+| Livello come policy a orizzonte mobile | Accettata | adattamento senza perdere coerenza |
+| Music Intent condiviso da audio e gameplay | Accettata | sincronizzazione semantica |
+| Hard constraints prima dello scoring | Accettata | fairness non negoziabile |
+| Player model multidimensionale | Accettata | abilità non riducibile a un numero |
+| Adattamento con isteresi e limiti | Accettata | evita rubber-banding |
+| Planning worker fuori audio/game hot path | Accettata | deadline e stabilità realtime |
+| Fallback prevalidati | Obbligatori | continuità in caso di errore/ritardo |
+| Seed stream indipendenti | Obbligatori | isolamento del non determinismo |
+| Exact e semantic replay distinti | Accettata | debug vs condivisione |
+| Counter/index-based random keys | Raccomandata | stabilità rispetto all’ordine delle chiamate |
+| Pattern data-driven, generatori nativi | Accettata | sicurezza e testabilità |
+| Scripting runtime utente iniziale | Rifiutato | superficie di rischio inutile |
+| Reachability validator conservativo | Obbligatorio | prevenzione pattern inevitabili |
+| MAP-Elites/QD offline | Accettato come M8 | diversità di qualità |
+| Procedural personas | Accettate come lab | playtest scalabile |
+| ML/ONNX nel vertical slice | Rifiutato | non necessario e rischioso |
+| ML come componente opzionale | Accettato | beneficio misurabile e fallback |
+| C++20/CMake/raylib/miniaudio | Accettato | stack core |
+| Sistema particellare custom | Accettato | identità visuale e controllo |
+| Motore fisico esterno core | Rifiutato | non necessario |
+| Tool nello stesso repo, dist separata | Accettato | condivisione formati senza bloat |
+| NatuStem come riferimento | Accettato | accelera future decisioni |
+| Strudel/Tidal come riferimento | Accettato | grammatica musicale, non runtime |
+| `DESIGN.md` separato | Accettato | elimina ridondanza e rende normativo il design |
 
 ---
 
-## 26. Open questions residue
+## 35. Rischi residui e mitigazioni
 
-1. Nome definitivo: CYMATICA è nome progetto o titolo finale?
-2. Il gioco sarà single-player puro o si prevede co-op locale in futuro?
-3. Il Seme può “attaccare” direttamente o interagisce solo tramite Drop Shock?
-4. La Dissonanza deve avere soglie discrete o continua?
-5. I pacchetti custom potranno essere condivisi? Se sì, servono regole su copyright e metadati.
-6. Quanto deve essere punitivo il fallimento ritmico del dash?
-7. Il gioco deve includere calibrazione latenza audio/video già nella vertical slice?
-8. Le modalità generated finite devono usare solo sintesi interna o anche modelli generativi esterni?
-9. Gli archetipi possono fondersi simultaneamente o solo cambiare per segmenti?
-10. Lo studio/editor futuro sarà C++/raylib, Flutter, web o altro?
-11. Quale test harness C++ adottare: doctest, Catch2 o soluzione custom minima?
-12. Raylib va sempre FetchContent o si vuole supportare anche installazione di sistema?
-13. FFmpeg sarà invocato come binario esterno o linkato come libreria?
-14. La community potrà distribuire pacchetti `.cymlevel` contenenti audio protetto da copyright?
-15. Serve una mini-DSL musicale nativa ispirata a Strudel/Tidal?
-16. NatuStem verrà solo studiato o refactorato in una libreria/CLI riusabile?
-17. Quale backend stem separation sarà preferito per il tool: audio-separator, ONNX diretto o altra pipeline?
-18. Quale licenza verrà scelta per CYMATICA e come impatta su tool, modelli e pacchetti custom?
-
----
-
-## 27. Raccomandazione finale
-
-La direzione è valida e merita un prototipo. La cosa più importante è non partire dal tool custom, dagli stem o dall’AI: il valore del gioco dipende prima dal **game feel cimatica/audio/player**.
-
-Il primo obiettivo deve essere una scena giocabile di 60–90 secondi in modalità procedurale infinita, con:
-
-- piastra Chladni viva;
-- beat procedurale;
-- Seme controllabile;
-- Quantum Dash;
-- Dissonanza;
-- proiettili;
-- particelle VFX;
-- Sintetico e Organico come archetipi dimostrativi.
-
-Se quella scena è divertente, il resto del progetto ha basi forti. Se quella scena non funziona, stem separation, editor, Android e AI non la salveranno.
-
-Strategia consigliata:
-
-1. **Milestone 0:** repository, build, dependency inventory.
-2. **Milestone 1–5:** runtime procedurale giocabile e cinque archetipi.
-3. **Milestone 6–7:** formato pacchetto e tool CLI.
-4. **Milestone 8:** NatuStem reference spike e design pipeline stem.
-5. **Milestone 9+:** stem/ONNX/custom music.
-6. **Milestone 10+:** Android.
-7. **Milestone 11+:** editor GUI.
+| Rischio | Impatto | Mitigazione |
+|---|---:|---|
+| musica procedurale monotona | alto | form planner, motif memory, curation, sound design |
+| generatore “random ma senza intenzione” | alto | pacing, ExperienceTarget, planning horizon |
+| pattern unfair | critico | hard gate, reachability, safety guard, personas |
+| adattamento percepito come trucco | alto | isteresi, boundary, preset, nessuna modifica retroattiva |
+| planner in ritardo | alto | worker bounded, archive, fallback, metriche |
+| replay instabile | medio | versioning, RandomKey, exact trace, golden tests |
+| esplosione combinatoria | alto | grammar compatibility, pruning, budget, QD offline |
+| AI non spiegabile | medio | explanation record, debug overlay, trace |
+| player model errato | alto | confidence, fallback, limiti, disattivazione |
+| costo validator | medio | griglia coarse, cache, headless profiling |
+| visual spettacolari ma illeggibili | critico | `DESIGN.md`, layer semantici, accessibility |
+| dipendenze/licenze | medio | inventory, pinning, review |
+| Android audio/performance | alto | differimento, device tests, quality tiers |
+| dataset insufficiente per ML | medio | core non-ML, non addestrare senza obiettivo |
+| custom music con analisi debole | medio | confidence, mix-only fallback, tool offline |
 
 ---
 
-## 28. Riferimenti tecnici utili
+## 36. Open questions
 
-- raylib — libreria C/C++ per videogiochi, rendering e input: https://www.raylib.com/
-- raylib GitHub: https://github.com/raysan5/raylib
-- raylib releases: https://github.com/raysan5/raylib/releases
-- miniaudio — libreria audio single-file con API low-level e node graph: https://miniaud.io/
-- miniaudio GitHub: https://github.com/mackron/miniaudio
-- miniaudio license: https://github.com/mackron/miniaudio/blob/master/LICENSE
-- miniaudio releases and `miniaudio.c` transition notes: https://github.com/mackron/miniaudio/releases
-- Android Oboe low latency audio: https://developer.android.com/games/sdk/oboe/low-latency-audio
-- Android Oboe library: https://developer.android.com/games/sdk/oboe
-- ONNX Runtime mobile: https://onnxruntime.ai/docs/tutorials/mobile/
-- ONNX Runtime NNAPI Execution Provider: https://onnxruntime.ai/docs/execution-providers/NNAPI-ExecutionProvider.html
+Le seguenti decisioni non bloccano M0, ma vanno risolte prima della milestone indicata.
+
+1. Quale test framework C++ adottare? — M0.
+2. Quale parser/schema JSON adottare? — M0/M1.
+3. Fixed timestep definitivo 120 Hz o profili 60/120? — M1/M5.
+4. Quale algoritmo stable random interno usare? — M1.
+5. Quanto deve durare il commit horizon per BPM estremi? — M3/M4.
+6. Quale discretizzazione reachability offre il miglior compromesso? — M4.
+7. Il dash può essere obbligatorio in Standard o solo in pattern dichiarati? — M4/M5.
+8. Quale metrica definisce pressione osservata? — M6.
+9. Quanto adattamento è comunicato esplicitamente al giocatore? — M6/DESIGN.
+10. Gli archetipi possono fondersi simultaneamente o soltanto transizionare? — M7.
+11. Quali dimensioni QD sono davvero ortogonali e utili? — M8.
+12. Quale algoritmo QD implementare o importare? — M8.
+13. Quali personas minime correlano con playtest umani? — M8.
+14. Licenza definitiva di CYMATICA? — prima di distribuzione pubblica.
+15. Condivisione di pacchetti contenenti audio protetto? — M9/M10.
+16. Backend MIR e stem? — M10/M11.
+17. Editor C++, Flutter o web? — M13.
+
+---
+
+## 37. Criterio di successo della vertical slice
+
+La vertical slice non è riuscita soltanto perché genera musica e proiettili. È riuscita quando:
+
+- il giocatore riconosce una forma musicale;
+- il livello sembra reagire senza barare;
+- due run hanno identità diversa ma pari leggibilità;
+- il ritmo anticipa il pericolo;
+- il director alterna pressione e recupero;
+- il sistema non produce configurazioni inevitabili;
+- un bug è riproducibile tramite run record;
+- il planner può fallire senza interrompere la partita;
+- Sintetico e Organico risultano diversi nel suono, nella forma e nella strategia;
+- il gioco resta divertente dopo più retry, non soltanto sorprendente al primo avvio.
+
+---
+
+## 38. Riferimenti tecnici e scientifici
+
+Questi riferimenti supportano le scelte progettuali; non sono dipendenze automatiche.
+
+- Mouret, J.-B.; Clune, J. — *Illuminating Search Spaces by Mapping Elites*: https://arxiv.org/abs/1504.04909
+- Khalifa, A. et al. — *Talakat: Bullet Hell Generation through Constrained Map-Elites*: https://arxiv.org/abs/1806.04718
+- Yannakakis, G. N.; Togelius, J. — *Experience-Driven Procedural Content Generation*: https://www.um.edu.mt/library/oar/handle/123456789/29274
+- Summerville, A. et al. — *Procedural Content Generation via Machine Learning*: https://arxiv.org/abs/1702.00539
+- Holmgård, C. et al. — *Automated Playtesting with Procedural Personas through MCTS with Evolved Heuristics*: https://arxiv.org/abs/1802.06881
+- Salmon, J. et al. — *Parallel Random Numbers: As Easy as 1, 2, 3*: https://random123.com/
+- TidalCycles documentation, patterning e randomness: https://tidalcycles.org/docs/
 - Strudel: https://strudel.cc/
-- Strudel project guide/license note: https://strudel.cc/technical-manual/project-start/
-- NatuStem reference repository: https://github.com/naturewhisp/NatuStem
+- raylib: https://www.raylib.com/
+- miniaudio: https://miniaud.io/
+- Android Oboe low-latency audio: https://developer.android.com/games/sdk/oboe/low-latency-audio
+- ONNX Runtime mobile: https://onnxruntime.ai/docs/tutorials/mobile/
+- NatuStem: https://github.com/naturewhisp/NatuStem
 - audio-separator: https://github.com/nomadkaraoke/python-audio-separator
-- Google Antigravity documentation: https://antigravity.google/docs/overview
+
+---
+
+## 39. Raccomandazione finale
+
+La prossima implementazione non deve partire da un “modello AI” generico. Deve partire da quattro fondazioni verificabili:
+
+1. **Music Intent condiviso**;
+2. **randomness riproducibile e isolata**;
+3. **pattern data-driven con hard constraints**;
+4. **planner a orizzonte mobile con fallback**.
+
+Soltanto dopo queste basi il player model e l’adattamento hanno uno spazio sicuro in cui operare. L’AI di CYMATICA deve essere riconoscibile non perché usa una rete neurale, ma perché costruisce intenzionalmente una sessione musicale e ludica coerente, varia, responsiva e spiegabile.
