@@ -1,8 +1,8 @@
 # CYMATICA — Game, Audio and Visual Design
 
 **Documento:** design bible operativa  
-**Versione:** 0.1  
-**Data:** 2026-09-09  
+**Versione:** 0.2 — proposta revisionata  
+**Data:** 2026-09-23  
 **Stato:** pre-produzione / vertical slice  
 **Specifica tecnica correlata:** `CYMATICA_Specifica_Agentica_Sviluppo.md`  
 **Regole agentiche:** `AGENTS.md`
@@ -29,6 +29,12 @@ La specifica tecnica decide **come** implementare questi requisiti. Questo docum
 Quando manca un dettaglio tecnico, non aggiungerlo qui. Quando una soluzione tecnica modifica il comportamento percepito, aggiornare entrambi i documenti.
 
 ---
+
+### 0.1 Stato e ambito della revisione
+
+Il repository di partenza è documentale. Questa versione mantiene identità, archetipi e linguaggio artistico; precisa le promesse verificabili e i gate di design. Le modalità future non sono feature già implementate. Infinite Resonance è il focus M0–M7; Generated/Custom appartengono a M9–M11. Training è un preset di test in M5/M6; menu e progressione dedicati richiedono scope esplicito.
+
+Il termine cimatica indica qui ispirazione artistica a figure nodali, non simulazione fisica sperimentalmente validata. Fairness significa minacce leggibili e una risposta praticabile entro il profilo dichiarato; non salvataggio automatico da ogni errore del giocatore.
 
 ## 1. High concept
 
@@ -198,6 +204,23 @@ Regole percettive:
 - oltre raggio: clamp alla distanza massima;
 - stessi costi e rischio del gamepad.
 
+### 6.2.1 Contratto da congelare prima di M3/M4
+
+Prima della giocabilità M3 scegliere un unico profilo player implementabile e usato anche dal validator. M5 rifinisce il game feel; non può definire retroattivamente le regole su cui M4 ha validato i pattern.
+
+| Decisione richiesta | Criterio verificabile |
+|---|---|
+| Unità, arena, raggio hitbox, velocità e diagonale | Stessa distanza a parità di tempo; movimento diagonale normalizzato; aspect ratio non altera il mondo |
+| Attivazione dash: press, release o boundary | Un input genera una sola azione; specificare buffering, annullamento e latenza massima |
+| Tap/hold e preview | Non eseguire un dash al press per poi reinterpretarlo come hold; alternativa candidata: preview su comando separato |
+| Traiettoria, durata e range | Validator e gameplay usano la stessa regola, comprese pareti e confini |
+| Invulnerabilità/fase e cooldown | Definire categorie attraversabili, inizio/fine della fase e cooldown disponibile all'arrivo |
+| Landing assist | Raggio massimo di correzione, validità al tempo di arrivo, fallback se non esiste landing e feedback comprensibile |
+| Quantizzazione | Distinguere movimento/collisione immediati e suono quantizzato; se l'azione stessa attende, mostrare attesa e fissare limite |
+| Device parity | Identico envelope fisico, assist dichiarati; verifica con utenti, non promessa di equivalenza perfetta |
+
+Profilo candidato per lo spike: dash immediato con accento musicale successivo e preview separata. È una proposta da provare, non una decisione creativa già approvata. Fino alla scelta, nessun pattern Standard deve richiedere un dash non definito.
+
 ### 6.3 Graze
 
 Lo sfioramento controllato carica Risonanza.
@@ -249,6 +272,8 @@ Fonti:
 - sequenze senza collisioni;
 - opportunità specifiche di pattern.
 
+Ogni fonte va regolata con budget, cooldown e condizioni di rischio. Un nodo favorevole non deve produrre energia infinita restando fermi in sicurezza; dare carica solo in finestre/esposizioni esplicite. Identificare gli hazard con ID e generazione per evitare farming al riuso dei pool. Graze di hazard neutralizzati o durante invulnerabilità non dà carica salvo eccezione dichiarata. Per pattern di contatto continuo definire un cap per hazard/finestra.
+
 ### 7.2 Dissonanza
 
 Sostituisce la salute tradizionale.
@@ -273,11 +298,11 @@ Non deve:
 
 | Dissonanza | Stato | Presentazione |
 |---:|---|---|
-| 0–25% | Purezza | colore pieno, suono nitido, geometria stabile |
-| 25–50% | Disturbo | separazione cromatica lieve, texture ruvida |
-| 50–75% | Instabilità | glitch più marcato, audio compresso/filtrato |
-| 75–99% | Collasso imminente | perdita di coesione, rumore e pulsazione critica |
-| 100% | Collasso | risoluzione audiovisiva e game over |
+| [0%, 25%) | Purezza | colore pieno, suono nitido, geometria stabile |
+| [25%, 50%) | Disturbo | separazione cromatica lieve, texture ruvida |
+| [50%, 75%) | Instabilità | glitch più marcato, audio compresso/filtrato |
+| [75%, 100%) | Collasso imminente | perdita di coesione, rumore e pulsazione critica |
+| 100% (valore limitato al massimo) | Collasso | risoluzione audiovisiva e game over |
 
 ### 7.4 Recupero
 
@@ -411,6 +436,10 @@ Ogni minaccia significativa richiede:
 4. almeno una risposta praticabile;
 5. conseguenza coerente;
 6. risoluzione visuale chiara.
+
+### 9.5.1 Eccezione tecnica di sicurezza
+
+Un evento già telegrafato mantiene direzione e tempi. Se un guasto tecnico impedisce il preavviso o invalida il piano, il gioco può soltanto ridurre il pericolo o sospendere la sessione, mostrando chiaramente la neutralizzazione. Non è adattamento ordinario e non serve a cancellare un errore volontario. Registrare l'eccezione nel replay e dichiarare la run non confrontabile in Pure Seed. La sicurezza ha precedenza sul sincronismo musicale.
 
 ### 9.6 Variazione e apprendimento
 
@@ -1177,6 +1206,14 @@ Le opzioni possono ridurre difficoltà senza sottrarre l’identità musicale.
 
 ---
 
+### 19.6 Gate di accessibilità della vertical slice
+
+Disponibili prima della run: reduced flashes, shake disattivabile, bloom regolabile, segnali essenziali ridondanti per forma e audio/visuale, HUD esplicito, remapping e hold/toggle dove previsto. Un warning non sostituisce un profilo meno intenso.
+
+Testare anche l'effetto combinato di più emitter sul frame completo. Come riferimento tecnico per i flash usare [W3C, Three Flashes or Below Threshold](https://www.w3.org/WAI/WCAG21/Understanding/three-flashes-or-below-threshold.html): considerare frequenza, area e luminanza, non soltanto quanti flash emette un oggetto. È un riferimento di progetto per contenuti web, non una certificazione medica del gioco né una dichiarazione automatica di conformità WCAG.
+
+I profili solo cosmetici non cambiano collisioni, tempi o seed. Impostazioni che cambiano velocità, cooldown o telegraph costituiscono un profilo gameplay distinto e vengono registrate per replay/confronti. Supporto screen reader completo e one-button restano studi futuri, senza presentarli come disponibili.
+
 ## 20. Difficoltà, score e mastery
 
 ### 20.1 Difficoltà
@@ -1219,12 +1256,14 @@ Una combo può rappresentare **Coerenza** o **Accordo**. Deve crescere con:
 
 Per leaderboard o confronto:
 
-- stesso seed;
-- stessa policy;
+- stesso seed e configurazione iniziale;
+- stessa policy e budget logico indipendente dalla velocità hardware;
 - adattamento disattivato;
 - versione registrata;
 - input device non deve conferire vantaggio irragionevole;
 - replay verificabile.
+
+Pure Seed promette identità a parità di input e profilo compatibile. Targeting player-relative e azioni del giocatore possono produrre traiettorie diverse fra partite. Per condividere un percorso identico occorre una timeline materializzata con regole compatibili. Registrare versione, assist, fixed tick e profilo input; una deadline mancata o un intervento tecnico interrompe l'idoneità al confronto. Nessuna leaderboard online è inclusa nella vertical slice.
 
 ### 20.5 Adaptive mode
 
@@ -1308,7 +1347,7 @@ Lo score deve dichiarare che la run è adattiva. Non confrontare direttamente co
 La vertical slice è design-complete quando include:
 
 - Infinite Resonance;
-- 60–90 secondi di esperienza significativa e loop estendibile;
+- 60–90 secondi di esperienza significativa, più sessione estesa di almeno 10 minuti secondo il gate tecnico M7;
 - Seme, movimento, Quantum Dash, Graze, Risonanza, Drop Shock e Dissonanza;
 - musica procedurale a quattro ruoli;
 - Sintetico e Organico completi;
@@ -1322,6 +1361,8 @@ La vertical slice è design-complete quando include:
 - results con seed;
 - nessun pattern percepito come inevitabile nel playtest previsto.
 
+Prima di dichiarare il gate superato, documentare protocollo, partecipanti e dispositivi, seed/preset, compiti, osservazioni e limiti del campione. Distinguere errori di controllo, mancata lettura del telegraph, difficoltà intenzionale e bug. I bot non sostituiscono la verifica umana. Soglie e criteri di stop del playtest vanno fissati prima della valutazione, non dopo aver visto i risultati.
+
 Il test decisivo è:
 
 > Il giocatore descrive ciò che è accaduto in termini musicali e spaziali, non come una successione casuale di proiettili.
@@ -1330,9 +1371,11 @@ Il test decisivo è:
 
 ## 24. Open design questions
 
-1. Il Seme può attaccare direttamente o soltanto alterare il campo?
-2. Drop Shock riduce Dissonanza o soltanto pressione?
-3. Il dash quantizzato attende il boundary o esegue subito con risoluzione musicale successiva?
+Le domande sono gate di design, non autorizzazione agli agenti a introdurre risposte permanenti. Congelare entro M3 le regole necessarie al movimento e alla collisione; entro M5 risorse/score e prima di M7 il resto della vertical slice. Il profilo scelto deve indicare valori iniziali, unità, motivazione e criteri di tuning.
+
+1. Il Seme può attaccare direttamente o soltanto alterare il campo? — M5; l'attacco diretto non è requisito dello spike.
+2. Drop Shock riduce Dissonanza o soltanto pressione? — M5; fissare costo, attesa massima, target neutralizzabili, effetto durante pausa/danno e ordine rispetto a collisioni.
+3. Il dash quantizzato attende il boundary o esegue subito con risoluzione musicale successiva? — prima di M3/M4, secondo §6.2.1.
 4. Quanto può cambiare il comportamento del dash tra archetipi?
 5. Gli archetipi sono selezionati dal giocatore o emergono sempre dalla musica?
 6. Quanti layer letali simultanei sono accettabili per ciascun preset?
@@ -1341,8 +1384,11 @@ Il test decisivo è:
 9. Il Vettore può essere neutralizzato o soltanto evitato?
 10. Quale linguaggio visuale distingue nodi sicuri, muri e opportunità?
 11. Come comunicare l’adattamento senza esporre il player model?
-12. Quali opzioni accessibilità devono essere disponibili già nella vertical slice?
+12. Come verificare le opzioni obbligatorie di §19.6 sul contenuto finale? — M7; il loro perimetro minimo è già definito.
 13. CYMATICA è titolo definitivo o nome progetto?
+14. Quanto danno per hit, quali hazard consumabili, quale invulnerabilità post-hit e quale ordine per colpi simultanei? — M5, fixture anche sui confini 25/50/75/100%.
+15. Quali cap e cooldown per Graze/nodi, e come impedire una carica infinita senza rischio? — M5.
+16. Quale formula di score intera/versionata, quali pesi e tie-break? — M5; risultati provvisori non sono una classifica comparabile fra build.
 
 ---
 
@@ -1357,3 +1403,4 @@ musicalità + leggibilità + trasformazione
 ```
 
 Quando una feature aumenta soltanto il caos, ma non migliora almeno due elementi della triade, non appartiene al core di CYMATICA.
+

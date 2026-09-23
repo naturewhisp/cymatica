@@ -1,9 +1,9 @@
 # CYMATICA — Specifica tecnica per sviluppo agentico e generazione adattiva
 
 **Documento:** specifica tecnica-operativa per prototipo e sviluppo incrementale  
-**Versione:** 0.7  
-**Data:** 2026-09-09  
-**Baseline revisionata:** commit `749609872eedd034abc96fe2e2d782ddb1167e19`  
+**Versione:** 0.8 — proposta revisionata  
+**Data:** 2026-09-23  
+**Baseline revisionata:** commit `4aa2d5271aea11ad8aa088932c5afad8d6aaeec7`  
 **Target primario:** Windows x64  
 **Target secondario da preservare:** Android  
 **Stack core raccomandato:** C++20, CMake, raylib, miniaudio, shader GLSL  
@@ -15,6 +15,21 @@
 ---
 
 ## 0. Changelog
+
+### 0.8 — 2026-09-23
+
+Revisione documentale proposta, non attestazione di implementazione. Il repository esaminato contiene documentazione, non un runtime compilabile. La milestone attiva resta M0.
+
+- precisati transport, sample clock, latenza, fixed tick e gestione overload;
+- corretti snapshot concorrenti, lifetime e commit transazionale dei piani;
+- separati determinismo logico, deadline realtime e replay;
+- rafforzata la validazione spazio-temporale e composizionale, con esito unknown;
+- formalizzate eccezioni di sicurezza, fallback e telegraph;
+- resi espliciti i limiti scientifici di proxy, cimatica e playtest automatico;
+- introdotti gate anticipati per regole player, metriche e profilo hardware;
+- mantenuti stack, milestone, archetipi e ambito del progetto.
+
+Le integrazioni sono requisiti proposti da adottare con questa revisione. Numeri di tuning e alternative creative aperte restano da validare; non diventano risultati sperimentali per il fatto di essere documentati. Gli esempi C++/JSON sono contratti illustrativi, non sorgenti o schemi già implementati.
 
 ### 0.7 — 2026-09-09
 
@@ -183,7 +198,7 @@ Il sistema può sorprendere il giocatore, non può generare pericoli inevitabili
 
 ### 4.2 Un’unica autorità temporale musicale
 
-Il clock audio monotono determina beat, battute, frasi e scadenze degli eventi. Gameplay e rendering non inferiscono il tempo musicale dal frame rate.
+Il transport musicale canonico, espresso in sample frame logici, determina beat, battute, frasi e scadenze. Il conteggio dei frame prodotti dalla callback non coincide con il tempo già udito. La mappatura fra transport, device e presentazione è definita in §7.5; gameplay e rendering non inferiscono il tempo musicale dal frame rate.
 
 ### 4.3 Decisioni ai confini musicali
 
@@ -193,7 +208,7 @@ La maggior parte delle decisioni AI avviene su boundary musicali, non ogni frame
 - meso: battuta;
 - macro: frase/sezione.
 
-Correzioni di sicurezza possono avvenire immediatamente, ma non devono creare sincopi arbitrarie non previste dal design.
+Correzioni di sicurezza possono avvenire immediatamente secondo §12.5. La sicurezza ha precedenza sulla quantizzazione; quando possibile il feedback musicale viene risolto sul boundary successivo.
 
 ### 4.4 Non determinismo isolato
 
@@ -205,7 +220,7 @@ Nessuna ricerca, inferenza, allocazione, parsing, logging o validazione compless
 
 ### 4.6 Degradazione sicura
 
-Un planner lento, una policy corrotta o un archivio mancante non devono bloccare l’audio né creare caos. Il runtime deve possedere pattern fallback semplici, musicali e sicuri.
+Un planner lento, una policy corrotta o un archivio mancante non devono bloccare la callback né creare caos; un guasto grave può richiedere una sospensione tecnica controllata. Il runtime deve possedere pattern fallback semplici, musicali e sicuri.
 
 ### 4.7 Dati prima di scripting arbitrario
 
@@ -399,6 +414,22 @@ struct MusicIntentEvent {
 
 ---
 
+### 7.5 Transport, unità e sincronizzazione
+
+Contratto richiesto entro M1:
+
+- `sampleFrame` è un frame multicanale (non un singolo campione per canale), unsigned 64 bit, sulla timeline logica della run. Per il primo profilo proporre 48.000 frame/s interni; il device può avere un rate diverso tramite conversione esplicita. La scelta va registrata, non ereditata implicitamente dal device.
+- Distinguere `renderCursor` (primo frame ancora da sintetizzare), `presentationCursor` (stima del frame in uscita udibile) e `simulationTick`. Pubblicare qualità/invalidità della stima di presentazione: non fingere precisione sample-accurate sul tempo udito quando il backend non la offre.
+- Mantenere una sola tempo map versionata. BPM indica quarter-note/minute; numeratore, denominatore, suddivisioni e confini di frase sono espliciti. Nel primo prototipo è ammesso limitarsi a 4/4 e tempo costante, rifiutando altri casi anziché interpretarli male.
+- Convertire posizioni musicali in frame assoluti con aritmetica razionale o accumulo del resto e arrotondamento documentato; non sommare ripetutamente durate float arrotondate. `beatPhase` è una vista derivata, mai autorità.
+- Per eventi alla stessa data usare ordine stabile `(sampleFrame, eventPriority, eventId)`. Specificare la priorità di note-off, note-on e controlli e congelarla nella versione del scheduler.
+- Il frame limite del tick k è `floor(k * internalSampleRate / simulationHz)` con aritmetica controllata contro overflow. Un evento gameplay entra nel primo tick il cui limite è maggiore o uguale alla sua data. La callback audio lo applica invece all'offset esatto nel blocco, anche se il blocco attraversa più eventi.
+- Input acquisiti con timestamp monotono vengono assegnati a un tick tramite la mappatura della run e registrati; replay usa i tick registrati. La valutazione ritmica può usare il timestamp sub-tick, mentre la collisione resta fixed-step.
+- Latenza audio, input e display richiedono misure separate. La calibrazione modifica la mappatura percettiva/valutazione ritmica, non sposta silenziosamente hitbox o seed. Registrare offset e profilo di timing nel RunRecord.
+- Pause, cambio device e discontinuità incrementano `transportEpoch`; i frame logici della run non vengono azzerati a ogni riapertura. Un piano di epoch precedente è rifiutato. In headless un clock virtuale esegue la stessa timeline.
+
+Test M1: 44,1/48 kHz lato device, blocchi di dimensione variabile, eventi sul bordo del blocco, BPM non divisore del rate, pausa/ripresa e nessuna deriva cumulativa dopo un'ora virtuale. Le configurazioni non supportate devono fallire esplicitamente.
+
 ## 8. Cymatic Intelligence Engine
 
 ### 8.1 Responsabilità
@@ -550,6 +581,10 @@ Requisiti:
 ```cpp
 struct PlanChunk {
     PlanChunkId id;
+    std::uint64_t transportEpoch;
+    std::uint64_t basePlanRevision;
+    std::uint64_t snapshotId;
+    std::uint64_t decisionId;
     PolicyVersion policyVersion;
     MusicPosition begin;
     MusicPosition commitUntil;
@@ -566,50 +601,26 @@ Nel runtime la rappresentazione può essere convertita in buffer preallocati pri
 
 ### 8.6 Ciclo decisionale di riferimento
 
-Il CIE deve avere un ciclo esplicito, non una catena di callback implicite:
+Il worker costruisce una proposta da snapshot immutabile e stato accettato. Non avanza lo stato canonico quando termina un calcolo: una proposta può essere scaduta o sostituita.
 
-```cpp
-PlanResult CymaticDirector::buildNextPlan(const DirectorInput& in) {
-    DirectorState nextState = pacing_.advance(state_, in);
-    ExperienceTarget target = targetController_.compute(nextState, in);
+```text
+worker:
+  derive nextState and target from acceptedState + snapshot
+  generate candidates in stable order within logical work budget
+  validate composed future, score accepted candidates, select
+  return PlanProposal(chunk, nextState, snapshotId, basePlanRevision,
+                      transportEpoch, decisionId, validityWindow)
 
-    CandidateBatch batch;
-    generator_.generate(target, in, batch);
-
-    ValidCandidateSet valid;
-    for (PatternCandidate& candidate : batch) {
-        ValidationResult result = validator_.validate(candidate, in);
-        if (result.accepted) {
-            scorer_.score(candidate, target, in);
-            valid.push(std::move(candidate));
-        } else {
-            explanation_.recordRejection(candidate, result);
-        }
-        if (in.deadline.softExpired()) {
-            break;
-        }
-    }
-
-    PatternCandidate selected = valid.empty()
-        ? fallback_.instantiate(target, in)
-        : selector_.select(valid, in.seed, target);
-
-    PlanChunk chunk = planner_.composeCommittedPrefix(selected, in);
-    safety_.assertPlanInvariants(chunk, in);
-    trace_.record(nextState, target, selected, chunk);
-    state_ = nextState;
-    return chunk;
-}
+game/coordinator at decision boundary:
+  check epoch, revision, deadline, state compatibility and queue capacity
+  if valid: commit proposal and nextState together
+  else: commit contextual fallback and its explicit state transition
+  publish accepted event buffers once; record actual accepted decision
 ```
 
-L’implementazione reale può separare le fasi in job, ma deve conservare:
+Il commit ha un solo proprietario sul game/coordinator thread. I risultati tardivi vengono scartati, non inseriti nel futuro come se appartenessero a una nuova decisione. Una proposta rifiutata non consuma novelty debt, recovery debt o ID canonici. Riservare prima la capacità dei buffer audio/gameplay e pubblicare un token/revisione di commit comune; nessun consumer esegue metà transazione. La callback non attende il coordinatore.
 
-- input snapshot unico;
-- hard gate prima dello score;
-- deadline osservabile;
-- fallback sempre disponibile;
-- pubblicazione atomica del risultato;
-- trace di decisione.
+Gli oggetti dinamici del worker sono convertiti in slot preallocati prima del commit. Il rilascio di vector, shared ownership e buffer pesanti avviene fuori dalla callback. Trace delle proposte e trace dei commit sono distinti: il secondo è autoritativo per replay.
 
 ### 8.7 Stato persistente del director
 
@@ -735,9 +746,9 @@ struct PlayerSkillVector {
 
 struct PlayerStateEstimate {
     PlayerSkillVector skill;
-    float stress;
-    float flow;
-    float fatigue;
+    float stressProxy;  // euristica, non emozione misurata
+    float flowProxy;    // sperimentale, non controllo safety
+    float fatigueProxy;
     float confidence;
     float adaptationReadiness;
 };
@@ -778,7 +789,7 @@ Esempio:
 
 ```cpp
 estimate = lerp(estimate, observation, alpha);
-confidence = min(1.0f, confidence + validSampleWeight);
+confidence = evidenceQuality(validCount, recency, coverage); // euristica versionata
 ```
 
 ### 10.4 Challenge corridor
@@ -802,7 +813,7 @@ Regole obbligatorie:
 - cooldown dopo un cambio importante;
 - nessun cambio retroattivo;
 - nessuna modifica nascosta a hitbox o invulnerabilità;
-- nessun annullamento di un attacco già telegrafato;
+- nessun annullamento adattivo di un attacco già telegrafato; le sole eccezioni tecniche di sicurezza seguono §12.5;
 - ogni assist deve appartenere a una policy dichiarata;
 - adattamento disattivabile in modalità challenge/seeded leaderboard.
 
@@ -845,26 +856,28 @@ Dove:
 
 Pesi e normalizzazioni sono policy data-driven. Registrare breakdown e non usare il solo numero finale per debug.
 
+Ogni feature deve dichiarare unità grezza, finestra, dominio, funzione di normalizzazione, saturazione e comportamento con dati mancanti. Pesi non negativi normalizzati a somma 1 mantengono la combinazione in [0,1] se tutte le feature lo sono. Un dato mancante non equivale a pressione zero: ridurre confidence o usare baseline.
+
+Separare `environmentPressure` (geometria/richiesta d'azione) e `performanceError` (collisioni e difficoltà osservate). Il primo serve a confrontare candidati, il secondo a correggere gradualmente il target; evitare doppio conteggio di feature correlate. Nel prototipo confidence significa sufficienza dell'evidenza, non probabilità calibrata. Validare i proxy con playtest e non inferire stress/flow reali senza dati specifici.
+
 ### 10.9 Controller adattivo iniziale
 
-Usare un controller conservativo aggiornato su phrase boundary:
+Separare `baseTarget` della forma musicale, `desiredPressure` del preset e `commandedTarget` inviato al generatore. Non aggiornare un target inseguendo continuamente sé stesso.
+
+Baseline M6: controllo proporzionale limitato, `Ki = 0`, aggiornato ai confini di frase su una finestra completata. L'integrale è un esperimento successivo, non un requisito iniziale.
 
 ```text
-error = targetPressure - observedPressure
-rawAdjustment = Kp * error + Ki * accumulatedError
-adjustment = clamp(rawAdjustment, -maxDeltaPerPhrase, +maxDeltaPerPhrase)
+error = desiredPressure - measuredPressure
+delta = confidence * Kp * deadzone(error)
+commandedTarget = clamp(previousCommand + clamp(delta, -maxDelta, +maxDelta),
+                        presetMin, presetMax)
 ```
 
-Applicare poi:
+Questa è una policy euristica: misurare segno, ritardo e risposta fra target e pressione prima di attivarla. Recovery e climax applicano obiettivi espliciti e possono sospendere l'adattamento. Scarsa confidence congela la correzione e riporta gradualmente alla baseline dichiarata.
 
-- dead zone/isteresi;
-- confidence multiplier;
-- recovery debt;
-- limiti del preset;
-- smoothing;
-- quantizzazione a cambi semantici consentiti.
+Un futuro PI deve includere `dt` della finestra, anti-windup ai limiti, reset/freeze in pausa, fallback, cambio preset e dati invalidi. Il recovery debt resta non negativo, bounded, con unità pressione×secondi e termine massimo di rimborso configurato. Saturazione, novelty e controller non possono aumentare difficoltà tramite percorsi indipendenti che aggirano il clamp finale.
 
-Il controller non modifica direttamente velocità o densità. Aggiorna `ExperienceTarget`; il candidate generator sceglie una configurazione valida che soddisfa il nuovo target.
+Accettazione: fixture con pressione a gradino, rumore, dati mancanti, saturazione e ritardo; nessuna oscillazione persistente o deriva fuori preset. Soglie di convergenza e numero di frasi vanno fissati nella policy prima del test; il prototipo non promette stabilità sulla base della sola formula.
 
 ### 10.10 Confidence gating
 
@@ -1000,7 +1013,7 @@ Questo impedisce ripetizioni locali anche se la distribuzione globale è ricca.
 
 ### 12.1 Principio
 
-La validità è binaria; la qualità è graduata. Un candidato invalido non può vincere grazie a uno score estetico elevato.
+La decisione di ammissione è binaria; il validator distingue accepted/rejected/unknown. Solo accepted passa. La qualità è graduata: un candidato non ammesso non può vincere grazie a uno score estetico elevato.
 
 ### 12.2 Classi di hard constraint
 
@@ -1045,25 +1058,29 @@ La validità è binaria; la qualità è graduata. Un candidato invalido non può
 
 ### 12.3 Reachability validator
 
-Il validator usa una rappresentazione gameplay semplificata e conservativa, indipendente dallo shader.
+Il validator usa la geometria autoritativa, con approssimazioni conservative esplicite. Una griglia 64×36 a 10–30 campioni/s è soltanto uno spike di costo: controllare celle libere agli estremi non dimostra che il tragitto intermedio sia libero.
 
-Approccio raccomandato per il prototipo:
-
-1. discretizzare l’arena in una griglia, per esempio 64×36 celle logiche;
-2. campionare il futuro a 10–30 step al secondo sull’orizzonte del candidato;
-3. marcare celle occupate da hazard con margine;
-4. propagare l’insieme di celle raggiungibili dal giocatore in base a velocità, accelerazione e confini;
-5. aggiungere archi di transizione dash se disponibili;
-6. rifiutare il candidato se l’insieme raggiungibile diventa vuoto;
-7. calcolare minimi di safe area, corridor width e escape count.
+1. Comporre hazard attivi, eventi già impegnati e candidato, incluse code che oltrepassano il chunk.
+2. Propagare stati `(cell/position, time, dashCooldown, phase, resources)` con limiti conservativi. Non unire stati incompatibili in una cella attribuendo loro il cooldown migliore.
+3. Validare ogni transizione sull'intero intervallo tramite swept collision o un bound dimostrato sul moto relativo, incluso movimento di muri e confini.
+4. Dilatare gli ostacoli per raggio del player, errore spaziale e incertezza temporale; restringere l'insieme di azioni del player al profilo ammesso. L'inflazione va derivata da velocità/accelerazione massime, non scelta come margine arbitrario.
+5. Gli archi dash richiedono origine raggiungibile, risorsa disponibile, percorso compatibile con le regole di fase e landing sicuro all'arrivo; aggiornano le risorse.
+6. Conservare predecessori e ricostruire almeno una traiettoria testimone. Rivalidarla nella simulazione autoritativa con lo stesso timestep, margine di reazione e incertezza dichiarata.
+7. Validare la transizione terminale verso una continuazione sicura; una strada che finisce contro un muro appena fuori orizzonte non basta.
 
 ```text
-R(t + dt) = reachable_neighbors(R(t), movement_envelope)
-            - blocked_cells(t + dt)
-            + valid_dash_landings(t + dt)
+R_next = { successor(s, action) |
+           s in R_current,
+           action feasible for s,
+           swept transition safe,
+           resulting resources valid }
 ```
 
-Il validator deve sovrastimare il pericolo, non sottostimarlo.
+Esito: `accepted`, `rejected` oppure `unknown` (timeout, forecast incompleto, bounds assenti). `unknown` non passa il gate. Il certificato di accettazione include contesto, intervallo, hash geometria/policy, modello di controllo e testimone. La sicurezza vale entro tali assunzioni; una via esistente non garantisce che un essere umano la legga né che ogni sua scelta sia salvabile.
+
+Se lo snapshot di accettazione è cambiato, rivalidare rispetto allo stato effettivo o a un insieme iniziale certificato che lo contiene. Non confondere la sola esistenza di una via da una vecchia posizione con sicurezza dalla posizione attuale. Il runtime guard impedisce nuove violazioni della policy; non cancella sistematicamente le conseguenze di errori volontari del giocatore.
+
+Regressioni minime: proiettile che attraversa una cella tra campioni; diagonale che taglia un angolo; due dash richiesti prima del recharge; pattern singolarmente validi ma invalidi insieme; chunk valido isolato ma senza uscita alla fine; snapshot scaduto. Misurare falsi positivi contro un oracle più preciso su fixture piccole.
 
 ### 12.4 Modelli di controllo
 
@@ -1079,24 +1096,16 @@ Un pattern può dichiarare il profilo minimo richiesto, ma deve essere seleziona
 
 ### 12.5 Runtime safety guard
 
-Il validator preventivo non sostituisce un guard immediato. Prima di pubblicare eventi letali, il runtime controlla l’orizzonte breve:
+Prima di introdurre nuove minacce, controllare in lavoro bounded: epoch e revisione, spawn non sovrapposto, capacità, precondizioni del certificato, telegraph realmente presentato e validità del futuro composto. Un callback di disegno eseguito non prova che il giocatore abbia visto il telegraph: registrare la prima presentazione stimata e usare margini conservativi per stall/jitter.
 
-- spawn non sovrapposto;
-- almeno una via di fuga;
-- contatori entità;
-- telegraph effettivamente emesso;
-- stato dash coerente;
-- plan chunk non scaduto.
+Politiche:
 
-Azioni possibili in caso di fallimento:
+- Prima del telegraph: rifiutare/sostituire l'evento e scegliere una continuazione valida nel contesto.
+- Dopo il telegraph: nessuna retargetizzazione, accelerazione, riduzione del preavviso o nuova minaccia. Per un guasto tecnico/certificato invalido è ammessa solo riduzione del pericolo, resa visibile (dissolvenza/neutralizzazione), con `SafetyIntervention` nel trace.
+- Il guard non neutralizza una minaccia corretta soltanto perché il giocatore ha scelto una traiettoria perdente. Distinguere violazione della policy e errore di gioco.
+- Se manca una continuazione certificata, sospendere nuovi spawn; se anche lo stato già impegnato è tecnicamente incoerente, usare una pausa controllata o neutralizzazione esplicita. Mai aggiungere un fallback letale non validato.
 
-1. cancellare l’evento non ancora visibile;
-2. degradarlo a VFX non letale;
-3. ampliare gap o ritardare spawn;
-4. inserire un safe pulse;
-5. passare a fallback recovery.
-
-Queste azioni devono essere registrate nel trace.
+Le eccezioni tecniche interrompono l'idoneità al confronto Pure Seed della run; il giocatore può continuare come sessione non confrontabile. Il replay registra evento, motivo, tick e modifica. Safety ha precedenza sul beat e nessun controllo complesso viene trasferito alla callback.
 
 ### 12.6 Fairness metrica
 
@@ -1114,7 +1123,7 @@ struct FairnessMetrics {
 };
 ```
 
-`unavoidableRisk` deve essere zero per contenuto standard. Eventuali modalità sperimentali non possono cambiare questa regola senza decisione di design esplicita.
+`unavoidableRisk` è un indicatore di violazione nel modello, non una probabilità scientificamente calibrata. Per contenuto standard sono ammessi solo esiti accepted senza violazioni; zero non dimostra assenza universale di rischio. Timeout e assunzioni mancanti sono unknown, non zero.
 
 ---
 
@@ -1215,7 +1224,11 @@ In release può essere ridotto; in debug è fondamentale per capire perché il d
 now | committed events | mutable planned tail | unknown future
 ```
 
-Il planning horizon può variare con BPM e hardware; il commit horizon non può essere più corto del telegraph necessario.
+Il planning horizon può variare con BPM; in Pure Seed non varia con il carico hardware (§15.9). Le durate in battute sono suggerimenti; le condizioni reali sono espresse in sample frame.
+
+Distinguere coda audio già pubblicata (immutabile) e piano mutabile nel worker. Un evento diventa impegnato al primo tra pubblicazione audio e presentazione del suo telegraph. Non inserire tutta la coda mutabile nella SPSC audio.
+
+Per ogni hazard: `activation - firstTelegraphPresentation >= minReactionFrames`. Il lead di pubblicazione deve inoltre coprire lookahead del renderer audio, margine di pubblicazione/jitter e preavviso; il planner parte prima di tale deadline. A BPM estremi aumentare i beat di anticipo o rifiutare la policy: `commit_beats = 1` non garantisce da solo la fairness. Misurare separatamente lead audio, durata telegraph e margine operativo.
 
 ### 14.2 Receding-horizon planning
 
@@ -1239,18 +1252,19 @@ Per transizioni di più pattern, usare un beam search piccolo:
 - cache di risultati geometrici;
 - fallback se deadline superata.
 
-La configurazione va profilata. Non inserire numeri elevati per “più intelligenza” senza misurazione.
+La configurazione va profilata. In Pure Seed il limite di espansioni è logico e fisso; il superamento della deadline invalida il confronto, non cambia il candidato vincente. Non inserire numeri elevati per “più intelligenza” senza misurazione.
 
 ### 14.4 Deadline
 
 Il planner riceve una deadline legata al commit horizon. Non è ammesso attendere indefinitamente.
 
 ```cpp
+// Standard live only; Pure Seed uses the logical budget in section 15.9.
 if (clock.now() >= deadline.soft) {
     stopExpandingCandidates();
 }
 if (clock.now() >= deadline.hard) {
-    publishBestValidOrFallback();
+    returnBestValidOrFallbackProposal(); // coordinator validates and commits
 }
 ```
 
@@ -1266,8 +1280,8 @@ Ogni archetipo deve possedere almeno:
 
 I fallback:
 
-- sono prevalidati;
-- non richiedono ricerca;
+- sono prevalidati entro precondizioni esplicite e ricontrollati contro hazard attivi e prefisso impegnato;
+- non richiedono ricerca estesa; se le precondizioni non valgono, usare il fallback senza nuovi hazard di §12.5;
 - rispettano il Music Intent;
 - possono essere parametrizzati soltanto entro range sicuri;
 - non devono risultare come freeze o errore evidente.
@@ -1356,11 +1370,11 @@ Contiene:
 - input trace o snapshot necessari;
 - correzioni del safety guard.
 
-È il formato per bug e test regression.
+È il formato per bug e test regression. La prima garanzia è limitata a stessa build, piattaforma, asset, profilo numerico e input tick-stamped. Portabilità bitwise cross-platform non è promessa; audio DSP e immagine finale non sono inclusi negli hash gameplay salvo contratto specifico.
 
 #### Semantic replay
 
-Contiene seed e parametri principali. È riproducibile solo con versioni compatibili di policy, generatori e contenuti.
+Contiene seed e parametri principali. Per una policy non adattiva può rigenerare il piano entro il profilo di determinismo dichiarato; una run adattiva richiede anche gli input/osservazioni necessari al director. Seed e parametri da soli non ricostruiscono la risposta a un giocatore diverso.
 
 #### Share seed
 
@@ -1399,6 +1413,22 @@ Una modifica a uno dei seguenti elementi può invalidare il semantic replay:
 Il progetto non deve fingere compatibilità quando non esiste.
 
 ---
+
+### 15.9 Determinismo, deadline e modalità Pure Seed
+
+RNG stabile non basta se il numero dei candidati dipende dai millisecondi disponibili. Distinguere:
+
+- **Standard live:** deadline wall-clock e degradazione sono ammesse; registrare candidati effettivi, piano accettato, fallback e interventi. Il replay exact riproduce queste decisioni, non riesegue la competizione con il timer.
+- **Pure Seed:** budget logico fisso (candidati/nodi/step), ordine stabile, tie-break tramite ID, configurazione e contenuti congelati. Il timer misura la performance ma non sceglie il vincitore. Se l'hardware non completa in tempo, la run perde l'idoneità al confronto prima di usare fallback; non dichiara lo stesso seed equivalente.
+- **Headless:** clock virtuale, stesso algoritmo e stesso budget logico del profilo sotto test; accelerare il wall-clock, non il delta di simulazione.
+
+Disabilitare l'adattamento non disabilita automaticamente targeting player-relative o Drop Shock: Pure Seed significa stessa policy e stesse condizioni iniziali, non stessi proiettili per input differenti. Stessi input devono riprodurre lo stesso stato. Un eventuale confronto su timeline identica richiede una modalità separata che materializzi il piano ed escluda targeting reattivo.
+
+RunRecord deve includere: internal sample rate, simulation Hz, transport epoch/discontinuità, input tick e ordine, hash catalogo/asset/policy, versione validator/generator/RNG, profilo numerico, configurazione assist e timing, budget logico, revisioni accettate, checkpoint e stato del controller. Serializzare campi canonici, mai memoria grezza con padding/puntatori. Verificare saturazioni e overflow; RNG-to-float, ordinamento, softmax stabile e tie-break fanno parte del contratto. Se la traccia si interrompe per overflow o limite disco, marcare replay incompleto e confronto non valido.
+
+### 15.10 Memoria e durata della run
+
+Le cronologie del director sono bounded; trace e checkpoint hanno limite disco e retention configurabili. Non accumulare `decisions` all'infinito in RAM: il JSON §15.7 è uno schema illustrativo, il writer deve essere incrementale fuori realtime. Definire granularità e frequenza di checkpoint prima del replay M6. Nessuna esecuzione infinita può garantire conservazione illimitata su risorse finite.
 
 ## 16. Motore di musica procedurale
 
@@ -1577,7 +1607,7 @@ Le primitive gameplay sono autoritative; shader e particelle le rappresentano ma
 
 ### 17.3 Cymatic field model
 
-La geometria visuale parte da una funzione di Chladni o da famiglie correlate.
+La geometria visuale usa una famiglia analitica ispirata alle figure di Chladni. È una scelta procedurale, non una simulazione fisica validata di una piastra: mancano qui materiale, spessore, condizioni al contorno, forzante e smorzamento.
 
 ```text
 F(x, y) = cos(n*pi*x)*cos(m*pi*y)
@@ -1586,7 +1616,7 @@ F(x, y) = cos(n*pi*x)*cos(m*pi*y)
 
 Parametri dinamici:
 
-- `m`, `n` interi bounded;
+- `m`, `n` interi bounded e distinti: con `m == n` la funzione è identicamente nulla; escludere anche combinazioni/blend degeneri;
 - rotazione;
 - phase offset;
 - thickness;
@@ -1596,7 +1626,7 @@ Parametri dinamici:
 - blend con altra modalità;
 - archetype transform.
 
-Il gameplay non usa direttamente ogni pixel della funzione. Un `CymaticFieldSampler` genera:
+Il gameplay non usa direttamente ogni pixel della funzione. Usare coordinate normalizzate documentate, per esempio `(x,y) ∈ [0,1]²`, e conversione in world units indipendente dall’aspect ratio del viewport. Un `CymaticFieldSampler` genera:
 
 - curve o segmenti principali;
 - regioni nodali;
@@ -1722,7 +1752,7 @@ axis 5: rhythm complexity
 axis 6: safe-area profile
 ```
 
-Ogni cella conserva uno o più elite che massimizzano qualità sotto quella combinazione.
+Ogni cella conserva uno o più elite che massimizzano qualità sotto quella combinazione. Partire con 2–3 assi misurati: sei assi con 10 bin ciascuno producono un milione di celle, spesso scarsamente coperte. Dichiarare denominatore della coverage, budget di valutazioni, memoria e confronto con baseline casuale/costruttiva.
 
 Vantaggi per CYMATICA:
 
@@ -1747,9 +1777,7 @@ Un individuo può essere rappresentato da:
 
 ### 18.4 Fitness
 
-La fitness deve combinare:
-
-- validità hard;
+La validità hard è un gate separato, mai un addendo compensabile. Dopo il gate la fitness combina:
 - margine di fairness;
 - coerenza musicale;
 - aderenza all’archetipo;
@@ -1783,7 +1811,7 @@ Il lab usa una simulazione headless semplificata:
 
 - stessa logica autoritativa di collisione;
 - rendering disabilitato;
-- timestep accelerabile;
+- esecuzione accelerata senza cambiare il delta del fixed timestep;
 - output metriche;
 - seed fissati;
 - batch paralleli;
@@ -1947,7 +1975,9 @@ Default proposto per vertical slice:
 - eventi musicali attivati in base al clock audio;
 - nessun avanzamento gameplay dipendente da FPS.
 
-Il valore 120 Hz è una configurazione iniziale, non dogma. Deve essere profilato; un profilo 60 Hz può essere necessario su Android.
+Il valore 120 Hz è una configurazione iniziale, non dogma. Deve essere profilato; un profilo 60 Hz può essere necessario su Android e costituisce un diverso profilo di simulazione/replay.
+
+Non eliminare tick autoritativi per recuperare FPS mentre la musica continua. Entro il limite di catch-up eseguire tutti i tick; oltre il limite entrare in sospensione tecnica controllata, fermare nuove minacce, riconciliare transport/audio e riprendere con preavviso. Registrare la discontinuità; la run non resta idonea a Pure Seed. Valori del limite e della tolleranza vengono fissati nel profilo M1. Interpolazione di rendering e collisione devono rispettare la stessa timeline percettiva; VFX non spostano l'hitbox.
 
 ### 20.4 Planning worker
 
@@ -1977,23 +2007,25 @@ Game -> Telemetry:  bounded event log buffer
 
 ### 20.6 Snapshot protocol
 
-Sono ammesse:
+Baseline: SPSC bounded con ownership degli indici, oppure triple buffer con slot esclusivo al reader e pubblicazione acquire/release. Il producer non sovrascrive un payload finché il consumer lo possiede. Vietato presumere che `trivially_copyable` renda atomica una copia concorrente.
 
-- SPSC bounded queue;
-- seqlock per latest-value trivially-copyable;
-- triple buffer con ownership esplicita.
+Un seqlock con contatore atomico e payload ordinario letto/scritto contemporaneamente può avere data race C++; il retry non la elimina. Non è una baseline ammessa. Un'eventuale implementazione alternativa richiede prova di correttezza del memory model, operazioni atomiche lock-free sul target e limite di tentativi. Mai spinning illimitato nella callback. Il razionale è documentato in [WG21 P1478R0](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p1478r0.html), proposta tecnica e non API C++20 da usare automaticamente.
 
-Non usare un semplice two-slot swap senza impedire che il producer riscriva uno slot durante la copia del consumer.
+Snapshot e piani devono possedere i dati o usare slot immutabili con lifetime esplicito fino all'ack del consumer. `FixedSpan` in §22.2 è una vista, non ownership: vietato riferirla a un pool live che il game thread può riusare. Aggiungere generation counter agli handle e restituire gli slot solo dopo il consumo/scarto.
 
 ### 20.7 Backpressure
 
-Politiche:
+| Canale | Politica obbligatoria |
+|---|---|
+| Audio telemetry | Perdita ammessa con contatore; reader drena e conserva il più recente. Il producer SPSC non modifica l'indice del reader per scartare il vecchio. |
+| Audio controls | Latest-value per parametri continui, smoothing DSP; azioni one-shot, pause/resume e stop richiedono comandi identificati e acknowledgement. |
+| Scheduled audio | Capacity ed eventi massimi per blocco/timestamp verificati prima del commit. Mai overwrite silenzioso di note-off o comandi già accettati. |
+| Plan proposal | Rifiuto di epoch/revisione scaduti, capacità bounded e restituzione slot fuori audio. |
+| Trace | Buffer bounded e writer esterno; perdita segnalata, replay exact marcato incompleto. |
 
-- telemetry audio: drop old, keep latest;
-- control audio: latest-value/idempotente;
-- scheduled audio events: non perdere; pianificare capacity e segnalare overflow;
-- plan chunks: sostituire solo la coda non impegnata;
-- debug logs: drop con contatore, mai bloccare gameplay.
+Il coordinatore ammette batch solo se c'è spazio per tutti gli eventi e un margine riservato ai controlli essenziali. Al superamento: rifiutare il batch prima del commit e usare fallback; se manca materiale audio, applicare una coda di sustain/fade preallocata e segnalare underrun senza bloccare. Non sintetizzare retroattivamente un burst di note arretrate.
+
+Un solo thread è producer della SPSC audio: il coordinatore audio/game riceve le proposte del music planner e i comandi player e li ordina. Non consentire due producer perché il diagramma dice semplicemente Music Planner -> Audio. Definire il massimo di eventi per blocco, voci e costo DSP sul profilo target.
 
 ### 20.8 Pause e device loss
 
@@ -2003,6 +2035,8 @@ Definire una state machine esplicita:
 Running -> Pausing -> Paused -> Resuming
 Running -> DeviceLost -> Recovering -> Running/Fatal
 ```
+
+Lo stop/start/uninit del device avviene sul thread di controllo, mai nella callback (vedere [manuale miniaudio](https://miniaud.io/docs/manual/)). La callback può rendere silenzio e pubblicare acknowledgement tramite percorso bounded.
 
 Durante recovery:
 
@@ -2351,6 +2385,8 @@ Example.cymlevel/
     └── cover.png
 ```
 
+Prima di caricare contenuti esterni (M9), imporre limiti a byte/file/durata/entità, percorsi relativi confinati al pacchetto, rifiuto di traversal e link che escono dal root, codec ammessi e validazione semantica della timeline. Hash verificano integrità, non fiducia nell'autore. Vietare codice eseguibile nel pacchetto. Il formato archivio/distribuzione rimane da decidere; per ora non supporre che una directory sia un ZIP.
+
 File opzionali devono essere dichiarati nel manifest. Il runtime deve supportare almeno:
 
 - timeline + audio mix;
@@ -2444,7 +2480,7 @@ Obbligatori per:
 
 Proprietà consigliate:
 
-- stesso input + stessa policy + stesso seed = stesso decision trace;
+- con stesso profilo numerico e budget logico: stesso input + stessa policy + stesso seed = stesso piano; in Standard live i deadline miss vanno registrati e consumati dal replay exact;
 - cambiare `vfx_stream` non cambia gameplay trace;
 - ogni candidato accettato mantiene reachable set non vuoto;
 - ogni hazard ha telegraph precedente;
@@ -2468,7 +2504,7 @@ Proprietà consigliate:
 
 - producer/consumer con scheduling casuale;
 - overflow bounded;
-- seqlock retry;
+- proprietà di ownership degli slot e numero bounded di operazioni;
 - nessun frame parziale;
 - device stop/start;
 - planner deadline miss;
@@ -2618,11 +2654,11 @@ Il livello `FULL_CANDIDATES` non è adatto a release normale e deve essere bound
 | Runtime safety interventions | prossime a zero su catalogo validato |
 | Audio underrun | 0 in test nominale |
 
-I numeri sono budget iniziali da validare, non garanzie già dimostrate.
+I numeri sono budget iniziali da validare, non garanzie già dimostrate. Prima del gate M7 fissare CPU, GPU, RAM, OS, build Release, risoluzione, qualità, sample rate, buffer audio e scena/seed di carico. Riportare p50/p95/p99 e massimi, non soltanto media. A 120 Hz il tick dispone di circa 8,33 ms e a 60 FPS possono essere necessari due tick più rendering: sommare i costi del main thread. Documentare warmup, durata e denominatore dei deadline miss; zero underrun in un test finito non è garanzia universale.
 
 ### 27.2 Candidate budget adattivo
 
-Se il worker è sotto pressione:
+In Standard live, se il worker è sotto pressione (in Pure Seed applicare invece §15.9):
 
 1. ridurre candidate count;
 2. ridurre beam width;
@@ -2681,6 +2717,8 @@ Le entità cosmetiche sono le prime da degradare.
 | miniaudio | device, mixing, DSP | snapshot ufficiale vendored | sorgente, commit/tag e licenza registrati |
 | test framework | unit/property test | una sola soluzione pinned | decidere in M0 |
 | JSON parser/schema | contenuti e trace | valutare minimal/pinned | non introdurre più parser |
+
+In M0 raylib è responsabile di finestra/input/render; il modulo audio raylib deve essere disabilitato nella configurazione pinned, e un solo target possiede `MINIAUDIO_IMPLEMENTATION` e il device. Verificare l'opzione disponibile nel commit raylib scelto (tipicamente `SUPPORT_MODULE_RAUDIO`) e il link finale; non aprire due motori audio indipendenti. Non è un errore già osservato, perché la build non esiste ancora.
 
 Una libreria JSON diventa probabilmente necessaria prima dei formati data-driven. La scelta deve essere esplicita in M0/M1 e documentata; non implementare un parser JSON artigianale.
 
@@ -2879,7 +2917,19 @@ L’agente non deve introdurre modelli, framework o prompt runtime per soddisfar
 
 ## 32. Roadmap revisionata
 
-La milestone attiva iniziale resta **Milestone 0**. La vertical slice completa termina con Milestone 7.
+La milestone attiva iniziale resta **Milestone 0**. La vertical slice completa termina con Milestone 7. Le milestone sono obiettivi futuri, non feature presenti.
+
+Gate trasversali, senza cambiare numerazione:
+
+- **M0:** scegliere pin/toolchain/test framework e unico owner audio; README e inventario descrivono soltanto ciò che esiste.
+- **M1:** congelare transport/replay profile e protocollo ownership; formalizzare il contratto player minimo richiesto dal validator.
+- **M3:** implementare movimento/collisione e dash minimo headless, oppure un envelope senza dash esplicito. La giocabilità di 60–90 secondi richiede già questo nucleo; M5 lo completa, non lo introduce da zero.
+- **M4:** validare primitive player reali, composizione dei pattern e boundary; smoke test di controllo/leggibilità prima di M5–M7. Non rimandare tutta la validazione umana alla fine.
+- **M5:** completare risorse e game feel; ogni modifica al movimento/dash invalida certificati e richiede regressioni M4.
+- **M6:** testare adattamento e replay separatamente dalle deadline hardware; fissare metriche prima di misurarle.
+- **M7:** sequenza significativa di 60–90 secondi e soak di almeno 10 minuti sono gate complementari. Nessuno sostituisce playtest umano o benchmark.
+
+I primi smoke test devono dimostrare movimento leggibile, un pattern, un telegraph e un fallback, prima di espandere il catalogo e il DSP. Le scelte creative ancora aperte sono elencate in DESIGN §24 con milestone limite.
 
 ### Milestone 0 — Repository, build e dependency inventory
 
@@ -2979,7 +3029,7 @@ Accettazione:
 
 ### Milestone 4 — Fairness validator e headless simulation
 
-**Obiettivo:** impedire pattern inevitabili.
+**Obiettivo:** rifiutare violazioni di raggiungibilità nel modello dichiarato e misurare i suoi limiti.
 
 Deliverable:
 
@@ -2994,7 +3044,7 @@ Deliverable:
 
 Accettazione:
 
-- zero reachable-set collapse nei seed approvati;
+- zero violazioni nelle fixture approvate e nei test del modello dichiarato, inclusi movimento tra campioni e composizione;
 - candidati invalidi spiegati;
 - safety guard non blocca il frame;
 - fallback attivabile e musicale;
@@ -3313,14 +3363,14 @@ Le seguenti decisioni non bloccano M0, ma vanno risolte prima della milestone in
 
 1. Quale test framework C++ adottare? — M0.
 2. Quale parser/schema JSON adottare? — M0/M1.
-3. Fixed timestep definitivo 120 Hz o profili 60/120? — M1/M5.
+3. Confermare il profilo 120 Hz iniziale e i criteri di compatibilità per eventuali profili 60 Hz. — M1; rivalidazione M5.
 4. Quale algoritmo stable random interno usare? — M1.
 5. Quanto deve durare il commit horizon per BPM estremi? — M3/M4.
 6. Quale discretizzazione reachability offre il miglior compromesso? — M4.
-7. Il dash può essere obbligatorio in Standard o solo in pattern dichiarati? — M4/M5.
+7. Congelare regola del dash, disponibilità e obbligatorietà per preset. — prima della giocabilità M3 e della validazione M4; tuning M5.
 8. Quale metrica definisce pressione osservata? — M6.
 9. Quanto adattamento è comunicato esplicitamente al giocatore? — M6/DESIGN.
-10. Gli archetipi possono fondersi simultaneamente o soltanto transizionare? — M7.
+10. Quali coppie di archetipi possono fondersi entro il contratto a policy primaria unica di §17.6? — M7.
 11. Quali dimensioni QD sono davvero ortogonali e utili? — M8.
 12. Quale algoritmo QD implementare o importare? — M8.
 13. Quali personas minime correlano con playtest umani? — M8.
@@ -3340,7 +3390,7 @@ La vertical slice non è riuscita soltanto perché genera musica e proiettili. �
 - due run hanno identità diversa ma pari leggibilità;
 - il ritmo anticipa il pericolo;
 - il director alterna pressione e recupero;
-- il sistema non produce configurazioni inevitabili;
+- nessuna violazione rilevata nel corpus dichiarato e nessun candidato unknown ammesso; i limiti del modello e del playtest sono documentati;
 - un bug è riproducibile tramite run record;
 - il planner può fallire senza interrompere la partita;
 - Sintetico e Organico risultano diversi nel suono, nella forma e nella strategia;
@@ -3379,3 +3429,4 @@ La prossima implementazione non deve partire da un “modello AI” generico. De
 4. **planner a orizzonte mobile con fallback**.
 
 Soltanto dopo queste basi il player model e l’adattamento hanno uno spazio sicuro in cui operare. L’AI di CYMATICA deve essere riconoscibile non perché usa una rete neurale, ma perché costruisce intenzionalmente una sessione musicale e ludica coerente, varia, responsiva e spiegabile.
+
