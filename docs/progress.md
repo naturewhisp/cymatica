@@ -6,10 +6,10 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 
 | Campo | Valore |
 |---|---|
-| Milestone attiva | **M0 — Repository, build e dependency inventory** |
-| Stato | **Criteri verificati sul working tree; manca la verifica da clean checkout dopo il commit** |
+| Milestone attiva | **M1 — Tempo, seed e contratti deterministici** (M0 completata) |
+| Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
 | Specifica | 0.8.2 (0.8.1 accettata il 2026-10-05; aggiunte System 1 del 2026-10-06, applicabili da M6) |
-| Commit / Build | Working tree non committato su `ac1ac59` + modifiche M0 |
+| Commit / Build verificato | Commit `65dc087` (testato su clone pulito indipendente) |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
 | Ultimo aggiornamento | 2026-10-06 |
 
@@ -28,7 +28,7 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 
 | Criterio | Esito | Evidenza |
 |---|---|---|
-| Clean checkout configurabile e compilabile da comandi documentati | **PARZIALE** | `scripts/build.ps1 -Clean -Test` da build dir vuota, eseguito da altra cwd: exit 0, nessun `warning C` con `/W4`. Non ancora verificato su un clone fresco (richiede commit). |
+| Clean checkout configurabile e compilabile da comandi documentati | **PASSATO** | Verificato su clone fresco temporaneo da commit `65dc087`: configurazione, build da zero di tutti i 144 target ed esecuzione di 3/3 test CTest superati (exit code 0) tramite `scripts/build.ps1 -Test`. |
 | `ctest` esegue e supera almeno un test reale | **PASSATO** | 3/3 Catch2 (formula tick placeholder fino al MusicClock M1; engine inerte prima di init; `[audio][device]` render reale silenzioso). Preset headless esclude label `device`. |
 | Eseguibile avviabile e chiudibile senza crash | **PASSATO** | `-Run -SmokeSeconds 3`, exit 0. |
 | Tono udibile e shader di prova visibile | **PASSATO** | Tono sinusoidale 220 Hz udito, e cambio a 440 Hz con SPAZIO confermato a orecchio dall'utente (2026-10-06). Shader Chladni visibile a ~60 FPS su RTX 3060. |
@@ -54,11 +54,6 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 
 Rischi già risolti: nomi test non-ASCII che rompevano i filtri CTest; `CUSTOMIZE_BUILD=ON` che attivava `SUPPORT_CUSTOM_FRAME_CONTROL` (FPS sbloccati).
 
-## Per chiudere M0
-
-1. Commit delle modifiche.
-2. Clone fresco in una directory temporanea + `scripts/build.ps1 -Test`; registrare qui l'esito e il commit.
-
-## Prossima milestone
+## Milestone successiva
 
 **M1 — Tempo, seed e contratti deterministici** (Spec §32): profilo temporale e transport epoch (§7.5), `SeedBank`/`RandomKey` (§15.3–§15.5), canali bounded audio/coordinator (§20.5–§20.7). Roadmap System 1 (§11.7): nessun lavoro prima di M6.
