@@ -49,7 +49,20 @@ if(CYMATICA_BUILD_TESTS)
     FetchContent_MakeAvailable(Catch2)
 endif()
 
+# nlohmann/json v3.11.3 (ADR-0002)
+set(JSON_BuildTests OFF CACHE BOOL "" FORCE)
+set(JSON_Install OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG 9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03 # v3.11.3
+    GIT_SHALLOW FALSE
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
+# Engine modules (Spec §21)
+add_subdirectory(engine/core)
 add_subdirectory(engine/audio)
+add_subdirectory(engine/replay)
 
 if(CYMATICA_BUILD_GAME)
     add_subdirectory(apps/cymatica_game)

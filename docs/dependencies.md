@@ -1,7 +1,7 @@
 # CYMATICA — Inventario dipendenze
 
 Documento normativo richiesto da `CYMATICA_Specifica_Agentica_Sviluppo.md` §28.5 e `AGENTS.md` §2.
-Ultimo aggiornamento: 2026-10-05 (Milestone 0).
+Ultimo aggiornamento: 2026-10-06 (Milestone 1).
 
 ## Riepilogo dipendenze attive
 
@@ -10,6 +10,7 @@ Ultimo aggiornamento: 2026-10-05 (Milestone 0).
 | **miniaudio** | 0.11.25 | `9634bedb5b5a2ca38c1ee7108a9358a4e233f14d` | Vendored in `third_party/miniaudio/` | Public Domain / MIT No Attribution | `cymatica_audio` | `engine/audio` |
 | **raylib** | 6.0 | `dbc56a87da87d973a9c5baa4e7438a9d20121d28` | CMake `FetchContent` (pinned SHA) | Zlib | `cymatica_game` | `apps/cymatica_game` |
 | **Catch2** | v3.16.0 | `317ac1ed4c0bb6e6b91eafc817e05c488feffcb3` | CMake `FetchContent` (pinned SHA) | BSL-1.0 (Boost) | `cymatica_tests` | Test suite |
+| **nlohmann/json** | v3.11.3 | `9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03` | CMake `FetchContent` (pinned SHA) | MIT | `cymatica_replay` | `engine/replay` |
 
 ---
 
@@ -52,10 +53,21 @@ Ultimo aggiornamento: 2026-10-05 (Milestone 0).
 - **Integrazione:** Registrazione automatica dei test tramite `catch_discover_tests` e runner CTest.
 - **Rischi:** Tempo di compilazione iniziale leggermente maggiore rispetto a doctest header-only; mitigato dall'uso di Ninja e caching.
 
+### 4. nlohmann/json
+- **Scopo:** Serializzazione e deserializzazione JSON di `RunRecord`, configurazioni e trace di replay.
+- **Repository ufficiale:** `https://github.com/nlohmann/json`
+- **Provenienza snapshot:** Tag `v3.11.3` (commit `9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03`).
+- **Modalità acquisizione:** `FetchContent` di CMake con SHA di commit congelato e `GIT_SHALLOW FALSE`.
+- **Licenza:** MIT (permissiva, compatibile commerciale e open source).
+- **Piattaforme:** Tutte (C++ standard).
+- **Target CMake:** `nlohmann_json::nlohmann_json`.
+- **Vincoli architetturali:** Confinata al target `cymatica_replay` e ai relativi test. `engine/core` resta indipendente da JSON (ADR-0002).
+- **Configurazione CMake:** `JSON_BuildTests=OFF`, `JSON_Install=OFF`.
+
 ---
 
-## Dipendenze future esplicitamente escluse in M0
+## Dipendenze future esplicitamente escluse in M1
 Come da `AGENTS.md` §2 e Spec §19.4:
 - Nessun runtime ONNX, FFmpeg o modelli ML.
 - Nessun motore fisico esterno.
-- Nessun parser JSON artigianale o non deliberato (scelta deferred a M1).
+- Nessun parser JSON artigianale (scelta deliberata in M1: nlohmann/json).

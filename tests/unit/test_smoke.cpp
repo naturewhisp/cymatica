@@ -1,22 +1,19 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "audio_engine.h"
+#include "fixed_step.h"
 
 #include <chrono>
 #include <cstdint>
 #include <thread>
 
-// NOTE: M0 has no production timing module yet. This checks the spec section 7.5
-// boundary formula in integer arithmetic; M1 replaces it with tests of MusicClock.
 TEST_CASE("Tick boundary formula is exact in integer arithmetic", "[timing]") {
-    constexpr std::uint64_t sampleRate = 48000;
-    constexpr std::uint64_t simulationHz = 120;
-    constexpr auto tickToFrame = [](std::uint64_t k) { return (k * sampleRate) / simulationHz; };
+    cymatica::core::FixedStepAccumulator accumulator({48000, 120, 4, 16});
 
-    REQUIRE(tickToFrame(0) == 0);
-    REQUIRE(tickToFrame(1) == 400);
-    REQUIRE(tickToFrame(120) == 48000);
-    REQUIRE(tickToFrame(120ULL * 3600ULL) == 48000ULL * 3600ULL); // one virtual hour, no drift
+    REQUIRE(accumulator.tickToSampleFrame(0) == 0);
+    REQUIRE(accumulator.tickToSampleFrame(1) == 400);
+    REQUIRE(accumulator.tickToSampleFrame(120) == 48000);
+    REQUIRE(accumulator.tickToSampleFrame(120ULL * 3600ULL) == 48000ULL * 3600ULL); // one virtual hour, no drift
 }
 
 TEST_CASE("Audio engine is inert before init", "[audio]") {

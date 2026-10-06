@@ -1,6 +1,6 @@
-// CYMATICA M0 smoke application: window, input, test shader and audio tone.
-// Not gameplay code: no fixed-step simulation exists yet (M1).
+// CYMATICA M1 smoke application: window, input, test shader, realtime exchange.
 #include "audio_engine.h"
+#include "fixed_step.h"
 #include "raylib.h"
 
 #include <cstdio>
@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     }
 
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
-    InitWindow(1280, 720, "CYMATICA - Milestone 0");
+    InitWindow(1280, 720, "CYMATICA - Milestone 1");
     if (!IsWindowReady()) {
         std::fprintf(stderr, "[cymatica_game] window: FAIL\n");
         return 1;
@@ -58,19 +58,37 @@ int main(int argc, char** argv) {
     cymatica::audio::AudioEngine audio;
     const bool audioOk = audio.init({48000, 2, kBaseFreqHz}) && audio.startTone(kBaseFreqHz, kAmplitude);
 
+    cymatica::core::FixedStepAccumulator accumulator({48000, 120, 4, 16});
+
     std::uint64_t frames = 0;
     const double start = GetTime();
+    double previousTime = start;
     float freq = kBaseFreqHz;
 
     while (!WindowShouldClose()) {
-        const double elapsed = GetTime() - start;
+        const double currentTime = GetTime();
+        const double deltaSeconds = currentTime - previousTime;
+        previousTime = currentTime;
+
+        const double elapsed = currentTime - start;
         if (smokeSeconds > 0.0 && elapsed >= smokeSeconds) break;
+
+        // Fixed-step simulation accumulator
+        const auto stepRes = accumulator.advanceSeconds(deltaSeconds);
+        (void)stepRes;
 
         const float wanted = IsKeyDown(KEY_SPACE) ? kAltFreqHz : kBaseFreqHz;
         if (wanted != freq) {
             freq = wanted;
-            audio.setToneFrequency(freq);
+            auto& ctrl = audio.controlWriter();
+            ctrl.toneFrequencyHz = freq;
+            ctrl.toneVolume = kAmplitude;
+            audio.publishControl();
         }
+
+        // Poll latest telemetry from audio callback via TripleBuffer
+        audio.updateTelemetry();
+        const auto& telem = audio.telemetry();
 
         const float t = static_cast<float>(elapsed);
         if (timeLoc >= 0) SetShaderValue(shader, timeLoc, &t, SHADER_UNIFORM_FLOAT);
@@ -82,11 +100,21 @@ int main(int argc, char** argv) {
             DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
             EndShaderMode();
         }
-        DrawText("CYMATICA - Milestone 0 smoke test", 24, 24, 24, RAYWHITE);
+        DrawText("CYMATICA - Milestone 1: Deterministic Timing & Realtime Exchange", 24, 24, 22, RAYWHITE);
         DrawText(TextFormat("Shader: %s | Audio: %s | Tone: %.0f Hz | Device rate: %u Hz | FPS: %d",
                             shaderOk ? "OK" : "FAIL", audioOk ? "OK" : "FAIL", freq, audio.sampleRate(),
                             GetFPS()),
-                 24, 60, 18, (shaderOk && audioOk) ? GREEN : RED);
+                 24, 56, 18, (shaderOk && audioOk) ? GREEN : RED);
+        DrawText(TextFormat("Telemetry: epoch=%llu renderCursor=%llu frames=%llu bpm=%.0f",
+                            static_cast<unsigned long long>(telem.transportEpoch),
+                            static_cast<unsigned long long>(telem.renderCursor),
+                            static_cast<unsigned long long>(telem.framesRenderedTotal),
+                            telem.bpm),
+                 24, 82, 18, SKYBLUE);
+        DrawText(TextFormat("Simulation: tick=%llu alpha=%.2f",
+                            static_cast<unsigned long long>(accumulator.currentTick()),
+                            stepRes.interpolationAlpha),
+                 24, 108, 18, ORANGE);
         DrawText("Hold SPACE: 440 Hz | ESC: exit", 24, GetScreenHeight() - 36, 18, YELLOW);
         EndDrawing();
         ++frames;
@@ -98,9 +126,10 @@ int main(int argc, char** argv) {
     if (shaderOk) UnloadShader(shader);
     CloseWindow();
 
-    std::printf("[cymatica_game] frames=%llu seconds=%.2f avg_fps=%.1f audio_frames=%llu shader=%s audio=%s\n",
+    std::printf("[cymatica_game] frames=%llu seconds=%.2f avg_fps=%.1f audio_frames=%llu ticks=%llu shader=%s audio=%s\n",
                 static_cast<unsigned long long>(frames), total, total > 0.0 ? frames / total : 0.0,
-                static_cast<unsigned long long>(audioFrames), shaderOk ? "OK" : "FAIL",
-                audioOk ? "OK" : "FAIL");
+                static_cast<unsigned long long>(audioFrames),
+                static_cast<unsigned long long>(accumulator.currentTick()),
+                shaderOk ? "OK" : "FAIL", audioOk ? "OK" : "FAIL");
     return (shaderOk && audioOk) ? 0 : 1;
 }

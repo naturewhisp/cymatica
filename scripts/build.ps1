@@ -48,7 +48,7 @@ if (-not (Get-Command cl.exe -ErrorAction SilentlyContinue)) {
     $vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
     if (-not $vsPath) { throw 'No stable Visual Studio installation with the C++ x64 toolset was found.' }
 
-    $toolset = if ($null -ne $env:CYMATICA_VCVARS_VER) { $env:CYMATICA_VCVARS_VER } else { '14.50' }
+    $toolset = if ($null -ne $env:CYMATICA_VCVARS_VER) { $env:CYMATICA_VCVARS_VER } else { '' }
     $devArgs = '-arch=x64 -host_arch=x64'
     if ($toolset) { $devArgs += " -vcvars_ver=$toolset" }
 
