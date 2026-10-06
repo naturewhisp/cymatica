@@ -69,7 +69,11 @@ inline constexpr std::uint64_t DOMAIN_DECISION_64 = 0x8ebc6af09c88c6e3ULL;
 }
 
 // Stateless pseudo-random extraction functions (§15.3, ADR-0002)
-[[nodiscard]] std::uint64_t randomU64(RandomKey key, std::uint32_t policyVersionId = DEFAULT_POLICY_VERSION_ID.toU32()) noexcept;
+[[nodiscard]] std::uint64_t randomU64(
+    RandomKey key,
+    std::uint32_t policyVersionId = DEFAULT_POLICY_VERSION_ID.toU32(),
+    std::uint64_t retryTag = 0
+) noexcept;
 
 // Bit-stable uniform float in [0.0f, 1.0f) using upper 24 bits
 [[nodiscard]] float randomF32(RandomKey key, std::uint32_t policyVersionId = DEFAULT_POLICY_VERSION_ID.toU32()) noexcept;

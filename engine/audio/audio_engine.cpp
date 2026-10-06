@@ -4,6 +4,7 @@
 #include "miniaudio.h"
 
 #include "audio_engine.h"
+#include "music_clock.h"
 
 #include <atomic>
 #include <memory>
@@ -14,12 +15,16 @@ struct AudioEngine::Impl {
     ma_device device{};
     ma_waveform waveform{};
     bool deviceStarted{false};
-    std::uint32_t sampleRate{0};
+    std::uint32_t sampleRate{48000};
     std::uint32_t channels{2};
 
     // Transport cursors and epoch (§7.5, ADR-0002)
+    std::uint64_t deviceFramesRendered{0};
     std::uint64_t transportEpoch{1};
-    std::uint64_t renderCursor{0};
+    std::uint64_t renderCursor{0};        // Authoritative 48 kHz internal timeline (§7.5, DIF-M1-10)
+    std::atomic<std::uint64_t> droppedAcks{0}; // Dropped command acks counter (DIF-M1-07)
+    std::uint64_t telemetrySequence{0};   // Sequence counter for telemetry drops (DIF-M1-13)
+    MusicClock musicClock{48000};
 
     // Lock-free exchange channels (§20.5–§20.7, ADR-0002)
     TripleBuffer<AudioTelemetryFrame> telemetryBuffer{};
@@ -62,12 +67,14 @@ struct AudioEngine::Impl {
                     status = AudioCommandStatus::Rejected;
                     break;
             }
-            ackQueue.tryPush(AudioCommandAck{
+            if (!ackQueue.tryPush(AudioCommandAck{
                 .commandId = cmd.commandId,
                 .status = status,
                 .sampleFrame = renderCursor,
                 .transportEpoch = transportEpoch,
-            });
+            })) {
+                droppedAcks.fetch_add(1, std::memory_order_relaxed);
+            }
         }
 
         // 3. Render PCM audio samples
@@ -75,16 +82,26 @@ struct AudioEngine::Impl {
             ma_waveform_read_pcm_frames(&waveform, pOutput, frameCount, nullptr);
         }
 
-        renderCursor += frameCount;
+        // Track frame cursors on internal 48 kHz timeline (§7.5, DIF-M1-10)
+        deviceFramesRendered += frameCount;
+        renderCursor = musicClock.deviceToInternalFrames(deviceFramesRendered, sampleRate);
+        const std::uint64_t presentationDeviceFrames = deviceFramesRendered >= frameCount ? deviceFramesRendered - frameCount : 0;
+        const std::uint64_t presentationCursor = musicClock.deviceToInternalFrames(presentationDeviceFrames, sampleRate);
 
         // 4. Publish latest telemetry (§22.1)
         auto& telem = telemetryBuffer.writeSlot();
+        telem.sequenceNumber = ++telemetrySequence;
         telem.transportEpoch = transportEpoch;
         telem.renderCursor = renderCursor;
-        telem.presentationCursor = renderCursor >= frameCount ? renderCursor - frameCount : 0;
+        telem.presentationCursor = presentationCursor;
         telem.presentationQuality = PresentationQuality::Estimated;
         telem.framesRenderedTotal = renderCursor;
-        telem.bpm = 120.0f;
+
+        const auto pos = musicClock.positionAtFrame(presentationCursor, transportEpoch);
+        telem.bpm = musicClock.tempoMap().bpm.toF32();
+        telem.beatPhase = pos.beatPhase;
+        telem.beatConfidence = 1.0f;
+
         telem.globalEnergy = 0.5f;
         telem.pulse.energy = 0.5f;
         telem.pulse.pitchHz = 220.0f;
@@ -219,6 +236,10 @@ bool AudioEngine::sendCommand(const AudioCommand& cmd) noexcept {
 
 bool AudioEngine::pollAck(AudioCommandAck& ack) noexcept {
     return pImpl_ ? pImpl_->ackQueue.tryPop(ack) : false;
+}
+
+std::uint64_t AudioEngine::droppedAcks() const noexcept {
+    return pImpl_ ? pImpl_->droppedAcks.load(std::memory_order_relaxed) : 0;
 }
 
 void AudioEngine::processBlock(float* pOutput, std::uint32_t frameCount) noexcept {

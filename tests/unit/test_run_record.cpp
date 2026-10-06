@@ -33,6 +33,10 @@ TEST_CASE("RunRecord serializes to JSON and round-trips correctly", "[replay][js
         .reason = "technical_suspension_reconciled"
     });
 
+    original.finalMetrics["survival_time_seconds"] = 142.5;
+    original.finalMetrics["total_score"] = 9850.0;
+    original.finalMetrics["accuracy_ratio"] = 0.945;
+
     const std::string jsonOutput = original.toJson();
     REQUIRE_FALSE(jsonOutput.empty());
 

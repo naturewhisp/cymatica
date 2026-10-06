@@ -29,6 +29,74 @@ TEST_CASE("MusicClock handles non-integer BPM over 1 virtual hour with zero drif
     REQUIRE(frameAt1Hour == kOneHourFrames); // EXACT zero drift on 1 hour!
 }
 
+TEST_CASE("MusicClock 127.5 BPM beat boundaries are exact for b in [0, 68]", "[clock][timing][boundary]") {
+    // 127.5 BPM: 255 / 2 (or 1275 / 10)
+    TempoMap map;
+    map.bpm = RationalBpm{255, 2};
+    map.beatsPerBar = 4;
+    map.barsPerPhrase = 4;
+    map.subdivisionsPerBeat = 4;
+    MusicClock clock(48000, map);
+
+    for (std::uint64_t b = 0; b <= 68; ++b) {
+        const std::uint64_t boundaryFrame = clock.frameAtBeat(b);
+        const auto pos = clock.positionAtFrame(boundaryFrame);
+
+        const std::uint64_t expectedTotalBeats = b;
+        const std::uint32_t expectedBeatInBar = static_cast<std::uint32_t>(expectedTotalBeats % 4);
+        const std::uint64_t totalBars = expectedTotalBeats / 4;
+        const std::uint32_t expectedBarInPhrase = static_cast<std::uint32_t>(totalBars % 4);
+        const std::uint32_t expectedPhrase = static_cast<std::uint32_t>(totalBars / 4);
+
+        REQUIRE(pos.sampleFrame == boundaryFrame);
+        REQUIRE(pos.phrase == expectedPhrase);
+        REQUIRE(pos.bar == expectedBarInPhrase);
+        REQUIRE(pos.beat == expectedBeatInBar);
+        REQUIRE(pos.subdivision == 0);
+        REQUIRE(pos.beatPhase == 0.0f);
+
+        // Frame immediately prior to boundary belongs to preceding beat (b - 1)
+        if (b > 0) {
+            const auto prevPos = clock.positionAtFrame(boundaryFrame - 1);
+            const std::uint64_t prevTotalBeats = b - 1;
+            const std::uint32_t prevBeatInBar = static_cast<std::uint32_t>(prevTotalBeats % 4);
+            const std::uint64_t prevTotalBars = prevTotalBeats / 4;
+            const std::uint32_t prevBarInPhrase = static_cast<std::uint32_t>(prevTotalBars % 4);
+            const std::uint32_t prevPhrase = static_cast<std::uint32_t>(prevTotalBars / 4);
+
+            REQUIRE(prevPos.phrase == prevPhrase);
+            REQUIRE(prevPos.bar == prevBarInPhrase);
+            REQUIRE(prevPos.beat == prevBeatInBar);
+            REQUIRE(prevPos.subdivision == 3);
+            REQUIRE(prevPos.beatPhase < 1.0f);
+            REQUIRE(prevPos.beatPhase >= 0.99f);
+        }
+    }
+}
+
+TEST_CASE("MusicClock setTempoMap validates defensive defaults on zero values", "[clock][validation]") {
+    MusicClock clock(48000);
+
+    TempoMap invalidMap;
+    invalidMap.bpm = RationalBpm{0, 0};
+    invalidMap.beatsPerBar = 0;
+    invalidMap.barsPerPhrase = 0;
+    invalidMap.subdivisionsPerBeat = 0;
+
+    clock.setTempoMap(invalidMap);
+
+    const auto& sanitized = clock.tempoMap();
+    REQUIRE(sanitized.bpm.numerator == 120);
+    REQUIRE(sanitized.bpm.denominator == 1);
+    REQUIRE(sanitized.beatsPerBar == 4);
+    REQUIRE(sanitized.barsPerPhrase == 4);
+    REQUIRE(sanitized.subdivisionsPerBeat == 4);
+
+    // positionAtFrame still executes deterministically without division by zero
+    const auto pos = clock.positionAtFrame(24000);
+    REQUIRE(pos.beat == 1);
+}
+
 TEST_CASE("MusicPosition derives structured musical coordinates correctly", "[clock][position]") {
     TempoMap map;
     map.bpm = RationalBpm{120, 1};

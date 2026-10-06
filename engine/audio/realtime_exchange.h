@@ -36,9 +36,10 @@ public:
 
     // --- Consumer API (Reader thread only) ---
     // Returns true if a new frame was acquired, false if no new frame was published.
+    // Bounded CAS loop (Spec §20.6, DIF-M1-12) to guarantee deterministic realtime safety.
     bool update() noexcept {
         std::uint8_t current = sharedState_.load(std::memory_order_acquire);
-        while (true) {
+        for (int attempt = 0; attempt < 4; ++attempt) {
             if (!(current & kNewDataFlag)) {
                 return false; // No new data published since last update
             }
@@ -48,6 +49,7 @@ public:
                 return true;
             }
         }
+        return false;
     }
 
     [[nodiscard]] const T& readSlot() const noexcept {
@@ -63,6 +65,11 @@ private:
     std::uint8_t frontIdx_{1};                         // Owned exclusively by reader thread
     std::atomic<std::uint8_t> sharedState_{2};         // Shared intermediate slot (2 initially, flag 0)
 };
+
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4324) // structure was padded due to alignment specifier (DIF-M1-06)
+#endif
 
 // Single-Producer Single-Consumer Bounded Queue (Spec §20.5, §20.7, ADR-0002)
 // Wait-free, cache-line aligned to prevent false sharing.
@@ -121,5 +128,9 @@ private:
     alignas(64) std::atomic<std::size_t> head_{0};
     alignas(64) std::atomic<std::size_t> tail_{0};
 };
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 } // namespace cymatica::audio

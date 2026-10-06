@@ -50,6 +50,7 @@ public:
 
     // Poll acknowledgement from audio callback
     bool pollAck(AudioCommandAck& ack) noexcept;
+    [[nodiscard]] std::uint64_t droppedAcks() const noexcept;
 
     // Direct block rendering (callable without audio device for deterministic testing & zero-alloc validation)
     void processBlock(float* pOutput, std::uint32_t frameCount) noexcept;

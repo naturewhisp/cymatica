@@ -3,6 +3,7 @@
 #include "version_ids.h"
 
 #include <cstdint>
+#include <map>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -36,6 +37,7 @@ struct RunRecord {
     std::string difficultyPolicy{"standard-adaptive"};
     std::vector<DecisionRecord> decisions;
     std::vector<RuntimeIntervention> runtimeInterventions;
+    std::map<std::string, double> finalMetrics; // Spec §15.7 schema: "final_metrics": {} (DIF-M1-14)
 
     [[nodiscard]] std::string toJson() const;
     static RunRecord fromJson(std::string_view jsonStr);

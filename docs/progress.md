@@ -6,7 +6,7 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 
 | Campo | Valore |
 |---|---|
-| Milestone attiva | **M2 — Shading e pipeline visiva reattiva** (M1 completata) |
+| Milestone attiva | **M2 — Music Intent e musica procedurale v1** (M1 completata) |
 | Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
 | Stato M1 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
 | Specifica | 0.8.2 (0.8.1 accettata il 2026-10-05; aggiunte System 1 del 2026-10-06, applicabili da M6) |
@@ -52,14 +52,14 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 
 | Criterio | Esito | Evidenza |
 |---|---|---|
-| `MusicClock` sample-based esatto | **PASSATO** | Timeline a 48 kHz con BPM razionale (`numerator`/`denominator`), derivazione esatta beat/bar/tempo senza accumulo di float. Test 1h virtuale a BPM non intero (127.5 BPM) con 0 drift verificato (`test_music_clock.cpp`). Resampling 44.1↔48 kHz con fattore razionale esatto 160/147 verificato. |
-| Fixed-step accumulator 120 Hz | **PASSATO** | Formula `(k * 48000) / 120 = 400` campioni/tick esatta su 1h virtuale. Feed a 60 FPS e 120 FPS generano sequenze identiche di 240 tick in 2.0s (`test_fixed_step.cpp`). Catch-up limitato a 4 tick per update senza scartare tick autoritativi; segnalazione `overloadSuspensionRequired` su accumulo >16 tick. |
-| Generatore deterministico e stream isolation | **PASSATO** | Golden vector Stafford Mix 13 convalidati. Consumo intensivo dello stream `VFX` non altera la sequenza generata dagli stream `Pattern` o `Director` a parità di seme (`test_random.cpp`). Distribuzione uniforme e intervalli testati. |
-| Concorrenza lock-free e scambio thread sicuro | **PASSATO** | `TripleBuffer` wait-free (packed state atomic con slot front/back/shared mutuamente esclusivi) testato con 50.000 scritture/letture concorrenti ad alta frequenza: 0 frame corrotti/lacerati (tearing = 0, reads > 0). `SpscQueue` FIFO testata con 10.000 elementi tra thread produttore/consumatore senza perdite (`test_exchange.cpp`). Zero allocazioni su callback audio. |
-| Canale Game-Audio e telemetria | **PASSATO** | Invio comandi `AudioCommand` e ricezione esplicita di `AudioCommandAck` verificati. Telemetria audio pubblicata tramite `TripleBuffer` con `transportEpoch`, `renderCursor` e `presentationCursor` precisi (`test_exchange.cpp`). |
-| `RunRecord` JSON round-trip | **PASSATO** | Struttura serializzata in JSON standard con campi deterministici (semi, policy, durate) e deserializzata con verifica di uguaglianza identica (`test_run_record.cpp`). |
+| `MusicClock` sample-based esatto | **PASSATO** | Timeline a 48 kHz con BPM razionale (`numerator`/`denominator`), derivazione esatta beat/bar/tempo senza accumulo di float. Confini esatti in O(1) verificati per ogni beat $b \in [0, 68]$ a 127.5 BPM senza clamp artificioso (`test_music_clock.cpp`). Validazione difensiva in `setTempoMap`. Test 1h virtuale a BPM non intero (127.5 BPM) con 0 drift verificato. Resampling 44.1↔48 kHz con fattore razionale esatto 160/147 verificato. |
+| Fixed-step accumulator 120 Hz | **PASSATO** | Formula `(k * 48000) / 120 = 400` campioni/tick esatta su 1h virtuale. Feed a 60 FPS e 120 FPS generano sequenze identiche di 240 tick in 2.0s (`test_fixed_step.cpp`). Catch-up limitato a 4 tick per update senza scartare tick autoritativi; segnalazione `overloadSuspensionRequired` su accumulo >16 tick. Membro superfluo `remainderNsAccum_` rimosso. |
+| Generatore deterministico e stream isolation | **PASSATO** | Golden vector esatti invarianti per Stafford Mix 13, `stableMix3`, `stableMix4`, `stableMix5`, `deriveStreamSeed` e `sampleU64` convalidati. Formula di Lemire corretta senza overflow signed su `randomRangeI32`; rigetto isolato tramite `retryTag` senza mutazione di `sampleIndex` (`test_random.cpp`). Consumo intensivo dello stream `VFX` non altera la sequenza generata dagli stream `Pattern` o `Director` a parità di seme. |
+| Concorrenza lock-free e scambio thread sicuro | **PASSATO** | `TripleBuffer` wait-free con CAS bounded (max 4 tentativi) testato con 50.000 scritture/letture concorrenti ad alta frequenza: 0 frame corrotti/lacerati (tearing = 0, reads > 0). `SpscQueue` FIFO testata con 10.000 elementi tra thread produttore/consumatore senza perdite (`test_exchange.cpp`). Soppressione locale warning C4324 (`alignas(64)`). Zero allocazioni su callback audio. |
+| Canale Game-Audio e telemetria | **PASSATO** | Invio comandi `AudioCommand` e ricezione esplicita di `AudioCommandAck` verificati con contatore di ack scartati (`droppedAcks`). Telemetria audio pubblicata tramite `TripleBuffer` con `sequenceNumber` (rilevamento drop), `transportEpoch`, `renderCursor` e `presentationCursor` tracciati coerentemente sulla timeline logica interna a 48 kHz anche con device a 44.1 kHz (`test_exchange.cpp`). |
+| `RunRecord` JSON round-trip | **PASSATO** | Struttura serializzata in JSON standard con campi deterministici (semi, policy, durate) e campo `final_metrics` (Spec §15.7), deserializzata con verifica di uguaglianza identica (`test_run_record.cpp`). |
 | Contratto giocatore minimale | **PASSATO** | Documentato e congelato in `docs/player_contract_m1.md` come baseline autoritativa per il validatore M4. |
-| Suite di test CTest 100% superata | **PASSATO** | 19/19 test superati in Release e Debug; 18/18 superati in modalità headless (esclusi test su periferica audio reale). |
+| Suite di test CTest 100% superata | **PASSATO** | 25/25 test superati in Release e Debug; 24/24 superati in modalità headless (esclusi test su periferica audio reale). |
 | Eseguibile `cymatica_game` funzionante | **PASSATO** | Smoke run di 3 secondi completato con successo: ~60 FPS video, 359 tick di simulazione autoritativa (120 Hz), ~146.400 frame audio renderizzati, shader Chladni reattivo, chiusura pulita exit code 0. |
 
 ## Ambiente di sviluppo
@@ -71,4 +71,4 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 
 ## Milestone successiva
 
-**M2 — Shading e pipeline visiva reattiva** (Spec §32): pipeline render a doppio buffer/offscreen con raylib, shader nodali Chladni multipass / reattivi all'audio telemetrico, interpolazione dello stato tra tick autoritativi per rendering fluido a framerate arbitrario, profili prestazionali.
+**Milestone 2 — Music Intent e musica procedurale v1** (Spec §32): prima forma musicale simbolica condivisa (form/phrase skeleton, 4 ruoli musicali Pulso/Corpo/Trama/Vettore, ritmi euclidei, scale/modi, memoria di motivo minima, `MusicIntentEvent`, scheduler ahead-of-time, synth/mix base, telemetria coerente).

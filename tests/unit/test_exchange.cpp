@@ -151,8 +151,62 @@ TEST_CASE("AudioEngine processBlock executes deterministically without device", 
     // Check telemetry published to game thread
     REQUIRE(engine.updateTelemetry());
     const auto& telem = engine.telemetry();
+    REQUIRE(telem.sequenceNumber == 100);
     REQUIRE(telem.framesRenderedTotal == 100 * 512);
     REQUIRE(telem.renderCursor == 100 * 512);
+    REQUIRE(telem.presentationCursor == 99 * 512);
+    REQUIRE(telem.bpm == 120.0f);
+    REQUIRE(engine.droppedAcks() == 0);
+
+    engine.shutdown();
+}
+
+TEST_CASE("AudioEngine maps device sample rate to 48 kHz internal timeline", "[exchange][audio][resample]") {
+    AudioEngine engine;
+    // Simulate 44.1 kHz device
+    REQUIRE(engine.init({44100, 2, 220.0f}));
+
+    std::vector<float> buffer(147 * 2, 0.0f);
+    engine.processBlock(buffer.data(), 147);
+
+    REQUIRE(engine.updateTelemetry());
+    const auto& telem = engine.telemetry();
+    // 147 device frames at 44.1 kHz = 160 internal frames at 48 kHz
+    REQUIRE(telem.renderCursor == 160);
+    REQUIRE(telem.framesRenderedTotal == 160);
+
+    engine.shutdown();
+}
+
+TEST_CASE("AudioEngine tracks dropped command acks when ack queue overflows", "[exchange][audio][drops]") {
+    AudioEngine engine;
+    REQUIRE(engine.init({48000, 2, 220.0f}));
+
+    std::vector<float> buffer(64 * 2, 0.0f);
+
+    // Batch 1: push 40 commands and process them -> 40 acks added to ackQueue (capacity 64)
+    for (std::uint64_t i = 1; i <= 40; ++i) {
+        REQUIRE(engine.sendCommand(AudioCommand{
+            .commandId = i,
+            .type = AudioCommandType::Start,
+            .paramF32 = 0.5f,
+        }));
+    }
+    engine.processBlock(buffer.data(), 64);
+    REQUIRE(engine.droppedAcks() == 0);
+
+    // Batch 2: push another 40 commands and process them without reading acks.
+    // 24 will fit in ackQueue, 16 will overflow and be dropped.
+    for (std::uint64_t i = 41; i <= 80; ++i) {
+        REQUIRE(engine.sendCommand(AudioCommand{
+            .commandId = i,
+            .type = AudioCommandType::Start,
+            .paramF32 = 0.5f,
+        }));
+    }
+    engine.processBlock(buffer.data(), 64);
+
+    REQUIRE(engine.droppedAcks() == 16);
 
     engine.shutdown();
 }

@@ -4,23 +4,36 @@
 
 namespace cymatica::audio {
 
+namespace {
+
+void sanitizeTempoMap(TempoMap& map) noexcept {
+    if (map.bpm.numerator == 0) {
+        map.bpm.numerator = 120;
+    }
+    if (map.bpm.denominator == 0) {
+        map.bpm.denominator = 1;
+    }
+    if (map.beatsPerBar == 0) {
+        map.beatsPerBar = 4;
+    }
+    if (map.barsPerPhrase == 0) {
+        map.barsPerPhrase = 4;
+    }
+    if (map.subdivisionsPerBeat == 0) {
+        map.subdivisionsPerBeat = 4;
+    }
+}
+
+} // namespace
+
 MusicClock::MusicClock(std::uint64_t internalSampleRate, const TempoMap& tempoMap) noexcept
     : sampleRate_(internalSampleRate != 0 ? internalSampleRate : 48000), tempoMap_(tempoMap) {
-    if (tempoMap_.bpm.numerator == 0) {
-        tempoMap_.bpm.numerator = 120;
-    }
-    if (tempoMap_.bpm.denominator == 0) {
-        tempoMap_.bpm.denominator = 1;
-    }
-    if (tempoMap_.beatsPerBar == 0) {
-        tempoMap_.beatsPerBar = 4;
-    }
-    if (tempoMap_.barsPerPhrase == 0) {
-        tempoMap_.barsPerPhrase = 4;
-    }
-    if (tempoMap_.subdivisionsPerBeat == 0) {
-        tempoMap_.subdivisionsPerBeat = 4;
-    }
+    sanitizeTempoMap(tempoMap_);
+}
+
+void MusicClock::setTempoMap(const TempoMap& map) noexcept {
+    tempoMap_ = map;
+    sanitizeTempoMap(tempoMap_);
 }
 
 std::uint64_t MusicClock::frameAtBeat(std::uint64_t totalBeats) const noexcept {
@@ -45,18 +58,20 @@ MusicPosition MusicClock::positionAtFrame(std::uint64_t frame, std::uint64_t epo
     const std::uint64_t den = tempoMap_.bpm.denominator;
     const std::uint64_t framesNumerator = 60ULL * sampleRate_ * den;
 
-    // Total elapsed beats = floor(frame * bpmNum / (60 * sampleRate * bpmDen))
-    const std::uint64_t totalBeats = (frame * num) / framesNumerator;
+    // Determine beat in O(1) exactly (§7.5, ADR-0002, DIF-M1-01)
+    // For fractional BPM, (frame * num) / framesNumerator can yield b - 1 at frameAtBeat(b).
+    // By checking if frameAtBeat(totalBeats + 1) <= frame, we guarantee totalBeats == b when frame == frameAtBeat(b).
+    std::uint64_t totalBeats = (frame * num) / framesNumerator;
+    if (frameAtBeat(totalBeats + 1) <= frame) {
+        ++totalBeats;
+    }
 
     const std::uint64_t beatStartFrame = frameAtBeat(totalBeats);
     const std::uint64_t nextBeatStartFrame = frameAtBeat(totalBeats + 1);
     const std::uint64_t beatDurationFrames = nextBeatStartFrame > beatStartFrame ? nextBeatStartFrame - beatStartFrame : 1;
 
     const std::uint64_t frameInBeat = frame >= beatStartFrame ? frame - beatStartFrame : 0;
-    float beatPhase = static_cast<float>(frameInBeat) / static_cast<float>(beatDurationFrames);
-    if (beatPhase >= 1.0f) {
-        beatPhase = 0.999999f;
-    }
+    const float beatPhase = static_cast<float>(frameInBeat) / static_cast<float>(beatDurationFrames);
 
     const auto sub = static_cast<std::uint32_t>(beatPhase * static_cast<float>(tempoMap_.subdivisionsPerBeat));
 
@@ -70,10 +85,7 @@ MusicPosition MusicClock::positionAtFrame(std::uint64_t frame, std::uint64_t epo
 
     const auto totalBeatsInPhrase = static_cast<float>(beatsPerBar * barsPerPhrase);
     const float beatsElapsedInPhrase = static_cast<float>(barInPhrase * beatsPerBar + beatInBar) + beatPhase;
-    float phrasePhase = totalBeatsInPhrase > 0.0f ? beatsElapsedInPhrase / totalBeatsInPhrase : 0.0f;
-    if (phrasePhase >= 1.0f) {
-        phrasePhase = 0.999999f;
-    }
+    const float phrasePhase = totalBeatsInPhrase > 0.0f ? beatsElapsedInPhrase / totalBeatsInPhrase : 0.0f;
 
     return MusicPosition{
         .sampleFrame = frame,

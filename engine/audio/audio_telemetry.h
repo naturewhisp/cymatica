@@ -19,8 +19,9 @@ struct ChannelFrame {
 
 // Compact latest-value telemetry published by audio callback to game thread (Spec §22.1)
 struct AudioTelemetryFrame {
+    std::uint64_t sequenceNumber{0};      // Spec §20.7 monotonic sequence counter for drop detection
     std::uint64_t transportEpoch{0};      // §7.5
-    std::uint64_t renderCursor{0};        // First frame yet to be synthesized
+    std::uint64_t renderCursor{0};        // First frame yet to be synthesized (internal 48kHz timeline)
     std::uint64_t presentationCursor{0};  // Estimated audible frame output
     PresentationQuality presentationQuality{PresentationQuality::Invalid};
     float bpm{120.0f};

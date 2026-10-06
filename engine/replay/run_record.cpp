@@ -50,6 +50,12 @@ std::string RunRecord::toJson() const {
     }
     j["runtime_interventions"] = intArray;
 
+    json metricsObj = json::object();
+    for (const auto& [k, v] : finalMetrics) {
+        metricsObj[k] = v;
+    }
+    j["final_metrics"] = metricsObj;
+
     return j.dump(2);
 }
 
@@ -100,6 +106,14 @@ RunRecord RunRecord::fromJson(std::string_view jsonStr) {
                 .sampleFrame = elem.value("sample_frame", 0ULL),
                 .reason = elem.value("reason", "")
             });
+        }
+    }
+
+    if (j.contains("final_metrics") && j["final_metrics"].is_object()) {
+        for (auto it = j["final_metrics"].begin(); it != j["final_metrics"].end(); ++it) {
+            if (it.value().is_number()) {
+                r.finalMetrics[it.key()] = it.value().get<double>();
+            }
         }
     }
 

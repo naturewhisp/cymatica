@@ -45,7 +45,6 @@ private:
     std::uint64_t currentTick_{0};
     std::uint64_t accumulatedNs_{0};
     std::uint64_t nominalTickNs_{8'333'333}; // 1e9 / 120
-    std::uint64_t remainderNsAccum_{0};
 };
 
 } // namespace cymatica::core
