@@ -22,7 +22,8 @@
 
 - §8.2–§8.3, §11.4, nuova §11.7: System 1 / Fast Candidate Retrieval deterministico (descriptor interi, distanza pesata, tie-break stabile) separato dal System 2 (planner validato). System 1 non decide mai la sicurezza;
 - §18.8, §19.2, §26.1: uso online dell'archive tramite retriever, retriever appreso solo post-M8 se batte la baseline su Recall@K, ricerca semantica BGE/MiniLM/multilingual ammessa solo nel tooling;
-- §32 M6–M8, §34, §36: deliverable, criteri, decisioni e open question 18–20.
+- §32 M6–M8, §34, §36: deliverable, criteri, decisioni e open question 18–20;
+- §32 M3 e M7: gate di identità visiva introdotti da `DESIGN.md` 0.3 (tavola delle invarianti prima di M3, test di luminanza e riconoscibilità in M7).
 
 ### 0.8.1 — 2026-10-05
 
@@ -3150,7 +3151,8 @@ Deliverable:
 - plan/event scheduler;
 - bullet/barrier pools;
 - telegraph primitives;
-- debug view.
+- debug view;
+- tavola delle invarianti visive (`DESIGN.md` §13.0, §13.3) applicata anche ai placeholder.
 
 Accettazione:
 
@@ -3256,7 +3258,8 @@ Deliverable:
 
 Accettazione:
 
-- archetipi riconoscibili a vista e nel gameplay;
+- archetipi riconoscibili a vista e nel gameplay, incluso il riconoscimento da screenshot senza HUD;
+- firme invarianti e test di luminanza/daltonismo di `DESIGN.md` §13.0 e §13.3 superati;
 - variazione senza perdita di leggibilità;
 - run diverse mostrano diversità misurabile;
 - nessun audio underrun nominale;

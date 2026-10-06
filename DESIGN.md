@@ -1,8 +1,8 @@
 # CYMATICA — Game, Audio and Visual Design
 
 **Documento:** design bible operativa  
-**Versione:** 0.2 — proposta revisionata  
-**Data:** 2026-09-23  
+**Versione:** 0.3 — identità visiva approvata dal titolare  
+**Data:** 2026-10-06  
 **Stato:** pre-produzione / vertical slice  
 **Specifica tecnica correlata:** `CYMATICA_Specifica_Agentica_Sviluppo.md`  
 **Regole agentiche:** `AGENTS.md`
@@ -35,6 +35,8 @@ Quando manca un dettaglio tecnico, non aggiungerlo qui. Quando una soluzione tec
 Il repository di partenza è documentale. Questa versione mantiene identità, archetipi e linguaggio artistico; precisa le promesse verificabili e i gate di design. Le modalità future non sono feature già implementate. Infinite Resonance è il focus M0–M7; Generated/Custom appartengono a M9–M11. Training è un preset di test in M5/M6; menu e progressione dedicati richiedono scope esplicito.
 
 Il termine cimatica indica qui ispirazione artistica a figure nodali, non simulazione fisica sperimentalmente validata. Fairness significa minacce leggibili e una risposta praticabile entro il profilo dichiarato; non salvataggio automatico da ogni errore del giocatore.
+
+**0.3 (2026-10-06):** aggiunta l'identità visiva trasversale (§13.0), la grammatica funzionale delle forme, la gerarchia di luminanza e le palette funzionali (§13.3), il Seme invariante (§17.2) e i relativi gate (§23). Tesi, firme invarianti, bianco riservato al Seme e regola "il campo non mente" sono *accepted for implementation*. Valori di luminanza, palette e grammatica delle forme sono *proposed* fino alla validazione M7.
 
 ## 1. High concept
 
@@ -577,11 +579,13 @@ Gli archetipi sono stati fisici e comportamentali della piastra. Non sono sempli
 
 **Palette primaria:**
 
-- sfondo nero profondo;
+- sfondo nero-blu profondo;
 - cyan elettrico;
 - magenta;
 - giallo acido;
-- bianco freddo per massima salienza.
+- blu acciaio scuro per struttura e grani.
+
+Il bianco puro non appartiene alla palette: è riservato al Seme (§13.0).
 
 **Audio:**
 
@@ -679,6 +683,8 @@ Gli archetipi sono stati fisici e comportamentali della piastra. Non sono sempli
 - arancione incandescente;
 - bianco fosforico;
 - nero fuliggine.
+
+Il rosso lava è materia e accento, non codice di pericolo: il danger usa arancione incandescente o bianco fosforico con tetto di luminanza inferiore al Seme (§13.3).
 
 **Audio:**
 
@@ -803,6 +809,45 @@ Regole:
 
 ## 13. Visual language
 
+### 13.0 Identità visiva
+
+> **CYMATICA è un esperimento acustico osservato da vicino che diventa opera astratta.**
+
+Una piastra fisica, grani di materia che si ordinano sul suono, tracce da oscilloscopio. Gli archetipi sono *condizioni dell'esperimento* (materiale, luce, frequenza), non skin. Il linguaggio è fisico prima che digitale.
+
+#### Firme invarianti
+
+Presenti in ogni archetipo e in ogni blend:
+
+1. **La Piastra.** L'arena ha un bordo fisico visibile che vibra con Corpo e Pulso; non è uno schermo infinito. La forma può variare per archetipo, il bordo resta leggibile. Telegraph e hazard nascono entro la piastra o dal suo bordo.
+2. **Il Grano.** La materia di contesto è fatta di grani (sabbia, polvere luminosa) che migrano verso le linee nodali al cambio di figura. La migrazione può fungere da telegraph (§14.2). I grani sono VFX: non producono collisione, salvo un tipo gameplay esplicitamente dichiarato.
+3. **Nodo = quiete, ventre = energia.** Le linee nodali si leggono calme e stabili; i ventri vibrano.
+4. **La Traccia.** Seme e Vettore lasciano tracce sottili a decadimento di fosforo (figure tipo Lissajous). Sono più sottili di qualsiasi hazard e non letali.
+5. **Il Seme invariante** (§17.2), unico elemento a luminanza massima: il bianco puro è riservato al Seme e non appartiene ad alcuna palette di archetipo.
+
+#### Il campo non mente
+
+Il campo visivo non può segnalare quiete dove c'è un hazard attivo né pericolo dove non c'è. Una figura nodale che suggerisce zone sicure deve derivare dagli stessi dati pianificati degli hazard; altrimenti resta nel layer Context a bassa salienza (§13.2, §13.3). Il campo resta rappresentazione, non modello di collisione (spec §24.1).
+
+#### Riferimenti
+
+- **Riferimenti:**
+  - figure di Chladni e *Cymatics* di Hans Jenny;
+  - Oskar Fischinger, Norman McLaren e John Whitney (animazione astratta musicale);
+  - Kandinsky, *Punto, linea, superficie*;
+  - oscilloscopio e figure di Lissajous;
+  - ferrofluidi e sabbia vibrante.
+- **Da cui differenziarsi:** Rez e Tetris Effect (CYMATICA è più materiale, meno "spazio"), Geometry Wars (neon su griglia), Ikaruga (polarità bicolore).
+- **Anti-riferimenti:** synthwave/outrun, glitch decorativo, bloom totale, HUD sci-fi.
+
+#### Tipografia e UI
+
+Stile "etichetta di strumento scientifico": sans geometrica o tecnica, numeri tabulari, maiuscoletto per le etichette. Il menu a nodi (§18.1) usa figure di Chladni. Il font è una dipendenza da scegliere con licenza compatibile e registrare quando introdotto, non prima di M5.
+
+#### Concept e style frame
+
+Immagini concettuali, anche generate, sono solo riferimento: non sono asset distribuiti né dati di training.
+
 ### 13.1 Principio generale
 
 Il minimalismo riguarda la chiarezza delle forme, non la quantità di esperienza. La scena può essere ricca, ma deve essere costruita per layer semantici.
@@ -842,6 +887,42 @@ Il colore non è l’unico codice. Usare anche:
 - texture;
 - suono;
 - icona diegetica.
+
+#### Grammatica funzionale delle forme (*proposed*, risponde a §24 Q10)
+
+| Funzione | Forma | Superficie | Movimento visivo |
+|---|---|---|---|
+| Danger attivo | silhouette chiusa e piena | nucleo chiaro + bordo saturo | coincide col moto autoritativo |
+| Telegraph | stessa silhouette del danger | solo contorno/tratteggio o grani in migrazione, opacità ridotta | si riempie verso l'attivazione |
+| Struttura (muro) | massa opaca | grano compatto, bordi netti, nessun glow | bassa frequenza |
+| Nodo sicuro | anello di grani fermi | luminanza media, nessun bordo saturo | pulsazione a metà tempo |
+| Opportunità | forma aperta (anello, rombo vuoto) | colore riservato per archetipo | pulsazione in levare, distinta dal danger |
+| VFX | mai silhouette chiusa simile a bullet | contrasto basso | decadimento rapido |
+
+#### Gerarchia di luminanza (*proposed*, valori iniziali)
+
+| Layer | Luminanza relativa massima/intervallo |
+|---|---|
+| Background | ≤ 15% |
+| Context (campo, grani) | ≤ 30% |
+| Structure | 30–50% |
+| Telegraph | 40–60% |
+| Danger (nucleo) | ≥ 80%, sotto il Seme |
+| Seme (nucleo) | 100%, unico a questo livello nel proprio intorno |
+
+Verifica: in uno screenshot in scala di grigi, senza HUD e anche in fase densa, un osservatore distingue le sei categorie. Ripetere con simulazione di daltonismo. Si valida in M7 (§23).
+
+#### Palette funzionali (*proposed*)
+
+| Archetipo | Fondo | Struttura/grano | Danger | Telegraph | Opportunità | Vettore/accento |
+|---|---|---|---|---|---|---|
+| Sintetico | nero-blu | blu acciaio scuro | cyan elettrico, nucleo chiaro | cyan tratteggiato | giallo acido | magenta |
+| Organico | antracite vellutato | oro scuro (sabbia) | perla tinta oro, bordo oro caldo | oro traslucido | smeraldo | rosa cipria |
+| Fratturato | nero fuliggine | ferro bruciato | arancione incandescente / bianco fosforico | crepa luminosa | da definire, non rosso | rosso lava (materia/accento) |
+| Etereo | blu notte | indaco | bianco lattiginoso | viola spettrale | verde bioluminescente | viola |
+| Sincopato | ottanio (crema raro) | carta/smalto | corallo | corallo a collage | lime | arancione bruciato |
+
+I bianchi delle palette (perla, fosforico, lattiginoso) restano tinti e sotto la luminanza del Seme.
 
 ### 13.4 Materiali
 
@@ -1070,8 +1151,10 @@ Le informazioni principali vivono sul Seme e sulla piastra. Tuttavia, diegetico 
 
 ### 17.2 Stati sul Seme
 
-- Dissonanza: coesione e aberrazione;
-- Risonanza: luminosità interna;
+Forma invariante in tutti gli archetipi: nucleo puntiforme bianco a luminanza massima riservata (la hitbox non eccede il nucleo visibile), anello orbitale, onda circolare attorno al nucleo.
+
+- Dissonanza: coesione e aberrazione; l'onda si frammenta;
+- Risonanza: luminosità interna e ampiezza dell'onda;
 - dash cooldown: anello/segmento orbitale;
 - Drop Shock pronto: pattern interno completo;
 - invulnerabilità: fase distinta, non sola trasparenza.
@@ -1361,7 +1444,13 @@ La vertical slice è design-complete quando include:
 - profilo reduced flashes;
 - gamepad e mouse/tastiera;
 - results con seed;
-- nessun pattern percepito come inevitabile nel playtest previsto.
+- nessun pattern percepito come inevitabile nel playtest previsto;
+- firme invarianti di §13.0 presenti in ogni archetipo;
+- test di luminanza in scala di grigi e simulazione daltonismo di §13.3 superati;
+- archetipo riconoscibile da screenshot senza HUD;
+- style frame di Sintetico e Organico approvati prima dell'implementazione finale degli asset.
+
+Gate anticipato: prima di M3 esiste una tavola delle invarianti (Seme, danger, telegraph, struttura, nodo sicuro, opportunità) e anche i placeholder la rispettano.
 
 Prima di dichiarare il gate superato, documentare protocollo, partecipanti e dispositivi, seed/preset, compiti, osservazioni e limiti del campione. Distinguere errori di controllo, mancata lettura del telegraph, difficoltà intenzionale e bug. I bot non sostituiscono la verifica umana. Soglie e criteri di stop del playtest vanno fissati prima della valutazione, non dopo aver visto i risultati.
 
@@ -1384,7 +1473,7 @@ Le domande sono gate di design, non autorizzazione agli agenti a introdurre risp
 7. Qual è il rapporto tra survival score e Graze score?
 8. Infinite Resonance ha obiettivi intermedi, boss o soltanto cicli?
 9. Il Vettore può essere neutralizzato o soltanto evitato?
-10. Quale linguaggio visuale distingue nodi sicuri, muri e opportunità?
+10. Quale linguaggio visuale distingue nodi sicuri, muri e opportunità? — proposta in §13.3 (grammatica funzionale delle forme); da validare in M7, tavola delle invarianti prima di M3.
 11. Come comunicare l’adattamento senza esporre il player model?
 12. Come verificare le opzioni obbligatorie di §19.6 sul contenuto finale? — M7; il loro perimetro minimo è già definito.
 13. CYMATICA è titolo definitivo o nome progetto?

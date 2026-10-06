@@ -9,6 +9,7 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 | Milestone attiva | **M1 — Tempo, seed e contratti deterministici** (M0 completata) |
 | Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
 | Specifica | 0.8.2 (0.8.1 accettata il 2026-10-05; aggiunte System 1 del 2026-10-06, applicabili da M6) |
+| Design | 0.3 (identità visiva e firme invarianti approvate il 2026-10-06) |
 | Commit / Build verificato | Commit `65dc087` (testato su clone pulito indipendente) |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
 | Ultimo aggiornamento | 2026-10-06 |
