@@ -3125,6 +3125,7 @@ Deliverable:
 - scale/modi;
 - motif memory minima;
 - `MusicIntentEvent`;
+- canale `SetTempoMap` sample-accurate e thread-safe (Game -> Audio) con acknowledgement per cambi tempo e time signature;
 - scheduler ahead-of-time;
 - synth/mix base;
 - telemetria coerente.
@@ -3132,7 +3133,7 @@ Deliverable:
 Accettazione:
 
 - musica continua 3 minuti senza crackle;
-- almeno due sezioni distinguibili;
+- almeno due sezioni distinguibili (inclusa transizione di tempo/metrica via `SetTempoMap`);
 - intent e audio restano sincronizzati;
 - stesso seed produce stesso event trace;
 - la callback esegue, non pianifica.

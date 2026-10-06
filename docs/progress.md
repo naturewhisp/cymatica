@@ -72,3 +72,11 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 ## Milestone successiva
 
 **Milestone 2 — Music Intent e musica procedurale v1** (Spec §32): prima forma musicale simbolica condivisa (form/phrase skeleton, 4 ruoli musicali Pulso/Corpo/Trama/Vettore, ritmi euclidei, scale/modi, memoria di motivo minima, `MusicIntentEvent`, scheduler ahead-of-time, synth/mix base, telemetria coerente).
+
+### Requisiti e decisioni d'ingresso M2
+
+| ID | Requisito / Decisione | Stato | Dettagli |
+|---|---|---|---|
+| D-M2-01 | **Canale thread-safe `SetTempoMap`** | **Prerequisito d'ingresso obbligatorio** | In M1 `AudioEngine` impiega una `MusicClock` interna a 120 BPM fissi. Per consentire a M2 di gestire sezioni musicali multiple, variazioni di tempo e time signature controllate da `MusicIntentEvent` e scheduler, è necessario un canale formale da Game/Coordinator verso `AudioEngine`.<br>• **Protocollo:** estensione di `AudioCommand` con comando `SetTempoMap` (oppure buffer lock-free dedicato `TripleBuffer<TempoMap>` / SPSC) contenente numeratore, denominatore e metrica.<br>• **Sincronizzazione:** applicazione sample-accurate all'inizio del blocco o all'epoch/frame designato con emissione di `AudioCommandAck`.<br>• **Invariante:** zero allocazioni dinamiche e assenza di lock bloccanti nella callback audio realtime, con aggiornamento atomico e coerente della telemetria senza salti o discontinuità di fase. |
+| D-M2-02 | Rappresentazione simbolica `MusicIntentEvent` | Open (M2 entry) | Definizione della struttura per i 4 ruoli (Pulso, Corpo, Trama, Vettore) e parametri di intensità/tensione (Spec §16, §20.5). |
+| D-M2-03 | Voice budget e DSP scheduling | Open (M2 entry) | Lookahead ahead-of-time (100–250 ms), limite polifonia per voce e policy di saturazione (Spec §20.7). |

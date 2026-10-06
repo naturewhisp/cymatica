@@ -94,6 +94,20 @@ A missing or failed mandatory check leaves the milestone incomplete. Report the 
 
 Keep a concise milestone status record in the repository, initially `docs/progress.md` when M0 creates it: active milestone, entry decisions, acceptance evidence and remaining blockers. This record tracks execution; the specification remains authoritative for the roadmap. Until the record exists, M0 is the initial active milestone. Update status only when supported by evidence, and do not advance to later work outside the authorized scope.
 
+### 5.1.1 Independent review loop at milestone completion
+
+Before declaring any milestone complete, committing its final closure, or advancing to the next milestone, the agent must execute an iterative independent review loop:
+
+1. **Independent Review Execution:** Delegate a rigorous, critical audit of all milestone deliverables to an independent reviewer role/subagent. The review must independently examine five dimensions:
+   - *Normative compliance:* Strict alignment with `CYMATICA_Specifica_Agentica_Sviluppo.md`, `DESIGN.md`, `AGENTS.md`, and relevant ADRs.
+   - *Mathematical & algorithmic accuracy:* Analytical correctness of sample boundaries, rational timing, zero drift over extended runs, invariant golden vectors, and absence of tautological tests.
+   - *Realtime thread safety & concurrency:* Lock-free/wait-free invariants, bounded loops (no unbounded spinning in realtime callbacks), cache-line isolation, explicit memory ordering, and zero dynamic heap allocations or blocking locks in the audio callback.
+   - *Robustness & edge cases:* Signed/unsigned arithmetic safety, bounds checking, defensive input sanitization, error reporting, and zero compiler warnings (`/W4`).
+   - *Clean verification:* Successful execution across all required build configurations (Clean Release, Debug, Headless, and interactive Smoke run).
+2. **Defect Remediation:** If the review verdict is **NON OK** or identifies any defects, gaps, or normative divergences (`DIF-*`), all findings must be prioritized and resolved in code, contracts, and tests.
+3. **Iterative Re-Review:** Repeat the independent review loop against the updated code.
+4. **Completion Gate:** The milestone may be declared complete only when an independent review formally concludes with an **OK** verdict, zero remaining defects, zero compiler warnings, and 100% test pass rate across all target configurations.
+
 ### 5.2 Task handoff
 
 Do not claim success if commands failed or were skipped. Report:
