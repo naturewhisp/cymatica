@@ -4,18 +4,18 @@ Musical bullet hell procedurale: musica, geometria e minacce condividono un inte
 
 ## Stato reale
 
-Pre-produzione documentale. La baseline esaminata è il commit `4aa2d5271aea11ad8aa088932c5afad8d6aaeec7` del 9 settembre 2026. Contiene specifica, design e regole operative; non contiene ancora sorgenti del gioco, CMake, test o una release giocabile. Milestone attiva: **M0**.
+Pre-produzione documentale. La revisione 0.8 (baseline d'esame `4aa2d5271aea11ad8aa088932c5afad8d6aaeec7`, 9 settembre 2026) è stata integrata nel commit `ac1ac59`; la 0.8.1 del 5 ottobre 2026 corregge incoerenze interne; la 0.8.2 del 6 ottobre 2026 aggiunge il System 1 (retrieval deterministico dei candidati, da M6). Il repository contiene specifica, design, regole operative e lo scheletro M0 (CMake, audio miniaudio, finestra raylib, test Catch2); non contiene ancora una release giocabile. Milestone attiva: **M0** (stato in [docs/progress.md](docs/progress.md)).
 
-Questi documenti revisionati il 23 settembre 2026 sono una proposta di aggiornamento. Non attestano che i requisiti siano già implementati.
+La specifica 0.8.2 è **accettata per l'implementazione** (2026-10-05): requisiti e criteri sono vincolanti, mentre tuning, budget numerici ed esempi restano proposte da validare. I documenti non attestano che i requisiti siano già implementati.
 
 ## Documenti
 
 | File | Responsabilità |
 |---|---|
-| [Specifica tecnica](CYMATICA_Specifica_Agentica_Sviluppo.md) | Architettura, contratti, timing, generazione, fairness e roadmap; revisione 0.8 |
+| [Specifica tecnica](CYMATICA_Specifica_Agentica_Sviluppo.md) | Architettura, contratti, timing, generazione, fairness e roadmap; revisione 0.8.2 |
 | [Design](DESIGN.md) | Gameplay, linguaggio audiovisivo, controlli, UX e accessibilità; revisione 0.2 |
 | [Regole agenti](AGENTS.md) | Istruzioni operative e limiti di scope |
-| [Rapporto di revisione](RAPPORTO_REVISIONE.md) | Problemi documentali, soluzioni, test richiesti e limiti della verifica |
+| [Stato milestone](docs/progress.md) | Milestone attiva, decisioni d'ingresso, evidenze e blocchi |
 
 ## Direzione tecnica
 

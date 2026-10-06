@@ -1,9 +1,9 @@
 # CYMATICA — Specifica tecnica per sviluppo agentico e generazione adattiva
 
 **Documento:** specifica tecnica-operativa per prototipo e sviluppo incrementale  
-**Versione:** 0.8 — proposta revisionata  
-**Data:** 2026-09-23  
-**Baseline revisionata:** commit `4aa2d5271aea11ad8aa088932c5afad8d6aaeec7`  
+**Versione:** 0.8.2 — accettata per l'implementazione (0.8.1 il 2026-10-05; aggiunte 0.8.2 il 2026-10-06)  
+**Data:** 2026-10-06  
+**Baseline revisionata:** 0.8 su commit `4aa2d5271aea11ad8aa088932c5afad8d6aaeec7`, integrata in `ac1ac59`; 0.8.1 su `ac1ac59`  
 **Target primario:** Windows x64  
 **Target secondario da preservare:** Android  
 **Stack core raccomandato:** C++20, CMake, raylib, miniaudio, shader GLSL  
@@ -15,6 +15,27 @@
 ---
 
 ## 0. Changelog
+
+### 0.8.2 — 2026-10-06
+
+**Stato:** accettata; le aggiunte sono additive e si applicano da M6. Nessun impatto su M0–M5 (fino a M5 il retriever restituisce tutti i candidati).
+
+- §8.2–§8.3, §11.4, nuova §11.7: System 1 / Fast Candidate Retrieval deterministico (descriptor interi, distanza pesata, tie-break stabile) separato dal System 2 (planner validato). System 1 non decide mai la sicurezza;
+- §18.8, §19.2, §26.1: uso online dell'archive tramite retriever, retriever appreso solo post-M8 se batte la baseline su Recall@K, ricerca semantica BGE/MiniLM/multilingual ammessa solo nel tooling;
+- §32 M6–M8, §34, §36: deliverable, criteri, decisioni e open question 18–20.
+
+### 0.8.1 — 2026-10-05
+
+**Stato:** accettata per l'implementazione dal titolare il 2026-10-05. Requisiti, contratti e criteri di accettazione sono vincolanti per M0 e successive. Restano *proposti*, non validati: valori di tuning, budget numerici, esempi C++/JSON e le open question di §36 e DESIGN §24, che si risolvono alla milestone indicata.
+
+Correzioni di coerenza documentale prima dell'avvio di M0; nessun cambio di stack, architettura o numerazione milestone. Nessuna build o test esiste ancora.
+
+- §20.4–§20.5: il worker restituisce proposte; l'unico producer della SPSC audio è il coordinatore (allineato a §8.6 e §20.7);
+- §20.3: gli eventi gameplay seguono il transport canonico di §7.5, non il conteggio della callback;
+- §22.1: rimosso `paused` dal frame latest-value (pause/resume sono comandi con acknowledgement, §20.7); la telemetria espone cursori e qualità della stima di presentazione (§7.5);
+- §15.5: `decision_id` usa il mixer stabile versionato, non `std::hash`;
+- §21: aggiunti `docs/progress.md` e `docs/adr/` richiesti da `AGENTS.md`;
+- §32 M0: resi espliciti deliverable e criteri già richiesti da `AGENTS.md` (record di avanzamento, almeno un test eseguito da CTest, unico owner audio verificato, toolchain registrata). È un allineamento, non un allentamento: nessun criterio precedente è stato rimosso.
 
 ### 0.8 — 2026-09-23
 
@@ -478,6 +499,11 @@ Non è responsabile di:
                  +-----------+------------+
                              v
                  +------------------------+
+                 | Candidate Retriever    |
+                 | System 1, top-K (M6+)  |
+                 +-----------+------------+
+                             v
+                 +------------------------+
                  | Candidate Generator    |
                  | grammar + RNG streams  |
                  +-----------+------------+
@@ -543,9 +569,11 @@ Istanzia pattern e trasformazioni compatibili con:
 - capacità del giocatore;
 - budget CPU/GPU/entity.
 
+Comprende il **Candidate Retriever (System 1, §11.7)**: preselezione deterministica e veloce dei candidati da esaminare. System 1 non decide mai la sicurezza di un pattern.
+
 #### Layer D — Validation and selection
 
-Applica hard constraints e valuta i candidati validi.
+Applica hard constraints e valuta i candidati validi. È il **System 2** (§11.7): ricerca limitata, validator autoritativo, scoring e commit.
 
 #### Layer E — Scheduling and observability
 
@@ -969,17 +997,18 @@ A ogni decision point il generatore crea un batch bounded, per esempio 16–64 c
 Pseudo-flusso:
 
 ```cpp
-for each family compatible with context:
-    for sample in allocatedSamples(family):
-        params = sampleParameters(randomKey);
-        candidate = generate(family, params, context);
-        if hardValidator.accepts(candidate):
-            candidate.score = scorer.evaluate(candidate, context);
-            valid.push(candidate);
+// System 1 (§11.7): ordina riferimenti con descriptor stimati, senza generare eventi.
+refs = retriever.retrieve(query(context), sources, k);
+// System 2: generazione completa, validazione e scoring solo sui top-K.
+for ref in refs:
+    candidate = generate(ref.family, ref.params, context);
+    if hardValidator.accepts(candidate):
+        candidate.score = scorer.evaluate(candidate, context);
+        valid.push(candidate);
 return selector.choose(valid);
 ```
 
-Il numero è configurabile. Il runtime deve restare corretto anche con un solo candidato e con zero candidati validi.
+Il numero è configurabile. Il runtime deve restare corretto anche con un solo candidato e con zero candidati validi. Fino a M5 il retriever può restituire tutti i candidati compatibili in ordine stabile; la baseline a distanza pesata arriva in M6.
 
 ### 11.5 Trasformazioni player-relative
 
@@ -1005,6 +1034,86 @@ Il generatore mantiene un sommario bounded:
 - recovery debt.
 
 Questo impedisce ripetizioni locali anche se la distribuzione globale è ricca.
+
+### 11.7 System 1 — Fast Candidate Retrieval
+
+Il CIE separa due stadi. I nomi riprendono un'analogia (veloce/approssimativo contro lento/deliberato); non sono affermazioni cognitive.
+
+- **System 1, `CandidateRetriever`:** risponde a "quali candidati vale la pena esaminare adesso?". È economico, deterministico e restituisce un top-K ordinato.
+- **System 2, planner validato:** generazione completa degli eventi, trasformazioni, ricerca bounded (§14.3), validator autoritativo (§12), utility (§13) e commit (§8.6). Risponde a "quale candidato è valido, sicuro e migliore ora?".
+
+```text
+MusicIntent, PlayerModel, ExperienceTarget, ArchetypePolicy, NoveltyMemory
+        |
+        v
+System 1  CandidateRetriever: filtri certi -> distanza pesata -> novelty/costo -> top-K stabile
+        |  top-K (per esempio 8–32)
+        v
+System 2  generazione eventi -> validator -> utility -> selezione -> PlanProposal
+```
+
+#### 11.7.1 Regola di sicurezza
+
+System 1 non decide mai se un candidato è sicuro né lo ammette. Può solo escluderlo dall'esame o ordinarlo. Ogni candidato eseguito passa per System 2 e, a runtime, per il safety guard (§12.5). Un retriever errato può peggiorare qualità o varietà, ma non la fairness. I fallback (§14.5) non dipendono dal retriever.
+
+#### 11.7.2 Descriptor di retrieval
+
+`DescriptorVector` (§11.1, §17.5) è già un embedding di dominio. System 1 ne usa una versione normalizzata e quantizzata in interi:
+
+```cpp
+// Illustrativo: dimensioni definitive in M6 (open question §36.18).
+struct RetrievalDescriptor {
+    std::int16_t density, symmetry, dashDemand, curvature,
+                 rhythmComplexity, safeArea, pressure, readability;
+};
+```
+
+Il descriptor deve essere **stimabile senza generare gli eventi completi**, a partire da definizione e parametri del pattern (o dall'archivio M8). Se richiedesse la generazione completa, System 1 non ridurrebbe il costo. La stima è approssimata e la verifica dei valori reali resta a System 2. Mapping e quantizzazione fanno parte della policy versionata (§15.8).
+
+#### 11.7.3 Baseline M6
+
+```text
+D(c, t) = sum_i w_i * (c_i - t_i)^2      aritmetica intera, saturazione verificata
+```
+
+- `t`: target derivato da `ExperienceTarget`; `w`: pesi di policy da archetipo, player model e contesto musicale.
+- Pipeline: filtri certi -> distanza -> penalità novelty e costo -> compatibilità con il profilo di controllo -> top-K.
+- **Filtri certi:** escludono solo per motivi non di sicurezza e decidibili senza simulazione, come family non ammessa dall'archetipo, inviluppo di controllo richiesto non disponibile, budget entità dichiarato superato, cooldown di ripetizione. Superarli non significa "safe".
+- **Diversità:** il top-K non deve collassare su varianti quasi identiche. Usare quote per family o una diversificazione deterministica, più slot riservati all'esplorazione entro il novelty budget (§13.3).
+- **Ordinamento stabile:** `(distanza, PatternId, indice parametri)`. K, quote e pesi sono dati di policy, mai costanti nel codice.
+- **Costo:** ricerca lineare. Per circa 10.000 pattern × 16 dimensioni sono circa 160.000 operazioni per query; non servono indici approssimati (HNSW) né database vettoriali.
+
+#### 11.7.4 Determinismo e Pure Seed
+
+In Pure Seed K è fisso, la distanza è intera e il tie-break è stabile. Il risultato non dipende da wall-clock, ordine di caricamento o thread. In Standard live K può ridursi sotto pressione (§27.2). Il top-K effettivo è registrato nella decision trace e il replay exact lo consuma. Il retriever ha un proprio identificatore di versione incluso nel RunRecord.
+
+#### 11.7.5 Interfaccia
+
+```cpp
+// Illustrativo.
+struct RetrievalQuery {
+    RetrievalDescriptor target;
+    RetrievalWeights weights;
+    ContextFilter filter;       // archetipo, envelope, budget, storico
+    std::uint32_t k;
+};
+
+class ICandidateRetriever {
+public:
+    virtual ~ICandidateRetriever() = default;
+    // Scrive al massimo query.k riferimenti in out; ordinamento stabile.
+    virtual RetrievalResult retrieve(const RetrievalQuery&, const CandidateSource&,
+                                     FixedSpan<CandidateRef> out) const = 0;
+};
+```
+
+Le sorgenti (generatore costruttivo, archivio M8) espongono descriptor stimati. Il retriever non conosce il validator.
+
+#### 11.7.6 Metriche e sostituzione con modelli appresi
+
+La metrica principale è **Recall@K**: la frazione di decision point in cui il candidato scelto da un planner di riferimento (System 2 con budget esteso o esaustivo, offline/headless) compare nel top-K del retriever. Si accompagna a chiamate al validator per decisione, latenza p50/p95/p99, fallback rate, accepted ratio, utility finale, diversità/novelty e riproducibilità Pure Seed. K, soglie e corpus si fissano prima di misurare.
+
+Un retriever appreso (§19.2) o un encoder sostituisce la baseline solo se, sullo stesso corpus: Recall@K aumenta oppure le chiamate al validator e la latenza p95 diminuiscono a Recall uguale; il fallback rate non peggiora; la qualità finale non peggiora; il replay resta invariato. Altrimenti si rimuove (§31.4). Gli encoder testuali generici (BGE, MiniLM e simili) non sono ammessi nel runtime CIE: i descriptor strutturati contengono già l'informazione rilevante. Il loro uso possibile è la ricerca semantica nel tooling (§19.2).
 
 
 ---
@@ -1354,8 +1463,10 @@ Il sistema non ha bisogno di conservare uno stato globale mutabile per ogni chia
 Ogni decision point ha ID deterministico derivato dalla posizione musicale e dalla run:
 
 ```text
-decision_id = hash(section, phrase, bar, decision_slot, policy_version)
+decision_id = stable_mix(section, phrase, bar, decision_slot, policy_version)
 ```
+
+`stable_mix` è il mixer documentato di §15.3, coperto da test vector e `rng_version`; mai `std::hash`.
 
 ### 15.6 Replay levels
 
@@ -1837,15 +1948,15 @@ L’archivio distribuibile deve contenere definizioni/parametri, non modelli o a
 
 ### 18.8 Uso online
 
-Il runtime può:
+Il runtime, tramite il `CandidateRetriever` (System 1, §11.7), può:
 
 1. cercare celle vicine all’ExperienceTarget;
 2. filtrare per archetipo e budget;
 3. applicare mutazioni bounded;
-4. rivalidare il risultato;
-5. selezionare con novelty e utility.
+4. rivalidare il risultato (System 2);
+5. selezionare con novelty e utility (System 2).
 
-L’archivio accelera e migliora la varietà, ma non è un single point of failure: il constructive generator e i fallback devono funzionare senza di esso.
+L’archivio accelera e migliora la varietà, ma non è un single point of failure: il constructive generator e i fallback devono funzionare senza di esso. L'archivio è una sorgente aggiuntiva per il System 1, non un percorso alternativo al validator.
 
 ### 18.9 Surrogate model futuro
 
@@ -1893,6 +2004,14 @@ Stima costo/qualità di candidati offline o online.
 #### Music continuation model
 
 Solo dopo una base simbolica stabile; deve produrre Music Intent o MIDI-like events, non audio opaco privo di timing semantico.
+
+#### Learned candidate retriever (System 1)
+
+Input: `ContextDescriptor` + `RetrievalDescriptor` del pattern. Output: punteggio di utilità attesa per l'ordinamento top-K. Modelli piccoli (regressione logistica, piccolo MLP, gradient-boosted trees). Sostituisce la baseline di §11.7 solo alle condizioni di §11.7.6 e non decide mai l'ammissione.
+
+#### Ricerca semantica nel catalogo (solo tooling)
+
+Query in linguaggio naturale ("spirale organica densa, poco dash") verso metadati dei pattern, tramite un encoder di frasi. Solo in AI Lab/editor, mai nel runtime né nel replay. BGE-small-en e all-MiniLM-L6 sono modelli inglesi: per query italiane valutare un encoder multilingua. Richiede review di licenza, peso del modello (circa 90–130 MB non quantizzati per i due citati) e un runtime di inferenza tool-only (§19.4).
 
 ### 19.3 Inference boundary
 
@@ -1972,7 +2091,7 @@ Default proposto per vertical slice:
 - accumulator con limite massimo di catch-up;
 - rendering interpolato;
 - collisioni autoritative a tick fisso;
-- eventi musicali attivati in base al clock audio;
+- eventi musicali attivati in base al transport canonico e alla mappatura tick di §7.5;
 - nessun avanzamento gameplay dipendente da FPS.
 
 Il valore 120 Hz è una configurazione iniziale, non dogma. Deve essere profilato; un profilo 60 Hz può essere necessario su Android e costituisce un diverso profilo di simulazione/replay.
@@ -1986,7 +2105,7 @@ Il planning worker:
 - riceve `DirectorInput` immutabile;
 - genera e valuta candidati;
 - rispetta deadline;
-- pubblica `PlanChunk` validato;
+- restituisce una `PlanProposal` validata; il commit avviene sul coordinatore (§8.6);
 - può allocare entro limiti noti;
 - non modifica lo stato autoritativo;
 - non chiama API raylib/miniaudio non thread-safe;
@@ -1997,12 +2116,13 @@ Il planning worker:
 Canali distinti:
 
 ```text
-Audio -> Game:      AudioTelemetryFrame latest-value
-Game -> Audio:      AudioControlFrame latest-value
-Music Planner -> Audio: ScheduledAudioEvent SPSC
-Game -> AI Worker:  DirectorInput mailbox/SPSC
-AI Worker -> Game:  PlanChunk mailbox/SPSC
-Game -> Telemetry:  bounded event log buffer
+Audio -> Game:                AudioTelemetryFrame latest-value
+Game -> Audio:                AudioControlFrame latest-value + comandi identificati con ack
+Music Planner -> Coordinator: proposte di eventi audio (non direttamente all'audio)
+Coordinator -> Audio:         ScheduledAudioEvent SPSC, unico producer (§20.7)
+Game -> AI Worker:            DirectorInput mailbox/SPSC
+AI Worker -> Game:            PlanProposal mailbox/SPSC, commit sul coordinatore
+Game -> Telemetry:            bounded event log buffer
 ```
 
 ### 20.6 Snapshot protocol
@@ -2025,7 +2145,7 @@ Snapshot e piani devono possedere i dati o usare slot immutabili con lifetime es
 
 Il coordinatore ammette batch solo se c'è spazio per tutti gli eventi e un margine riservato ai controlli essenziali. Al superamento: rifiutare il batch prima del commit e usare fallback; se manca materiale audio, applicare una coda di sustain/fade preallocata e segnalare underrun senza bloccare. Non sintetizzare retroattivamente un burst di note arretrate.
 
-Un solo thread è producer della SPSC audio: il coordinatore audio/game riceve le proposte del music planner e i comandi player e li ordina. Non consentire due producer perché il diagramma dice semplicemente Music Planner -> Audio. Definire il massimo di eventi per blocco, voci e costo DSP sul profilo target.
+Un solo thread è producer della SPSC audio: il coordinatore audio/game riceve le proposte del music planner e i comandi player e li ordina. Non consentire due producer, neppure come scorciatoia fra music planner e audio (§20.5). Definire il massimo di eventi per blocco, voci e costo DSP sul profilo target.
 
 ### 20.8 Pause e device loss
 
@@ -2154,6 +2274,8 @@ cymatica/
 │   ├── performance/
 │   └── fixtures/
 └── docs/
+    ├── progress.md          # stato milestone ed evidenze (AGENTS §5.1)
+    ├── adr/                 # decisioni registrate (AGENTS §1.1)
     ├── architecture.md
     ├── build.md
     ├── dependencies.md
@@ -2242,10 +2364,12 @@ struct ChannelFrame {
 };
 
 struct AudioTelemetryFrame {
-    double audioTimeSeconds;
-    std::uint64_t sampleFrame;
+    std::uint64_t transportEpoch;      // §7.5
+    std::uint64_t renderCursor;        // primo frame ancora da sintetizzare
+    std::uint64_t presentationCursor;  // stima del frame udibile
+    PresentationEstimateQuality presentationQuality; // invalid/estimated/measured
     float bpm;
-    float beatPhase;
+    float beatPhase;                   // vista derivata, mai autorità
     float beatConfidence;
     ChannelFrame pulse;
     ChannelFrame body;
@@ -2256,11 +2380,12 @@ struct AudioTelemetryFrame {
     std::uint32_t detectedArchetypeId;
 };
 
+// Solo parametri continui latest-value. Pause/resume/stop e one-shot sono
+// comandi identificati con acknowledgement (§20.7), non campi di questo frame.
 struct AudioControlFrame {
     float dissonance;
     float playerPerformance;
     std::uint32_t requestedArchetypeId;
-    bool paused;
 };
 ```
 
@@ -2581,7 +2706,8 @@ Aggiornare golden soltanto con review esplicita, non automaticamente dopo un fal
 - archive hit rate;
 - planning horizon coverage;
 - commit slack;
-- runtime intervention rate.
+- runtime intervention rate;
+- System 1: latenza di retrieval, candidati recuperati/scartati, chiamate al validator per decisione, accepted ratio dei top-K, Recall@K offline contro il planner di riferimento (§11.7.6).
 
 ### 26.2 Metriche gameplay
 
@@ -2715,8 +2841,10 @@ Le entità cosmetiche sono le prime da degradare.
 |---|---|---|---|
 | raylib | window/input/render/shader | `FetchContent` pinned | versione registrata |
 | miniaudio | device, mixing, DSP | snapshot ufficiale vendored | sorgente, commit/tag e licenza registrati |
-| test framework | unit/property test | una sola soluzione pinned | decidere in M0 |
+| test framework | unit/property test | una sola soluzione pinned | Catch2 v3, vedere ADR-0001 |
 | JSON parser/schema | contenuti e trace | valutare minimal/pinned | non introdurre più parser |
+
+Versioni, commit, checksum e toolchain di M0 sono registrati in `docs/adr/0001-m0-toolchain-dependencies.md` (record unico; non duplicarli qui).
 
 In M0 raylib è responsabile di finestra/input/render; il modulo audio raylib deve essere disabilitato nella configurazione pinned, e un solo target possiede `MINIAUDIO_IMPLEMENTATION` e il device. Verificare l'opzione disponibile nel commit raylib scelto (tipicamente `SUPPORT_MODULE_RAUDIO`) e il link finale; non aprire due motori audio indipendenti. Non è un errore già osservato, perché la build non esiste ancora.
 
@@ -2939,10 +3067,11 @@ Deliverable:
 
 - struttura monorepo minima;
 - `CMakePresets.json`;
-- `docs/build.md`;
+- `docs/build.md`, con toolchain/generatore e versioni verificate;
 - `docs/dependencies.md`;
-- raylib pinned;
-- miniaudio snapshot pinned;
+- `docs/progress.md` con decisioni di ingresso ed evidenze (AGENTS §5.1);
+- raylib pinned, modulo audio raylib disabilitato (§28.2);
+- miniaudio snapshot pinned, unico owner del device;
 - test framework scelto;
 - target `cymatica_game` e `cymatica_tests`;
 - finestra, input, tono audio e shader test;
@@ -2951,8 +3080,12 @@ Deliverable:
 Accettazione:
 
 - clean checkout configurabile e compilabile da comandi documentati;
+- `ctest` esegue e supera almeno un test reale del framework scelto;
 - eseguibile avviabile e chiudibile senza crash;
+- tono udibile e shader di prova visibile, verificati manualmente con procedura registrata;
+- un solo `MINIAUDIO_IMPLEMENTATION` e un solo device aperto nel binario finale, verificato su build e link;
 - dipendenze e licenze censite;
+- decisioni M0 registrate in `docs/progress.md` o ADR;
 - nessun tool futuro richiesto.
 
 ### Milestone 1 — Tempo, seed e contratti deterministici
@@ -3086,6 +3219,7 @@ Deliverable:
 - pacing state machine;
 - recovery debt;
 - candidate scoring;
+- `CandidateRetriever` (System 1, §11.7) con baseline deterministica a distanza pesata intera e top-K stabile;
 - novelty memory;
 - stochastic top-k selector;
 - planning/commit horizon;
@@ -3098,7 +3232,9 @@ Accettazione:
 - adattamento solo su boundary consentiti;
 - nessun rubber-banding immediato;
 - planner deadline miss gestito con fallback;
-- trace spiega ogni scelta;
+- trace spiega ogni scelta, inclusi candidati recuperati ed esclusi dal System 1;
+- System 1 non ammette mai un candidato senza System 2: test che lo dimostrano anche con retriever volutamente errato;
+- top-K identico a parità di input, policy e catalogo, indipendente dall'ordine di caricamento;
 - Pure Seed produce replay stabile;
 - target pressure e pressione misurata convergono entro tolleranza definita.
 
@@ -3115,7 +3251,7 @@ Deliverable:
 - saturazione;
 - transizioni;
 - accessibility profile;
-- performance pass;
+- performance pass, incluse le metriche System 1 di §26.1;
 - sessione infinita di almeno 10 minuti.
 
 Accettazione:
@@ -3140,7 +3276,9 @@ Deliverable:
 - procedural personas;
 - archive format;
 - dashboard/report testuale;
-- curation/blacklist.
+- curation/blacklist;
+- archive interrogabile dal `CandidateRetriever` (§11.7, §18.8);
+- dataset di decisioni System 1/System 2 per Recall@K e per eventuali retriever appresi (§11.7.6).
 
 Accettazione:
 
@@ -3148,7 +3286,8 @@ Accettazione:
 - pattern valutati su più personas;
 - runtime funziona senza archive;
 - archive versionato e validato;
-- nessun candidato invalido entra come elite.
+- nessun candidato invalido entra come elite;
+- Recall@K del retriever baseline misurato contro il planner di riferimento, con K e soglia fissati prima della misura.
 
 ### Milestone 9 — Pacchetti, timeline e tool CLI
 
@@ -3332,6 +3471,11 @@ Nessuna scelta definitiva prima di M9–M10.
 | NatuStem come riferimento | Accettato | accelera future decisioni |
 | Strudel/Tidal come riferimento | Accettato | grammatica musicale, non runtime |
 | `DESIGN.md` separato | Accettato | elimina ridondanza e rende normativo il design |
+| System 1 / System 2 nel CIE (§11.7) | Accettata per M6 | riduce le validazioni costose senza delegare la sicurezza |
+| System 1 baseline = distanza pesata intera su descriptor di dominio | Accettata per M6 | deterministica, ispezionabile, adatta a Pure Seed, nessuna dipendenza |
+| Encoder testuali (BGE, MiniLM o simili) nel runtime CIE | Rifiutato | nessuna informazione utile oltre ai descriptor strutturati; costo, replay, Android |
+| Encoder semantici per ricerca nel catalogo da tooling/editor | Differito post-M9, tool-only | utile per query in linguaggio naturale; valutare modelli multilingua |
+| Retriever/scorer appreso | Differito post-M8 | ammesso solo se batte la baseline secondo §11.7.6 |
 
 ---
 
@@ -3361,7 +3505,7 @@ Nessuna scelta definitiva prima di M9–M10.
 
 Le seguenti decisioni non bloccano M0, ma vanno risolte prima della milestone indicata.
 
-1. Quale test framework C++ adottare? — M0.
+1. ~~Quale test framework C++ adottare? — M0.~~ Risolta: Catch2 v3, ADR-0001.
 2. Quale parser/schema JSON adottare? — M0/M1.
 3. Confermare il profilo 120 Hz iniziale e i criteri di compatibilità per eventuali profili 60 Hz. — M1; rivalidazione M5.
 4. Quale algoritmo stable random interno usare? — M1.
@@ -3378,6 +3522,9 @@ Le seguenti decisioni non bloccano M0, ma vanno risolte prima della milestone in
 15. Condivisione di pacchetti contenenti audio protetto? — M9/M10.
 16. Backend MIR e stem? — M10/M11.
 17. Editor C++, Flutter o web? — M13.
+18. Dimensioni, normalizzazione e quantizzazione del `RetrievalDescriptor`, e come stimarlo senza generare gli eventi completi. — M6 (§11.7).
+19. Valori iniziali di K, quote di diversità e soglia Recall@K di accettazione. — K e quote in M6; soglia fissata prima della misura M7/M8.
+20. Un retriever appreso supera la baseline deterministica secondo §11.7.6? — dopo M8, solo con dataset M8.
 
 ---
 

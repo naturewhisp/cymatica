@@ -1,6 +1,6 @@
 # AGENTS.md — CYMATICA
 
-Operational rules for agents working in this repository. Updated 2026-09-23.
+Operational rules for agents working in this repository. Updated 2026-10-05. Current milestone status: `docs/progress.md`.
 
 `CYMATICA_Specifica_Agentica_Sviluppo.md` is authoritative for architecture, contracts, roadmap and technical decisions. `DESIGN.md` is authoritative for gameplay, audio-visual language, UX and accessibility. Do not duplicate either document here. If requirements conflict, resolve the conflict in both documents; examples are not executable schemas, benchmark results or approved tuning values.
 
@@ -63,6 +63,8 @@ Use explicit slot ownership for cross-thread snapshots. A trivially-copyable pay
 Pure Seed uses fixed logical work budgets and stable ordering. Wall-clock deadline misses invalidate comparison eligibility; exact replay consumes accepted decisions. Never claim seed alone reproduces an adaptive run.
 
 Validate the composed space-time hazard state, including swept transitions and dash resources. Unknown validation results never pass. Safety fallback is contextual; prevalidated in isolation is not enough.
+
+Candidate retrieval (System 1, spec §11.7) only selects what System 2 examines; it never decides safety and never replaces the validator.
 
 Procedural decisions must be reproducible from seed, policy version and decision trace. Keep random streams isolated. Apply hard fairness constraints before utility or novelty scoring, and never bypass the runtime safety guard.
 

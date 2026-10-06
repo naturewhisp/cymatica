@@ -43,6 +43,11 @@
 build/
 Build/
 build-*/
+out/
+
+# IDE / local presets (CMakePresets.json resta versionato)
+.vs/
+CMakeUserPresets.json
 
 # CMake generated files
 CMakeFiles/

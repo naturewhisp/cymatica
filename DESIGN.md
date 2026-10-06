@@ -204,6 +204,8 @@ Regole percettive:
 - oltre raggio: clamp alla distanza massima;
 - stessi costi e rischio del gamepad.
 
+I mapping sopra sono direzione di design, non contratto: tap/hold va riconciliato con §6.2.1 prima di M3 (un press non può eseguire un dash e poi essere reinterpretato come hold).
+
 ### 6.2.1 Contratto da congelare prima di M3/M4
 
 Prima della giocabilità M3 scegliere un unico profilo player implementabile e usato anche dal validator. M5 rifinisce il game feel; non può definire retroattivamente le regole su cui M4 ha validato i pattern.
