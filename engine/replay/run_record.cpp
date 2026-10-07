@@ -120,11 +120,18 @@ std::string RunRecord::toJson() const {
 RunRecord RunRecord::fromJson(std::string_view jsonStr) {
     const json j = json::parse(jsonStr);
 
+    const auto readU32 = [](const json& value, const char* name) -> std::uint32_t {
+        if (!value.is_number_unsigned() || value.get<std::uint64_t>() > UINT32_MAX) {
+            throw std::runtime_error(std::string("RunRecord: invalid uint32 field ") + name);
+        }
+        return value.get<std::uint32_t>();
+    };
+
     // 1. schema_version is mandatory; parser fail-fast on incompatible major (§23.4)
     if (!j.contains("schema_version")) {
         throw std::runtime_error("RunRecord: missing mandatory field 'schema_version'");
     }
-    const auto schemaVer = j["schema_version"].get<std::uint32_t>();
+    const auto schemaVer = readU32(j["schema_version"], "schema_version");
     if (schemaVer != core::RUN_RECORD_SCHEMA_VERSION) {
         throw std::runtime_error("RunRecord: unsupported schema_version " + std::to_string(schemaVer));
     }
@@ -133,7 +140,7 @@ RunRecord RunRecord::fromJson(std::string_view jsonStr) {
     if (!j.contains("rng_version")) {
         throw std::runtime_error("RunRecord: missing mandatory field 'rng_version'");
     }
-    const auto rngVer = j["rng_version"].get<std::uint32_t>();
+    const auto rngVer = readU32(j["rng_version"], "rng_version");
     if (rngVer != core::RNG_VERSION) {
         throw std::runtime_error("RunRecord: unsupported rng_version " + std::to_string(rngVer));
     }
@@ -157,16 +164,17 @@ RunRecord RunRecord::fromJson(std::string_view jsonStr) {
         }
         const std::string s = j["run_seed"].get<std::string>();
         std::uint64_t parsedSeed = 0;
-        try {
-            std::size_t idx = 0;
-            parsedSeed = std::stoull(s, &idx, 16);
-            if (idx == 0) {
-                throw std::runtime_error("RunRecord: invalid hex format in 'run_seed': " + s);
-            }
-        } catch (const std::runtime_error&) {
-            throw;
-        } catch (const std::exception& e) {
-            throw std::runtime_error("RunRecord: invalid hex format in 'run_seed' (" + s + "): " + e.what());
+        if (s.size() != 18 || s[0] != '0' || s[1] != 'x') {
+            throw std::runtime_error("RunRecord: run_seed must be 0x plus 16 hexadecimal digits");
+        }
+        for (std::size_t i = 2; i < s.size(); ++i) {
+            const char c = s[i];
+            unsigned digit = 0;
+            if (c >= '0' && c <= '9') digit = static_cast<unsigned>(c - '0');
+            else if (c >= 'a' && c <= 'f') digit = static_cast<unsigned>(c - 'a') + 10;
+            else if (c >= 'A' && c <= 'F') digit = static_cast<unsigned>(c - 'A') + 10;
+            else throw std::runtime_error("RunRecord: invalid hexadecimal digit in run_seed");
+            parsedSeed = (parsedSeed << 4) | digit;
         }
         if (hasSeedU64 && parsedSeed != seedValue) {
             throw std::runtime_error("RunRecord: inconsistent run_seed (" + s + ") and run_seed_u64 (" + std::to_string(seedValue) + ")");
@@ -186,8 +194,8 @@ RunRecord RunRecord::fromJson(std::string_view jsonStr) {
     }
     TimingProfile timingProf;
     timingProf.sampleRate = tp.value("sample_rate", 0ULL);
-    timingProf.simulationHz = tp.value("simulation_hz", 0u);
-    timingProf.framesPerTick = tp.value("frames_per_tick", 0u);
+    timingProf.simulationHz = readU32(tp["simulation_hz"], "simulation_hz");
+    timingProf.framesPerTick = readU32(tp["frames_per_tick"], "frames_per_tick");
     if (timingProf.sampleRate == 0 || timingProf.simulationHz == 0 || timingProf.framesPerTick == 0) {
         throw std::runtime_error("RunRecord: invalid non-positive timing_profile values");
     }
@@ -203,10 +211,10 @@ RunRecord RunRecord::fromJson(std::string_view jsonStr) {
     if (j.contains("policy_version_id")) {
         const auto& pjid = j["policy_version_id"];
         r.policyVersionId = core::PolicyVersionId{
-            pjid.value("schema", 1u),
-            pjid.value("major", 0u),
-            pjid.value("minor", 1u),
-            pjid.value("patch", 0u)
+            pjid.contains("schema") ? readU32(pjid["schema"], "policy_version_id.schema") : 1u,
+            pjid.contains("major") ? readU32(pjid["major"], "policy_version_id.major") : 0u,
+            pjid.contains("minor") ? readU32(pjid["minor"], "policy_version_id.minor") : 1u,
+            pjid.contains("patch") ? readU32(pjid["patch"], "policy_version_id.patch") : 0u
         };
     }
 
@@ -219,7 +227,7 @@ RunRecord RunRecord::fromJson(std::string_view jsonStr) {
             r.decisions.push_back(DecisionRecord{
                 .decisionId = elem.value("decision_id", 0ULL),
                 .sampleFrame = elem.value("sample_frame", 0ULL),
-                .archetypeId = elem.value("archetype_id", 0u),
+                .archetypeId = elem.contains("archetype_id") ? readU32(elem["archetype_id"], "archetype_id") : 0u,
                 .patternTag = elem.value("pattern_tag", "")
             });
         }

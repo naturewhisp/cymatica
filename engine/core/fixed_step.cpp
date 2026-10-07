@@ -1,11 +1,8 @@
 #include "fixed_step.h"
+#include "unsigned_math.h"
 
 #include <algorithm>
 #include <cmath>
-
-#if defined(_MSC_VER) && defined(_M_X64)
-#include <intrin.h>
-#endif
 
 namespace cymatica::core {
 
@@ -17,84 +14,31 @@ FixedStepAccumulator::FixedStepAccumulator(FixedStepConfig config) noexcept
 }
 
 std::uint64_t FixedStepAccumulator::tickToSampleFrame(std::uint64_t tickIndex) const noexcept {
-    // Spec §7.5: floor(k * internalSampleRate / simulationHz) with overflow-safe math
-    // For 48000 Hz / 120 Hz, 48000 / 120 is exactly 400.
-    if (config_.simulationHz == 0) return 0;
-    if (config_.internalSampleRate % config_.simulationHz == 0) {
-        return tickIndex * (config_.internalSampleRate / config_.simulationHz);
-    }
-    if (config_.internalSampleRate > 0 && tickIndex <= UINT64_MAX / config_.internalSampleRate) {
-        return (tickIndex * config_.internalSampleRate) / config_.simulationHz;
-    }
-    const std::uint64_t q = tickIndex / config_.simulationHz;
-    const std::uint64_t r = tickIndex % config_.simulationHz;
-    return q * config_.internalSampleRate + (r * config_.internalSampleRate) / config_.simulationHz;
+    return multiplyDivide(tickIndex, config_.internalSampleRate, config_.simulationHz).value;
 }
 
 std::uint64_t FixedStepAccumulator::sampleFrameToTick(std::uint64_t sampleFrame) const noexcept {
-    // Spec §7.5 / DIF-M1-15: first tick whose boundary is >= sampleFrame (integer ceil for sampleFrame > 0)
-    if (sampleFrame == 0 || config_.simulationHz == 0 || config_.internalSampleRate == 0) {
-        return 0;
-    }
-    if (config_.internalSampleRate % config_.simulationHz == 0) {
-        const std::uint64_t framesPerTick = config_.internalSampleRate / config_.simulationHz;
-        return (sampleFrame + framesPerTick - 1) / framesPerTick;
-    }
-    if (config_.simulationHz > 0 && sampleFrame <= (UINT64_MAX - config_.internalSampleRate) / config_.simulationHz) {
-        return (sampleFrame * config_.simulationHz + config_.internalSampleRate - 1) / config_.internalSampleRate;
-    }
-    const std::uint64_t q = sampleFrame / config_.internalSampleRate;
-    const std::uint64_t r = sampleFrame % config_.internalSampleRate;
-    return q * config_.simulationHz + (r * config_.simulationHz + config_.internalSampleRate - 1) / config_.internalSampleRate;
+    const auto result = multiplyDivide(sampleFrame, config_.simulationHz, config_.internalSampleRate);
+    return saturatingAdd(result.value, static_cast<std::uint64_t>(result.remainder != 0));
 }
 
 std::uint64_t FixedStepAccumulator::tickBoundaryNs(std::uint64_t tickIndex) const noexcept {
-    // Exact rational nanosecond boundary defined in Spec §7.5 / ADR-0002:
-    // boundary(k) = floor(k * 1e9 / simulationHz)
-    if (config_.simulationHz == 0) return 0;
-    const std::uint64_t q = tickIndex / config_.simulationHz;
-    const std::uint64_t r = tickIndex % config_.simulationHz;
-    return q * 1'000'000'000ULL + (r * 1'000'000'000ULL) / config_.simulationHz;
+    return multiplyDivide(tickIndex, 1'000'000'000ULL, config_.simulationHz).value;
 }
 
 std::uint64_t FixedStepAccumulator::tickDurationNs(std::uint64_t tickIndex) const noexcept {
-    // Exact rational tick duration derived from boundary formula:
-    // duration(k) = boundary(k + 1) - boundary(k)
-    // Telescoping sum over any K ticks is exact: sum_{k=0}^{K-1} duration(k) = boundary(K).
-    return tickBoundaryNs(tickIndex + 1) - tickBoundaryNs(tickIndex);
+    // Derive the duration from phase, even when absolute boundaries saturate.
+    const auto hz = config_.simulationHz;
+    if (hz == 0) return 0;
+    const auto phase = multiplyDivide(tickIndex % hz, 1'000'000'000ULL, hz).remainder;
+    return 1'000'000'000ULL / hz + static_cast<std::uint64_t>(phase + 1'000'000'000ULL % hz >= hz);
 }
 
 std::uint64_t FixedStepAccumulator::targetTickForElapsedNs(std::uint64_t totalElapsedNs) const noexcept {
-    // Largest tickIndex k such that tickBoundaryNs(k) <= totalElapsedNs.
-    // Analytically: floor(k * 1e9 / S) <= T <=> k <= floor(((T + 1) * S - 1) / 1e9).
+    // floor((T*S + S-1)/1e9), without forming T+1 at UINT64_MAX.
     if (config_.simulationHz == 0) return 0;
-    if (totalElapsedNs == UINT64_MAX) return UINT64_MAX;
-
-#if defined(__SIZEOF_INT128__)
-    using uint128_t = unsigned __int128;
-    const uint128_t tPlus1 = static_cast<uint128_t>(totalElapsedNs) + 1;
-    const uint128_t num = tPlus1 * config_.simulationHz - 1;
-    return static_cast<std::uint64_t>(num / 1'000'000'000ULL);
-#elif defined(_MSC_VER) && defined(_M_X64)
-    unsigned __int64 high = 0;
-    const unsigned __int64 tPlus1 = totalElapsedNs + 1;
-    unsigned __int64 low = _umul128(tPlus1, config_.simulationHz, &high);
-    if (low == 0) {
-        --high;
-        low = UINT64_MAX;
-    } else {
-        --low;
-    }
-    unsigned __int64 rem = 0;
-    return _udiv128(high, low, 1'000'000'000ULL, &rem);
-#else
-    const std::uint64_t q = (totalElapsedNs + 1) / 1'000'000'000ULL;
-    const std::uint64_t r = (totalElapsedNs + 1) % 1'000'000'000ULL;
-    if (r * config_.simulationHz == 0) {
-        return (q * config_.simulationHz) - 1;
-    }
-    return q * config_.simulationHz + (r * config_.simulationHz - 1) / 1'000'000'000ULL;
-#endif
+    const auto result = multiplyDivide(totalElapsedNs, config_.simulationHz, 1'000'000'000ULL);
+    return saturatingAdd(result.value, (result.remainder + config_.simulationHz - 1ULL) / 1'000'000'000ULL);
 }
 
 StepResult FixedStepAccumulator::advanceNs(std::uint64_t deltaNs) noexcept {

@@ -6,9 +6,9 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 
 | Campo | Valore |
 |---|---|
-| Milestone attiva | **M2 — Music Intent e musica procedurale v1** (M1 completata e validata da independent review) |
+| Milestone attiva | **M1 — remediation round 3** (review NON OK; M2 differita fino al nuovo gate) |
 | Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
-| Stato M1 | **Completata (tutti i criteri di accettazione verificati con evidenze post-remediation round 2)** |
+| Stato M1 | **Riaperta: DIF-M1-26/27/28, review e nuovi gate da completare** |
 | Specifica | 0.8.3 (baseline 0.8.1/0.8.2 accettata; controllo/osservazione agentica documentati il 2026-10-07) |
 | Design | 0.3.1 (baseline identità 0.3 approvata il 2026-10-06; osservazione agentica documentata il 2026-10-07) |
 | Commit / Build verificato | Commit `4db4b1b` (MSVC /W4 0 warning, CTest Release 36/36, Debug 36/36, Headless 35/35, Smoke 3s exit 0) |
@@ -128,3 +128,11 @@ Richiesta del titolare: analisi permanente e sviluppo progressivo insieme al gio
 - **DIF-AO-DOC-02 risolto nella documentazione:** specifica §31.5/§32 distingue AC-AO-01A mandatory e AC-AO-01B supplementare dipendente dal client; stessa separazione per immagini/video e streaming successivi. I gate del progetto, report/benchmark e playtest originali restano obbligatori; assenza di capacità esterna documentata non equivale a PASS o difetto risolto.
 - **Chiarimento LOW:** il frame statico M2 è opzionale, fuori dal gate tono e dal contratto VisualProbe M3.
 - **Verifica:** controllo link locali, riferimenti e diff; nessuna build/test runtime rieseguita perché cambiano solo documenti. M2 resta attiva; prossimo task congelare D-AO-01/02 prima di implementare AC-AO-01A.
+
+## Riapertura M1 — review del titolare (2026-10-07)
+
+La review del codice `4db4b1b06342080c04ff99939bef73e9f282e129` conclude **NON OK**: DIF-M1-26 blocker realtime, DIF-M1-27 overflow, DIF-M1-28 parsing seed. Revocata l'attestazione di chiusura precedente; le dichiarazioni M1 conclusa/M2 attiva sopra descrivono soltanto lo stato storico ora superato. Nessun lavoro M2 implementato in questa remediation.
+
+Correzioni round 3 implementate, decisioni D-M1-06/07/08 in ADR-0002. Gate e review indipendente **da eseguire** sul nuovo codice; i PASS storici non attestano questa revisione.
+
+Review indipendente iterazione 1: NON OK per DIF-M1-29 (MusicClock), DIF-M1-30 (narrowing JSON), DIF-M1-31 (encoding/stato). Tutti corretti nella stessa remediation; iterazione 2 statica senza difetti residui, gate finali in corso. Un primo golden test MusicClock aveva un errore di trascrizione del valore atteso, corretto con oracle Python a precisione arbitraria prima dei gate finali.

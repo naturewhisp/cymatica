@@ -6,7 +6,7 @@ Ultimo aggiornamento: 2026-10-06 (Milestone 0). Decisioni toolchain: [ADR-0001](
 ## Prerequisiti su Windows
 
 1. Windows 10/11 x64.
-2. Visual Studio **Build Tools 2026** (canale Release) con workload C++ Desktop x64 e toolset MSVC 14.50. Altre versioni non sono verificate.
+2. Visual Studio **Build Tools 2026** (canale Release) con workload C++ Desktop x64 e toolset MSVC 14.50/14.51 (14.51.36231 verificato per la remediation M1). Altre versioni non sono verificate.
 3. CMake ≥ 3.25 e Ninja ≥ 1.10 (quelli inclusi nei Build Tools vanno bene).
 4. Git (dipendenze scaricate con commit pinned).
 
@@ -28,7 +28,7 @@ Le installazioni Preview/Insiders di Visual Studio possono coesistere: lo script
 .\scripts\build.ps1 -Run -SmokeSeconds 3     # avvio temporizzato, esce da solo
 ```
 
-Il toolset predefinito è 14.50; per usarne un altro impostare `$env:CYMATICA_VCVARS_VER` (stringa vuota = default dell'installazione).
+Lo script usa il toolset predefinito della installazione Release; per usarne un altro impostare `$env:CYMATICA_VCVARS_VER` (stringa vuota = default dell'installazione).
 
 Le modifiche al `PATH` utente valgono solo per terminali aperti dopo la modifica.
 

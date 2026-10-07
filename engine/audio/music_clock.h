@@ -21,6 +21,7 @@ public:
     // Convert absolute sample frame to structured MusicPosition (§7.5, ADR-0002)
     [[nodiscard]] MusicPosition positionAtFrame(std::uint64_t frame, std::uint64_t epoch = 0) const noexcept;
 
+    // Unsigned frame conversions saturate at UINT64_MAX when unrepresentable.
     // Absolute frame at beat boundary
     [[nodiscard]] std::uint64_t frameAtBeat(std::uint64_t totalBeats) const noexcept;
 

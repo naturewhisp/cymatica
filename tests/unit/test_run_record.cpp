@@ -195,3 +195,40 @@ TEST_CASE("RunRecord recordIntervention records intervention and invalidates Pur
     REQUIRE(r.runtimeInterventions[0].tick == 20ULL);
     REQUIRE(r.runtimeInterventions[0].reason == "technical_suspension");
 }
+
+TEST_CASE("RunRecord requires the complete canonical seed syntax", "[replay][seed]") {
+    const auto parse = [](const std::string& seed) {
+        return RunRecord::fromJson(std::string(R"({"schema_version":1,"rng_version":1,"run_seed":")") + seed +
+            R"(","timing_profile":{"sample_rate":48000,"simulation_hz":120,"frames_per_tick":400}})");
+    };
+    for (const auto* bad : {"0x000000000000000ajunk", "0x1", "000000000000000a", "+0x00000000000000a",
+                            " 0x000000000000000a", "0X000000000000000a", "0x000000000000000g", "0x000000000000000a "}) {
+        REQUIRE_THROWS_AS(parse(bad), std::runtime_error);
+    }
+    REQUIRE(parse("0x000000000000000a").runSeed == 10);
+    REQUIRE(parse("0xFFFFFFFFFFFFFFFF").runSeed == UINT64_MAX);
+    REQUIRE(parse("0x0000000000000000").runSeed == 0);
+}
+
+TEST_CASE("RunRecord rejects narrowing and noninteger version fields", "[replay][validation][overflow]") {
+    const std::string prefix = R"({"run_seed_u64":10,"schema_version":)";
+    const std::string tail = R"(,"rng_version":1,"timing_profile":{"sample_rate":48000,"simulation_hz":120,"frames_per_tick":400}})";
+    for (const auto* invalid : {"4294967297", "-4294967295", "1.0", "true", "\"1\""}) {
+        REQUIRE_THROWS_AS(RunRecord::fromJson(prefix + invalid + tail), std::runtime_error);
+    }
+    const auto valid = prefix + "1" + tail;
+    auto badArchetype = valid;
+    badArchetype.insert(badArchetype.size() - 1, R"(,"decisions":[{"archetype_id":4294967297}])");
+    REQUIRE_THROWS_AS(RunRecord::fromJson(badArchetype), std::runtime_error);
+    auto badPolicy = valid;
+    badPolicy.insert(badPolicy.size() - 1, R"(,"policy_version_id":{"schema":4294967297})");
+    REQUIRE_THROWS_AS(RunRecord::fromJson(badPolicy), std::runtime_error);
+
+    for (const auto* field : {"rng_version", "simulation_hz", "frames_per_tick"}) {
+        auto malformed = valid;
+        const auto begin = malformed.find(std::string("\"") + field + "\":") + std::string(field).size() + 3;
+        const auto end = malformed.find_first_of(",}", begin);
+        malformed.replace(begin, end - begin, "4294967297");
+        REQUIRE_THROWS_AS(RunRecord::fromJson(malformed), std::runtime_error);
+    }
+}

@@ -18,6 +18,9 @@
 
 ### 0.8.3 — 2026-10-07
 
+**Rettifica stato M1 (review successiva):** la chiusura storica citata in questa revisione documentale è stata riaperta per DIF-M1-26/27/28; il record corrente e il nuovo gate sono in `docs/progress.md`, decisioni della remediation in ADR-0002. Le sottofasi M2 restano pianificate finché il nuovo gate M1 non passa.
+
+
 **Stato:** principi e roadmap incrementale accepted for implementation, su richiesta del titolare; profili numerici, IPC e codec restano proposti/differiti. Revisione solo documentale, nessuna nuova capacità attestata.
 
 - Correzioni post-review DIF-AO-DOC-01/02: nucleo dispatcher tono M2 in D-AO-01; AC-AO-01A obbligatorio distinto da AC-AO-01B supplementare dipendente dal client, stessa distinzione per video M6/M7.

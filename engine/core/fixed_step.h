@@ -21,6 +21,7 @@ class FixedStepAccumulator {
 public:
     explicit FixedStepAccumulator(FixedStepConfig config = {}) noexcept;
 
+    // Unsigned conversions saturate at UINT64_MAX only when the result is unrepresentable.
     // Boundary formula defined in Spec §7.5: floor(k * sampleRate / simulationHz)
     [[nodiscard]] std::uint64_t tickToSampleFrame(std::uint64_t tickIndex) const noexcept;
     [[nodiscard]] std::uint64_t sampleFrameToTick(std::uint64_t sampleFrame) const noexcept;

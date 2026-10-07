@@ -190,3 +190,24 @@ TEST_CASE("Sample rate conversion 44.1 kHz <-> 48 kHz uses exact rational 160/14
     REQUIRE(clock.deviceToInternalFrames(0, 0) == 0);
     REQUIRE(clock.internalToDeviceFrames(0, 0) == 0);
 }
+
+TEST_CASE("MusicClock limits saturate conversions and reject unsupported arithmetic profiles", "[clock][overflow]") {
+    MusicClock clock;
+    REQUIRE(clock.frameAtBeat(UINT64_MAX) == UINT64_MAX);
+    REQUIRE(clock.frameAtBar(UINT64_MAX) == UINT64_MAX);
+    REQUIRE(clock.frameAtPhrase(UINT64_MAX) == UINT64_MAX);
+    REQUIRE(clock.deviceToInternalFrames(UINT64_MAX, 44100) == UINT64_MAX);
+    REQUIRE(clock.internalToDeviceFrames(UINT64_MAX, 44100) == 16'947'946'117'720'650'546ULL);
+    const auto pos = clock.positionAtFrame(UINT64_MAX);
+    REQUIRE(pos.beat == 0);
+    REQUIRE(pos.bar == 1);
+    REQUIRE(pos.phrase == UINT32_MAX);
+    REQUIRE(pos.beatPhase >= 0.0f);
+    REQUIRE(pos.beatPhase < 1.0f);
+    REQUIRE_FALSE(MusicClock::create(UINT64_MAX).has_value());
+    TempoMap map;
+    map.bpm = {UINT32_MAX, 1};
+    REQUIRE_FALSE(MusicClock::create(48000, map).has_value());
+    REQUIRE_FALSE(clock.setTempoMap(map));
+    REQUIRE(clock.frameAtBeat(1) == 24000);
+}

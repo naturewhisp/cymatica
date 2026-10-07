@@ -1,6 +1,7 @@
 add_library(cymatica_core STATIC
     fixed_step.cpp
     fixed_step.h
+    unsigned_math.h
     random_key.h
     stable_random.cpp
     stable_random.h

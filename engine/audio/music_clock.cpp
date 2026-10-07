@@ -1,4 +1,7 @@
 #include "music_clock.h"
+#include "unsigned_math.h"
+#include <cmath>
+#include <limits>
 
 #include <algorithm>
 #include <cstdint>
@@ -7,7 +10,7 @@ namespace cymatica::audio {
 
 namespace {
 
-[[nodiscard]] bool isSupportedTempoMap(const TempoMap& map) noexcept {
+[[nodiscard]] bool isSupportedTempoMap(const TempoMap& map, std::uint64_t rate) noexcept {
     if (map.bpm.numerator == 0 || map.bpm.denominator == 0) {
         return false;
     }
@@ -25,6 +28,10 @@ namespace {
     if (map.timeSignatureNum != 4 || map.timeSignatureDen != 4) {
         return false;
     }
+    // Supported exact profile: >= one frame per beat and phrase numerator representable.
+    if (rate == 0 || rate > UINT64_MAX / 60 / map.bpm.denominator) return false;
+    const auto n = rate * 60 * map.bpm.denominator;
+    if (map.bpm.numerator > n || n > UINT64_MAX / map.beatsPerBar / map.barsPerPhrase) return false;
     return true;
 }
 
@@ -40,14 +47,14 @@ std::optional<MusicClock> MusicClock::create(std::uint64_t internalSampleRate, c
     if (internalSampleRate == 0) {
         return std::nullopt;
     }
-    if (!isSupportedTempoMap(tempoMap)) {
+    if (!isSupportedTempoMap(tempoMap, internalSampleRate)) {
         return std::nullopt;
     }
     return MusicClock(internalSampleRate, tempoMap, DirectTag{});
 }
 
 bool MusicClock::setTempoMap(const TempoMap& map) noexcept {
-    if (!isSupportedTempoMap(map)) {
+    if (!isSupportedTempoMap(map, sampleRate_)) {
         return false; // Explicit failure on unsupported / inconsistent configs (§7.5, DIF-M1-22)
     }
     tempoMap_ = map;
@@ -55,26 +62,18 @@ bool MusicClock::setTempoMap(const TempoMap& map) noexcept {
 }
 
 std::uint64_t MusicClock::frameAtBeat(std::uint64_t totalBeats) const noexcept {
-    // Exact integer formula: floor(b * 60 * sampleRate * bpmDen / bpmNum) with overflow safety
-    const std::uint64_t num = tempoMap_.bpm.numerator;
-    const std::uint64_t den = tempoMap_.bpm.denominator;
-    if (num == 0) return 0;
-    const std::uint64_t framesNumerator = 60ULL * sampleRate_ * den;
-    if (framesNumerator == 0) return 0;
-    if (totalBeats <= UINT64_MAX / framesNumerator) {
-        return (totalBeats * framesNumerator) / num;
-    }
-    const std::uint64_t q = totalBeats / num;
-    const std::uint64_t r = totalBeats % num;
-    return q * framesNumerator + (r * framesNumerator) / num;
+    return core::multiplyDivide(totalBeats, 60ULL * sampleRate_ * tempoMap_.bpm.denominator,
+                                tempoMap_.bpm.numerator).value;
 }
 
 std::uint64_t MusicClock::frameAtBar(std::uint64_t totalBars) const noexcept {
-    return frameAtBeat(totalBars * tempoMap_.beatsPerBar);
+    return core::multiplyDivide(totalBars, 60ULL * sampleRate_ * tempoMap_.bpm.denominator * tempoMap_.beatsPerBar,
+                                tempoMap_.bpm.numerator).value;
 }
 
 std::uint64_t MusicClock::frameAtPhrase(std::uint64_t totalPhrases) const noexcept {
-    return frameAtBar(totalPhrases * tempoMap_.barsPerPhrase);
+    return core::multiplyDivide(totalPhrases, 60ULL * sampleRate_ * tempoMap_.bpm.denominator *
+                                tempoMap_.beatsPerBar * tempoMap_.barsPerPhrase, tempoMap_.bpm.numerator).value;
 }
 
 MusicPosition MusicClock::positionAtFrame(std::uint64_t frame, std::uint64_t epoch) const noexcept {
@@ -87,29 +86,19 @@ MusicPosition MusicClock::positionAtFrame(std::uint64_t frame, std::uint64_t epo
     const std::uint64_t den = tempoMap_.bpm.denominator;
     const std::uint64_t framesNumerator = 60ULL * sampleRate_ * den;
 
-    // Determine beat in O(1) exactly (§7.5, ADR-0002, DIF-M1-01) with overflow safety
-    std::uint64_t totalBeats = 0;
-    if (framesNumerator > 0) {
-        if (frame <= UINT64_MAX / num) {
-            totalBeats = (frame * num) / framesNumerator;
-        } else {
-            const std::uint64_t q = frame / framesNumerator;
-            const std::uint64_t r = frame % framesNumerator;
-            totalBeats = q * num + (r * num) / framesNumerator;
-        }
-    }
-    if (frameAtBeat(totalBeats + 1) <= frame) {
-        ++totalBeats;
-    }
-
-    const std::uint64_t beatStartFrame = frameAtBeat(totalBeats);
-    const std::uint64_t nextBeatStartFrame = frameAtBeat(totalBeats + 1);
-    const std::uint64_t beatDurationFrames = nextBeatStartFrame > beatStartFrame ? nextBeatStartFrame - beatStartFrame : 1;
-
-    const std::uint64_t frameInBeat = frame >= beatStartFrame ? frame - beatStartFrame : 0;
-    const float beatPhase = static_cast<float>(frameInBeat) / static_cast<float>(beatDurationFrames);
-
-    const auto sub = static_cast<std::uint32_t>(beatPhase * static_cast<float>(tempoMap_.subdivisionsPerBeat));
+    // Invert floor boundary exactly, including UINT64_MAX, without frame+1.
+    const auto inverse = core::multiplyDivide(frame, num, framesNumerator);
+    const std::uint64_t totalBeats = inverse.value +
+        static_cast<std::uint64_t>(inverse.remainder >= framesNumerator - (num - 1));
+    const auto boundary = core::multiplyDivide(totalBeats, framesNumerator, num);
+    const auto beatDurationFrames = framesNumerator / num +
+        static_cast<std::uint64_t>(boundary.remainder + framesNumerator % num >= num);
+    const auto frameInBeat = frame - boundary.value;
+    const float beatPhase = std::min(static_cast<float>(frameInBeat) / static_cast<float>(beatDurationFrames),
+                                     std::nextafter(1.0f, 0.0f));
+    const auto sub = static_cast<std::uint32_t>(std::min(
+        static_cast<double>(beatPhase) * tempoMap_.subdivisionsPerBeat,
+        static_cast<double>(tempoMap_.subdivisionsPerBeat - 1)));
 
     const std::uint64_t beatsPerBar = tempoMap_.beatsPerBar;
     const std::uint64_t barsPerPhrase = tempoMap_.barsPerPhrase;
@@ -117,7 +106,7 @@ MusicPosition MusicClock::positionAtFrame(std::uint64_t frame, std::uint64_t epo
     const auto beatInBar = static_cast<std::uint32_t>(totalBeats % beatsPerBar);
     const std::uint64_t totalBars = totalBeats / beatsPerBar;
     const auto barInPhrase = static_cast<std::uint32_t>(totalBars % barsPerPhrase);
-    const auto phrase = static_cast<std::uint32_t>(totalBars / barsPerPhrase);
+    const auto phrase = static_cast<std::uint32_t>(std::min<std::uint64_t>(totalBars / barsPerPhrase, UINT32_MAX));
 
     const auto totalBeatsInPhrase = static_cast<float>(beatsPerBar * barsPerPhrase);
     const float beatsElapsedInPhrase = static_cast<float>(barInPhrase * beatsPerBar + beatInBar) + beatPhase;
@@ -142,14 +131,7 @@ std::uint64_t MusicClock::deviceToInternalFrames(std::uint64_t deviceFrames, std
     if (deviceRate == sampleRate_) {
         return deviceFrames;
     }
-    // Rational exact conversion: (deviceFrames * sampleRate_) / deviceRate with overflow safety
-    // For 44100 -> 48000: 48000 / 44100 = 160 / 147
-    if (deviceFrames <= UINT64_MAX / sampleRate_) {
-        return (deviceFrames * sampleRate_) / deviceRate;
-    }
-    const std::uint64_t q = deviceFrames / deviceRate;
-    const std::uint64_t r = deviceFrames % deviceRate;
-    return q * sampleRate_ + (r * sampleRate_) / deviceRate;
+    return core::multiplyDivide(deviceFrames, sampleRate_, deviceRate).value;
 }
 
 std::uint64_t MusicClock::internalToDeviceFrames(std::uint64_t internalFrames, std::uint64_t deviceRate) const noexcept {
@@ -159,12 +141,7 @@ std::uint64_t MusicClock::internalToDeviceFrames(std::uint64_t internalFrames, s
     if (deviceRate == sampleRate_) {
         return internalFrames;
     }
-    if (internalFrames <= UINT64_MAX / deviceRate) {
-        return (internalFrames * deviceRate) / sampleRate_;
-    }
-    const std::uint64_t q = internalFrames / sampleRate_;
-    const std::uint64_t r = internalFrames % sampleRate_;
-    return q * deviceRate + (r * deviceRate) / sampleRate_;
+    return core::multiplyDivide(internalFrames, deviceRate, sampleRate_).value;
 }
 
 } // namespace cymatica::audio

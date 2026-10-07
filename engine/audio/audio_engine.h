@@ -18,6 +18,8 @@ struct AudioEngineConfig {
 // Control thread interacts via TripleBuffer and SPSC queues. Audio callback runs in realtime path.
 class AudioEngine {
 public:
+    static constexpr std::uint32_t kMaxCommandsPerBlock = 16; // ADR-0002 command_budget_v1
+
     AudioEngine();
     ~AudioEngine();
 

@@ -384,6 +384,9 @@ TEST_CASE("AudioEngine delivers acknowledgements for all accepted commands witho
     engine.processBlock(buffer.data(), 64);
     REQUIRE(engine.droppedAcks() == 0);
 
+    engine.processBlock(buffer.data(), 64);
+    engine.processBlock(buffer.data(), 64);
+
     // Retrieve all 40 acks
     for (std::uint64_t i = 1; i <= 40; ++i) {
         AudioCommandAck ack;
@@ -410,8 +413,8 @@ TEST_CASE("AudioEngine delivers acknowledgements for all accepted commands witho
     }));
     REQUIRE(engine.droppedAcks() == 0);
 
-    // Process and drain all 128 acks
-    engine.processBlock(buffer.data(), 64);
+    // Process all commands over eight bounded blocks; acks remain queued.
+    for (int block = 0; block < 8; ++block) engine.processBlock(buffer.data(), 64);
     for (std::uint64_t i = 41; i <= 41 + 127; ++i) {
         AudioCommandAck ack;
         REQUIRE(engine.pollAck(ack));
@@ -682,4 +685,25 @@ TEST_CASE("AudioEngine processBlock performs zero heap allocations post-init", "
     }
 
     engine.shutdown();
+}
+
+TEST_CASE("Audio callback caps commands per block and preserves deferred FIFO", "[exchange][audio][budget]") {
+    AudioEngine engine;
+    REQUIRE(engine.init({48000, 2, 220.0f}));
+    std::vector<float> buffer(128, 0.0f);
+    for (std::uint64_t i = 1; i <= 128; ++i) {
+        REQUIRE(engine.sendCommand(AudioCommand{.commandId = i, .type = AudioCommandType::SetTone, .paramF32 = 440.0f}));
+    }
+    for (std::uint64_t block = 0; block < 8; ++block) {
+        engine.processBlock(buffer.data(), 64);
+        AudioCommandAck ack;
+        // Golden profile: exactly 16 commands, even with a full queue.
+        for (std::uint64_t i = 1; i <= 16; ++i) {
+            REQUIRE(engine.pollAck(ack));
+            REQUIRE(ack.commandId == block * 16 + i);
+            REQUIRE(ack.status == AudioCommandStatus::Applied);
+        }
+        REQUIRE_FALSE(engine.pollAck(ack));
+    }
+    REQUIRE(engine.droppedAcks() == 0);
 }

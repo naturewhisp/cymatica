@@ -203,3 +203,23 @@ TEST_CASE("FixedStepAccumulator handles non-finite, negative, and extreme delta 
     accSat.advanceNs(100ULL);
     REQUIRE(accSat.totalElapsedNs() == UINT64_MAX);
 }
+
+TEST_CASE("Fixed step conversions are exact or saturating at uint64 limits", "[fixed_step][overflow]") {
+    FixedStepAccumulator acc;
+    REQUIRE(acc.tickToSampleFrame(UINT64_MAX) == UINT64_MAX);
+    REQUIRE(acc.tickToSampleFrame(46'116'860'184'273'879ULL) == 18'446'744'073'709'551'600ULL);
+    REQUIRE(acc.sampleFrameToTick(UINT64_MAX) == 46'116'860'184'273'880ULL);
+    REQUIRE(acc.sampleFrameToTick(UINT64_MAX - 15) == 46'116'860'184'273'879ULL);
+    REQUIRE(acc.targetTickForElapsedNs(UINT64_MAX) == 2'213'609'288'845ULL);
+    REQUIRE(acc.targetTickForElapsedNs(UINT64_MAX - 1) == 2'213'609'288'845ULL);
+    REQUIRE(acc.tickBoundaryNs(UINT64_MAX) == UINT64_MAX);
+    REQUIRE(acc.tickDurationNs(UINT64_MAX) == 8'333'333ULL);
+    FixedStepAccumulator fractional({44'100, 120, 4, 16});
+    REQUIRE(fractional.sampleFrameToTick(UINT64_MAX) == 50'195'221'969'277'692ULL);
+    FixedStepAccumulator huge({UINT64_MAX, 120, 4, 16});
+    REQUIRE(huge.tickToSampleFrame(120) == UINT64_MAX);
+    REQUIRE(huge.tickToSampleFrame(119) == 18'293'021'206'428'638'684ULL);
+    REQUIRE(huge.sampleFrameToTick(UINT64_MAX) == 120);
+    FixedStepAccumulator small({1, 120, 4, 16});
+    REQUIRE(small.sampleFrameToTick(UINT64_MAX) == UINT64_MAX);
+}

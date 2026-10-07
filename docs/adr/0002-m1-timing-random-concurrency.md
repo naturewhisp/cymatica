@@ -79,3 +79,13 @@ La Milestone 1 fonda il runtime non deterministico riproducibile di CYMATICA. Ri
 - **Verifica clock e timing:** test di deriva su 1 ora virtuale in `test_music_clock.cpp` con BPM non divisore.
 - **Verifica fixed-step:** sequenza identica di tick generata da feed a 60 FPS e 120 FPS in `test_fixed_step.cpp`.
 - **Verifica realtime:** assenza di allocazioni heap nella funzione `processBlock()` e assenza di tearing in `test_exchange.cpp`.
+
+## 4. Remediation round 3 — DIF-M1-26/27/28 (2026-10-07)
+
+- **D-M1-06 / M1 / accepted for implementation:** profilo `command_budget_v1`, massimo **16 comandi per blocco callback**, indipendentemente dal refill concorrente; capacità FIFO/ack invariata a 128. Il residuo rimane FIFO per i blocchi successivi; il game thread resta unico producer. Budget dichiarato da `AudioEngine::kMaxCommandsPerBlock`. Alternativa scartata: drenaggio fino a coda vuota, non bounded con producer concorrente. A coda piena senza refill servono 8 callback; valutare latenza sotto carico quando M2 congela lookahead e voice budget. Verifica: coda piena, 16 ack per blocco, ordine e nessuna perdita; audit del limite statico anche con refill.
+- **D-M1-07 / M1 / accepted for implementation:** conversioni unsigned esatte con quoziente/resto condivisi; se il risultato matematico eccede `uint64_t`, saturazione a `UINT64_MAX`, mai wrap. La durata del tick usa la fase razionale, anche oltre l'intervallo rappresentabile dei boundary assoluti. Target temporale calcolato come `floor((T*S + S-1)/1e9)` anche a T massimo. Alternativa scartata: sentinel target massimo a T massimo, matematicamente errato. Verifica: golden edge vectors calcolati con interi arbitrari, rate divisibili/non divisibili e risultati non rappresentabili.
+- **D-M1-08 / M1 / accepted for implementation:** stringa `run_seed` esattamente `0x` più 16 cifre esadecimali (cifre a–f anche maiuscole accettate; writer minuscolo). Il campo numerico alternativo e il controllo di uguaglianza restano validi. Alternativa scartata: `stoull` permissivo/parziale. Verifica: suffissi, whitespace, segni, prefix e lunghezza errati respinti; zero e massimo accettati.
+
+Contratti interessati: Spec §7.5, §20.2/20.7, §23.4; nessuna modifica del gameplay o nuova dipendenza. Evidenze e verdict indipendente in `docs/progress.md`.
+
+DIF-M1-29: lo stesso helper `core/unsigned_math.h` copre MusicClock e resampling. Factory e setTempoMap rifiutano profili con meno di un sample frame per beat o numeratore sample-per-phrase oltre uint64; gli indici assoluti saturano, phrase uint32 satura. Nessun profilo M1 approvato cambia. DIF-M1-30: tipo unsigned e range uint32 verificati prima di restringere schema/rng/timing/policy. DIF-M1-31: testo UTF-8 e riepilogo di stato ripristinati.

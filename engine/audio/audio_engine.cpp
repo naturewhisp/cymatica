@@ -54,7 +54,8 @@ struct AudioEngine::Impl {
 
         // 2. Consume identified commands and emit acknowledgements (§20.7, §20.8, DIF-M1-18, DIF-M1-19)
         AudioCommand cmd;
-        while (commandQueue.tryPop(cmd)) {
+        for (std::uint32_t i = 0; i < AudioEngine::kMaxCommandsPerBlock; ++i) {
+            if (!commandQueue.tryPop(cmd)) break;
             AudioCommandStatus status = AudioCommandStatus::Applied;
             switch (cmd.type) {
                 case AudioCommandType::Start:
