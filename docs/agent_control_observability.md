@@ -65,7 +65,7 @@ L'LLM invia batch temporali finiti. Il controller locale li esegue o applica una
 
 Ogni richiesta porta versione, sessione/epoch, ID idempotente, modalità e tick target. Gli ingressi mantengono press/hold/release, anche per azioni continue. Il coordinatore controlla range, valori finiti, ordine, limiti del batch, tick passati e capacità; l'ack distingue ricezione, accettazione e applicazione effettiva. Gli errori includono almeno `unsupported`, `wrong_mode`, `stale_epoch`, `late`, `queue_full`, `invalid_payload`, `cancelled`. Un retry con stesso ID non ripete un dash. Per il primo profilo i comandi in ritardo sono rifiutati: nessuna retrodatazione o applicazione immediata nascosta.
 
-Ordine totale per tick e politica delle sorgenti vanno congelati prima del dispatcher. Nella sessione umana l'agente è read-only per default; il controllo esclusivo richiede un cambio esplicito di modalità visibile al giocatore. Disconnessione, timeout, perdita focus, pausa, reset e shutdown rilasciano gli input agente; i batch della vecchia epoch sono invalidati. Non si mescolano due sorgenti silenziosamente.
+D-AO-01 congela in M2 il nucleo comune `InputAction`/`ActionState` per press/hold/release del tono: SPACE fisico e runner passano dalla stessa normalizzazione e dalla stessa applicazione sul coordinatore, che pubblica il controllo audio. Nessun percorso agent-only o scrittura diretta del runner a `AudioControlFrame`. M2 definisce sorgente esclusiva, ordine e tempi richiesti/effettivi del test finito; D-AO-03 estende questo nucleo in M3 a movimento/dash, scheduling per tick e ordinamento multi-source. Le regole complete dei batch per tick descritte sopra appartengono a questa estensione M3; M2 non le dichiara già implementate. Nella sessione umana l'agente è read-only per default; il controllo esclusivo richiede un cambio esplicito di modalità visibile al giocatore. Disconnessione, timeout, perdita focus, pausa, reset e shutdown rilasciano gli input agente; i batch della vecchia epoch sono invalidati. Non si mescolano due sorgenti silenziosamente.
 
 Un comando semantico `tone_test.hold` potrà condividere la stessa azione normalizzata della tastiera, ma solo un test OS spazio prova il percorso `IsKeyDown`. Lo smoke legacy va preservato fino alla verifica di equivalenza del nuovo dispatcher. Lo spazio del tono è un comando diagnostico della baseline, non la definizione futura del dash.
 
@@ -99,7 +99,7 @@ Per driver/device utilizzare, quando autorizzato e disponibile, loopback di sist
 
 Evoluzione necessaria:
 
-1. **M1 estesa/M2:** frame di contesto e clip WAV del cambio tono.
+1. **M1 estesa/M2:** clip WAV del cambio tono; eventuale frame di contesto come cattura statica diagnostica opzionale, fuori dal gate del tono e non ancora contratto VisualProbe.
 2. **M3:** sequenza ordinata di frame player/debug, manifest dei tempi e audio correlato; permette di esaminare telegraph → attivazione → attraversamento.
 3. **M4:** buffer circolare nel worker e salvataggio di una finestra pre/post evento; selezione per hit, dash, fallback o intervento tecnico, con limiti di frequenza e quota disco.
 4. **M5:** osservazione live read-only della sessione umana tramite flusso di frame timestampati; registrazione locale con qualità sufficiente per analizzare il timing. Non attendere M7 per il primo live.
@@ -109,7 +109,7 @@ Evoluzione necessaria:
 
 Una sequenza PNG+WAV evita subito una dipendenza codec, ma non è già uno stream video consumabile da ogni modello. A 1280×720 RGBA8, un frame raw occupa 3.686.400 byte; 60 frame/s sono 221.184.000 byte/s, prima di copie e overhead. Dieci secondi raw richiedono circa 2,21 GB decimali: non è un budget accettabile implicito. Riduzione preview, compressione worker, buffer bounded e readback GPU asincrono vanno valutati; leggere il framebuffer può introdurre stall anche senza file I/O.
 
-Nessuna adozione automatica di FFmpeg, browser runtime, WebRTC o encoder. Una soluzione con API native Windows può essere studiata, ma non è già scelta né verificata. SDK/codecs nuovi richiedono inventario, pinning dove applicabile, licenze e decisione d'ingresso. La disponibilità del client a ricevere streaming è un gate separato dalla capacità del gioco di produrlo.
+Nessuna adozione automatica di FFmpeg, browser runtime, WebRTC o encoder. Una soluzione con API native Windows può essere studiata, ma non è già scelta né verificata. SDK/codecs nuovi richiedono inventario, pinning dove applicabile, licenze e decisione d'ingresso. La disponibilità del client a ricevere streaming è una verifica dipendente dalle capacità esterne, separata dal gate obbligatorio di produzione e misura del progetto (§10).
 
 ## 8. Latenza: che cosa misurare
 
@@ -128,19 +128,22 @@ In M5 fissare profilo hardware, buffer audio, vsync, risoluzione e scena; confro
 
 ## 9. Scenario minimo: spazio e cambio di tono
 
-Primo task implementativo in M2: runner finito sulla baseline M1 con azione hold/release normalizzata, tap PCM, manifest e report. In una prova separata, input OS sulla finestra focalizzata verifica il tasto spazio. Se il client non può controllare app native, questa parte resta manuale o usa un adapter locale esplicitamente implementato: non dichiararla automatizzata per il solo successo dell'API semantica.
+Primo task implementativo in M2: introdurre il nucleo minimo del dispatcher comune con `InputAction`/`ActionState` del tono (D-AO-01), poi collegare SPACE fisico e runner finito sulla baseline M1 alla stessa azione hold/release normalizzata, con tap PCM, manifest e report. In una prova separata, input OS sulla finestra focalizzata verifica il tasto spazio. Se il client non può controllare app native, questa parte resta manuale o usa un adapter locale esplicitamente implementato: non dichiararla automatizzata per il solo successo dell'API semantica.
 
 Profilo sperimentale `tone_probe_v0` (**proposed**, da accettare all'ingresso): 1 s baseline, 1 s hold, 1 s release, 48 kHz logici, canali/rate device registrati; finestre di analisi stabili da 250 ms escludono i primi 100 ms di ogni transizione. Tolleranza iniziale di stima ±2 Hz attorno a 220/440/220 Hz. Non è una soglia di latenza input, né un tuning del gameplay. Una cattura di 3 s stereo float32 a 48 kHz pesa 1.152.000 byte; capacità effettiva della ring e massimo blocco si fissano dopo ispezione del device.
 
-Accettazione `AC-AO-01`: press e release percorrono l'ingresso dichiarato; PCM e spettro verificano 220 → 440 → 220 Hz nelle finestre previste, con segnale non silente; report include tick/epoch, tempi richiesti/effettivi, qualità di presentazione e nessun gap occultato. La voce «ascoltato dall'agente» richiede effettiva ingestione audio e giudizio registrato; altrimenti resta non eseguita. Test RT con tap attivo e consumer stall verifica zero allocazioni/blocchi e overflow segnalato. Nessun PASS solo perché il campo richiesto contiene 440.
+L'identificatore `AC-AO-01` designa due verifiche distinte:
+
+- **`AC-AO-01A` — mandatory, sotto controllo del progetto:** dispatcher comune e runner; press/hold/release attraverso lo stesso ingresso normalizzato; cattura PCM/WAV e analisi quantitativa non tautologica 220 → 440 → 220 Hz nelle finestre previste, con segnale non silente; manifest con tick/epoch, tempi richiesti/effettivi e qualità di presentazione; gap/overflow dichiarati e RT test con tap attivo e consumer stall (zero allocazioni e lock bloccanti). Include la prova SPACE OS sulla finestra focalizzata, automatica oppure con procedura manuale ed evidenza registrata. La sola presenza del campo richiesto a 440 Hz non produce PASS. Un requisito mancante o fallito di 01A impedisce la chiusura M2 secondo AGENTS §5.1.
+- **`AC-AO-01B` — capability-dependent, supplementare:** audio effettivamente consegnato al client agente e giudizio percettivo registrato. Esito `passed`, `failed`, `blocked` o `unsupported`; `unsupported` richiede evidenza della capacità assente, `blocked` descrive un impedimento a una capacità prevista. Nessun ascolto è dichiarato senza ingestione effettiva. L'assenza della capacità esterna non blocca la chiusura dell'implementazione M2 e non rende superata 01B. Un fallimento percettivo con possibile difetto del gioco genera un finding da verificare: non viene ignorato perché il criterio è supplementare.
 
 ## 10. Roadmap delle verifiche
 
-Questi ID identificano le estensioni in specifica §32; i dettagli dei profili si congelano nei decision record all'ingresso di ogni milestone.
+Questi ID identificano le estensioni in specifica §32; i dettagli dei profili si congelano nei decision record all'ingresso di ogni milestone. I gate del progetto restano obbligatori: produrre/correlare artefatti, verificare budget e contratti e registrare il risultato. La consegna audiovisiva al modello e il suo giudizio sono verifiche supplementari dipendenti dal client, da riportare separatamente anche in M3–M8. In M6/M7 il report dello spike e il benchmark locale sono obbligatori; ricezione/analisi video live da parte del client possono risultare `unsupported`/`blocked` senza impedire la chiusura della milestone. Nessun criterio originale di ascolto umano, accessibilità, hardware o playtest viene reso facoltativo; una capacità mancante nel progetto non si riclassifica come limite del client.
 
 | Milestone | Incremento | Accettazione dell'estensione |
 |---|---|---|
-| Baseline M1, task in M2 | Tono controllabile e PCM osservabile | `AC-AO-01`, prova semantica/OS/ascolto separate; nessuna modifica ai PASS storici |
+| Baseline M1, task in M2 | Tono controllabile e PCM osservabile | `AC-AO-01A` mandatory (dispatcher comune, PCM, RT, manifest e prova OS anche manuale); `AC-AO-01B` supplementare dipendente dal client; nessuna modifica ai PASS storici |
 | M2 | Music Intent, AudioProbe e primo contratto versionato | `AC-AO-02`: capture bounded, overflow/lifecycle testati; onset correlati all'intent; adapter dichiara capacità e limiti |
 | M3 | Input scheduling del nucleo player e VisualProbe sequenziale | `AC-AO-03`: stesso percorso normalizzato del player, press/release ai confini, sequenza telegraph/hazard con player/debug e audio, gap/skew dichiarati |
 | M4 | Step/headless, scenario/replay e clip evento | `AC-AO-04`: stessi hash per input/decisioni accettati; late/epoch/capacity rifiutati, fixture fairness resta autoritativa; pre/post evento e capture OFF/ON confrontate |
@@ -156,7 +159,7 @@ MCP viene valutato dopo il runner locale M2, con obiettivo M3/M4 se il client lo
 
 ## 11. Evidenze, failure e riservatezza
 
-Ogni run produce un manifest con configurazione, input richiesti/accettati/applicati, eventi, riferimenti a `RunRecord` e trace, artefatti audio/frame, metriche con algoritmo/versione e giudizio agente separato. I risultati sono `passed`, `failed`, `not_run`, `blocked` o `inconclusive`; catture incomplete non diventano PASS percettivi. Un timeout non equivale a successo, né un missing frame a telegraph assente.
+Ogni run produce un manifest con configurazione, input richiesti/accettati/applicati, eventi, riferimenti a `RunRecord` e trace, artefatti audio/frame, metriche con algoritmo/versione e giudizio agente separato. I risultati dei gate del progetto sono `passed`, `failed`, `not_run`, `blocked` o `inconclusive`; le verifiche supplementari del client distinguono anche `unsupported` documentato; catture incomplete non diventano PASS percettivi. Un timeout non equivale a successo, né un missing frame a telegraph assente.
 
 Gli artefatti diagnostici non entrano nell'hash gameplay; la cattura può comunque alterare scheduling/deadline reali. Il confronto OFF/ON è necessario: ogni intervento o deadline miss continua a influire sull'idoneità Pure Seed secondo la specifica. Il replay exact registra azioni effettive e decisioni accettate; seed da solo non riproduce una run adattiva. Non promettere PCM o pixel bit-identici fra driver/GPU diversi.
 
@@ -166,9 +169,9 @@ Sessione osservata opt-in, indicatore visibile e stop immediato; cattura confina
 
 | Decisione futura | Scadenza | Contratti / verifica |
 |---|---|---|
-| D-AO-01: runner/IPC, versione e discovery | M2 ingresso | Alternative file runner/named pipe; schema, limiti byte/batch, idempotenza, timeout e sessione; client capability test |
+| D-AO-01: nucleo input comune, runner/IPC, versione e discovery | Prima di AC-AO-01A in M2 | `InputAction`/`ActionState` tono, normalizzazione condivisa SPACE/runner, press/hold/release, ordine/sorgente esclusiva e tempi del test; alternative file runner/named pipe, schema/limiti, idempotenza, timeout/sessione; capability test separato dal gate progetto |
 | D-AO-02: tap e `tone_probe_v0` | Prima del primo task M2 | Capacità in frame/byte, massimo blocco, overflow, lifecycle, rate/channels; RT test e prova tono |
-| D-AO-03: dispatcher e visual capture | Prima del nucleo M3 | Ordine/sorgenti, tick, budget readback, FPS/risoluzione; equivalenza input e sequenze |
+| D-AO-03: estensione dispatcher e visual capture | Prima del nucleo M3 | Estendere il nucleo M2 a movement/dash, scheduling per tick e ordine multi-source; budget readback, FPS/risoluzione; equivalenza input e sequenze |
 | D-AO-04: scenario e retention clip | M4 ingresso | Schema `.cymtest` o alternativa, pre/post in s, quota in byte, gap; replay/overflow |
 | D-AO-05: latenza/live preview | M5 ingresso | Soglie in ms, preview FPS/byte/s, qualità clip e hardware; OFF/ON/stall, tastiera/gamepad |
 | D-AO-06: video continuo | Spike M6, valutazione M7 | Codec/trasporto/client/licenze, p95 età/skew/overhead; alternative sequenze, API native, codec esterno approvato |

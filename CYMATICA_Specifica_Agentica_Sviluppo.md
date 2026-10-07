@@ -20,6 +20,7 @@
 
 **Stato:** principi e roadmap incrementale accepted for implementation, su richiesta del titolare; profili numerici, IPC e codec restano proposti/differiti. Revisione solo documentale, nessuna nuova capacità attestata.
 
+- Correzioni post-review DIF-AO-DOC-01/02: nucleo dispatcher tono M2 in D-AO-01; AC-AO-01A obbligatorio distinto da AC-AO-01B supplementare dipendente dal client, stessa distinzione per video M6/M7.
 - §31.5 e [analisi dedicata](docs/agent_control_observability.md): controllo esterno separato dal CIE, osservazioni correlate, tap realtime bounded, input condiviso e prove OS distinte;
 - §32: estensione della baseline M1 in M2 (spazio e tono), sequenze M3, clip/replay M4, osservazione live umana M5, spike video M6 e valutazione M7, riuso Lab M8;
 - DESIGN §17.4.1: valutazione player separata dalla diagnosi debug; nessuna sostituzione dei gate umani;
@@ -3065,7 +3066,7 @@ L’agente non deve introdurre modelli, framework o prompt runtime per soddisfar
 - Artefatti fuori hash gameplay, ma deadline miss/interventi causati dall'overhead continuano a invalidare Pure Seed come §15.9. Exact replay usa input effettivi e decisioni accettate, non soltanto seed. Giudizi agentici supplementari, validator e playtest restano autoritativi nei propri ambiti.
 - Cattura opt-in confinata al gioco, output locale e bounded, indicatore/stop per sessioni umane; invio esterno esplicito. Gateway locale diagnostico disabilitato nella distribuzione normale, senza esecuzione arbitraria o scritture fuori artefatti.
 
-Prima dei task dipendenti registrare D-AO-01–06 descritti nell'analisi: schema/trasporto, buffer e profilo tono in M2; dispatcher/capture M3; scenario/clip M4; soglie di latenza e live M5; codec/client solo nello spike M6–M7. Non anticipare scelte future. Il supporto del client a immagini, audio e video va provato; se manca, la relativa verifica è non eseguita/bloccata, mai sostituita da un PASS sul solo stato richiesto.
+Prima dei task dipendenti registrare D-AO-01–06 descritti nell'analisi: nucleo dispatcher comune del tono e schema/trasporto (D-AO-01), buffer e profilo tono (D-AO-02) prima di AC-AO-01A in M2; estensione movement/dash, scheduling per tick, ordine multi-source e capture (D-AO-03) in M3; scenario/clip M4; soglie di latenza e live M5; codec/client solo nello spike M6–M7. Non anticipare scelte future. I gate di implementazione e misura sotto controllo del progetto sono mandatory; la consegna di immagini/audio/video al modello e il giudizio agente sono verifiche supplementari capability-dependent, con esito distinto `passed`, `failed`, `blocked` o `unsupported` documentato. La capacità assente nel client non impedisce la chiusura dell’implementazione della milestone e non produce PASS percettivo. Questa regola vale anche per il video M6/M7; report dello spike e benchmark locale restano obbligatori, così come tutti i gate originali umani/hardware/accessibilità. Difetti del progetto, anche scoperti dal giudizio supplementare, restano da risolvere secondo AGENTS §5.1.
 
 ---
 
@@ -3163,7 +3164,7 @@ Accettazione:
 - stesso seed produce stesso event trace;
 - la callback esegue, non pianifica.
 
-**Estensione agentica (§31.5):** realizzare sulla baseline M1 il test spazio/tono 220 → 440 → 220 Hz (`AC-AO-01`), con hold/release, tap PCM e manifest; prova semantica, OS e ascolto agente dichiarati separatamente. Congelare D-AO-01/02 prima del task. Integrare AudioProbe con Music Intent (`AC-AO-02`): zero allocazioni/blocchi, overflow e lifecycle verificati, onset correlati e limiti/capacità dell'adapter dichiarati. Questo nuovo gate M2 non modifica i PASS storici M1.
+**Estensione agentica (§31.5):** congelare D-AO-01/02 prima del task e introdurre il nucleo minimo `InputAction`/`ActionState` del tono comune a SPACE fisico e runner, con normalizzazione e applicazione sul coordinatore; il runner non scrive direttamente `AudioControlFrame`. `AC-AO-01A` è mandatory: runner hold/release, tap PCM/WAV, verifica quantitativa 220 → 440 → 220 Hz, manifest, gap/overflow e RT safety, più prova SPACE OS automatica oppure manuale con evidenza. `AC-AO-01B` è supplementare capability-dependent: audio consegnato al client e giudizio agente registrato; capacità esterna assente/bloccata non impedisce la chiusura M2 né produce PASS. Integrare AudioProbe con Music Intent (`AC-AO-02`, mandatory): zero allocazioni/blocchi, overflow e lifecycle verificati, onset correlati e limiti/capacità dell'adapter dichiarati. Eventuale frame statico diagnostico è opzionale e non anticipa il contratto VisualProbe M3. Questi nuovi gate non modificano i PASS storici M1.
 
 ### Milestone 3 — Pattern catalog e generatore costruttivo
 
@@ -3190,7 +3191,7 @@ Accettazione:
 - budget entità rispettato;
 - livello di 60–90 secondi giocabile con policy fissa.
 
-**Estensione agentica (§31.5, AC-AO-03):** scheduling input già per il nucleo movement/dash, attraverso il dispatcher player; VisualProbe player/debug con sequenze timestampate e audio. Accettazione: press/release e confini tick verificati, ciclo telegraph/attivazione documentato nella sequenza, gap/skew e interpolazione dichiarati. D-AO-03 prima dell'implementazione; non aspettare M5 per controllare lo spike.
+**Estensione agentica (§31.5, AC-AO-03):** estendere il dispatcher comune M2 a movement/dash, scheduling per tick e ordine multi-source; VisualProbe player/debug con sequenze timestampate e audio. Accettazione: press/release e confini tick verificati, ciclo telegraph/attivazione documentato nella sequenza, gap/skew e interpolazione dichiarati. D-AO-03 prima dell'implementazione; non aspettare M5 per controllare lo spike.
 
 ### Milestone 4 — Fairness validator e headless simulation
 

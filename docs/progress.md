@@ -103,7 +103,14 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 Richiesta del titolare: analisi permanente e sviluppo progressivo insieme al gioco, incluso spazio/cambio tono sulla baseline M1 e osservazione temporale/live nelle fasi frenetiche. Record: [analisi](agent_control_observability.md), specifica §31.5/§32 e DESIGN §17.4.1.
 
 - **Milestone attiva invariata: M2.** M1 rimane conclusa secondo le evidenze storiche; nessuna nuova esecuzione o rivalidazione in questa revisione documentale.
-- **Nuovo lavoro M2 non eseguito:** AC-AO-01 (baseline tono) e AC-AO-02 (tap Music Intent), decisioni D-AO-01/02 deferred; profilo `tone_probe_v0` proposed. Non è ancora disponibile un input/capture adapter per l'agente.
+- **Nuovo lavoro M2 non eseguito:** AC-AO-01A (baseline tono, mandatory) / AC-AO-01B (ascolto agente, capability-dependent supplementare) e AC-AO-02 (tap Music Intent), decisioni D-AO-01/02 deferred; profilo `tone_probe_v0` proposed. Non è ancora disponibile un input/capture adapter per l'agente.
 - **Successivi incrementi non eseguiti:** sequenze/input M3, replay/clip M4, live read-only e latenza M5, spike video M6, valutazione percettiva/streaming M7, riuso Lab M8. I relativi gate sono in specifica §32.
 - **Verifica di questa revisione:** ispezione del percorso spazio e della telemetria nei sorgenti M1, controlli documentali di link locali, coerenza degli ID/gate e `git diff --check`. Build/test runtime non rieseguiti: nessun sorgente o build configuration modificato. Non costituisce chiusura di milestone.
 - **Prossima azione:** congelare D-AO-01/02 con capacità client, ingressi, buffer/lifecycle e profilo tono, poi implementare il runner minimo M2; prove OS e ascolto restano esplicitamente separate dal test semantico.
+
+### Correzioni post-review del commit 1a88bc8
+
+- **DIF-AO-DOC-01 risolto nella documentazione:** D-AO-01 include il dispatcher comune minimo del tono prima di AC-AO-01A in M2; D-AO-03 estende lo stesso nucleo in M3. Nessun dispatcher implementato o decisione d'ingresso congelata in questa correzione.
+- **DIF-AO-DOC-02 risolto nella documentazione:** specifica §31.5/§32 distingue AC-AO-01A mandatory e AC-AO-01B supplementare dipendente dal client; stessa separazione per immagini/video e streaming successivi. I gate del progetto, report/benchmark e playtest originali restano obbligatori; assenza di capacità esterna documentata non equivale a PASS o difetto risolto.
+- **Chiarimento LOW:** il frame statico M2 è opzionale, fuori dal gate tono e dal contratto VisualProbe M3.
+- **Verifica:** controllo link locali, riferimenti e diff; nessuna build/test runtime rieseguita perché cambiano solo documenti. M2 resta attiva; prossimo task congelare D-AO-01/02 prima di implementare AC-AO-01A.
