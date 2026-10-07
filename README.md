@@ -4,16 +4,17 @@ Musical bullet hell procedurale: musica, geometria e minacce condividono un inte
 
 ## Stato reale
 
-Pre-produzione documentale. La revisione 0.8 (baseline d'esame `4aa2d5271aea11ad8aa088932c5afad8d6aaeec7`, 9 settembre 2026) è stata integrata nel commit `ac1ac59`; la 0.8.1 del 5 ottobre 2026 corregge incoerenze interne; la 0.8.2 del 6 ottobre 2026 aggiunge il System 1 (retrieval deterministico dei candidati, da M6). Il repository contiene specifica, design, regole operative e lo scheletro M0 (CMake, audio miniaudio, finestra raylib, test Catch2); non contiene ancora una release giocabile. Milestone attiva: **M1**, M0 completata (stato in [docs/progress.md](docs/progress.md)).
+Prototipo tecnico Windows con build CMake, audio miniaudio, finestra/input raylib, clock e contratti deterministici M1. Non è ancora una release giocabile. [docs/progress.md](docs/progress.md) registra M0/M1 concluse e **M2 attiva**; le evidenze storiche non sono state rieseguite nella revisione documentale del 7 ottobre 2026.
 
-La specifica 0.8.2 è **accettata per l'implementazione** (2026-10-05): requisiti e criteri sono vincolanti, mentre tuning, budget numerici ed esempi restano proposte da validare. I documenti non attestano che i requisiti siano già implementati.
+La specifica 0.8.3 integra l'infrastruttura progressiva di controllo agentico e osservazione audiovisiva richiesta dal titolare. Sono pianificati test spazio/tono sulla baseline M1, sequenze, clip e osservazione live; questi nuovi strumenti non sono ancora implementati. Parametri di tuning e scelte di trasporto/codec restano proposti o differiti.
 
 ## Documenti
 
 | File | Responsabilità |
 |---|---|
-| [Specifica tecnica](CYMATICA_Specifica_Agentica_Sviluppo.md) | Architettura, contratti, timing, generazione, fairness e roadmap; revisione 0.8.2 |
-| [Design](DESIGN.md) | Gameplay, linguaggio audiovisivo, controlli, UX e accessibilità; revisione 0.3 |
+| [Specifica tecnica](CYMATICA_Specifica_Agentica_Sviluppo.md) | Architettura, contratti, timing, generazione, fairness e roadmap; revisione 0.8.3 |
+| [Design](DESIGN.md) | Gameplay, linguaggio audiovisivo, controlli, UX e accessibilità; revisione 0.3.1 |
+| [Analisi controllo e osservazione agentica](docs/agent_control_observability.md) | Motivazioni, limiti, sequenze/streaming e piano delle verifiche |
 | [Regole agenti](AGENTS.md) | Istruzioni operative e limiti di scope |
 | [Stato milestone](docs/progress.md) | Milestone attiva, decisioni d'ingresso, evidenze e blocchi |
 
@@ -25,9 +26,9 @@ Priorità M0–M7: Infinite Resonance e vertical slice. Tool CLI, formati di sca
 
 ## Prossimo lavoro
 
-M0 deve introdurre build minima riproducibile, dipendenze pinned e licenze/provenienza, test framework, finestra/input, tono audio e shader di prova. I comandi di build saranno documentati in `docs/build.md` quando esisteranno e saranno stati verificati. Non ci sono ancora comandi di installazione o eseguibili da proporre.
+M2 deve introdurre Music Intent, scheduler e musica procedurale v1. Setup e comandi esistenti sono in [docs/build.md](docs/build.md). L'estensione agentica parte dal test 220 → 440 → 220 Hz sulla baseline M1 e da AudioProbe, con contratti e capacità da congelare prima dell'implementazione (specifica §31.5/§32).
 
-Prima di M3/M4 definire il contratto minimo del player e costruire uno spike giocabile con un pattern, telegraph e fallback. Cimatica e adattamento sono modelli di design da validare, non prove di accuratezza fisica o psicologica.
+Il contratto minimo del player è congelato in [docs/player_contract_m1.md](docs/player_contract_m1.md); prima di M3/M4 costruire e verificare lo spike con movimento, un pattern, telegraph e fallback. Cimatica e adattamento sono modelli di design da validare, non prove di accuratezza fisica o psicologica.
 
 ## Licenza
 

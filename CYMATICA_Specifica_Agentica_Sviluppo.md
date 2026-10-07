@@ -1,8 +1,8 @@
 # CYMATICA — Specifica tecnica per sviluppo agentico e generazione adattiva
 
 **Documento:** specifica tecnica-operativa per prototipo e sviluppo incrementale  
-**Versione:** 0.8.2 — accettata per l'implementazione (0.8.1 il 2026-10-05; aggiunte 0.8.2 il 2026-10-06)  
-**Data:** 2026-10-06  
+**Versione:** 0.8.3 — integrazione controllo agentico e osservazione audiovisiva richiesta il 2026-10-07 (baseline 0.8.1/0.8.2 accettata)
+**Data:** 2026-10-07
 **Baseline revisionata:** 0.8 su commit `4aa2d5271aea11ad8aa088932c5afad8d6aaeec7`, integrata in `ac1ac59`; 0.8.1 su `ac1ac59`  
 **Target primario:** Windows x64  
 **Target secondario da preservare:** Android  
@@ -15,6 +15,15 @@
 ---
 
 ## 0. Changelog
+
+### 0.8.3 — 2026-10-07
+
+**Stato:** principi e roadmap incrementale accepted for implementation, su richiesta del titolare; profili numerici, IPC e codec restano proposti/differiti. Revisione solo documentale, nessuna nuova capacità attestata.
+
+- §31.5 e [analisi dedicata](docs/agent_control_observability.md): controllo esterno separato dal CIE, osservazioni correlate, tap realtime bounded, input condiviso e prove OS distinte;
+- §32: estensione della baseline M1 in M2 (spazio e tono), sequenze M3, clip/replay M4, osservazione live umana M5, spike video M6 e valutazione M7, riuso Lab M8;
+- DESIGN §17.4.1: valutazione player separata dalla diagnosi debug; nessuna sostituzione dei gate umani;
+- M1 storica resta conclusa secondo il record esistente; nuove estensioni non eseguite, nessun avanzamento di milestone.
 
 ### 0.8.2 — 2026-10-06
 
@@ -3042,6 +3051,22 @@ L’agente non deve introdurre modelli, framework o prompt runtime per soddisfar
 - criterio di rimozione.
 
 
+
+### 31.5 Controllo agentico e osservazione audiovisiva incrementale
+
+**Stato:** accepted for implementation come direzione e invarianti, richiesta del titolare del 2026-10-07. [Analisi dedicata](docs/agent_control_observability.md) per motivazioni, alternative, profili proposti, rischi e procedure; §32 resta fonte della roadmap. Nome provvisorio CYMATICA Agent Control Plane (CACP), distinto dal CIE.
+
+- Contratto versionato indipendente da MCP/IPC; primo runner locale M2, adapter MCP valutato successivamente. Nessun browser, FFmpeg, modello o nuovo framework introdotto implicitamente.
+- Azioni agente attraverso lo stesso dispatcher normalizzato del player, senza scritture dirette allo stato. Test semantici L0/L1 e test OS/device L2 producono evidenze distinte. Batch finiti con ID, tick target/effettivo, epoch, capacity e ack; rifiuto esplicito dei comandi scaduti e nessuna retrodatazione.
+- L'LLM pianifica, un controller locale bounded esegue; tool/network/model non sono nel percorso di risposta realtime del giocatore. Step/run-until solo offline senza device live. Osservazione della sessione umana read-only per default, controllo esclusivo agente solo in modalità dichiarata; disconnect/focus loss/epoch change rilasciano input e invalidano batch.
+- Snapshot con ownership (§20.6), artefatti correlati a run/build/profili, tick, epoch, sample-frame, sequence per canale, tempo monotono e qualità di presentazione (§7.5). Cattura render con interpolazione dichiarata; gap e skew espliciti, nessuna atomizzazione fittizia fra thread.
+- AudioProbe opzionale copia PCM finale in slot preallocati SPSC: nessuna allocazione, lock, I/O, analisi o IPC nella callback. Consumer lento causa gap contabilizzati, non blocco né overwrite di dati posseduti. Worker gestisce storia, WAV/metriche e lifetime; solo il coordinatore produce eventi audio. Il tap misura sintesi, non audio acustico del device.
+- VisualProbe player/debug separati; sequenze timestampate e audio prima dello streaming. Readback sul thread grafico, codifica/esportazione nei worker, queue bounded; consumo lento degrada cattura/live senza bloccare il gioco. La diagnostica deve essere disattivabile e profilata OFF/ON.
+- Artefatti fuori hash gameplay, ma deadline miss/interventi causati dall'overhead continuano a invalidare Pure Seed come §15.9. Exact replay usa input effettivi e decisioni accettate, non soltanto seed. Giudizi agentici supplementari, validator e playtest restano autoritativi nei propri ambiti.
+- Cattura opt-in confinata al gioco, output locale e bounded, indicatore/stop per sessioni umane; invio esterno esplicito. Gateway locale diagnostico disabilitato nella distribuzione normale, senza esecuzione arbitraria o scritture fuori artefatti.
+
+Prima dei task dipendenti registrare D-AO-01–06 descritti nell'analisi: schema/trasporto, buffer e profilo tono in M2; dispatcher/capture M3; scenario/clip M4; soglie di latenza e live M5; codec/client solo nello spike M6–M7. Non anticipare scelte future. Il supporto del client a immagini, audio e video va provato; se manca, la relativa verifica è non eseguita/bloccata, mai sostituita da un PASS sul solo stato richiesto.
+
 ---
 
 ## 32. Roadmap revisionata
@@ -3138,6 +3163,8 @@ Accettazione:
 - stesso seed produce stesso event trace;
 - la callback esegue, non pianifica.
 
+**Estensione agentica (§31.5):** realizzare sulla baseline M1 il test spazio/tono 220 → 440 → 220 Hz (`AC-AO-01`), con hold/release, tap PCM e manifest; prova semantica, OS e ascolto agente dichiarati separatamente. Congelare D-AO-01/02 prima del task. Integrare AudioProbe con Music Intent (`AC-AO-02`): zero allocazioni/blocchi, overflow e lifecycle verificati, onset correlati e limiti/capacità dell'adapter dichiarati. Questo nuovo gate M2 non modifica i PASS storici M1.
+
 ### Milestone 3 — Pattern catalog e generatore costruttivo
 
 **Obiettivo:** produrre livelli da Music Intent senza adattamento.
@@ -3163,6 +3190,8 @@ Accettazione:
 - budget entità rispettato;
 - livello di 60–90 secondi giocabile con policy fissa.
 
+**Estensione agentica (§31.5, AC-AO-03):** scheduling input già per il nucleo movement/dash, attraverso il dispatcher player; VisualProbe player/debug con sequenze timestampate e audio. Accettazione: press/release e confini tick verificati, ciclo telegraph/attivazione documentato nella sequenza, gap/skew e interpolazione dichiarati. D-AO-03 prima dell'implementazione; non aspettare M5 per controllare lo spike.
+
 ### Milestone 4 — Fairness validator e headless simulation
 
 **Obiettivo:** rifiutare violazioni di raggiungibilità nel modello dichiarato e misurare i suoi limiti.
@@ -3185,6 +3214,8 @@ Accettazione:
 - safety guard non blocca il frame;
 - fallback attivabile e musicale;
 - batch di almeno 1.000 seed senza crash.
+
+**Estensione agentica (§31.5, AC-AO-04):** step/run-until solo offline, scenari versionati (nome `.cymtest` proposto), replay e clip pre/post evento. Accettazione: hash coerenti su input/decisioni effettivi, rigetto late/epoch/capacity, confronto capture OFF/ON e incompletezza clip segnalata; il validator continua a valutare composizione/swept transitions e rifiutare unknown. Congelare D-AO-04.
 
 ### Milestone 5 — Player loop completo
 
@@ -3210,6 +3241,8 @@ Accettazione:
 - dash affidabile;
 - graze non farmabile banalmente;
 - partita completa con game over/restart.
+
+**Estensione agentica (§31.5, AC-AO-05):** osservazione live read-only della sessione umana, preview timestampata con clip locale e test OS/device end-to-end. Accettazione: disconnect non altera gli input umani, input agente rilasciati in sessione controllata, età/gap visibili; latenza e overhead OFF/ON/consumer lento misurati con tastiera/gamepad entro soglie fissate prima della misura in D-AO-05. Telemetria software non certifica latenza fisica input-to-photon/acoustic; regressioni M4 obbligatorie per cambi player.
 
 ### Milestone 6 — CIE Director v1 e livello adattivo
 
@@ -3241,6 +3274,8 @@ Accettazione:
 - Pure Seed produce replay stabile;
 - target pressure e pressione misurata convergono entro tolleranza definita.
 
+**Estensione agentica (§31.5, AC-AO-06):** esposizione read-only di PlayerModel/retrieval/scoring/trace, correlazione di input, scelte e interventi; exact replay completo. Spike bounded sul video/audio continuo (D-AO-06): report con costo readback/codifica, età osservazioni, gap/skew e supporto reale del client. Accettazione dello spike è un esito documentato, non l'obbligo di introdurre un codec o promettere riflessi LLM.
+
 ### Milestone 7 — Archetipi e vertical slice di qualità
 
 **Obiettivo:** dimostrare l’identità di CYMATICA.
@@ -3267,6 +3302,8 @@ Accettazione:
 - 60 FPS minimo sul target Windows;
 - vertical slice ritenuta divertente da playtest umano.
 
+**Estensione agentica (§31.5, AC-AO-07):** corpus audiovisivo di sequenze dense, transizioni e profili accessibili, distinguendo player e debug. Accettazione: report percettivo supplementare e benchmark del candidato streaming con soglie congelate prima della misura, capacità client ed esito passed/failed/blocked espliciti; se non idoneo, conservare sequenze/clip e registrare il limite, senza dichiarare streaming consegnato. Nessuna sostituzione di playtest umano, hardware o criteri originali M7.
+
 ### Milestone 8 — AI Lab e quality-diversity
 
 **Obiettivo:** costruire una libreria ampia di pattern validati.
@@ -3292,6 +3329,8 @@ Accettazione:
 - archive versionato e validato;
 - nessun candidato invalido entra come elite;
 - Recall@K del retriever baseline misurato contro il planner di riferimento, con K e soglia fissati prima della misura.
+
+**Estensione agentica (§31.5, AC-AO-08):** il Lab riusa contratto/scenari e manifest delle sonde; risultati indicizzati per versioni/seed/persona e informazioni disponibili al controller. Accettazione: confronti riproducibili e corpus senza leakage, controller privilegiati/percettivi distinti e runtime indipendente da agenti/adapter esterni.
 
 ### Milestone 9 — Pacchetti, timeline e tool CLI
 

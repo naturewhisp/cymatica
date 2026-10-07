@@ -9,8 +9,8 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 | Milestone attiva | **M2 — Music Intent e musica procedurale v1** (M1 completata e validata da independent review) |
 | Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
 | Stato M1 | **Completata (tutti i criteri di accettazione verificati con evidenze post-remediation round 2)** |
-| Specifica | 0.8.2 (0.8.1 accettata il 2026-10-05; aggiunte System 1 del 2026-10-06, applicabili da M6) |
-| Design | 0.3 (identità visiva e firme invarianti approvate il 2026-10-06) |
+| Specifica | 0.8.3 (baseline 0.8.1/0.8.2 accettata; controllo/osservazione agentica documentati il 2026-10-07) |
+| Design | 0.3.1 (baseline identità 0.3 approvata il 2026-10-06; osservazione agentica documentata il 2026-10-07) |
 | Commit / Build verificato | Commit `4db4b1b` (MSVC /W4 0 warning, CTest Release 36/36, Debug 36/36, Headless 35/35, Smoke 3s exit 0) |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_core` (static lib), `cymatica_replay` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
 | Ultimo aggiornamento | 2026-10-07 |
@@ -97,3 +97,13 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 | D-M2-01 | **Canale thread-safe `SetTempoMap`** | **Prerequisito d'ingresso obbligatorio** | In M1 `AudioEngine` impiega una `MusicClock` interna a 120 BPM fissi. Per consentire a M2 di gestire sezioni musicali multiple, variazioni di tempo e time signature controllate da `MusicIntentEvent` e scheduler, è necessario un canale formale da Game/Coordinator verso `AudioEngine`.<br>• **Protocollo:** estensione di `AudioCommand` con comando `SetTempoMap` (oppure buffer lock-free dedicato `TripleBuffer<TempoMap>` / SPSC) contenente numeratore, denominatore e metrica.<br>• **Sincronizzazione:** applicazione sample-accurate all'inizio del blocco o all'epoch/frame designato con emissione di `AudioCommandAck`.<br>• **Invariante:** zero allocazioni dinamiche e assenza di lock bloccanti nella callback audio realtime, con aggiornamento atomico e coerente della telemetria senza salti o discontinuità di fase. |
 | D-M2-02 | Rappresentazione simbolica `MusicIntentEvent` | Open (M2 entry) | Definizione della struttura per i 4 ruoli (Pulso, Corpo, Trama, Vettore) e parametri di intensità/tensione (Spec §16, §20.5). |
 | D-M2-03 | Voice budget e DSP scheduling | Open (M2 entry) | Lookahead ahead-of-time (100–250 ms), limite polifonia per voce e policy di saturazione (Spec §20.7). |
+
+## Estensione documentale — controllo e osservazione agentica (2026-10-07)
+
+Richiesta del titolare: analisi permanente e sviluppo progressivo insieme al gioco, incluso spazio/cambio tono sulla baseline M1 e osservazione temporale/live nelle fasi frenetiche. Record: [analisi](agent_control_observability.md), specifica §31.5/§32 e DESIGN §17.4.1.
+
+- **Milestone attiva invariata: M2.** M1 rimane conclusa secondo le evidenze storiche; nessuna nuova esecuzione o rivalidazione in questa revisione documentale.
+- **Nuovo lavoro M2 non eseguito:** AC-AO-01 (baseline tono) e AC-AO-02 (tap Music Intent), decisioni D-AO-01/02 deferred; profilo `tone_probe_v0` proposed. Non è ancora disponibile un input/capture adapter per l'agente.
+- **Successivi incrementi non eseguiti:** sequenze/input M3, replay/clip M4, live read-only e latenza M5, spike video M6, valutazione percettiva/streaming M7, riuso Lab M8. I relativi gate sono in specifica §32.
+- **Verifica di questa revisione:** ispezione del percorso spazio e della telemetria nei sorgenti M1, controlli documentali di link locali, coerenza degli ID/gate e `git diff --check`. Build/test runtime non rieseguiti: nessun sorgente o build configuration modificato. Non costituisce chiusura di milestone.
+- **Prossima azione:** congelare D-AO-01/02 con capacità client, ingressi, buffer/lifecycle e profilo tono, poi implementare il runner minimo M2; prove OS e ascolto restano esplicitamente separate dal test semantico.

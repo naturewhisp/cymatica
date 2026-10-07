@@ -1,8 +1,8 @@
 # CYMATICA — Game, Audio and Visual Design
 
 **Documento:** design bible operativa  
-**Versione:** 0.3 — identità visiva approvata dal titolare  
-**Data:** 2026-10-06  
+**Versione:** 0.3.1 — osservazione percettiva agentica integrata su richiesta del titolare
+**Data:** 2026-10-07
 **Stato:** pre-produzione / vertical slice  
 **Specifica tecnica correlata:** `CYMATICA_Specifica_Agentica_Sviluppo.md`  
 **Regole agentiche:** `AGENTS.md`
@@ -1168,6 +1168,14 @@ Forma invariante in tutti gli archetipi: nucleo puntiforme bianco a luminanza ma
 ### 17.4 Debug vs player HUD
 
 Le metriche AI, reachability e score restano debug. Non esporle nel gioco normale.
+
+### 17.4.1 Osservazione agentica della sessione
+
+L'infrastruttura diagnostica evolve con il gioco secondo specifica §31.5/§32 e [analisi dedicata](docs/agent_control_observability.md). La vista `player` conserva ciò che vede il giocatore, incluso il profilo di accessibilità; `debug` serve a spiegare hitbox, telegraph e decisioni e non è una prova della leggibilità normale. La cattura debug separata non aggiunge informazioni al giocatore durante la prova.
+
+Giudicare timing, traiettorie, dash, feedback e transizioni su sequenze con audio correlato: uno screenshot è adeguato a una firma visiva statica, non dimostra che una minaccia sia anticipabile nel caos. In M3 raccogliere sequenze dello spike; in M4 clip prima/dopo gli eventi; in M5 osservare live il giocatore in modalità read-only con indicatore e stop, senza interferire con controlli o risposta immediata. Lo streaming continuo viene valutato in M6–M7 e la sua latenza non deve ritardare l'input umano.
+
+Il test spazio/tono sulla baseline M1 è diagnostico e non assegna allo spazio una regola permanente di gameplay. Ascolto del PCM sintetizzato, ascolto sul device e giudizio multimodale sono evidenze diverse. Un agente privo di ingestione audio/video non ha eseguito quel giudizio percettivo. Report automatici supplementari conservano gap, condizioni e limiti; restano richiesti playtest umano, gate di accessibilità e verifiche di §23.
 
 ### 17.5 HUD esplicito opzionale
 
