@@ -11,7 +11,7 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 | Stato M1 | **Completata (tutti i criteri di accettazione verificati con evidenze post-remediation round 2)** |
 | Specifica | 0.8.2 (0.8.1 accettata il 2026-10-05; aggiunte System 1 del 2026-10-06, applicabili da M6) |
 | Design | 0.3 (identità visiva e firme invarianti approvate il 2026-10-06) |
-| Commit / Build verificato | Post-remediation round 2 (MSVC /W4 0 warning, CTest Release 36/36, Debug 36/36, Headless 35/35, Smoke 3s exit 0) |
+| Commit / Build verificato | Commit `4db4b1b` (MSVC /W4 0 warning, CTest Release 36/36, Debug 36/36, Headless 35/35, Smoke 3s exit 0) |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_core` (static lib), `cymatica_replay` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
 | Ultimo aggiornamento | 2026-10-07 |
 
