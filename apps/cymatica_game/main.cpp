@@ -2,6 +2,7 @@
 #include "audio_engine.h"
 #include "fixed_step.h"
 #include "raylib.h"
+#include "run_record.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -60,11 +61,18 @@ int main(int argc, char** argv) {
 
     cymatica::core::FixedStepAccumulator accumulator({48000, 120, 4, 16});
 
+    cymatica::replay::RunRecord runRecord;
+    runRecord.timingProfile = {
+        .sampleRate = 48000,
+        .simulationHz = 120,
+        .framesPerTick = 400
+    };
+    runRecord.pureSeedEligible = true;
+
     std::uint64_t frames = 0;
     const double start = GetTime();
     double previousTime = start;
     float freq = kBaseFreqHz;
-    bool pureSeedEligible = true;
     std::uint32_t technicalSuspensionCount = 0;
 
     while (!WindowShouldClose()) {
@@ -79,10 +87,14 @@ int main(int argc, char** argv) {
         const auto stepRes = accumulator.advanceSeconds(deltaSeconds);
         if (stepRes.overloadSuspensionRequired) {
             ++technicalSuspensionCount;
-            pureSeedEligible = false;
+            const std::uint64_t currentTick = accumulator.currentTick();
+            const std::uint64_t sampleFrame = accumulator.tickToSampleFrame(currentTick);
+            // Record technical suspension in RunRecord and invalidate Pure Seed (Spec §15, §20.3, DIF-M1-21)
+            runRecord.recordIntervention(sampleFrame, "technical_suspension", currentTick);
             std::fprintf(stderr,
-                         "[cymatica_game] Technical suspension triggered at tick %llu: overload detected. Reconciling transport and invalidating Pure Seed.\n",
-                         static_cast<unsigned long long>(accumulator.currentTick()));
+                         "[cymatica_game] Technical suspension recorded in RunRecord at tick %llu (sampleFrame %llu): overload detected. Reconciling transport and invalidating Pure Seed.\n",
+                         static_cast<unsigned long long>(currentTick),
+                         static_cast<unsigned long long>(sampleFrame));
             audio.updateTelemetry();
             const auto& currentTelem = audio.telemetry();
             accumulator.reconcileToTick(accumulator.sampleFrameToTick(currentTelem.renderCursor));
@@ -104,6 +116,12 @@ int main(int argc, char** argv) {
         const float t = static_cast<float>(elapsed);
         if (timeLoc >= 0) SetShaderValue(shader, timeLoc, &t, SHADER_UNIFORM_FLOAT);
 
+        const char* stateStr = "PAUSED";
+        if (telem.transportState == cymatica::audio::TransportState::Running) stateStr = "RUNNING";
+        else if (telem.transportState == cymatica::audio::TransportState::Pausing) stateStr = "PAUSING";
+        else if (telem.transportState == cymatica::audio::TransportState::Resuming) stateStr = "RESUMING";
+        else if (telem.transportState == cymatica::audio::TransportState::Stopped) stateStr = "STOPPED";
+
         BeginDrawing();
         ClearBackground(BLACK);
         if (shaderOk) {
@@ -118,7 +136,7 @@ int main(int argc, char** argv) {
                  24, 56, 18, (shaderOk && audioOk) ? GREEN : RED);
         DrawText(TextFormat("Telemetry: epoch=%llu state=%s renderCursor=%llu frames=%llu bpm=%.0f",
                             static_cast<unsigned long long>(telem.transportEpoch),
-                            telem.transportState == cymatica::audio::TransportState::Running ? "RUNNING" : "PAUSED",
+                            stateStr,
                             static_cast<unsigned long long>(telem.renderCursor),
                             static_cast<unsigned long long>(telem.framesRenderedTotal),
                             telem.bpm),
@@ -126,9 +144,9 @@ int main(int argc, char** argv) {
         DrawText(TextFormat("Simulation: tick=%llu alpha=%.2f | Pure Seed: %s | Suspensions: %u",
                             static_cast<unsigned long long>(accumulator.currentTick()),
                             stepRes.interpolationAlpha,
-                            pureSeedEligible ? "ELIGIBLE" : "INVALIDATED",
+                            runRecord.pureSeedEligible ? "ELIGIBLE" : "INVALIDATED",
                             technicalSuspensionCount),
-                 24, 108, 18, pureSeedEligible ? ORANGE : RED);
+                 24, 108, 18, runRecord.pureSeedEligible ? ORANGE : RED);
         DrawText("Hold SPACE: 440 Hz | ESC: exit", 24, GetScreenHeight() - 36, 18, YELLOW);
         EndDrawing();
         ++frames;
@@ -140,11 +158,17 @@ int main(int argc, char** argv) {
     if (shaderOk) UnloadShader(shader);
     CloseWindow();
 
+    runRecord.finalMetrics["total_frames"] = static_cast<double>(frames);
+    runRecord.finalMetrics["total_seconds"] = total;
+    runRecord.finalMetrics["audio_frames"] = static_cast<double>(audioFrames);
+    runRecord.finalMetrics["sim_ticks"] = static_cast<double>(accumulator.currentTick());
+    runRecord.finalMetrics["suspensions"] = static_cast<double>(technicalSuspensionCount);
+
     std::printf("[cymatica_game] frames=%llu seconds=%.2f avg_fps=%.1f audio_frames=%llu ticks=%llu pure_seed=%s suspensions=%u shader=%s audio=%s\n",
                 static_cast<unsigned long long>(frames), total, total > 0.0 ? frames / total : 0.0,
                 static_cast<unsigned long long>(audioFrames),
                 static_cast<unsigned long long>(accumulator.currentTick()),
-                pureSeedEligible ? "ELIGIBLE" : "INVALIDATED",
+                runRecord.pureSeedEligible ? "ELIGIBLE" : "INVALIDATED",
                 technicalSuspensionCount,
                 shaderOk ? "OK" : "FAIL", audioOk ? "OK" : "FAIL");
     return (shaderOk && audioOk) ? 0 : 1;

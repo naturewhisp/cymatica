@@ -2,6 +2,9 @@
 
 #include "run_record.h"
 
+#include <cmath>
+#include <limits>
+
 using namespace cymatica::replay;
 
 TEST_CASE("RunRecord serializes to JSON and round-trips correctly", "[replay][json]") {
@@ -30,6 +33,7 @@ TEST_CASE("RunRecord serializes to JSON and round-trips correctly", "[replay][js
 
     original.runtimeInterventions.push_back(RuntimeIntervention{
         .sampleFrame = 72000ULL,
+        .tick = 180ULL,
         .reason = "technical_suspension_reconciled"
     });
 
@@ -46,6 +50,7 @@ TEST_CASE("RunRecord serializes to JSON and round-trips correctly", "[replay][js
     REQUIRE(restored.timingProfile.simulationHz == 120);
     REQUIRE(restored.timingProfile.framesPerTick == 400);
     REQUIRE(restored.pureSeedEligible == true);
+    REQUIRE(restored.runtimeInterventions[0].tick == 180ULL);
 }
 
 TEST_CASE("RunRecord fromJson enforces Spec section 23.4 fail-fast validation", "[replay][json][validation]") {
@@ -109,4 +114,84 @@ TEST_CASE("RunRecord fromJson enforces Spec section 23.4 fail-fast validation", 
         "timing_profile": { "sample_rate": 48000, "simulation_hz": 0, "frames_per_tick": 400 }
     })";
     REQUIRE_THROWS_AS(RunRecord::fromJson(invalidTiming), std::runtime_error);
+
+    // 8. Inconsistent timing_profile (48000 / 120 / frames_per_tick=123) must throw (DIF-M1-23)
+    const std::string inconsistentTiming = R"({
+        "schema_version": 1,
+        "rng_version": 1,
+        "run_seed_u64": 10,
+        "timing_profile": { "sample_rate": 48000, "simulation_hz": 120, "frames_per_tick": 123 }
+    })";
+    REQUIRE_THROWS_AS(RunRecord::fromJson(inconsistentTiming), std::runtime_error);
+
+    // 9. Non-divisible timing_profile (48001 / 120 / frames_per_tick=400) must throw
+    const std::string nonDivisibleTiming = R"({
+        "schema_version": 1,
+        "rng_version": 1,
+        "run_seed_u64": 10,
+        "timing_profile": { "sample_rate": 48001, "simulation_hz": 120, "frames_per_tick": 400 }
+    })";
+    REQUIRE_THROWS_AS(RunRecord::fromJson(nonDivisibleTiming), std::runtime_error);
+
+    // 10. Malformed non-hex run_seed string must throw std::runtime_error
+    const std::string malformedHex = R"({
+        "schema_version": 1,
+        "rng_version": 1,
+        "run_seed": "zz_invalid_hex",
+        "timing_profile": { "sample_rate": 48000, "simulation_hz": 120, "frames_per_tick": 400 }
+    })";
+    REQUIRE_THROWS_AS(RunRecord::fromJson(malformedHex), std::runtime_error);
+
+    // 11. Non-numeric metric in final_metrics must throw std::runtime_error
+    const std::string nonNumericMetric = R"({
+        "schema_version": 1,
+        "rng_version": 1,
+        "run_seed_u64": 10,
+        "timing_profile": { "sample_rate": 48000, "simulation_hz": 120, "frames_per_tick": 400 },
+        "final_metrics": { "bad_val": "string_not_number" }
+    })";
+    REQUIRE_THROWS_AS(RunRecord::fromJson(nonNumericMetric), std::runtime_error);
+}
+
+TEST_CASE("RunRecord validate and toJson enforce non-finite float rejection and schema integrity", "[replay][validation]") {
+    RunRecord r;
+    r.runSeed = 12345;
+    r.timingProfile = {48000, 120, 400};
+
+    std::string err;
+    REQUIRE(r.validate(&err));
+
+    // Non-finite float in finalMetrics must be rejected by validate() and toJson() (§23.4, DIF-M1-23)
+    r.finalMetrics["bad_metric"] = std::numeric_limits<double>::infinity();
+    REQUIRE_FALSE(r.validate(&err));
+    REQUIRE_THROWS_AS(r.toJson(), std::runtime_error);
+
+    r.finalMetrics["bad_metric"] = std::numeric_limits<double>::quiet_NaN();
+    REQUIRE_FALSE(r.validate(&err));
+    REQUIRE_THROWS_AS(r.toJson(), std::runtime_error);
+
+    // Inconsistent timing profile rejected by validate() and toJson()
+    r.finalMetrics["bad_metric"] = 1.0;
+    r.timingProfile.framesPerTick = 999;
+    REQUIRE_FALSE(r.validate(&err));
+    REQUIRE_THROWS_AS(r.toJson(), std::runtime_error);
+
+    // Restoring consistent timing profile passes validate and toJson
+    r.timingProfile.framesPerTick = 400;
+    REQUIRE(r.validate(&err));
+    REQUIRE_NOTHROW(r.toJson());
+}
+
+TEST_CASE("RunRecord recordIntervention records intervention and invalidates Pure Seed", "[replay][intervention]") {
+    RunRecord r;
+    r.runSeed = 42;
+    REQUIRE(r.pureSeedEligible == true);
+    REQUIRE(r.runtimeInterventions.empty());
+
+    r.recordIntervention(8000ULL, "technical_suspension", 20ULL);
+    REQUIRE(r.pureSeedEligible == false);
+    REQUIRE(r.runtimeInterventions.size() == 1);
+    REQUIRE(r.runtimeInterventions[0].sampleFrame == 8000ULL);
+    REQUIRE(r.runtimeInterventions[0].tick == 20ULL);
+    REQUIRE(r.runtimeInterventions[0].reason == "technical_suspension");
 }

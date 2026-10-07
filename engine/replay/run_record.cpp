@@ -10,7 +10,52 @@ namespace cymatica::replay {
 
 using json = nlohmann::json;
 
+bool RunRecord::validate(std::string* error) const {
+    if (schemaVersion != core::RUN_RECORD_SCHEMA_VERSION) {
+        if (error) *error = "unsupported schema_version " + std::to_string(schemaVersion);
+        return false;
+    }
+    if (rngVersion != core::RNG_VERSION) {
+        if (error) *error = "unsupported rng_version " + std::to_string(rngVersion);
+        return false;
+    }
+    if (timingProfile.sampleRate == 0 || timingProfile.simulationHz == 0 || timingProfile.framesPerTick == 0) {
+        if (error) *error = "non-positive timing_profile values";
+        return false;
+    }
+    if (timingProfile.sampleRate % timingProfile.simulationHz != 0 ||
+        timingProfile.framesPerTick != timingProfile.sampleRate / timingProfile.simulationHz) {
+        if (error) {
+            *error = "timing_profile frames_per_tick (" + std::to_string(timingProfile.framesPerTick) +
+                     ") inconsistent with sample_rate / simulation_hz (" +
+                     std::to_string(timingProfile.sampleRate / timingProfile.simulationHz) + ")";
+        }
+        return false;
+    }
+    for (const auto& [k, v] : finalMetrics) {
+        if (!std::isfinite(v)) {
+            if (error) *error = "non-finite float in final_metrics for key " + k;
+            return false;
+        }
+    }
+    return true;
+}
+
+void RunRecord::recordIntervention(std::uint64_t sampleFrame, std::string_view reason, std::uint64_t tick) {
+    runtimeInterventions.push_back(RuntimeIntervention{
+        .sampleFrame = sampleFrame,
+        .tick = tick,
+        .reason = std::string(reason),
+    });
+    pureSeedEligible = false; // DIF-M1-21 / Spec §15: technical intervention invalidates Pure Seed
+}
+
 std::string RunRecord::toJson() const {
+    std::string err;
+    if (!validate(&err)) {
+        throw std::runtime_error("RunRecord::toJson validation failed: " + err);
+    }
+
     json j;
     j["schema_version"] = schemaVersion;
     j["build_id"] = buildId;
@@ -52,10 +97,14 @@ std::string RunRecord::toJson() const {
 
     json intArray = json::array();
     for (const auto& in : runtimeInterventions) {
-        intArray.push_back({
+        json item = {
             {"sample_frame", in.sampleFrame},
             {"reason", in.reason}
-        });
+        };
+        if (in.tick > 0) {
+            item["tick"] = in.tick;
+        }
+        intArray.push_back(item);
     }
     j["runtime_interventions"] = intArray;
 
@@ -97,11 +146,28 @@ RunRecord RunRecord::fromJson(std::string_view jsonStr) {
     }
     std::uint64_t seedValue = 0;
     if (hasSeedU64) {
+        if (!j["run_seed_u64"].is_number_unsigned()) {
+            throw std::runtime_error("RunRecord: 'run_seed_u64' must be an unsigned integer");
+        }
         seedValue = j["run_seed_u64"].get<std::uint64_t>();
     }
     if (hasSeedStr) {
+        if (!j["run_seed"].is_string()) {
+            throw std::runtime_error("RunRecord: 'run_seed' must be a hex string");
+        }
         const std::string s = j["run_seed"].get<std::string>();
-        const std::uint64_t parsedSeed = std::stoull(s, nullptr, 16);
+        std::uint64_t parsedSeed = 0;
+        try {
+            std::size_t idx = 0;
+            parsedSeed = std::stoull(s, &idx, 16);
+            if (idx == 0) {
+                throw std::runtime_error("RunRecord: invalid hex format in 'run_seed': " + s);
+            }
+        } catch (const std::runtime_error&) {
+            throw;
+        } catch (const std::exception& e) {
+            throw std::runtime_error("RunRecord: invalid hex format in 'run_seed' (" + s + "): " + e.what());
+        }
         if (hasSeedU64 && parsedSeed != seedValue) {
             throw std::runtime_error("RunRecord: inconsistent run_seed (" + s + ") and run_seed_u64 (" + std::to_string(seedValue) + ")");
         }
@@ -113,6 +179,11 @@ RunRecord RunRecord::fromJson(std::string_view jsonStr) {
         throw std::runtime_error("RunRecord: missing mandatory 'timing_profile' object");
     }
     const auto& tp = j["timing_profile"];
+    if (!tp.contains("sample_rate") || !tp["sample_rate"].is_number_unsigned() ||
+        !tp.contains("simulation_hz") || !tp["simulation_hz"].is_number_unsigned() ||
+        !tp.contains("frames_per_tick") || !tp["frames_per_tick"].is_number_unsigned()) {
+        throw std::runtime_error("RunRecord: timing_profile fields must be non-negative integers");
+    }
     TimingProfile timingProf;
     timingProf.sampleRate = tp.value("sample_rate", 0ULL);
     timingProf.simulationHz = tp.value("simulation_hz", 0u);
@@ -158,22 +229,30 @@ RunRecord RunRecord::fromJson(std::string_view jsonStr) {
         for (const auto& elem : j["runtime_interventions"]) {
             r.runtimeInterventions.push_back(RuntimeIntervention{
                 .sampleFrame = elem.value("sample_frame", 0ULL),
+                .tick = elem.value("tick", 0ULL),
                 .reason = elem.value("reason", "")
             });
         }
     }
 
-    // 5. final_metrics: non-finite float values are strictly forbidden (§23.4)
+    // 5. final_metrics: non-finite float values and non-numeric metrics are strictly forbidden (§23.4)
     if (j.contains("final_metrics") && j["final_metrics"].is_object()) {
         for (auto it = j["final_metrics"].begin(); it != j["final_metrics"].end(); ++it) {
-            if (it.value().is_number()) {
-                const double v = it.value().get<double>();
-                if (!std::isfinite(v)) {
-                    throw std::runtime_error("RunRecord: non-finite float value in final_metrics for key " + it.key());
-                }
-                r.finalMetrics[it.key()] = v;
+            if (!it.value().is_number()) {
+                throw std::runtime_error("RunRecord: non-numeric metric value in final_metrics for key " + it.key());
             }
+            const double v = it.value().get<double>();
+            if (!std::isfinite(v)) {
+                throw std::runtime_error("RunRecord: non-finite float value in final_metrics for key " + it.key());
+            }
+            r.finalMetrics[it.key()] = v;
         }
+    }
+
+    // 6. Centralized invariant validation (DIF-M1-23)
+    std::string err;
+    if (!r.validate(&err)) {
+        throw std::runtime_error("RunRecord: validation failed: " + err);
     }
 
     return r;

@@ -25,7 +25,7 @@ La Milestone 1 fonda il runtime non deterministico riproducibile di CYMATICA. Ri
 - **Frequenza audio interna:** 48.000 Hz timeline logica continua. I device con frequenze diverse (es. 44.100 Hz) utilizzano un fattore di conversione razionale esatto `160/147` con gestione del resto sull'indice assoluto dei frame.
 - **Frequenza di simulazione:** 120 Hz (`dt = 1/120 s`), corrispondente esattamente a 400 sample frame per tick di simulazione (`48000 / 120 = 400`).
 - **Aritmetica del clock musicale:** i BPM sono rappresentati da una frazione intera `RationalBpm{numerator, denominator}` (es. 120/1 o 1275/10). Le coordinate di frame assoluto per beat, battuta e frase sono calcolate tramite divisione intera con resto, evitando accumulo di errori float. `beatPhase` è una vista derivata normalizzata in `[0.0f, 1.0f)`.
-- **Accumulatore fixed-step:** opera su nanosecondi interi (`uint64_t`). La durata nominale del tick è `8'333'333 ns` (con accumulo del resto su 120 Hz).
+- **Accumulatore fixed-step:** opera su nanosecondi interi (`uint64_t`). Il tempo cumulativo autoritativo `totalElapsedNs` determina i tick dovuti rispetto al boundary razionale $\lfloor (k \cdot 10^9) / S \rfloor$, con derivazione esatta in $O(1)$, zero drift, conservazione del resto di conversione frazionario in nanosecondi e `interpolationAlpha` clampato a $[0.0f, 1.0f)$.
 - **Semantica di overload (§20.3):**
   - `maxCatchUpTicksPerUpdate = 4` (33.3 ms): limite massimo di tick autoritativi eseguiti in un singolo ciclo `advance()`.
   - È vietato scartare silenziosamente tick autoritativi. Se il debito accumulato supera `overloadThresholdTicks = 16`, il sistema attiva la **sospensione tecnica controllata**: interrompe lo spawn di nuove minacce, riconcilia il transport con l'audio, registra la discontinuità e **invalida l'idoneità a Pure Seed**.
@@ -58,8 +58,8 @@ La Milestone 1 fonda il runtime non deterministico riproducibile di CYMATICA. Ri
 - **Canali:**
   - `AudioTelemetryFrame` (Audio -> Game): pubblicato via `TripleBuffer` ad ogni blocco audio (loss-tolerant).
   - `AudioControlFrame` (Game -> Audio): pubblicato via `TripleBuffer` per parametri continui (dissonanza, performance).
-  - `AudioCommand` (Game -> Audio): coda circolare lock-free bounded `SpscQueue<AudioCommand, 64>` per comandi identificati (`commandId`).
-  - `AudioCommandAck` (Audio -> Game): coda circolare lock-free bounded `SpscQueue<AudioCommandAck, 64>` per acknowledgement esplicito dei comandi (pause, resume, stop).
+  - `AudioCommand` (Game -> Audio): coda circolare lock-free bounded `SpscQueue<AudioCommand, 128>` per comandi identificati (`commandId`).
+  - `AudioCommandAck` (Audio -> Game): coda circolare lock-free bounded `SpscQueue<AudioCommandAck, 128>` per acknowledgement esplicito dei comandi (pause, resume, stop).
 
 ### D-M1-04: Libreria JSON (Spec §28.2, §36 Q2 / D-M0-05)
 

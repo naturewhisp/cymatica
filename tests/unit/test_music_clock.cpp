@@ -7,7 +7,9 @@ using namespace cymatica::audio;
 TEST_CASE("MusicClock 120 BPM beat boundaries are exact", "[clock][timing]") {
     TempoMap map;
     map.bpm = RationalBpm{120, 1}; // 120 BPM
-    MusicClock clock(48000, map);
+    auto clockOpt = MusicClock::create(48000, map);
+    REQUIRE(clockOpt.has_value());
+    auto& clock = *clockOpt;
 
     REQUIRE(clock.frameAtBeat(0) == 0);
     REQUIRE(clock.frameAtBeat(1) == 24000); // 0.5s at 48kHz
@@ -20,7 +22,9 @@ TEST_CASE("MusicClock handles non-integer BPM over 1 virtual hour with zero drif
     // 127.5 BPM: 1275 / 10
     TempoMap map;
     map.bpm = RationalBpm{1275, 10};
-    MusicClock clock(48000, map);
+    auto clockOpt = MusicClock::create(48000, map);
+    REQUIRE(clockOpt.has_value());
+    auto& clock = *clockOpt;
 
     // In 1 hour (3600 seconds), there are 3600 * 127.5 / 60 = 7650 beats.
     constexpr std::uint64_t kOneHourFrames = 48000ULL * 3600ULL; // 172,800,000 frames
@@ -36,7 +40,9 @@ TEST_CASE("MusicClock 127.5 BPM beat boundaries are exact for b in [0, 68]", "[c
     map.beatsPerBar = 4;
     map.barsPerPhrase = 4;
     map.subdivisionsPerBeat = 4;
-    MusicClock clock(48000, map);
+    auto clockOpt = MusicClock::create(48000, map);
+    REQUIRE(clockOpt.has_value());
+    auto& clock = *clockOpt;
 
     for (std::uint64_t b = 0; b <= 68; ++b) {
         const std::uint64_t boundaryFrame = clock.frameAtBeat(b);
@@ -74,8 +80,8 @@ TEST_CASE("MusicClock 127.5 BPM beat boundaries are exact for b in [0, 68]", "[c
     }
 }
 
-TEST_CASE("MusicClock setTempoMap rejects invalid or unsupported configurations explicitly", "[clock][validation]") {
-    MusicClock clock(48000);
+TEST_CASE("MusicClock setTempoMap and create reject invalid or unsupported configurations explicitly", "[clock][validation]") {
+    MusicClock clock;
 
     // 1. Invalid zero values must fail explicitly per Spec §7.5 / DIF-M1-22
     TempoMap invalidMap;
@@ -84,6 +90,8 @@ TEST_CASE("MusicClock setTempoMap rejects invalid or unsupported configurations 
     invalidMap.barsPerPhrase = 0;
     invalidMap.subdivisionsPerBeat = 0;
     REQUIRE_FALSE(clock.setTempoMap(invalidMap));
+    REQUIRE_FALSE(MusicClock::create(48000, invalidMap).has_value());
+    REQUIRE_FALSE(MusicClock::create(0, clock.tempoMap()).has_value());
 
     // Initial valid defaults are preserved
     const auto& current = clock.tempoMap();
@@ -102,6 +110,7 @@ TEST_CASE("MusicClock setTempoMap rejects invalid or unsupported configurations 
     inconsistentMap.barsPerPhrase = 4;
     inconsistentMap.subdivisionsPerBeat = 4;
     REQUIRE_FALSE(clock.setTempoMap(inconsistentMap));
+    REQUIRE_FALSE(MusicClock::create(48000, inconsistentMap).has_value());
 
     // 3. Unsupported non-4/4 configuration under M1 prototype scope must fail explicitly
     TempoMap unsupportedMap;
@@ -112,6 +121,7 @@ TEST_CASE("MusicClock setTempoMap rejects invalid or unsupported configurations 
     unsupportedMap.barsPerPhrase = 4;
     unsupportedMap.subdivisionsPerBeat = 4;
     REQUIRE_FALSE(clock.setTempoMap(unsupportedMap));
+    REQUIRE_FALSE(MusicClock::create(48000, unsupportedMap).has_value());
 
     // 4. Valid supported configuration (4/4, 140 BPM) succeeds
     TempoMap validMap;
@@ -123,6 +133,10 @@ TEST_CASE("MusicClock setTempoMap rejects invalid or unsupported configurations 
     validMap.subdivisionsPerBeat = 4;
     REQUIRE(clock.setTempoMap(validMap));
     REQUIRE(clock.tempoMap().bpm.numerator == 140);
+
+    auto validCreated = MusicClock::create(48000, validMap);
+    REQUIRE(validCreated.has_value());
+    REQUIRE(validCreated->tempoMap().bpm.numerator == 140);
 }
 
 TEST_CASE("MusicPosition derives structured musical coordinates correctly", "[clock][position]") {
@@ -131,7 +145,9 @@ TEST_CASE("MusicPosition derives structured musical coordinates correctly", "[cl
     map.beatsPerBar = 4;
     map.barsPerPhrase = 4;
     map.subdivisionsPerBeat = 4;
-    MusicClock clock(48000, map);
+    auto clockOpt = MusicClock::create(48000, map);
+    REQUIRE(clockOpt.has_value());
+    auto& clock = *clockOpt;
 
     // Frame 0: phrase 0, bar 0, beat 0, sub 0, phase 0.0
     const auto pos0 = clock.positionAtFrame(0, 42);
@@ -158,7 +174,7 @@ TEST_CASE("MusicPosition derives structured musical coordinates correctly", "[cl
 }
 
 TEST_CASE("Sample rate conversion 44.1 kHz <-> 48 kHz uses exact rational 160/147 factor", "[clock][resample]") {
-    MusicClock clock(48000);
+    MusicClock clock;
 
     // 147 device frames at 44.1 kHz = exactly 160 internal frames at 48 kHz
     REQUIRE(clock.deviceToInternalFrames(147, 44100) == 160);
@@ -167,4 +183,10 @@ TEST_CASE("Sample rate conversion 44.1 kHz <-> 48 kHz uses exact rational 160/14
     // 1 second of audio at 44.1 kHz = 44,100 frames -> 48,000 frames
     REQUIRE(clock.deviceToInternalFrames(44100, 44100) == 48000);
     REQUIRE(clock.internalToDeviceFrames(48000, 44100) == 44100);
+
+    // DIF-M1-22: deviceRate == 0 must fail explicitly by returning 0, never identity
+    REQUIRE(clock.deviceToInternalFrames(147, 0) == 0);
+    REQUIRE(clock.internalToDeviceFrames(160, 0) == 0);
+    REQUIRE(clock.deviceToInternalFrames(0, 0) == 0);
+    REQUIRE(clock.internalToDeviceFrames(0, 0) == 0);
 }

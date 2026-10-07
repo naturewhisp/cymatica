@@ -30,13 +30,20 @@ namespace {
 
 } // namespace
 
-MusicClock::MusicClock(std::uint64_t internalSampleRate, const TempoMap& tempoMap) noexcept
-    : sampleRate_(internalSampleRate != 0 ? internalSampleRate : 48000) {
-    if (isSupportedTempoMap(tempoMap)) {
-        tempoMap_ = tempoMap;
-    } else {
-        tempoMap_ = TempoMap{};
+MusicClock::MusicClock() noexcept
+    : sampleRate_(48000), tempoMap_(TempoMap{}) {}
+
+MusicClock::MusicClock(std::uint64_t internalSampleRate, const TempoMap& tempoMap, DirectTag) noexcept
+    : sampleRate_(internalSampleRate), tempoMap_(tempoMap) {}
+
+std::optional<MusicClock> MusicClock::create(std::uint64_t internalSampleRate, const TempoMap& tempoMap) noexcept {
+    if (internalSampleRate == 0) {
+        return std::nullopt;
     }
+    if (!isSupportedTempoMap(tempoMap)) {
+        return std::nullopt;
+    }
+    return MusicClock(internalSampleRate, tempoMap, DirectTag{});
 }
 
 bool MusicClock::setTempoMap(const TempoMap& map) noexcept {
@@ -71,6 +78,11 @@ std::uint64_t MusicClock::frameAtPhrase(std::uint64_t totalPhrases) const noexce
 }
 
 MusicPosition MusicClock::positionAtFrame(std::uint64_t frame, std::uint64_t epoch) const noexcept {
+    if (sampleRate_ == 0 || tempoMap_.beatsPerBar == 0 || tempoMap_.barsPerPhrase == 0 ||
+        tempoMap_.bpm.numerator == 0 || tempoMap_.bpm.denominator == 0) {
+        return MusicPosition{.sampleFrame = frame, .transportEpoch = epoch};
+    }
+
     const std::uint64_t num = tempoMap_.bpm.numerator;
     const std::uint64_t den = tempoMap_.bpm.denominator;
     const std::uint64_t framesNumerator = 60ULL * sampleRate_ * den;
@@ -124,12 +136,15 @@ MusicPosition MusicClock::positionAtFrame(std::uint64_t frame, std::uint64_t epo
 }
 
 std::uint64_t MusicClock::deviceToInternalFrames(std::uint64_t deviceFrames, std::uint64_t deviceRate) const noexcept {
-    if (deviceRate == 0 || deviceRate == sampleRate_) {
+    if (deviceRate == 0 || sampleRate_ == 0) {
+        return 0; // Explicitly fail on zero sample rates by returning 0 (DIF-M1-22)
+    }
+    if (deviceRate == sampleRate_) {
         return deviceFrames;
     }
     // Rational exact conversion: (deviceFrames * sampleRate_) / deviceRate with overflow safety
     // For 44100 -> 48000: 48000 / 44100 = 160 / 147
-    if (sampleRate_ > 0 && deviceFrames <= UINT64_MAX / sampleRate_) {
+    if (deviceFrames <= UINT64_MAX / sampleRate_) {
         return (deviceFrames * sampleRate_) / deviceRate;
     }
     const std::uint64_t q = deviceFrames / deviceRate;
@@ -138,10 +153,13 @@ std::uint64_t MusicClock::deviceToInternalFrames(std::uint64_t deviceFrames, std
 }
 
 std::uint64_t MusicClock::internalToDeviceFrames(std::uint64_t internalFrames, std::uint64_t deviceRate) const noexcept {
-    if (deviceRate == 0 || deviceRate == sampleRate_) {
+    if (deviceRate == 0 || sampleRate_ == 0) {
+        return 0; // Explicitly fail on zero sample rates by returning 0 (DIF-M1-22)
+    }
+    if (deviceRate == sampleRate_) {
         return internalFrames;
     }
-    if (deviceRate > 0 && internalFrames <= UINT64_MAX / deviceRate) {
+    if (internalFrames <= UINT64_MAX / deviceRate) {
         return (internalFrames * deviceRate) / sampleRate_;
     }
     const std::uint64_t q = internalFrames / sampleRate_;

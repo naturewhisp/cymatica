@@ -3,6 +3,10 @@
 #include <algorithm>
 #include <cmath>
 
+#if defined(_MSC_VER) && defined(_M_X64)
+#include <intrin.h>
+#endif
+
 namespace cymatica::core {
 
 FixedStepAccumulator::FixedStepAccumulator(FixedStepConfig config) noexcept
@@ -10,7 +14,6 @@ FixedStepAccumulator::FixedStepAccumulator(FixedStepConfig config) noexcept
     if (config_.simulationHz == 0) {
         config_.simulationHz = 120;
     }
-    nominalTickNs_ = 1'000'000'000ULL / config_.simulationHz;
 }
 
 std::uint64_t FixedStepAccumulator::tickToSampleFrame(std::uint64_t tickIndex) const noexcept {
@@ -45,51 +48,86 @@ std::uint64_t FixedStepAccumulator::sampleFrameToTick(std::uint64_t sampleFrame)
     return q * config_.simulationHz + (r * config_.simulationHz + config_.internalSampleRate - 1) / config_.internalSampleRate;
 }
 
+std::uint64_t FixedStepAccumulator::tickBoundaryNs(std::uint64_t tickIndex) const noexcept {
+    // Exact rational nanosecond boundary defined in Spec §7.5 / ADR-0002:
+    // boundary(k) = floor(k * 1e9 / simulationHz)
+    if (config_.simulationHz == 0) return 0;
+    const std::uint64_t q = tickIndex / config_.simulationHz;
+    const std::uint64_t r = tickIndex % config_.simulationHz;
+    return q * 1'000'000'000ULL + (r * 1'000'000'000ULL) / config_.simulationHz;
+}
+
 std::uint64_t FixedStepAccumulator::tickDurationNs(std::uint64_t tickIndex) const noexcept {
     // Exact rational tick duration derived from boundary formula:
-    // duration(k) = floor((k + 1) * 1e9 / simulationHz) - floor(k * 1e9 / simulationHz)
-    // Telescoping sum over any K ticks is exact: sum_{k=0}^{K-1} duration(k) = floor(K * 1e9 / simulationHz).
+    // duration(k) = boundary(k + 1) - boundary(k)
+    // Telescoping sum over any K ticks is exact: sum_{k=0}^{K-1} duration(k) = boundary(K).
+    return tickBoundaryNs(tickIndex + 1) - tickBoundaryNs(tickIndex);
+}
+
+std::uint64_t FixedStepAccumulator::targetTickForElapsedNs(std::uint64_t totalElapsedNs) const noexcept {
+    // Largest tickIndex k such that tickBoundaryNs(k) <= totalElapsedNs.
+    // Analytically: floor(k * 1e9 / S) <= T <=> k <= floor(((T + 1) * S - 1) / 1e9).
     if (config_.simulationHz == 0) return 0;
-    const std::uint64_t q = 1'000'000'000ULL / config_.simulationHz;
-    const std::uint64_t r = 1'000'000'000ULL % config_.simulationHz;
-    if (r == 0) return q;
-    const std::uint64_t rem = (tickIndex % config_.simulationHz) * r % config_.simulationHz;
-    return q + ((rem + r >= config_.simulationHz) ? 1ULL : 0ULL);
+    if (totalElapsedNs == UINT64_MAX) return UINT64_MAX;
+
+#if defined(__SIZEOF_INT128__)
+    using uint128_t = unsigned __int128;
+    const uint128_t tPlus1 = static_cast<uint128_t>(totalElapsedNs) + 1;
+    const uint128_t num = tPlus1 * config_.simulationHz - 1;
+    return static_cast<std::uint64_t>(num / 1'000'000'000ULL);
+#elif defined(_MSC_VER) && defined(_M_X64)
+    unsigned __int64 high = 0;
+    const unsigned __int64 tPlus1 = totalElapsedNs + 1;
+    unsigned __int64 low = _umul128(tPlus1, config_.simulationHz, &high);
+    if (low == 0) {
+        --high;
+        low = UINT64_MAX;
+    } else {
+        --low;
+    }
+    unsigned __int64 rem = 0;
+    return _udiv128(high, low, 1'000'000'000ULL, &rem);
+#else
+    const std::uint64_t q = (totalElapsedNs + 1) / 1'000'000'000ULL;
+    const std::uint64_t r = (totalElapsedNs + 1) % 1'000'000'000ULL;
+    if (r * config_.simulationHz == 0) {
+        return (q * config_.simulationHz) - 1;
+    }
+    return q * config_.simulationHz + (r * config_.simulationHz - 1) / 1'000'000'000ULL;
+#endif
 }
 
 StepResult FixedStepAccumulator::advanceNs(std::uint64_t deltaNs) noexcept {
-    accumulatedNs_ += deltaNs;
-
-    const std::uint64_t tickNs = nominalTickNs_;
-    if (tickNs == 0) {
+    if (config_.simulationHz == 0) {
         return StepResult{};
     }
 
-    const auto ticksDue = static_cast<std::uint32_t>(accumulatedNs_ / tickNs);
+    if (UINT64_MAX - totalElapsedNs_ < deltaNs) {
+        totalElapsedNs_ = UINT64_MAX;
+    } else {
+        totalElapsedNs_ += deltaNs;
+    }
+
+    const std::uint64_t targetTick = targetTickForElapsedNs(totalElapsedNs_);
+    const std::uint64_t ticksDue = (targetTick >= currentTick_) ? (targetTick - currentTick_) : 0ULL;
 
     // Overload detection without silently discarding authoritative ticks (§20.3)
     const bool overload = (ticksDue >= config_.overloadThresholdTicks);
-    const std::uint32_t ticksToRun = std::min(ticksDue, config_.maxCatchUpTicksPerUpdate);
+    const auto ticksToRun = static_cast<std::uint32_t>(
+        std::min<std::uint64_t>(ticksDue, config_.maxCatchUpTicksPerUpdate)
+    );
 
     currentTick_ += ticksToRun;
-    accumulatedNs_ -= static_cast<std::uint64_t>(ticksToRun) * tickNs;
-
-    // Accumulate remainder of rational tick duration (§7.5, ADR-0002, DIF-M1-20)
-    // 1 tick = 1e9 / simulationHz ns. Nominal is floor(1e9 / simulationHz), remainder is 1e9 % simulationHz.
-    // For 120 Hz: nominal is 8'333'333 ns, remainder is 40 ns per second (1/3 ns per tick).
-    if (config_.simulationHz > 0) {
-        const std::uint64_t remainderPerTick = 1'000'000'000ULL % config_.simulationHz;
-        remainderNsAccum_ += static_cast<std::uint64_t>(ticksToRun) * remainderPerTick;
-        const std::uint64_t excessNs = accumulatedNs_ % tickNs;
-        while (remainderNsAccum_ >= config_.simulationHz && excessNs > 0 && accumulatedNs_ > 0) {
-            remainderNsAccum_ -= config_.simulationHz;
-            --accumulatedNs_;
-        }
-    }
 
     // interpolationAlpha must strictly be in [0.0f, 1.0f) even under backlog (§20.3, DIF-M1-20)
-    const std::uint64_t fractionalNs = accumulatedNs_ % tickNs;
-    float alpha = static_cast<float>(fractionalNs) / static_cast<float>(tickNs);
+    // Derived as the fraction of nanoseconds elapsed from the current tick boundary relative to tick duration.
+    const std::uint64_t currBoundary = tickBoundaryNs(currentTick_);
+    const std::uint64_t currDuration = tickDurationNs(currentTick_);
+    float alpha = 0.0f;
+    if (currDuration > 0 && totalElapsedNs_ >= currBoundary) {
+        const std::uint64_t elapsedInTick = totalElapsedNs_ - currBoundary;
+        alpha = static_cast<float>(elapsedInTick) / static_cast<float>(currDuration);
+    }
     if (alpha >= 1.0f) {
         alpha = std::nextafter(1.0f, 0.0f);
     } else if (alpha < 0.0f) {
@@ -104,29 +142,47 @@ StepResult FixedStepAccumulator::advanceNs(std::uint64_t deltaNs) noexcept {
 }
 
 StepResult FixedStepAccumulator::advanceSeconds(double deltaSeconds) noexcept {
-    if (deltaSeconds < 0.0) {
-        deltaSeconds = 0.0;
+    if (!std::isfinite(deltaSeconds) || deltaSeconds <= 0.0) {
+        return advanceNs(0);
     }
-    const auto deltaNs = static_cast<std::uint64_t>(deltaSeconds * 1e9);
+    const double totalNs = deltaSeconds * 1e9 + fractionalNs_;
+    if (totalNs <= 0.0) {
+        fractionalNs_ = totalNs;
+        return advanceNs(0);
+    }
+    if (totalNs >= static_cast<double>(UINT64_MAX)) {
+        fractionalNs_ = 0.0;
+        return advanceNs(UINT64_MAX);
+    }
+    const double rounded = std::round(totalNs);
+    const auto deltaNs = (std::abs(totalNs - rounded) < 1e-5)
+        ? static_cast<std::uint64_t>(rounded)
+        : static_cast<std::uint64_t>(totalNs);
+    fractionalNs_ = totalNs - static_cast<double>(deltaNs);
     return advanceNs(deltaNs);
 }
 
 void FixedStepAccumulator::reset() noexcept {
     currentTick_ = 0;
-    accumulatedNs_ = 0;
-    remainderNsAccum_ = 0;
+    totalElapsedNs_ = 0;
+    fractionalNs_ = 0.0;
+}
+
+std::uint64_t FixedStepAccumulator::accumulatedNs() const noexcept {
+    const std::uint64_t boundary = tickBoundaryNs(currentTick_);
+    return (totalElapsedNs_ >= boundary) ? (totalElapsedNs_ - boundary) : 0ULL;
 }
 
 void FixedStepAccumulator::reconcileAfterSuspension() noexcept {
     // Reconcile accumulator debt after technical suspension (§20.3)
-    accumulatedNs_ = 0;
-    remainderNsAccum_ = 0;
+    totalElapsedNs_ = tickBoundaryNs(currentTick_);
+    fractionalNs_ = 0.0;
 }
 
 void FixedStepAccumulator::reconcileToTick(std::uint64_t tick) noexcept {
     currentTick_ = tick;
-    accumulatedNs_ = 0;
-    remainderNsAccum_ = 0;
+    totalElapsedNs_ = tickBoundaryNs(tick);
+    fractionalNs_ = 0.0;
 }
 
 } // namespace cymatica::core

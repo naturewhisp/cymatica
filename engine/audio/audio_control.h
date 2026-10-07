@@ -31,18 +31,22 @@ enum class TransportState : std::uint32_t {
     Pausing  = 1,
     Paused   = 2,
     Resuming = 3,
+    Stopped  = 4,
 };
 
 [[nodiscard]] constexpr bool isValidTransportTransition(TransportState from, TransportState to) noexcept {
     if (from == to) return true;
+    if (to == TransportState::Stopped) return true; // * -> Stopped is valid per Spec §20.8
     switch (from) {
         case TransportState::Running:
-            return to == TransportState::Pausing || to == TransportState::Paused;
+            return to == TransportState::Pausing;
         case TransportState::Pausing:
             return to == TransportState::Paused;
         case TransportState::Paused:
-            return to == TransportState::Resuming || to == TransportState::Running;
+            return to == TransportState::Resuming;
         case TransportState::Resuming:
+            return to == TransportState::Running;
+        case TransportState::Stopped:
             return to == TransportState::Running;
         default:
             return false;

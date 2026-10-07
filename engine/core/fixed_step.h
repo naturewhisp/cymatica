@@ -25,19 +25,24 @@ public:
     [[nodiscard]] std::uint64_t tickToSampleFrame(std::uint64_t tickIndex) const noexcept;
     [[nodiscard]] std::uint64_t sampleFrameToTick(std::uint64_t sampleFrame) const noexcept;
 
-    // Exact rational tick duration in nanoseconds (§7.5, ADR-0002)
+    // Exact rational tick boundary and duration in nanoseconds (§7.5, ADR-0002)
+    [[nodiscard]] std::uint64_t tickBoundaryNs(std::uint64_t tickIndex) const noexcept;
     [[nodiscard]] std::uint64_t tickDurationNs(std::uint64_t tickIndex) const noexcept;
+
+    // Target tick index for a given cumulative elapsed time in nanoseconds
+    [[nodiscard]] std::uint64_t targetTickForElapsedNs(std::uint64_t totalElapsedNs) const noexcept;
 
     // Advances by integer nanoseconds (exact, deterministic across 60 vs 120 FPS feeds)
     StepResult advanceNs(std::uint64_t deltaNs) noexcept;
 
-    // Convenience helper converting seconds (double) to nanoseconds
+    // Convenience helper converting seconds (double) to nanoseconds with fraction preservation
     StepResult advanceSeconds(double deltaSeconds) noexcept;
 
     void reset() noexcept;
 
     [[nodiscard]] std::uint64_t currentTick() const noexcept { return currentTick_; }
-    [[nodiscard]] std::uint64_t accumulatedNs() const noexcept { return accumulatedNs_; }
+    [[nodiscard]] std::uint64_t totalElapsedNs() const noexcept { return totalElapsedNs_; }
+    [[nodiscard]] std::uint64_t accumulatedNs() const noexcept;
     [[nodiscard]] const FixedStepConfig& config() const noexcept { return config_; }
 
     // Reconcile/recover after technical suspension (§20.3)
@@ -47,9 +52,8 @@ public:
 private:
     FixedStepConfig config_;
     std::uint64_t currentTick_{0};
-    std::uint64_t accumulatedNs_{0};
-    std::uint64_t nominalTickNs_{8'333'333};
-    std::uint64_t remainderNsAccum_{0};
+    std::uint64_t totalElapsedNs_{0};
+    double fractionalNs_{0.0};
 };
 
 } // namespace cymatica::core

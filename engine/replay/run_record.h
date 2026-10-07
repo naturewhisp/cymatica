@@ -21,6 +21,7 @@ struct DecisionRecord {
 
 struct RuntimeIntervention {
     std::uint64_t sampleFrame{0};
+    std::uint64_t tick{0};
     std::string reason;
 
     [[nodiscard]] bool operator==(const RuntimeIntervention& other) const noexcept = default;
@@ -49,6 +50,12 @@ struct RunRecord {
     std::vector<DecisionRecord> decisions;
     std::vector<RuntimeIntervention> runtimeInterventions;
     std::map<std::string, double> finalMetrics; // Spec §15.7 schema: "final_metrics": {} (DIF-M1-14)
+
+    // Centralized fail-fast validation per Spec §23.4 (DIF-M1-23)
+    [[nodiscard]] bool validate(std::string* error = nullptr) const;
+
+    // Record technical suspension or runtime intervention and invalidate Pure Seed (§15, §20.3, DIF-M1-21)
+    void recordIntervention(std::uint64_t sampleFrame, std::string_view reason, std::uint64_t tick = 0);
 
     [[nodiscard]] std::string toJson() const;
     static RunRecord fromJson(std::string_view jsonStr);

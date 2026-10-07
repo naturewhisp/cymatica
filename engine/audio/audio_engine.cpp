@@ -32,7 +32,7 @@ struct AudioEngine::Impl {
     std::atomic<std::uint64_t> renderCursor{0};        // Synchronized authoritative 48 kHz timeline (DIF-M1-16)
     std::atomic<std::uint64_t> droppedAcks{0};         // Dropped command acks defensive counter (DIF-M1-07)
     std::uint64_t telemetrySequence{0};               // Sequence counter for telemetry drops (DIF-M1-13)
-    MusicClock musicClock{48000};
+    MusicClock musicClock{};
 
     // Lock-free exchange channels (§20.5–§20.7, ADR-0002)
     TripleBuffer<AudioTelemetryFrame> telemetryBuffer{};
@@ -58,30 +58,43 @@ struct AudioEngine::Impl {
             AudioCommandStatus status = AudioCommandStatus::Applied;
             switch (cmd.type) {
                 case AudioCommandType::Start:
-                    activeVolume = cmd.paramF32;
-                    ma_waveform_set_amplitude(&waveform, activeVolume);
-                    transportState = TransportState::Running;
+                    if (transportState == TransportState::Running ||
+                        isValidTransportTransition(transportState, TransportState::Running)) {
+                        activeVolume = cmd.paramF32;
+                        ma_waveform_set_amplitude(&waveform, activeVolume);
+                        transportState = TransportState::Running;
+                    } else {
+                        status = AudioCommandStatus::Rejected;
+                    }
                     break;
                 case AudioCommandType::Pause:
-                    if (transportState != TransportState::Paused) {
+                    if (isValidTransportTransition(transportState, TransportState::Pausing)) {
                         transportState = TransportState::Pausing;
                         ma_waveform_set_amplitude(&waveform, 0.0f);
                         transportState = TransportState::Paused;
                         ++transportEpoch;
+                    } else {
+                        status = AudioCommandStatus::Rejected;
                     }
                     break;
                 case AudioCommandType::Resume:
-                    if (transportState == TransportState::Paused) {
+                    if (isValidTransportTransition(transportState, TransportState::Resuming)) {
                         transportState = TransportState::Resuming;
                         ma_waveform_set_amplitude(&waveform, activeVolume);
                         transportState = TransportState::Running;
                         ++transportEpoch;
+                    } else {
+                        status = AudioCommandStatus::Rejected;
                     }
                     break;
                 case AudioCommandType::Stop:
-                    ma_waveform_set_amplitude(&waveform, 0.0f);
-                    transportState = TransportState::Paused;
-                    ++transportEpoch;
+                    if (isValidTransportTransition(transportState, TransportState::Stopped)) {
+                        ma_waveform_set_amplitude(&waveform, 0.0f);
+                        transportState = TransportState::Stopped;
+                        ++transportEpoch;
+                    } else {
+                        status = AudioCommandStatus::Rejected;
+                    }
                     break;
                 case AudioCommandType::SetTone:
                     ma_waveform_set_frequency(&waveform, cmd.paramF32);
@@ -101,14 +114,14 @@ struct AudioEngine::Impl {
             }
         }
 
-        // 3. Render PCM audio samples / handle paused silence (§20.8, DIF-M1-19)
-        if (transportState == TransportState::Paused) {
+        // 3. Render PCM audio samples / handle paused/stopped silence (§20.8, DIF-M1-19)
+        if (transportState == TransportState::Paused || transportState == TransportState::Stopped) {
             if (pOutput != nullptr && frameCount > 0) {
                 for (std::size_t i = 0; i < static_cast<std::size_t>(frameCount) * channels; ++i) {
                     pOutput[i] = 0.0f;
                 }
             }
-            // Timeline is frozen during pause
+            // Timeline is frozen during pause / stopped
         } else {
             if (pOutput != nullptr && frameCount > 0) {
                 ma_waveform_read_pcm_frames(&waveform, pOutput, frameCount, nullptr);

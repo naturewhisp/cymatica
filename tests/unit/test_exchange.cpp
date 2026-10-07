@@ -17,6 +17,12 @@ namespace {
 
 std::atomic<bool> gTrackAllocations{false};
 std::atomic<std::size_t> gAllocationCount{0};
+thread_local bool gInOperatorNew{false};
+
+struct NewGuard {
+    NewGuard() { gInOperatorNew = true; }
+    ~NewGuard() { gInOperatorNew = false; }
+};
 
 struct TestPayload {
     std::uint64_t seq{0};
@@ -44,6 +50,7 @@ void* operator new(std::size_t size) {
     if (gTrackAllocations.load(std::memory_order_relaxed)) {
         gAllocationCount.fetch_add(1, std::memory_order_relaxed);
     }
+    NewGuard guard;
     void* ptr = std::malloc(size);
     if (!ptr) throw std::bad_alloc();
     return ptr;
@@ -53,6 +60,7 @@ void* operator new[](std::size_t size) {
     if (gTrackAllocations.load(std::memory_order_relaxed)) {
         gAllocationCount.fetch_add(1, std::memory_order_relaxed);
     }
+    NewGuard guard;
     void* ptr = std::malloc(size);
     if (!ptr) throw std::bad_alloc();
     return ptr;
@@ -62,6 +70,7 @@ void* operator new(std::size_t size, const std::nothrow_t&) noexcept {
     if (gTrackAllocations.load(std::memory_order_relaxed)) {
         gAllocationCount.fetch_add(1, std::memory_order_relaxed);
     }
+    NewGuard guard;
     return std::malloc(size);
 }
 
@@ -69,6 +78,7 @@ void* operator new[](std::size_t size, const std::nothrow_t&) noexcept {
     if (gTrackAllocations.load(std::memory_order_relaxed)) {
         gAllocationCount.fetch_add(1, std::memory_order_relaxed);
     }
+    NewGuard guard;
     return std::malloc(size);
 }
 
@@ -96,17 +106,122 @@ void operator delete[](void* ptr, const std::nothrow_t&) noexcept {
     std::free(ptr);
 }
 
+// C++17 Aligned allocation overloads (DIF-M1-25)
+void* operator new(std::size_t size, std::align_val_t al) {
+    if (gTrackAllocations.load(std::memory_order_relaxed)) {
+        gAllocationCount.fetch_add(1, std::memory_order_relaxed);
+    }
+    NewGuard guard;
+#if defined(_MSC_VER)
+    void* ptr = _aligned_malloc(size, static_cast<size_t>(al));
+#else
+    void* ptr = std::aligned_alloc(static_cast<size_t>(al), size);
+#endif
+    if (!ptr) throw std::bad_alloc();
+    return ptr;
+}
+
+void* operator new[](std::size_t size, std::align_val_t al) {
+    if (gTrackAllocations.load(std::memory_order_relaxed)) {
+        gAllocationCount.fetch_add(1, std::memory_order_relaxed);
+    }
+    NewGuard guard;
+#if defined(_MSC_VER)
+    void* ptr = _aligned_malloc(size, static_cast<size_t>(al));
+#else
+    void* ptr = std::aligned_alloc(static_cast<size_t>(al), size);
+#endif
+    if (!ptr) throw std::bad_alloc();
+    return ptr;
+}
+
+void* operator new(std::size_t size, std::align_val_t al, const std::nothrow_t&) noexcept {
+    if (gTrackAllocations.load(std::memory_order_relaxed)) {
+        gAllocationCount.fetch_add(1, std::memory_order_relaxed);
+    }
+    NewGuard guard;
+#if defined(_MSC_VER)
+    return _aligned_malloc(size, static_cast<size_t>(al));
+#else
+    return std::aligned_alloc(static_cast<size_t>(al), size);
+#endif
+}
+
+void* operator new[](std::size_t size, std::align_val_t al, const std::nothrow_t&) noexcept {
+    if (gTrackAllocations.load(std::memory_order_relaxed)) {
+        gAllocationCount.fetch_add(1, std::memory_order_relaxed);
+    }
+    NewGuard guard;
+#if defined(_MSC_VER)
+    return _aligned_malloc(size, static_cast<size_t>(al));
+#else
+    return std::aligned_alloc(static_cast<size_t>(al), size);
+#endif
+}
+
+void operator delete(void* ptr, std::align_val_t) noexcept {
+#if defined(_MSC_VER)
+    _aligned_free(ptr);
+#else
+    std::free(ptr);
+#endif
+}
+
+void operator delete[](void* ptr, std::align_val_t) noexcept {
+#if defined(_MSC_VER)
+    _aligned_free(ptr);
+#else
+    std::free(ptr);
+#endif
+}
+
+void operator delete(void* ptr, std::size_t, std::align_val_t al) noexcept {
+    operator delete(ptr, al);
+}
+
+void operator delete[](void* ptr, std::size_t, std::align_val_t al) noexcept {
+    operator delete[](ptr, al);
+}
+
+#if defined(_MSC_VER) && defined(_DEBUG)
+#include <crtdbg.h>
+static int CrtAllocTrackerHook(int allocType, void* /*userData*/, size_t /*size*/,
+                              int blockType, long /*requestNumber*/,
+                              const unsigned char* /*filename*/, int /*lineNumber*/) {
+    if (blockType == _CRT_BLOCK || gInOperatorNew) {
+        return 1;
+    }
+    if (allocType == _HOOK_ALLOC || allocType == _HOOK_REALLOC) {
+        if (gTrackAllocations.load(std::memory_order_relaxed)) {
+            gAllocationCount.fetch_add(1, std::memory_order_relaxed);
+        }
+    }
+    return 1;
+}
+#endif
+
 struct AllocationScope {
     AllocationScope() {
         gAllocationCount.store(0, std::memory_order_seq_cst);
         gTrackAllocations.store(true, std::memory_order_seq_cst);
+#if defined(_MSC_VER) && defined(_DEBUG)
+        oldHook_ = _CrtSetAllocHook(CrtAllocTrackerHook);
+#endif
     }
     ~AllocationScope() {
         gTrackAllocations.store(false, std::memory_order_seq_cst);
+#if defined(_MSC_VER) && defined(_DEBUG)
+        _CrtSetAllocHook(oldHook_);
+#endif
     }
     [[nodiscard]] std::size_t count() const noexcept {
         return gAllocationCount.load(std::memory_order_seq_cst);
     }
+
+#if defined(_MSC_VER) && defined(_DEBUG)
+private:
+    _CRT_ALLOC_HOOK oldHook_{nullptr};
+#endif
 };
 
 TEST_CASE("TripleBuffer provides coherent snapshots without tearing under concurrent access", "[exchange][concurrency]") {
@@ -423,13 +538,57 @@ TEST_CASE("AudioEngine transport state machine handles pause and resume per Spec
     }
     REQUIRE(hasSound);
 
-    // Verify valid and invalid transitions per Spec §20.8
+    // 4. Invalid transitions sent via command are rejected with AudioCommandStatus::Rejected
+    // Sending Resume while already Running:
+    REQUIRE(engine.sendCommand(AudioCommand{
+        .commandId = 3,
+        .type = AudioCommandType::Resume,
+    }));
+    engine.processBlock(buffer.data(), 512);
+    REQUIRE(engine.pollAck(ack));
+    REQUIRE(ack.commandId == 3);
+    REQUIRE(ack.status == AudioCommandStatus::Rejected);
+
+    // Pause the engine again:
+    REQUIRE(engine.sendCommand(AudioCommand{
+        .commandId = 4,
+        .type = AudioCommandType::Pause,
+    }));
+    engine.processBlock(buffer.data(), 512);
+    REQUIRE(engine.pollAck(ack));
+    REQUIRE(ack.status == AudioCommandStatus::Applied);
+
+    // Sending Pause while already Paused:
+    REQUIRE(engine.sendCommand(AudioCommand{
+        .commandId = 5,
+        .type = AudioCommandType::Pause,
+    }));
+    engine.processBlock(buffer.data(), 512);
+    REQUIRE(engine.pollAck(ack));
+    REQUIRE(ack.commandId == 5);
+    REQUIRE(ack.status == AudioCommandStatus::Rejected);
+
+    // Sending Start while Paused (must use Resume instead):
+    REQUIRE(engine.sendCommand(AudioCommand{
+        .commandId = 6,
+        .type = AudioCommandType::Start,
+    }));
+    engine.processBlock(buffer.data(), 512);
+    REQUIRE(engine.pollAck(ack));
+    REQUIRE(ack.commandId == 6);
+    REQUIRE(ack.status == AudioCommandStatus::Rejected);
+
+    // Verify valid and invalid transitions per Spec §20.8 (DIF-M1-19)
     REQUIRE(isValidTransportTransition(TransportState::Running, TransportState::Pausing));
     REQUIRE(isValidTransportTransition(TransportState::Pausing, TransportState::Paused));
     REQUIRE(isValidTransportTransition(TransportState::Paused, TransportState::Resuming));
     REQUIRE(isValidTransportTransition(TransportState::Resuming, TransportState::Running));
-    REQUIRE(isValidTransportTransition(TransportState::Running, TransportState::Paused));
-    REQUIRE(isValidTransportTransition(TransportState::Paused, TransportState::Running));
+    REQUIRE(isValidTransportTransition(TransportState::Running, TransportState::Stopped));
+    REQUIRE(isValidTransportTransition(TransportState::Paused, TransportState::Stopped));
+    REQUIRE(isValidTransportTransition(TransportState::Stopped, TransportState::Running));
+    // Direct jumps are strictly rejected: system must traverse intermediate transient states (§20.8)
+    REQUIRE_FALSE(isValidTransportTransition(TransportState::Running, TransportState::Paused));
+    REQUIRE_FALSE(isValidTransportTransition(TransportState::Paused, TransportState::Running));
     REQUIRE_FALSE(isValidTransportTransition(TransportState::Paused, TransportState::Pausing));
     REQUIRE_FALSE(isValidTransportTransition(TransportState::Running, TransportState::Resuming));
 
@@ -458,21 +617,45 @@ TEST_CASE("SpscQueue size handles counter wrap and boundaries safely", "[exchang
 }
 
 TEST_CASE("AudioEngine processBlock performs zero heap allocations post-init", "[exchange][audio][zero_alloc]") {
+    // Static audit of AudioEngine::Impl::processBlock (realtime callback path):
+    // 1. controlBuffer.update(): lock-free slot index swap using preallocated TripleBuffer.
+    // 2. commandQueue.tryPop() / ackQueue.tryPush(): bounded wait-free circular buffer ring.
+    // 3. ma_waveform_read_pcm_frames(): pure arithmetic sine wave calculation (pOutput[i] = sinf(phase))
+    //    directly writing into caller-provided float buffer, zero heap/CRT allocations.
+    // 4. musicClock.deviceToInternalFrames() / positionAtFrame(): integer math and float phase derivation.
+    // 5. telemetryBuffer.writeSlot() / publish(): preallocated TripleBuffer slot assignment.
+    // Zero allocations across standard new/new[], aligned new, and CRT heap hooks (DIF-M1-25).
+
     AudioEngine engine;
     REQUIRE(engine.init({48000, 2, 220.0f}));
 
     std::vector<float> buffer(512 * 2, 0.0f);
 
-    // Verify tracker is functioning (non-tautological test)
+    // Verify tracker is functioning across both standard and aligned allocations (non-tautological test)
     {
         AllocationScope scope;
         volatile auto* dummy = new int(42);
         delete dummy;
         REQUIRE(scope.count() == 1);
     }
+    {
+        AllocationScope scope;
+        struct alignas(64) AlignedTest { char data[64]{}; };
+        auto* alignedDummy = new AlignedTest();
+        delete alignedDummy;
+        REQUIRE(scope.count() == 1);
+    }
+#if defined(_MSC_VER) && defined(_DEBUG)
+    {
+        AllocationScope scope;
+        void* rawMalloc = std::malloc(64);
+        std::free(rawMalloc);
+        REQUIRE(scope.count() == 1);
+    }
+#endif
 
     // Process blocks while sending commands and publishing continuous controls
-    // Verifies 0 heap allocations across entire realtime exchange path (Spec §20.2, §32)
+    // Verifies 0 heap allocations across entire realtime exchange path (Spec §20.2, §32, DIF-M1-25)
     {
         AllocationScope scope;
         for (int b = 0; b < 100; ++b) {
