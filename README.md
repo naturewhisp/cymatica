@@ -26,6 +26,8 @@ Priorità M0–M7: Infinite Resonance e vertical slice. Tool CLI, formati di sca
 
 ## Prossimo lavoro
 
+M2 è organizzata in cinque sottofasi: decisioni/contratti, controllo e osservazione del tono, transport/scheduler, musica procedurale, integrazione/verifica finale. La [specifica §32](CYMATICA_Specifica_Agentica_Sviluppo.md) definisce dipendenze e verifiche; [progress.md](docs/progress.md) ne traccia l'esecuzione. Rimane un unico gate finale M2 con tutti i criteri esistenti e la review indipendente.
+
 M2 deve introdurre Music Intent, scheduler e musica procedurale v1. Setup e comandi esistenti sono in [docs/build.md](docs/build.md). L'estensione agentica parte dal test 220 → 440 → 220 Hz sulla baseline M1 e da AudioProbe, con contratti e capacità da congelare prima dell'implementazione (specifica §31.5/§32).
 
 Il contratto minimo del player è congelato in [docs/player_contract_m1.md](docs/player_contract_m1.md); prima di M3/M4 costruire e verificare lo spike con movimento, un pattern, telegraph e fallback. Cimatica e adattamento sono modelli di design da validare, non prove di accuratezza fisica o psicologica.

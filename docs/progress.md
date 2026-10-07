@@ -90,6 +90,20 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 
 **Milestone 2 — Music Intent e musica procedurale v1** (Spec §32): prima forma musicale simbolica condivisa (form/phrase skeleton, 4 ruoli musicali Pulso/Corpo/Trama/Vettore, ritmi euclidei, scale/modi, memoria di motivo minima, `MusicIntentEvent`, scheduler ahead-of-time, synth/mix base, telemetria coerente).
 
+### Sottofasi operative M2
+
+Suddivisione richiesta dal titolare il 2026-10-07; roadmap e criteri autoritativi in specifica §32, «Sottofasi operative M2». Nessuna sottofase completata o nuova evidenza runtime attestata da questa modifica documentale. Stato complessivo invariato: M2 attiva.
+
+| Sottofase | Stato | Evidenze / prossimo passo |
+|---|---|---|
+| M2.1 — Decisioni e contratti | **Da eseguire** | Congelare D-M2-01/02/03 e D-AO-01/02 prima dei task dipendenti; registrare parametri, limiti e verifiche. |
+| M2.2 — Controllo e osservazione del tono | **Da eseguire** | Implementare dispatcher comune e sonde; verificare AC-AO-01A, registrare AC-AO-01B separatamente. |
+| M2.3 — Transport e scheduler | **Da eseguire** | Implementare SetTempoMap/ack e scheduler bounded; raccogliere test timing/backpressure. |
+| M2.4 — Musica procedurale v1 | **Da eseguire** | Generatori, quattro ruoli, synth/mix e due sezioni; test/event trace e integrazione scheduler. |
+| M2.5 — Integrazione e verifica finale | **Da eseguire** | AC-AO-02, criteri originali M2 e review indipendente iterativa; record di build/profilo/procedura ed evidenza per ogni mandatory. |
+
+La tabella traccia l'esecuzione e rinvia alla specifica per dipendenze e criteri. Aggiornare gli stati solo su evidenze: il passaggio interno non chiude M2 o autorizza M3. Nessun gate esistente viene rimosso; le capacità esterne supplementari restano distinte dai mandatory del progetto.
+
 ### Requisiti e decisioni d'ingresso M2
 
 | ID | Requisito / Decisione | Stato | Dettagli |

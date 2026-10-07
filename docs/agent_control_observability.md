@@ -139,6 +139,8 @@ L'identificatore `AC-AO-01` designa due verifiche distinte:
 
 ## 10. Roadmap delle verifiche
 
+L'esecuzione di M2 è suddivisa in M2.1–M2.5 nella specifica §32: contratti, tono/sonde, transport/scheduler, musica procedurale e verifica integrata. AC-AO-01A/01B appartengono a M2.2, AC-AO-02 alla verifica M2.5; le sonde vengono così costruite prima della valutazione della musica complessa. Dipendenze e gate restano definiti nella specifica, stato ed evidenze in [progress.md](progress.md). Questa suddivisione non anticipa VisualProbe o streaming e non modifica l'obbligatorietà dei criteri.
+
 Questi ID identificano le estensioni in specifica §32; i dettagli dei profili si congelano nei decision record all'ingresso di ogni milestone. I gate del progetto restano obbligatori: produrre/correlare artefatti, verificare budget e contratti e registrare il risultato. La consegna audiovisiva al modello e il suo giudizio sono verifiche supplementari dipendenti dal client, da riportare separatamente anche in M3–M8. In M6/M7 il report dello spike e il benchmark locale sono obbligatori; ricezione/analisi video live da parte del client possono risultare `unsupported`/`blocked` senza impedire la chiusura della milestone. Nessun criterio originale di ascolto umano, accessibilità, hardware o playtest viene reso facoltativo; una capacità mancante nel progetto non si riclassifica come limite del client.
 
 | Milestone | Incremento | Accettazione dell'estensione |
