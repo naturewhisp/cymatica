@@ -90,19 +90,29 @@ TEST_CASE("randomRangeI32 produces values in half-open [min, max) without bias",
 
     constexpr std::int32_t kMin = -5;
     constexpr std::int32_t kMax = 10;
-    std::vector<int> counts(kMax - kMin, 0);
+    constexpr std::size_t kNumBins = kMax - kMin; // 15 bins
+    constexpr std::uint32_t kSamples = 30000;
+    constexpr double kExpectedPerBin = static_cast<double>(kSamples) / static_cast<double>(kNumBins); // 2000.0
 
-    for (std::uint32_t i = 0; i < 15000; ++i) {
+    std::vector<int> counts(kNumBins, 0);
+
+    for (std::uint32_t i = 0; i < kSamples; ++i) {
         const std::int32_t val = bank.sampleRangeI32(StreamId::Harmony, 42, kMin, kMax, i);
         REQUIRE(val >= kMin);
         REQUIRE(val < kMax);
-        counts[val - kMin]++;
+        counts[static_cast<std::size_t>(val - kMin)]++;
     }
 
-    // Every bin in [-5, 10) must have received non-zero samples
+    // Chi-Squared goodness-of-fit test for discrete uniform distribution
+    // For 14 degrees of freedom: chi2 critical value at p=0.001 is 36.12
+    double chiSquare = 0.0;
     for (int c : counts) {
-        REQUIRE(c > 0);
+        const double diff = static_cast<double>(c) - kExpectedPerBin;
+        chiSquare += (diff * diff) / kExpectedPerBin;
+        // Each bin must be within 12% of expected count
+        REQUIRE(std::abs(diff) < 0.12 * kExpectedPerBin);
     }
+    REQUIRE(chiSquare < 36.12);
 }
 
 TEST_CASE("randomRangeI32 handles large signed spans without integer overflow", "[random][math][bounds]") {

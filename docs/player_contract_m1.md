@@ -1,14 +1,16 @@
 # CYMATICA — Contratto minimo del giocatore per il validatore (M1)
 
-Documento contrattuale richiesto da `CYMATICA_Specifica_Agentica_Sviluppo.md` §32 (Milestone 1) e `AGENTS.md` §1 per riconciliare `DESIGN.md` §6.2.1 e §17.2.
-Ultimo aggiornamento: 2026-10-06.
+Documento contrattuale richiesto da `CYMATICA_Specifica_Agentica_Sviluppo.md` §32 (Milestone 1) e `AGENTS.md` §1 per riconciliare `DESIGN.md` §6.2.1, §17.2 e §24.
+- **Stato normativo:** accepted for implementation (profilo iniziale congelato per il validatore M4; non empiricamente validato fino a M5/M7).
+- **Ultimo aggiornamento:** 2026-10-07.
 
 ---
 
 ## 1. Scopo
 
 Il validatore di raggiungibilità e fairness (Milestone 4) e la prima generazione di pattern giocabili (Milestone 3) richiedono un profilo cinematico e geometrico congelato del giocatore (**Seme**).
-Questo documento fissa tali parametri in M1 come **baseline contrattuale per la validazione**. L'implementazione completa del movimento a gamepad/tastiera appartiene a M3, e la rifinitura del game feel a M5; tuttavia, M4 validerà i pattern rispetto a questo profilo congelato.
+In conformità a `DESIGN.md §24` e `AGENTS.md §1.1`, le open question di design non autorizzano l'introduzione autonoma di risposte permanenti. Questo documento fissa tali parametri in M1 esclusivamente come **baseline contrattuale accettata per l'implementazione (PlayerProfile_v1)** necessaria a consentire la costruzione del validatore algoritmico.
+Questi valori **non sono marcati come validated**, in quanto la validazione empirica avverrà attraverso playtest umano e rifinitura in Milestone 5 (game feel) e Milestone 7 (visual balance). L'implementazione completa del movimento appartiene a M3; M4 validerà i pattern rispetto a questa baseline.
 
 ---
 

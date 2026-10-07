@@ -74,27 +74,55 @@ TEST_CASE("MusicClock 127.5 BPM beat boundaries are exact for b in [0, 68]", "[c
     }
 }
 
-TEST_CASE("MusicClock setTempoMap validates defensive defaults on zero values", "[clock][validation]") {
+TEST_CASE("MusicClock setTempoMap rejects invalid or unsupported configurations explicitly", "[clock][validation]") {
     MusicClock clock(48000);
 
+    // 1. Invalid zero values must fail explicitly per Spec §7.5 / DIF-M1-22
     TempoMap invalidMap;
     invalidMap.bpm = RationalBpm{0, 0};
     invalidMap.beatsPerBar = 0;
     invalidMap.barsPerPhrase = 0;
     invalidMap.subdivisionsPerBeat = 0;
+    REQUIRE_FALSE(clock.setTempoMap(invalidMap));
 
-    clock.setTempoMap(invalidMap);
+    // Initial valid defaults are preserved
+    const auto& current = clock.tempoMap();
+    REQUIRE(current.bpm.numerator == 120);
+    REQUIRE(current.bpm.denominator == 1);
+    REQUIRE(current.beatsPerBar == 4);
+    REQUIRE(current.barsPerPhrase == 4);
+    REQUIRE(current.subdivisionsPerBeat == 4);
 
-    const auto& sanitized = clock.tempoMap();
-    REQUIRE(sanitized.bpm.numerator == 120);
-    REQUIRE(sanitized.bpm.denominator == 1);
-    REQUIRE(sanitized.beatsPerBar == 4);
-    REQUIRE(sanitized.barsPerPhrase == 4);
-    REQUIRE(sanitized.subdivisionsPerBeat == 4);
+    // 2. Inconsistent configuration (e.g., 3/8 declared with beatsPerBar=4) must fail explicitly
+    TempoMap inconsistentMap;
+    inconsistentMap.bpm = RationalBpm{120, 1};
+    inconsistentMap.timeSignatureNum = 3;
+    inconsistentMap.timeSignatureDen = 8;
+    inconsistentMap.beatsPerBar = 4;
+    inconsistentMap.barsPerPhrase = 4;
+    inconsistentMap.subdivisionsPerBeat = 4;
+    REQUIRE_FALSE(clock.setTempoMap(inconsistentMap));
 
-    // positionAtFrame still executes deterministically without division by zero
-    const auto pos = clock.positionAtFrame(24000);
-    REQUIRE(pos.beat == 1);
+    // 3. Unsupported non-4/4 configuration under M1 prototype scope must fail explicitly
+    TempoMap unsupportedMap;
+    unsupportedMap.bpm = RationalBpm{120, 1};
+    unsupportedMap.timeSignatureNum = 3;
+    unsupportedMap.timeSignatureDen = 4;
+    unsupportedMap.beatsPerBar = 3;
+    unsupportedMap.barsPerPhrase = 4;
+    unsupportedMap.subdivisionsPerBeat = 4;
+    REQUIRE_FALSE(clock.setTempoMap(unsupportedMap));
+
+    // 4. Valid supported configuration (4/4, 140 BPM) succeeds
+    TempoMap validMap;
+    validMap.bpm = RationalBpm{140, 1};
+    validMap.timeSignatureNum = 4;
+    validMap.timeSignatureDen = 4;
+    validMap.beatsPerBar = 4;
+    validMap.barsPerPhrase = 4;
+    validMap.subdivisionsPerBeat = 4;
+    REQUIRE(clock.setTempoMap(validMap));
+    REQUIRE(clock.tempoMap().bpm.numerator == 140);
 }
 
 TEST_CASE("MusicPosition derives structured musical coordinates correctly", "[clock][position]") {

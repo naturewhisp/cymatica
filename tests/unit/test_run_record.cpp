@@ -42,4 +42,71 @@ TEST_CASE("RunRecord serializes to JSON and round-trips correctly", "[replay][js
 
     const RunRecord restored = RunRecord::fromJson(jsonOutput);
     REQUIRE(restored == original);
+    REQUIRE(restored.timingProfile.sampleRate == 48000);
+    REQUIRE(restored.timingProfile.simulationHz == 120);
+    REQUIRE(restored.timingProfile.framesPerTick == 400);
+    REQUIRE(restored.pureSeedEligible == true);
+}
+
+TEST_CASE("RunRecord fromJson enforces Spec section 23.4 fail-fast validation", "[replay][json][validation]") {
+    // 1. Missing schema_version must throw
+    const std::string missingSchema = R"({
+        "rng_version": 1,
+        "run_seed_u64": 12345,
+        "timing_profile": { "sample_rate": 48000, "simulation_hz": 120, "frames_per_tick": 400 }
+    })";
+    REQUIRE_THROWS_AS(RunRecord::fromJson(missingSchema), std::runtime_error);
+
+    // 2. Incompatible schema_version must throw
+    const std::string incompatibleSchema = R"({
+        "schema_version": 99,
+        "rng_version": 1,
+        "run_seed_u64": 12345,
+        "timing_profile": { "sample_rate": 48000, "simulation_hz": 120, "frames_per_tick": 400 }
+    })";
+    REQUIRE_THROWS_AS(RunRecord::fromJson(incompatibleSchema), std::runtime_error);
+
+    // 3. Incompatible rng_version must throw
+    const std::string incompatibleRng = R"({
+        "schema_version": 1,
+        "rng_version": 42,
+        "run_seed_u64": 12345,
+        "timing_profile": { "sample_rate": 48000, "simulation_hz": 120, "frames_per_tick": 400 }
+    })";
+    REQUIRE_THROWS_AS(RunRecord::fromJson(incompatibleRng), std::runtime_error);
+
+    // 4. Inconsistent run_seed and run_seed_u64 must throw (§23.4 / DIF-M1-23)
+    const std::string inconsistentSeed = R"({
+        "schema_version": 1,
+        "rng_version": 1,
+        "run_seed": "0x000000000000000a",
+        "run_seed_u64": 999,
+        "timing_profile": { "sample_rate": 48000, "simulation_hz": 120, "frames_per_tick": 400 }
+    })";
+    REQUIRE_THROWS_AS(RunRecord::fromJson(inconsistentSeed), std::runtime_error);
+
+    // 5. Missing timing_profile must throw (§7.5 / DIF-M1-23)
+    const std::string missingTiming = R"({
+        "schema_version": 1,
+        "rng_version": 1,
+        "run_seed_u64": 10
+    })";
+    REQUIRE_THROWS_AS(RunRecord::fromJson(missingTiming), std::runtime_error);
+
+    // 6. Missing run_seed and run_seed_u64 must throw
+    const std::string missingSeed = R"({
+        "schema_version": 1,
+        "rng_version": 1,
+        "timing_profile": { "sample_rate": 48000, "simulation_hz": 120, "frames_per_tick": 400 }
+    })";
+    REQUIRE_THROWS_AS(RunRecord::fromJson(missingSeed), std::runtime_error);
+
+    // 7. Non-positive timing_profile values must throw
+    const std::string invalidTiming = R"({
+        "schema_version": 1,
+        "rng_version": 1,
+        "run_seed_u64": 10,
+        "timing_profile": { "sample_rate": 48000, "simulation_hz": 0, "frames_per_tick": 400 }
+    })";
+    REQUIRE_THROWS_AS(RunRecord::fromJson(invalidTiming), std::runtime_error);
 }

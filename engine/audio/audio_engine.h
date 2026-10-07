@@ -33,6 +33,7 @@ public:
     void stopTone();
 
     [[nodiscard]] bool isRunning() const noexcept;
+    [[nodiscard]] TransportState transportState() const noexcept;
     [[nodiscard]] std::uint64_t framesRendered() const noexcept;
     [[nodiscard]] std::uint32_t sampleRate() const noexcept;
 

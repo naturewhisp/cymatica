@@ -31,7 +31,7 @@ public:
 
     [[nodiscard]] std::uint64_t internalSampleRate() const noexcept { return sampleRate_; }
     [[nodiscard]] const TempoMap& tempoMap() const noexcept { return tempoMap_; }
-    void setTempoMap(const TempoMap& map) noexcept;
+    [[nodiscard]] bool setTempoMap(const TempoMap& map) noexcept;
 
 private:
     std::uint64_t sampleRate_{48000};

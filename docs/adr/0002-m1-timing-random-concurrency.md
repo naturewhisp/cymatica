@@ -66,8 +66,9 @@ La Milestone 1 fonda il runtime non deterministico riproducibile di CYMATICA. Ri
 - Adozione di `nlohmann/json` v3.11.3 (licenza MIT, commit `9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03`).
 - Dipendenza confinata a `engine/replay` e ai test. `engine/core` rimane privo di dipendenze esterne.
 
-### D-M1-05: Contratto player minimo per validatore M4 (Spec §32, DESIGN §6.2.1)
+### D-M1-05: Contratto player minimo per validatore M4 (Spec §32, DESIGN §6.2.1, §24)
 
+- **Stato:** accepted for implementation (profilo congelato per validatore M4; validazione empirica differita a playtest M5/M7 per DESIGN §24).
 - Parametri base del Seme formalizzati in `docs/player_contract_m1.md`: raggio hitbox $R_{hit} = 3.0\text{ px}$, velocità max $V_{max} = 240.0\text{ px/s}$, distanza dash $D_{dash} = 96.0\text{ px}$, cooldown dash $C_{dash} = 60\text{ tick}$ (0.5 s a 120 Hz), invulnerabilità durante il phase shift.
 
 ---

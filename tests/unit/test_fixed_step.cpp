@@ -14,8 +14,22 @@ TEST_CASE("FixedStepAccumulator boundary formula matches Spec section 7.5 exactl
     REQUIRE(acc.tickToSampleFrame(120ULL * 3600ULL) == 48000ULL * 3600ULL);
 
     REQUIRE(acc.sampleFrameToTick(0) == 0);
+    // Spec §7.5 / DIF-M1-15: first tick whose boundary is >= sampleFrame
+    REQUIRE(acc.sampleFrameToTick(1) == 1);
+    REQUIRE(acc.sampleFrameToTick(200) == 1);
+    REQUIRE(acc.sampleFrameToTick(399) == 1);
     REQUIRE(acc.sampleFrameToTick(400) == 1);
+    REQUIRE(acc.sampleFrameToTick(401) == 2);
+    REQUIRE(acc.sampleFrameToTick(799) == 2);
+    REQUIRE(acc.sampleFrameToTick(800) == 2);
+    REQUIRE(acc.sampleFrameToTick(801) == 3);
     REQUIRE(acc.sampleFrameToTick(48000) == 120);
+
+    // Rational tick duration in nanoseconds: 3 ticks = exact 25,000,000 ns
+    REQUIRE(acc.tickDurationNs(0) == 8'333'333);
+    REQUIRE(acc.tickDurationNs(1) == 8'333'333);
+    REQUIRE(acc.tickDurationNs(2) == 8'333'334);
+    REQUIRE(acc.tickDurationNs(0) + acc.tickDurationNs(1) + acc.tickDurationNs(2) == 25'000'000);
 }
 
 TEST_CASE("60 FPS and 120 FPS feeds produce equivalent simulation tick sequences", "[fixed_step][equivalence]") {
@@ -73,5 +87,48 @@ TEST_CASE("FixedStepAccumulator signals technical suspension on severe overload"
 
     // System reconciles after technical suspension (§20.3)
     acc.reconcileAfterSuspension();
+    REQUIRE(acc.accumulatedNs() == 0);
+}
+
+TEST_CASE("FixedStepAccumulator reconcileToTick synchronizes state cleanly", "[fixed_step][reconcile]") {
+    FixedStepAccumulator acc({48000, 120, 4, 16});
+    acc.advanceNs(100'000'000ULL);
+    REQUIRE(acc.currentTick() > 0);
+
+    acc.reconcileToTick(42000);
+    REQUIRE(acc.currentTick() == 42000);
+    REQUIRE(acc.accumulatedNs() == 0);
+}
+
+TEST_CASE("FixedStepAccumulator interpolationAlpha is strictly within [0.0f, 1.0f) during backlog", "[fixed_step][alpha]") {
+    FixedStepAccumulator acc({48000, 120, 4, 16});
+
+    // Feed a backlog of 10 ticks (max catch up is 4)
+    constexpr std::uint64_t spikeNs = 10ULL * (1'000'000'000ULL / 120ULL);
+    const auto step = acc.advanceNs(spikeNs);
+
+    REQUIRE(step.ticksToRun == 4);
+    REQUIRE(step.interpolationAlpha >= 0.0f);
+    REQUIRE(step.interpolationAlpha < 1.0f);
+}
+
+TEST_CASE("FixedStepAccumulator maintains zero drift with rational remainder over 60 virtual hours", "[fixed_step][timing]") {
+    FixedStepAccumulator acc({48000, 120, 4, 16});
+
+    // 60 virtual hours: 60 * 3600 = 216,000 seconds
+    // At 120 Hz, each second is exactly 120 ticks. Total = 216,000 * 120 = 25,920,000 ticks.
+    // Each second delivers exactly 1,000,000,000 ns across 30 updates of 4 ticks:
+    // 10 updates of 33,333,334 ns + 20 updates of 33,333,333 ns = exactly 1,000,000,000 ns/s.
+    for (int s = 0; s < 216000; ++s) {
+        for (int chunk = 0; chunk < 10; ++chunk) {
+            acc.advanceNs(33'333'334ULL);
+        }
+        for (int chunk = 0; chunk < 20; ++chunk) {
+            acc.advanceNs(33'333'333ULL);
+        }
+    }
+    // Exactly 216,000 * 120 = 25,920,000 ticks over 60 full virtual hours
+    REQUIRE(acc.currentTick() == 25'920'000ULL);
+    // After 60 full virtual hours of exact rational seconds, accumulated leftover is 0
     REQUIRE(acc.accumulatedNs() == 0);
 }

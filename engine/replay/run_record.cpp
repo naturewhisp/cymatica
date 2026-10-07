@@ -1,8 +1,10 @@
 #include "run_record.h"
 
-#include <nlohmann/json.hpp>
+#include <cmath>
 #include <iomanip>
+#include <nlohmann/json.hpp>
 #include <sstream>
+#include <stdexcept>
 
 namespace cymatica::replay {
 
@@ -29,6 +31,13 @@ std::string RunRecord::toJson() const {
 
     j["mode"] = mode;
     j["difficulty_policy"] = difficultyPolicy;
+    j["pure_seed_eligible"] = pureSeedEligible;
+
+    j["timing_profile"] = {
+        {"sample_rate", timingProfile.sampleRate},
+        {"simulation_hz", timingProfile.simulationHz},
+        {"frames_per_tick", timingProfile.framesPerTick}
+    };
 
     json decArray = json::array();
     for (const auto& d : decisions) {
@@ -62,8 +71,61 @@ std::string RunRecord::toJson() const {
 RunRecord RunRecord::fromJson(std::string_view jsonStr) {
     const json j = json::parse(jsonStr);
 
+    // 1. schema_version is mandatory; parser fail-fast on incompatible major (§23.4)
+    if (!j.contains("schema_version")) {
+        throw std::runtime_error("RunRecord: missing mandatory field 'schema_version'");
+    }
+    const auto schemaVer = j["schema_version"].get<std::uint32_t>();
+    if (schemaVer != core::RUN_RECORD_SCHEMA_VERSION) {
+        throw std::runtime_error("RunRecord: unsupported schema_version " + std::to_string(schemaVer));
+    }
+
+    // 2. rng_version is mandatory; fail-fast on unknown rng_version (§23.4)
+    if (!j.contains("rng_version")) {
+        throw std::runtime_error("RunRecord: missing mandatory field 'rng_version'");
+    }
+    const auto rngVer = j["rng_version"].get<std::uint32_t>();
+    if (rngVer != core::RNG_VERSION) {
+        throw std::runtime_error("RunRecord: unsupported rng_version " + std::to_string(rngVer));
+    }
+
+    // 3. Seed validation: run_seed (hex) and run_seed_u64 must be consistent (§23.4, DIF-M1-23)
+    const bool hasSeedStr = j.contains("run_seed");
+    const bool hasSeedU64 = j.contains("run_seed_u64");
+    if (!hasSeedStr && !hasSeedU64) {
+        throw std::runtime_error("RunRecord: missing mandatory run_seed");
+    }
+    std::uint64_t seedValue = 0;
+    if (hasSeedU64) {
+        seedValue = j["run_seed_u64"].get<std::uint64_t>();
+    }
+    if (hasSeedStr) {
+        const std::string s = j["run_seed"].get<std::string>();
+        const std::uint64_t parsedSeed = std::stoull(s, nullptr, 16);
+        if (hasSeedU64 && parsedSeed != seedValue) {
+            throw std::runtime_error("RunRecord: inconsistent run_seed (" + s + ") and run_seed_u64 (" + std::to_string(seedValue) + ")");
+        }
+        seedValue = parsedSeed;
+    }
+
+    // 4. timing_profile is mandatory per Spec §7.5 / DIF-M1-23
+    if (!j.contains("timing_profile") || !j["timing_profile"].is_object()) {
+        throw std::runtime_error("RunRecord: missing mandatory 'timing_profile' object");
+    }
+    const auto& tp = j["timing_profile"];
+    TimingProfile timingProf;
+    timingProf.sampleRate = tp.value("sample_rate", 0ULL);
+    timingProf.simulationHz = tp.value("simulation_hz", 0u);
+    timingProf.framesPerTick = tp.value("frames_per_tick", 0u);
+    if (timingProf.sampleRate == 0 || timingProf.simulationHz == 0 || timingProf.framesPerTick == 0) {
+        throw std::runtime_error("RunRecord: invalid non-positive timing_profile values");
+    }
+
     RunRecord r;
-    r.schemaVersion = j.value("schema_version", core::RUN_RECORD_SCHEMA_VERSION);
+    r.schemaVersion = schemaVer;
+    r.rngVersion = rngVer;
+    r.runSeed = seedValue;
+    r.timingProfile = timingProf;
     r.buildId = j.value("build_id", "");
     r.policyVersion = j.value("policy_version", core::DEFAULT_POLICY_VERSION_STRING);
 
@@ -77,17 +139,9 @@ RunRecord RunRecord::fromJson(std::string_view jsonStr) {
         };
     }
 
-    r.rngVersion = j.value("rng_version", core::RNG_VERSION);
-
-    if (j.contains("run_seed_u64")) {
-        r.runSeed = j["run_seed_u64"].get<std::uint64_t>();
-    } else if (j.contains("run_seed")) {
-        const std::string s = j["run_seed"].get<std::string>();
-        r.runSeed = std::stoull(s, nullptr, 16);
-    }
-
     r.mode = j.value("mode", "infinite");
     r.difficultyPolicy = j.value("difficulty_policy", "standard-adaptive");
+    r.pureSeedEligible = j.value("pure_seed_eligible", true);
 
     if (j.contains("decisions") && j["decisions"].is_array()) {
         for (const auto& elem : j["decisions"]) {
@@ -109,10 +163,15 @@ RunRecord RunRecord::fromJson(std::string_view jsonStr) {
         }
     }
 
+    // 5. final_metrics: non-finite float values are strictly forbidden (§23.4)
     if (j.contains("final_metrics") && j["final_metrics"].is_object()) {
         for (auto it = j["final_metrics"].begin(); it != j["final_metrics"].end(); ++it) {
             if (it.value().is_number()) {
-                r.finalMetrics[it.key()] = it.value().get<double>();
+                const double v = it.value().get<double>();
+                if (!std::isfinite(v)) {
+                    throw std::runtime_error("RunRecord: non-finite float value in final_metrics for key " + it.key());
+                }
+                r.finalMetrics[it.key()] = v;
             }
         }
     }

@@ -26,6 +26,15 @@ struct RuntimeIntervention {
     [[nodiscard]] bool operator==(const RuntimeIntervention& other) const noexcept = default;
 };
 
+// Timing profile required by Spec §7.5 / DIF-M1-23
+struct TimingProfile {
+    std::uint64_t sampleRate{48000};
+    std::uint32_t simulationHz{120};
+    std::uint32_t framesPerTick{400};
+
+    [[nodiscard]] bool operator==(const TimingProfile& other) const noexcept = default;
+};
+
 struct RunRecord {
     std::uint32_t schemaVersion{core::RUN_RECORD_SCHEMA_VERSION};
     std::string buildId{"cymatica-dev"};
@@ -35,6 +44,8 @@ struct RunRecord {
     std::uint64_t runSeed{0};
     std::string mode{"infinite"};
     std::string difficultyPolicy{"standard-adaptive"};
+    bool pureSeedEligible{true};
+    TimingProfile timingProfile{};
     std::vector<DecisionRecord> decisions;
     std::vector<RuntimeIntervention> runtimeInterventions;
     std::map<std::string, double> finalMetrics; // Spec §15.7 schema: "final_metrics": {} (DIF-M1-14)

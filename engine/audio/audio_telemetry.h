@@ -1,5 +1,6 @@
 #pragma once
 
+#include "audio_control.h"
 #include "music_position.h"
 
 #include <cstdint>
@@ -21,6 +22,7 @@ struct ChannelFrame {
 struct AudioTelemetryFrame {
     std::uint64_t sequenceNumber{0};      // Spec §20.7 monotonic sequence counter for drop detection
     std::uint64_t transportEpoch{0};      // §7.5
+    TransportState transportState{TransportState::Running}; // §20.8
     std::uint64_t renderCursor{0};        // First frame yet to be synthesized (internal 48kHz timeline)
     std::uint64_t presentationCursor{0};  // Estimated audible frame output
     PresentationQuality presentationQuality{PresentationQuality::Invalid};

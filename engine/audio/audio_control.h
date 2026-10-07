@@ -25,6 +25,30 @@ enum class AudioCommandType : std::uint32_t {
     SetTone = 5,
 };
 
+// Transport state machine defined in Spec §20.8 (DIF-M1-19)
+enum class TransportState : std::uint32_t {
+    Running  = 0,
+    Pausing  = 1,
+    Paused   = 2,
+    Resuming = 3,
+};
+
+[[nodiscard]] constexpr bool isValidTransportTransition(TransportState from, TransportState to) noexcept {
+    if (from == to) return true;
+    switch (from) {
+        case TransportState::Running:
+            return to == TransportState::Pausing || to == TransportState::Paused;
+        case TransportState::Pausing:
+            return to == TransportState::Paused;
+        case TransportState::Paused:
+            return to == TransportState::Resuming || to == TransportState::Running;
+        case TransportState::Resuming:
+            return to == TransportState::Running;
+        default:
+            return false;
+    }
+}
+
 enum class AudioCommandStatus : std::uint32_t {
     Pending  = 0,
     Applied  = 1,

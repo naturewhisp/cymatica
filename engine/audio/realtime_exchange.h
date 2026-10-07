@@ -7,6 +7,11 @@
 
 namespace cymatica::audio {
 
+// Static assertions ensuring lock-free guarantees on target platform (Spec §20.6, AGENTS §5.1.1)
+static_assert(std::atomic<std::uint8_t>::is_always_lock_free, "std::atomic<uint8_t> must be lock-free on target platform");
+static_assert(std::atomic<std::size_t>::is_always_lock_free, "std::atomic<size_t> must be lock-free on target platform");
+static_assert(std::atomic<std::uint64_t>::is_always_lock_free, "std::atomic<uint64_t> must be lock-free on target platform");
+
 // Lock-free, wait-free Triple Buffer for latest-value exchange (Spec §20.6, ADR-0002).
 // Invariant: backIdx (producer), frontIdx (consumer), and shared (intermediate)
 // are always three distinct slot indices in {0, 1, 2}.
@@ -114,9 +119,8 @@ public:
     }
 
     [[nodiscard]] std::size_t size() const noexcept {
-        const std::size_t h = head_.load(std::memory_order_relaxed);
-        const std::size_t t = tail_.load(std::memory_order_relaxed);
-        return h >= t ? h - t : 0;
+        const std::size_t diff = head_.load(std::memory_order_acquire) - tail_.load(std::memory_order_acquire);
+        return (diff <= Capacity) ? diff : 0;
     }
 
     [[nodiscard]] static constexpr std::size_t capacity() noexcept {
