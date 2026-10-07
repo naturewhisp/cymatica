@@ -6,12 +6,12 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 
 | Campo | Valore |
 |---|---|
-| Milestone attiva | **M1 — remediation round 3** (review NON OK; M2 differita fino al nuovo gate) |
+| Milestone attiva | **M2 — Music Intent e musica procedurale v1** (M1 rivalidata dopo remediation round 3) |
 | Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
-| Stato M1 | **Riaperta: DIF-M1-26/27/28, review e nuovi gate da completare** |
+| Stato M1 | **Completata: review indipendente OK, zero difetti residui, gate round 3 passati** |
 | Specifica | 0.8.3 (baseline 0.8.1/0.8.2 accettata; controllo/osservazione agentica documentati il 2026-10-07) |
 | Design | 0.3.1 (baseline identità 0.3 approvata il 2026-10-06; osservazione agentica documentata il 2026-10-07) |
-| Commit / Build verificato | Commit `4db4b1b` (MSVC /W4 0 warning, CTest Release 36/36, Debug 36/36, Headless 35/35, Smoke 3s exit 0) |
+| Commit / Build verificato | `b39bddb46449ee0b203c7234746185ba241d9a42`; Release 41/41, Debug 41/41, headless 40/40, smoke exit 0, /W4 zero warning; [evidenze](m1_review_round3.md) |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_core` (static lib), `cymatica_replay` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
 | Ultimo aggiornamento | 2026-10-07 |
 
@@ -60,8 +60,8 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 | Canale Game-Audio e telemetria | **PASSATO** | Invio comandi `AudioCommand` e ricezione esplicita di `AudioCommandAck` verificati con contatore di ack scartati (`droppedAcks`). Telemetria audio pubblicata tramite `TripleBuffer` con `sequenceNumber` (rilevamento drop), `transportEpoch`, `renderCursor` e `presentationCursor` tracciati coerentemente sulla timeline logica interna a 48 kHz anche con device a 44.1 kHz (`test_exchange.cpp`). |
 | `RunRecord` JSON round-trip | **PASSATO** | Struttura serializzata in JSON standard con campi deterministici (semi, policy, durate) e campo `final_metrics` (Spec §15.7), deserializzata con verifica di uguaglianza identica (`test_run_record.cpp`). Validazione fail-fast secondo Spec §23.4 (schema_version 1, rng_version 1, consistenza hex/u64, timing_profile obbligatorio e valori finiti, divisibilità intera sample_rate / simulation_hz) verificata con test dedicati (DIF-M1-23). |
 | Contratto giocatore minimale | **PASSATO** | Documentato e congelato in `docs/player_contract_m1.md` come baseline autoritativa per il validatore M4; stato contrattuale formalizzato come `accepted for implementation` per tuning v0 (DIF-M1-24). |
-| Suite di test CTest 100% superata | **PASSATO** | 36/36 test superati in Release e Debug; 35/35 superati in modalità headless (escluso test su periferica audio reale). |
-| Eseguibile `cymatica_game` funzionante | **PASSATO** | Smoke run di 3 secondi completato con successo: ~60 FPS video, 356 tick di simulazione autoritativa (120 Hz), ~145.920 frame audio renderizzati, shader Chladni reattivo, pure_seed=ELIGIBLE, suspensions=0, chiusura pulita exit code 0. |
+| Suite di test CTest 100% superata | **PASSATO** | Round 3: 41/41 Release e Debug, 40/40 headless, commit `b39bddb`; [evidenze](m1_review_round3.md). |
+| Eseguibile `cymatica_game` funzionante | **PASSATO** | Round 3: smoke 3 s exit 0, 356 tick, 145.920 frame audio, shader/audio OK, ELIGIBLE, zero sospensioni; [evidenze](m1_review_round3.md). |
 
 ## Remediation Independent Review (DIF-M1-15 – DIF-M1-25)
 
@@ -136,3 +136,7 @@ La review del codice `4db4b1b06342080c04ff99939bef73e9f282e129` conclude **NON O
 Correzioni round 3 implementate, decisioni D-M1-06/07/08 in ADR-0002. Gate e review indipendente **da eseguire** sul nuovo codice; i PASS storici non attestano questa revisione.
 
 Review indipendente iterazione 1: NON OK per DIF-M1-29 (MusicClock), DIF-M1-30 (narrowing JSON), DIF-M1-31 (encoding/stato). Tutti corretti nella stessa remediation; iterazione 2 statica senza difetti residui, gate finali in corso. Un primo golden test MusicClock aveva un errore di trascrizione del valore atteso, corretto con oracle Python a precisione arbitraria prima dei gate finali.
+
+### Chiusura rivalidata round 3
+
+Commit runtime `b39bddb46449ee0b203c7234746185ba241d9a42`: DIF-M1-26–31 risolti. Review indipendente finale **OK**, zero difetti residui, zero warning /W4, Release 41/41, Debug 41/41, headless 40/40, smoke 3 s exit 0. [Record dettagliato](m1_review_round3.md) con dimensioni, comandi, ambiente e hash log. I precedenti stati NON OK/da eseguire descrivono le iterazioni storiche, superate da questo gate. M1 nuovamente chiusa; M2 attiva, sottofasi ancora da eseguire. Player tuning D-M1-05 resta accepted for implementation, validazione M4/M5 differita; nessun nuovo blocco M1.
