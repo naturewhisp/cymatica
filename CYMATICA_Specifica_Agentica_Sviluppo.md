@@ -3073,6 +3073,16 @@ Prima dei task dipendenti registrare D-AO-01–06 descritti nell'analisi: nucleo
 
 ---
 
+### 31.6 Riferimento Dreamforge e contratti diagnostici futuri
+
+[Analisi CACP §13](docs/agent_control_observability.md) documenta il confronto con Dreamforge al commit `71210140df8861745d210e9ee84d726355d143ea` (consultato il 2026-10-07), come riferimento progettuale e non implementazione validata o dipendenza.
+
+**Invarianti accepted for implementation:** Agent UI Parity incrementale sulle capacità della milestone, con stessa semantica e capacità non disponibili esplicite; separazione control plane (richieste/discovery/scenari) e data plane (artefatti/flussi bounded), senza MCP nel percorso ad alta frequenza. Runtime indipendente dagli agenti; CACP è un'interfaccia di sviluppo e il critic esterno non è il CIE né un'autorità di gameplay. Nessun nuovo deliverable o criterio M2.
+
+**Evoluzioni proposed, da congelare prima del lavoro dipendente:** in D-AO-03/M3 valutare Diagnostic Observation Bundle e alternative mask/dati strutturati; in D-AO-04/M4 decidere bundle minimo, Structured Evaluation Result e Development Episode offline con riferimenti a run/finding/modifica/verifica. Semantic/collision/telegraph mask restano opzioni, non nuovi gate mandatory; nessuna vista raster diventa autorità collisione o prova di sicurezza. Riutilizzo del report percettivo in M7 e degli episodi nel tooling M8; decisioni/schema/limiti/evidenze nel record pertinente prima dell'implementazione, nessun formato nuovo già congelato.
+
+Il critic produce finding supplementari versionati con provenienza, evidenze, informazioni disponibili e limiti; le correzioni sono advisory/offline e vengono verificate mediante replay compatibile o scenario rerun dichiarato. Conservare fallimenti/falsi positivi entro retention e privacy; dati raccolti non sono automaticamente dataset approvato. Rimangono i gate §31.5, validator, hardware, playtest e review indipendente AGENTS. Nessuna adozione dello stack, dello storage, del training o della federazione Dreamforge.
+
 ## 32. Roadmap revisionata
 
 La milestone attiva iniziale resta **Milestone 0**. La vertical slice completa termina con Milestone 7. Le milestone sono obiettivi futuri, non feature presenti.

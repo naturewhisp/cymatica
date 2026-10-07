@@ -122,6 +122,10 @@ Richiesta del titolare: analisi permanente e sviluppo progressivo insieme al gio
 - **Verifica di questa revisione:** ispezione del percorso spazio e della telemetria nei sorgenti M1, controlli documentali di link locali, coerenza degli ID/gate e `git diff --check`. Build/test runtime non rieseguiti: nessun sorgente o build configuration modificato. Non costituisce chiusura di milestone.
 - **Prossima azione:** congelare D-AO-01/02 con capacità client, ingressi, buffer/lifecycle e profilo tono, poi implementare il runner minimo M2; prove OS e ascolto restano esplicitamente separate dal test semantico.
 
+### Riferimento Dreamforge — integrazione documentale
+
+Confronto richiesto dal titolare il 2026-10-07, riferimento GitHub `71210140df8861745d210e9ee84d726355d143ea`. Specifica §31.6 e [analisi §13](agent_control_observability.md) distinguono invarianti di parità/control-data plane dalle evoluzioni proposed (bundle, evaluation result, development episode) M3/M4 e riuso M7/M8. Nessun nuovo deliverable M2, dipendenza o schema implementato; M2.1–M2.5 e decisioni ancora aperte invariati. Verifica documentale di link, coerenza dei rimandi e diff; build/test runtime non eseguiti per modifica solo documentale.
+
 ### Correzioni post-review del commit 1a88bc8
 
 - **DIF-AO-DOC-01 risolto nella documentazione:** D-AO-01 include il dispatcher comune minimo del tono prima di AC-AO-01A in M2; D-AO-03 estende lo stesso nucleo in M3. Nessun dispatcher implementato o decisione d'ingresso congelata in questa correzione.

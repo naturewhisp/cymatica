@@ -182,7 +182,49 @@ Queste scelte sono **deferred**, i valori del tono sono **proposed**. Ogni decis
 
 Il rischio principale è costruire un'infrastruttura più grande del gioco: ogni incremento serve un caso verificabile della milestone corrente. Seguono costo di readback/codifica, leakage di informazioni privilegiate, falsa precisione temporale, disponibilità del client e conservazione eccessiva di dati. La mitigazione è una baseline finite-run, capacità negoziate, budget espliciti e risultati onesti su prove non eseguibili.
 
-## 13. Riferimenti verificati
+## 13. Contributo Dreamforge: valutazione ed evoluzione
+
+Riferimento consultato tramite GitHub il 2026-10-07: [Dreamforge, commit 71210140df8861745d210e9ee84d726355d143ea](https://github.com/naturewhisp/dreamforge-engine/tree/71210140df8861745d210e9ee84d726355d143ea). L'albero consultato contiene AGENTS e documentazione; non attesta un motore implementato o risultati sperimentali. La [specifica Dreamforge](https://github.com/naturewhisp/dreamforge-engine/blob/71210140df8861745d210e9ee84d726355d143ea/docs/01_specifica_tecnica_agent_native_graphics_engine.md) §3, §5.6, §6.2, §7 e §8 offre pattern utili per parità delle API, diagnosi, critic e separazione dei flussi. Il testo allegato dal titolare propone la loro adattazione a CYMATICA; gli esempi che seguono sono analisi progettuale, non schemi già accettati o implementati.
+
+### 13.1 Agent UI Parity e separazione dei flussi
+
+La parità significa stessa semantica degli ingressi umani e agentici per le capacità rilevanti alla milestone; non disponibilità immediata di API per ogni menu. Le capacità supportate e quelle differite vanno dichiarate. Il runtime deve funzionare senza agenti e i contratti non dipendono da un modello. CACP è l'interfaccia di controllo/osservazione per lo sviluppo, mentre CIE prende le decisioni di gioco; il critic esterno non è un componente decisionale del runtime.
+
+Distinguere **control plane** (discovery, richieste finite, scenario, riferimenti agli artefatti) e **data plane** (PCM, eventi, frame, clip e telemetria, con trasporto locale bounded). Sono responsabilità dei contratti esistenti, non nuovi sottosistemi. D-AO-01 documenterà questa distinzione nel runner/IPC; D-AO-06 la applicherà allo streaming. MCP può restituire singole immagini/audio o riferimenti, ma non diventa il percorso ad alta frequenza dei frame o dei riflessi.
+
+### 13.2 Structured Evaluation Result e ciclo di correzione
+
+Evoluzione proposta in M4 (D-AO-04), da usare nel corpus percettivo M7: risultato versionato con evaluation/finding ID, scenario e run/build/profile, criterio/versione, tipo di valutatore (assertion, misurazione, umano, critic agente), esito, severità, evidenze referenziate e informazioni disponibili al valutatore. Gli intervalli tick/sample-frame richiedono epoch, unità e convenzione degli estremi. Registrare viste player/debug effettivamente consumate, gap/skew, versione del modello/prompt se pertinente e breve descrizione del finding. La confidence è opzionale, finita e non calibrata per default: 0.84 non significa probabilità validata di difetto.
+
+Un finding visivo identifica entità tramite ID e generazione quando disponibili; non inventa ID desunti dai pixel. Proposte di correzione sono advisory, mai comandi eseguibili automaticamente. Parser con limiti e validazione dei riferimenti prima di archiviare; testo/schema invalido genera errore di valutazione, non approvazione. L'esito del critic resta distinto dal gate del progetto e dai risultati autoritativi: un giudizio positivo non annulla collisioni, unknown o assertion fallite.
+
+Il ciclo è `execute → observe → evaluate → diagnose → correct → verify`. Controller e critic hanno ruoli separati; per giudicare leggibilità il critic riceve prima la vista player, poi eventualmente dati privilegiati per diagnosi, registrando i due passaggi. La review indipendente di AGENTS resta il gate di chiusura, non viene sostituita da un secondo prompt dello stesso autore. Non introduce un obbligo di delegazione per ogni task ordinario.
+
+La verifica dopo una modifica distingue exact replay compatibile dalla riesecuzione dello scenario: cambiando regole, contenuto o schema non si assume che un vecchio replay sia compatibile. Riportare divergenze e confrontare criteri/versioni, non aggiornare golden automaticamente. Gli assertion/hardware/playtest rimangono nei propri ambiti; un critic segnala problemi da investigare e non certifica da solo la qualità.
+
+### 13.3 Diagnostic Observation Bundle
+
+In D-AO-03/M3 valutare un manifest che raggruppa frame player e debug, snapshot autoritativo, eventi, entità/generation ID, coordinate dell'arena, tick/epoch, interpolazione e intervallo PCM correlato. Il bundle è una raccolta di riferimenti con provenienza e skew, non uno snapshot globale atomicamente acquisito.
+
+Semantic ID mask, forme di collisione e fasi del telegraph sono **opzioni proposed** da confrontare con dati strutturati/overlay, con obiettivo di una decisione entro M4 (D-AO-04), non un nuovo mandatory M2 o una promessa di tutte le mask. Distinguere classe semantica dall'ID d'istanza; versionare mapping e trasformazione pixel/coordinate logiche. Una collision mask rasterizzata è diagnostica: non sostituisce primitive, swept transitions o raggiungibilità del validator. Un'area non occupata non è automaticamente una safe region validata. Nessuna importazione di depth/wireframe 3D.
+
+La scelta richiede un caso diagnostico concreto, budget di memoria/readback e confronto OFF/ON; dati mancanti sono dichiarati. La vista privilegiata non influenza una valutazione dichiarata player-only e non diventa input nascosto di un controller percettivo.
+
+### 13.4 Development Episode offline
+
+Proposta da definire insieme agli scenari/evidenze M4 e consolidare nel tooling M8: un episodio collega scenario/versione, baseline commit/run, finding, modifica commit o diff identificato, run di verifica e disposizione del finding. Stati proposti: open, resolved, unresolved, inconclusive, dismissed con motivazione; chiusura soltanto con evidenza verificata. Una modifica non committata può essere identificata da hash del diff, senza inventare un commit.
+
+Conservare anche fallimenti e falsi positivi, con quota, retention e privacy già previste; se gli artefatti scadono, dichiararlo. Referenziare RunRecord/trace/manifest senza duplicarli o alterare la run storica. JSON/JSONL nel tooling è una prima opzione, non una decisione di storage congelata; SQLite resta eventuale scelta Lab, mai dipendenza introdotta qui nel runtime.
+
+Raccogliere episodi non autorizza training. Un eventuale dataset richiede provenienza/licenza, review delle etichette, separazione per seed/family/episodio e regressioni secondo specifica §19.5. I soli PASS di un critic non rendono dati validati; nessuna soglia Dreamforge di numerosità viene trasferita automaticamente.
+
+### 13.5 Impatto e alternative escluse
+
+M2.1–M2.5, AC-AO-01A/01B e AC-AO-02 restano invariati: parità e separazione dei flussi chiariscono invarianti già necessari, senza nuovi deliverable M2. Bundle/risultato strutturato/episodio sono evoluzioni proposte da decidere in M3/M4 e riusare in M7/M8. Finché tali contratti non sono congelati, non sono gate implementativi aggiuntivi.
+
+Non si adottano stack Rust/wgpu, browser/Three.js/Playwright, SceneDelta per scrivere stato gameplay, A2A, inferenza locale, LoRA o zero-copy GPU. Il ciclo di correzione opera su codice/policy/asset offline con verifica e contratti di CYMATICA; non corregge posizione, cooldown, RNG o piano accettato durante la run. Nessuna dipendenza o requisito hardware Dreamforge viene introdotto.
+
+## 14. Riferimenti verificati
 
 Consultati il 2026-10-07, come riferimenti e non dipendenze:
 
