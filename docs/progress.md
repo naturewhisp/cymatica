@@ -6,11 +6,12 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 
 | Campo | Valore |
 |---|---|
-| Milestone attiva | **M1 — independent review remediation** (remediation DIF-M1-15...25 completata; pronta per re-review M1 closure) |
+| Milestone attiva | **M2 — Music Intent e musica procedurale v1** (M1 completata e validata da independent review) |
 | Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
-| Stato M1 | **Remediated & Verified (33/33 test passati; zero warning C4324/W4; zero alloc RT)** |
+| Stato M1 | **Completata (tutti i criteri di accettazione verificati con evidenze su commit `9d5fe30`)** |
 | Specifica | 0.8.2 (0.8.1 accettata il 2026-10-05; aggiunte System 1 del 2026-10-06, applicabili da M6) |
 | Design | 0.3 (identità visiva e firme invarianti approvate il 2026-10-06) |
+| Commit / Build verificato | Commit `9d5fe30` (MSVC /W4 0 warning, CTest Release 33/33, Debug 33/33, Headless 32/32, Smoke 3s exit 0) |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_core` (static lib), `cymatica_replay` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
 | Ultimo aggiornamento | 2026-10-07 |
 
