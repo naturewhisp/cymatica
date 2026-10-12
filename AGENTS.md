@@ -108,6 +108,15 @@ Before declaring any milestone complete, committing its final closure, or advanc
 3. **Iterative Re-Review:** Repeat the independent review loop against the updated code.
 4. **Completion Gate:** The milestone may be declared complete only when an independent review formally concludes with an **OK** verdict, zero remaining defects, zero compiler warnings, and 100% test pass rate across all target configurations.
 
+### 5.1.2 Validazione in prima persona tramite CACP e capacità multimodali
+
+Per ogni deliverable o modifica che influisca su audio, grafica, controlli o comportamento percettivo del giocatore, l'agente non deve affidarsi unicamente a unit test formali o asserzioni booleane isolate. L'agente deve sfruttare attivamente il CACP (**Cymatica Agent Control & Observation Plane**) per verificare in prima persona l'esperienza di gioco tramite le proprie capacità multimodali:
+
+1. **Esecuzione scenari diagnostici:** eseguire il runner locale (`cymatica_game --cacp-run <scenario>`) o il collaudo dal vivo (`scripts/build.ps1 -Run -SmokeSeconds <N>`).
+2. **Convalida quantitativa:** verificare la coerenza del manifest JSON generato (`artifacts/cacp/*_manifest.json`), inclusi tick, epoch, tolleranze di pitch/energia, e assenza di frame persi o sospensioni.
+3. **Ispezione percettiva multimodale diretta:** acquisire ed esaminare direttamente i file binari audio (`.wav` via `AudioProbe`) e i frame grafici (`.png` via `VisualProbe` da M3) tramite gli strumenti multimodali a disposizione (`view_file`), formulando un giudizio qualitativo esplicito (purezza del timbro, assenza di click o distorsione, correttezza delle transizioni e del feedback visivo).
+4. **Skill di riferimento:** seguire la procedura operativa codificata nella skill di progetto locale [`.agents/skills/cacp-testing/SKILL.md`](.agents/skills/cacp-testing/SKILL.md), aggiornandola ed estendendola progressivamente al rilascio di nuovi profili diagnostici.
+
 ### 5.2 Task handoff
 
 Do not claim success if commands failed or were skipped. Report:
