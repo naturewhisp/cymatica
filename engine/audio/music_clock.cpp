@@ -8,9 +8,7 @@
 
 namespace cymatica::audio {
 
-namespace {
-
-[[nodiscard]] bool isSupportedTempoMap(const TempoMap& map, std::uint64_t rate) noexcept {
+bool MusicClock::isSupportedTempoMap(const TempoMap& map, std::uint64_t rate) noexcept {
     if (map.bpm.numerator == 0 || map.bpm.denominator == 0) {
         return false;
     }
@@ -24,8 +22,12 @@ namespace {
     if (map.beatsPerBar != map.timeSignatureNum) {
         return false;
     }
-    // Spec §7.5 prototype scope: 4/4 constant tempo required, unsupported configs must fail explicitly
-    if (map.timeSignatureNum != 4 || map.timeSignatureDen != 4) {
+    // Supported time signatures: standard musical denominators (2, 4, 8, 16) and numerators in [1, 16] (Spec §32 M2)
+    if (map.timeSignatureDen != 2 && map.timeSignatureDen != 4 &&
+        map.timeSignatureDen != 8 && map.timeSignatureDen != 16) {
+        return false;
+    }
+    if (map.timeSignatureNum > 16) {
         return false;
     }
     // Supported exact profile: >= one frame per beat and phrase numerator representable.
@@ -34,8 +36,6 @@ namespace {
     if (map.bpm.numerator > n || n > UINT64_MAX / map.beatsPerBar / map.barsPerPhrase) return false;
     return true;
 }
-
-} // namespace
 
 MusicClock::MusicClock() noexcept
     : sampleRate_(48000), tempoMap_(TempoMap{}) {}

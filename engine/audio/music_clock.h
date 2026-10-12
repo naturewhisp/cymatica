@@ -18,6 +18,9 @@ public:
         const TempoMap& tempoMap = {}
     ) noexcept;
 
+    // Validate whether a tempo map configuration is supported (§7.5, ADR-0003 D-M2-01)
+    [[nodiscard]] static bool isSupportedTempoMap(const TempoMap& map, std::uint64_t rate = 48000) noexcept;
+
     // Convert absolute sample frame to structured MusicPosition (§7.5, ADR-0002)
     [[nodiscard]] MusicPosition positionAtFrame(std::uint64_t frame, std::uint64_t epoch = 0) const noexcept;
 

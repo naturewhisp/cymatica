@@ -2,6 +2,7 @@
 
 #include "audio_control.h"
 #include "audio_telemetry.h"
+#include "music_intent.h"
 #include "realtime_exchange.h"
 
 #include <cstdint>
@@ -56,6 +57,11 @@ public:
     // Poll acknowledgement from audio callback
     bool pollAck(AudioCommandAck& ack) noexcept;
     [[nodiscard]] std::uint64_t droppedAcks() const noexcept;
+
+    // --- Ahead-of-time Scheduled Audio Events API (Coordinator thread sole producer, Spec §20.7, ADR-0003 D-M2-03) ---
+    bool scheduleAudioEvent(const ScheduledAudioEvent& event) noexcept;
+    [[nodiscard]] std::uint64_t droppedScheduledEvents() const noexcept;
+    [[nodiscard]] std::uint64_t totalScheduledEventsProcessed() const noexcept;
 
     // AudioProbe tap API (Spec §31.5, ADR-0003 D-AO-02)
     void attachAudioProbe(AudioProbe* probe) noexcept;

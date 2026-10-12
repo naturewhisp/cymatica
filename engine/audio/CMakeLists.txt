@@ -4,9 +4,12 @@ add_library(cymatica_audio STATIC
     audio_engine.h
     audio_probe.cpp
     audio_probe.h
+    audio_scheduler.cpp
+    audio_scheduler.h
     audio_telemetry.h
     music_clock.cpp
     music_clock.h
+    music_intent.h
     music_position.h
     realtime_exchange.h
 )

@@ -676,6 +676,15 @@ TEST_CASE("AudioEngine processBlock performs zero heap allocations post-init", "
                     .paramF32 = 440.0f + static_cast<float>(b),
                 });
             }
+            if ((b % 25) == 3) {
+                TempoMap map;
+                map.bpm = RationalBpm{static_cast<std::uint32_t>(120 + b), 1};
+                (void)engine.sendCommand(AudioCommand::makeSetTempoMap(static_cast<std::uint64_t>(200 + b), map));
+            }
+            (void)engine.scheduleAudioEvent(ScheduledAudioEvent{
+                .eventId = static_cast<std::uint64_t>(1000 + b),
+                .sampleFrame = engine.framesRendered() + 100
+            });
             engine.processBlock(buffer.data(), 512);
 
             AudioCommandAck ack;
@@ -731,4 +740,67 @@ TEST_CASE("Audio callback caps commands per block and preserves deferred FIFO", 
         REQUIRE_FALSE(engine.pollAck(ack));
     }
     REQUIRE(engine.droppedAcks() == 0);
+}
+
+TEST_CASE("SetTempoMap command updates tempo, increments transportEpoch, and emits ack", "[exchange][audio][tempo]") {
+    AudioEngine engine;
+    REQUIRE(engine.init({48000, 2, 220.0f}));
+    std::vector<float> buffer(512 * 2, 0.0f);
+
+    // Initial baseline state
+    engine.processBlock(buffer.data(), 512);
+    REQUIRE(engine.updateTelemetry());
+    REQUIRE(engine.telemetry().bpm == 120.0f);
+    const std::uint64_t initialEpoch = engine.telemetry().transportEpoch;
+
+    // 1. Valid SetTempoMap: 140 BPM, 3/4 meter (Spec §32 M2)
+    TempoMap map34;
+    map34.bpm = RationalBpm{140, 1};
+    map34.timeSignatureNum = 3;
+    map34.timeSignatureDen = 4;
+    map34.beatsPerBar = 3;
+    map34.barsPerPhrase = 4;
+    map34.subdivisionsPerBeat = 4;
+
+    REQUIRE(engine.sendCommand(AudioCommand::makeSetTempoMap(101, map34)));
+
+    // Process block in audio callback to apply command
+    engine.processBlock(buffer.data(), 512);
+
+    // Verify acknowledgement
+    AudioCommandAck ack;
+    REQUIRE(engine.pollAck(ack));
+    REQUIRE(ack.commandId == 101);
+    REQUIRE(ack.status == AudioCommandStatus::Applied);
+    REQUIRE(ack.transportEpoch == initialEpoch + 1);
+
+    // Verify telemetry immediately reflects new BPM and epoch
+    REQUIRE(engine.updateTelemetry());
+    REQUIRE(engine.telemetry().bpm == 140.0f);
+    REQUIRE(engine.telemetry().transportEpoch == initialEpoch + 1);
+
+    // 2. Invalid SetTempoMap (inconsistent beatsPerBar != timeSignatureNum)
+    TempoMap invalidMap;
+    invalidMap.bpm = RationalBpm{150, 1};
+    invalidMap.timeSignatureNum = 4;
+    invalidMap.timeSignatureDen = 4;
+    invalidMap.beatsPerBar = 3; // Inconsistent!
+    invalidMap.barsPerPhrase = 4;
+    invalidMap.subdivisionsPerBeat = 4;
+
+    REQUIRE(engine.sendCommand(AudioCommand::makeSetTempoMap(102, invalidMap)));
+    engine.processBlock(buffer.data(), 512);
+
+    // Verify rejection: status Rejected and transportEpoch NOT incremented
+    REQUIRE(engine.pollAck(ack));
+    REQUIRE(ack.commandId == 102);
+    REQUIRE(ack.status == AudioCommandStatus::Rejected);
+    REQUIRE(ack.transportEpoch == initialEpoch + 1);
+
+    // Telemetry retains valid tempo map
+    REQUIRE(engine.updateTelemetry());
+    REQUIRE(engine.telemetry().bpm == 140.0f);
+    REQUIRE(engine.telemetry().transportEpoch == initialEpoch + 1);
+
+    engine.shutdown();
 }

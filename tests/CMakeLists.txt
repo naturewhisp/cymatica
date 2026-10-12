@@ -7,6 +7,7 @@ add_executable(cymatica_tests
     unit/test_run_record.cpp
     unit/test_input_dispatcher.cpp
     unit/test_audio_probe.cpp
+    unit/test_scheduler.cpp
 )
 
 target_link_libraries(cymatica_tests

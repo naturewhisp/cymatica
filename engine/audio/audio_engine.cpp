@@ -27,6 +27,8 @@ struct AudioEngine::Impl {
     AudioControlFrame masterControl_{};
     std::size_t inFlightCommands_{0}; // Tracked on control/game thread for guaranteed ack delivery (DIF-M1-18)
 
+    static constexpr std::size_t kScheduledEventCapacity = 256;
+
     // Transport cursors and epoch (§7.5, §20.8, ADR-0002)
     std::uint64_t deviceFramesRendered{0};
     std::uint64_t transportEpoch{1};
@@ -37,11 +39,14 @@ struct AudioEngine::Impl {
     std::uint64_t telemetrySequence{0};               // Sequence counter for telemetry drops (DIF-M1-13)
     MusicClock musicClock{};
 
-    // Lock-free exchange channels (§20.5–§20.7, ADR-0002)
+    // Lock-free exchange channels (§20.5–§20.7, ADR-0002, ADR-0003 D-M2-03)
     TripleBuffer<AudioTelemetryFrame> telemetryBuffer{};
     TripleBuffer<AudioControlFrame> controlBuffer{};
     SpscQueue<AudioCommand, kCommandCapacity> commandQueue{};
     SpscQueue<AudioCommandAck, kCommandCapacity> ackQueue{};
+    SpscQueue<ScheduledAudioEvent, kScheduledEventCapacity> scheduledEventQueue{};
+    std::atomic<std::uint64_t> droppedScheduledEvents{0};
+    std::atomic<std::uint64_t> totalScheduledEventsProcessed{0};
 
     // Realtime processing function: zero heap allocation, bounded execution (§20.2)
     void processBlock(float* pOutput, std::uint32_t frameCount) noexcept {
@@ -55,7 +60,7 @@ struct AudioEngine::Impl {
             }
         }
 
-        // 2. Consume identified commands and emit acknowledgements (§20.7, §20.8, DIF-M1-18, DIF-M1-19)
+        // 2. Consume identified commands and emit acknowledgements (§20.7, §20.8, DIF-M1-18, DIF-M1-19, ADR-0003 D-M2-01)
         AudioCommand cmd;
         for (std::uint32_t i = 0; i < AudioEngine::kMaxCommandsPerBlock; ++i) {
             if (!commandQueue.tryPop(cmd)) break;
@@ -103,6 +108,16 @@ struct AudioEngine::Impl {
                 case AudioCommandType::SetTone:
                     ma_waveform_set_frequency(&waveform, cmd.paramF32);
                     break;
+                case AudioCommandType::SetTempoMap: {
+                    const TempoMap newMap = cmd.extractTempoMap();
+                    if (MusicClock::isSupportedTempoMap(newMap, sampleRate)) {
+                        (void)musicClock.setTempoMap(newMap);
+                        ++transportEpoch;
+                    } else {
+                        status = AudioCommandStatus::Rejected;
+                    }
+                    break;
+                }
                 default:
                     status = AudioCommandStatus::Rejected;
                     break;
@@ -115,6 +130,20 @@ struct AudioEngine::Impl {
                 .transportEpoch = transportEpoch,
             })) {
                 droppedAcks.fetch_add(1, std::memory_order_relaxed);
+            }
+        }
+
+        // 2b. Consume scheduled audio events due for the current block (Spec §16.9, §20.7, ADR-0003 D-M2-03)
+        const std::uint64_t blockStartFrame = renderCursor.load(std::memory_order_relaxed);
+        const std::uint64_t blockEndFrame = blockStartFrame + frameCount;
+
+        ScheduledAudioEvent schedEvt;
+        while (scheduledEventQueue.peek(schedEvt)) {
+            if (schedEvt.sampleFrame < blockEndFrame) {
+                (void)scheduledEventQueue.tryPop(schedEvt);
+                totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+            } else {
+                break;
             }
         }
 
@@ -324,6 +353,23 @@ bool AudioEngine::pollAck(AudioCommandAck& ack) noexcept {
 
 std::uint64_t AudioEngine::droppedAcks() const noexcept {
     return pImpl_ ? pImpl_->droppedAcks.load(std::memory_order_relaxed) : 0;
+}
+
+bool AudioEngine::scheduleAudioEvent(const ScheduledAudioEvent& event) noexcept {
+    if (!pImpl_) return false;
+    if (pImpl_->scheduledEventQueue.tryPush(event)) {
+        return true;
+    }
+    pImpl_->droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+    return false;
+}
+
+std::uint64_t AudioEngine::droppedScheduledEvents() const noexcept {
+    return pImpl_ ? pImpl_->droppedScheduledEvents.load(std::memory_order_relaxed) : 0;
+}
+
+std::uint64_t AudioEngine::totalScheduledEventsProcessed() const noexcept {
+    return pImpl_ ? pImpl_->totalScheduledEventsProcessed.load(std::memory_order_relaxed) : 0;
 }
 
 void AudioEngine::attachAudioProbe(AudioProbe* probe) noexcept {

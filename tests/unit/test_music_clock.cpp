@@ -112,16 +112,28 @@ TEST_CASE("MusicClock setTempoMap and create reject invalid or unsupported confi
     REQUIRE_FALSE(clock.setTempoMap(inconsistentMap));
     REQUIRE_FALSE(MusicClock::create(48000, inconsistentMap).has_value());
 
-    // 3. Unsupported non-4/4 configuration under M1 prototype scope must fail explicitly
+    // 3. Unsupported non-standard meter configuration (denominator 5) must fail explicitly
     TempoMap unsupportedMap;
     unsupportedMap.bpm = RationalBpm{120, 1};
     unsupportedMap.timeSignatureNum = 3;
-    unsupportedMap.timeSignatureDen = 4;
+    unsupportedMap.timeSignatureDen = 5; // Unsupported non-power-of-two denominator
     unsupportedMap.beatsPerBar = 3;
     unsupportedMap.barsPerPhrase = 4;
     unsupportedMap.subdivisionsPerBeat = 4;
     REQUIRE_FALSE(clock.setTempoMap(unsupportedMap));
     REQUIRE_FALSE(MusicClock::create(48000, unsupportedMap).has_value());
+
+    // 3b. Supported non-4/4 configuration (3/4 time signature) under M2 scope succeeds
+    TempoMap meter34Map;
+    meter34Map.bpm = RationalBpm{120, 1};
+    meter34Map.timeSignatureNum = 3;
+    meter34Map.timeSignatureDen = 4;
+    meter34Map.beatsPerBar = 3;
+    meter34Map.barsPerPhrase = 4;
+    meter34Map.subdivisionsPerBeat = 4;
+    REQUIRE(clock.setTempoMap(meter34Map));
+    REQUIRE(MusicClock::create(48000, meter34Map).has_value());
+    REQUIRE(clock.frameAtBar(1) == 72000); // 3 beats at 120 BPM = 1.5s = 72,000 frames
 
     // 4. Valid supported configuration (4/4, 140 BPM) succeeds
     TempoMap validMap;

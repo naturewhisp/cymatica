@@ -114,6 +114,19 @@ public:
         return true;
     }
 
+    // Consumer method (Reader thread only) - inspect front element without popping
+    bool peek(T& item) const noexcept {
+        const std::size_t currentTail = tail_.load(std::memory_order_relaxed);
+        const std::size_t currentHead = head_.load(std::memory_order_acquire);
+
+        if (currentTail == currentHead) {
+            return false; // Queue empty
+        }
+
+        item = buffer_[currentTail & (Capacity - 1)];
+        return true;
+    }
+
     [[nodiscard]] bool empty() const noexcept {
         return tail_.load(std::memory_order_relaxed) == head_.load(std::memory_order_relaxed);
     }
