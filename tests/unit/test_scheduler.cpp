@@ -175,3 +175,159 @@ TEST_CASE("AudioEngine processBlock consumes scheduled events strictly up to blo
     engine.processBlock(out, 256);
     REQUIRE(engine.totalScheduledEventsProcessed() == 3);
 }
+
+TEST_CASE("AudioEngine processBlock applies scheduled events at exact intra-block offsets (DIF-M2-03)", "[scheduler][sample_accurate]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    REQUIRE(engine.startTone(220.0f, 0.25f));
+
+    // Schedule a NoteOn event at frame 200 that changes frequency to 880 Hz
+    ScheduledAudioEvent evt{
+        .eventId = 1,
+        .sampleFrame = 200,
+        .type = AudioEventType::NoteOn,
+        .voice = 0,
+        .role = MusicRole::Vettore,
+        .valueA = 880.0f, // pitchHz
+        .valueB = 1.0f,   // velocity
+        .durationFrames = 200
+    };
+    REQUIRE(engine.scheduleAudioEvent(evt));
+
+    std::vector<float> out(400 * 2, 0.0f);
+    engine.processBlock(out.data(), 400);
+
+    REQUIRE(engine.totalScheduledEventsProcessed() == 1);
+
+    // Verify waveform before sample 200 vs after sample 200:
+    // Waveform starts at 220 Hz for frames 0..199, then shifts to 880 Hz at frame 200.
+    std::size_t zcBefore = 0;
+    for (std::size_t i = 1; i < 200; ++i) {
+        if ((out[(i - 1) * 2] <= 0.0f && out[i * 2] > 0.0f) ||
+            (out[(i - 1) * 2] >= 0.0f && out[i * 2] < 0.0f)) {
+            ++zcBefore;
+        }
+    }
+
+    std::size_t zcAfter = 0;
+    for (std::size_t i = 201; i < 400; ++i) {
+        if ((out[(i - 1) * 2] <= 0.0f && out[i * 2] > 0.0f) ||
+            (out[(i - 1) * 2] >= 0.0f && out[i * 2] < 0.0f)) {
+            ++zcAfter;
+        }
+    }
+
+    REQUIRE(zcBefore >= 1);
+    REQUIRE(zcBefore <= 3);
+    REQUIRE(zcAfter >= 6);
+    REQUIRE(zcAfter >= zcBefore * 2);
+}
+
+TEST_CASE("AudioEngine processBlock does not consume scheduled events while Paused (DIF-M2-03)", "[scheduler][pause]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    REQUIRE(engine.startTone(220.0f, 0.25f));
+
+    // Schedule event at frame 100
+    REQUIRE(engine.scheduleAudioEvent(ScheduledAudioEvent{.eventId = 1, .sampleFrame = 100, .type = AudioEventType::NoteOn}));
+
+    // Pause transport: transition Running -> Pausing -> Paused (DIF-M1-19)
+    AudioCommand pauseCmd{.commandId = 10, .type = AudioCommandType::Pause};
+    REQUIRE(engine.sendCommand(pauseCmd));
+
+    float out[200 * 2]{};
+    engine.processBlock(out, 200);
+
+    AudioCommandAck ack;
+    REQUIRE(engine.pollAck(ack));
+    REQUIRE(ack.status == AudioCommandStatus::Applied);
+    REQUIRE(engine.updateTelemetry());
+    REQUIRE(engine.telemetry().transportState == TransportState::Paused);
+
+    // Timeline is frozen and no events should be consumed while paused!
+    REQUIRE(engine.totalScheduledEventsProcessed() == 0);
+
+    // Call processBlock again while paused
+    engine.processBlock(out, 200);
+    REQUIRE(engine.totalScheduledEventsProcessed() == 0);
+
+    // Resume transport: transition Paused -> Resuming -> Running
+    AudioCommand resumeCmd{.commandId = 11, .type = AudioCommandType::Resume};
+    REQUIRE(engine.sendCommand(resumeCmd));
+
+    engine.processBlock(out, 200);
+    REQUIRE(engine.pollAck(ack));
+    REQUIRE(ack.status == AudioCommandStatus::Applied);
+    REQUIRE(engine.updateTelemetry());
+    REQUIRE(engine.telemetry().transportState == TransportState::Running);
+
+    // Now event at frame 100 is consumed and applied!
+    REQUIRE(engine.totalScheduledEventsProcessed() == 1);
+}
+
+TEST_CASE("AudioEngine holds AudioCommand with future targetSampleFrame (DIF-M2-02)", "[scheduler][command_future]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    REQUIRE(engine.startTone(220.0f, 0.25f));
+
+    TempoMap map;
+    map.bpm = RationalBpm{140, 1};
+    map.timeSignatureNum = 4;
+    map.timeSignatureDen = 4;
+    map.beatsPerBar = 4;
+    map.barsPerPhrase = 4;
+    map.subdivisionsPerBeat = 4;
+
+    // Send SetTempoMap command targeting frame 2000
+    const auto cmd = AudioCommand::makeSetTempoMap(100, map, 2000);
+    REQUIRE(engine.sendCommand(cmd));
+
+    std::vector<float> out(1000 * 2, 0.0f);
+
+    // Block 1: 0..500. Target frame 2000 is far in future. Command must NOT execute or ack yet!
+    engine.processBlock(out.data(), 500);
+    AudioCommandAck ack;
+    REQUIRE_FALSE(engine.pollAck(ack));
+
+    // Block 2: 500..1000
+    engine.processBlock(out.data(), 500);
+    REQUIRE_FALSE(engine.pollAck(ack));
+
+    // Block 3: 1000..1500
+    engine.processBlock(out.data(), 500);
+    REQUIRE_FALSE(engine.pollAck(ack));
+
+    // Block 4: 1500..2500 (1000 frames). Target frame 2000 is inside this block!
+    engine.processBlock(out.data(), 1000);
+    REQUIRE(engine.pollAck(ack));
+    REQUIRE(ack.commandId == 100);
+    REQUIRE(ack.status == AudioCommandStatus::Applied);
+    REQUIRE(ack.sampleFrame == 2000); // Executed at exact requested sample frame!
+    REQUIRE(ack.transportEpoch >= 2);
+}
+
+TEST_CASE("AudioScheduler handles late events safely without queue corruption", "[scheduler][late]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    REQUIRE(engine.startTone(220.0f, 0.25f));
+
+    AudioScheduler scheduler;
+
+    // Advance engine cursor to frame 5000
+    std::vector<float> out(5000 * 2, 0.0f);
+    engine.processBlock(out.data(), 5000);
+    REQUIRE(engine.framesRendered() == 5000);
+
+    // Stage a late event (frame 1000 <= 5000) and a future event (frame 6000)
+    scheduler.stageEvent(ScheduledAudioEvent{.eventId = 1, .sampleFrame = 1000, .type = AudioEventType::NoteOn});
+    scheduler.stageEvent(ScheduledAudioEvent{.eventId = 2, .sampleFrame = 6000, .type = AudioEventType::NoteOn});
+
+    // Dispatch at current cursor 5000
+    const std::size_t dispatched = scheduler.dispatchDueEvents(5000, engine);
+    REQUIRE(dispatched == 2);
+
+    // Next block: 5000..7000
+    std::vector<float> out2(2000 * 2, 0.0f);
+    engine.processBlock(out2.data(), 2000);
+    REQUIRE(engine.totalScheduledEventsProcessed() == 2);
+}

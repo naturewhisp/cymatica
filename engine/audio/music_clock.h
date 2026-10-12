@@ -2,6 +2,7 @@
 
 #include "music_position.h"
 
+#include <array>
 #include <cstdint>
 #include <optional>
 
@@ -21,6 +22,16 @@ public:
     // Validate whether a tempo map configuration is supported (§7.5, ADR-0003 D-M2-01)
     [[nodiscard]] static bool isSupportedTempoMap(const TempoMap& map, std::uint64_t rate = 48000) noexcept;
 
+    // Supported tempo segment representing an anchor point (§7.5, ADR-0003 D-M2-01)
+    struct TempoSegment {
+        std::uint64_t startFrame{0};
+        std::uint64_t startBeat{0};
+        std::uint64_t startBar{0};
+        TempoMap tempoMap{};
+    };
+
+    static constexpr std::size_t kMaxTempoSegments = 16;
+
     // Convert absolute sample frame to structured MusicPosition (§7.5, ADR-0002)
     [[nodiscard]] MusicPosition positionAtFrame(std::uint64_t frame, std::uint64_t epoch = 0) const noexcept;
 
@@ -39,15 +50,20 @@ public:
     [[nodiscard]] std::uint64_t internalToDeviceFrames(std::uint64_t internalFrames, std::uint64_t deviceRate) const noexcept;
 
     [[nodiscard]] std::uint64_t internalSampleRate() const noexcept { return sampleRate_; }
-    [[nodiscard]] const TempoMap& tempoMap() const noexcept { return tempoMap_; }
+    [[nodiscard]] const TempoMap& tempoMap() const noexcept;
     [[nodiscard]] bool setTempoMap(const TempoMap& map) noexcept;
+    [[nodiscard]] bool setTempoMap(const TempoMap& map, std::uint64_t targetSampleFrame) noexcept;
+
+    [[nodiscard]] std::size_t segmentCount() const noexcept { return segmentCount_; }
+    [[nodiscard]] const TempoSegment& segment(std::size_t index) const noexcept;
 
 private:
     struct DirectTag {};
     MusicClock(std::uint64_t internalSampleRate, const TempoMap& tempoMap, DirectTag) noexcept;
 
     std::uint64_t sampleRate_{48000};
-    TempoMap tempoMap_;
+    std::array<TempoSegment, kMaxTempoSegments> segments_{};
+    std::size_t segmentCount_{1};
 };
 
 } // namespace cymatica::audio

@@ -29,11 +29,14 @@ void AudioScheduler::scheduleIntent(const MusicIntentEvent& intent) {
     };
     stageEvent(onEvt);
 
-    // If duration is specified, generate corresponding NoteOff event
+    // If duration is specified, generate corresponding NoteOff event (overflow protected)
     if (intent.durationFrames > 0) {
+        const std::uint64_t offSampleFrame = (UINT64_MAX - intent.sampleFrame < intent.durationFrames)
+            ? UINT64_MAX
+            : (intent.sampleFrame + intent.durationFrames);
         ScheduledAudioEvent offEvt{
             .eventId = intent.eventId,
-            .sampleFrame = intent.sampleFrame + intent.durationFrames,
+            .sampleFrame = offSampleFrame,
             .type = AudioEventType::NoteOff,
             .voice = 0,
             .role = intent.role,

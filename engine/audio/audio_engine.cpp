@@ -10,6 +10,10 @@
 #include <atomic>
 #include <memory>
 
+#if defined(_MSC_VER) || defined(__x86_64__) || defined(_M_X64)
+#include <immintrin.h>
+#endif
+
 namespace cymatica::audio {
 
 struct AudioEngine::Impl {
@@ -17,11 +21,13 @@ struct AudioEngine::Impl {
 
     ma_device device{};
     ma_waveform waveform{};
+    bool deviceInitialized{false};
     std::atomic<bool> deviceStarted{false};
     std::uint32_t sampleRate{48000};
     std::uint32_t channels{2};
 
     std::atomic<AudioProbe*> audioProbe{nullptr}; // Lock-free PCM tap (ADR-0003 D-AO-02)
+    std::atomic<std::uint32_t> probeActiveWriters_{0}; // Quiescence tracker (DIF-M2-01)
 
     // Master control state owned by the control/game thread (§20.5, DIF-M1-17)
     AudioControlFrame masterControl_{};
@@ -50,6 +56,9 @@ struct AudioEngine::Impl {
 
     // Realtime processing function: zero heap allocation, bounded execution (§20.2)
     void processBlock(float* pOutput, std::uint32_t frameCount) noexcept {
+        const std::uint64_t blockStartFrame = renderCursor.load(std::memory_order_relaxed);
+        const std::uint64_t blockEndFrame = musicClock.deviceToInternalFrames(deviceFramesRendered + frameCount, sampleRate);
+
         // 1. Consume continuous control updates
         if (controlBuffer.update()) {
             const auto& ctrl = controlBuffer.readSlot();
@@ -63,8 +72,17 @@ struct AudioEngine::Impl {
         // 2. Consume identified commands and emit acknowledgements (§20.7, §20.8, DIF-M1-18, DIF-M1-19, ADR-0003 D-M2-01)
         AudioCommand cmd;
         for (std::uint32_t i = 0; i < AudioEngine::kMaxCommandsPerBlock; ++i) {
-            if (!commandQueue.tryPop(cmd)) break;
+            if (!commandQueue.peek(cmd)) break;
+
+            // Hold commands scheduled for future sample frames beyond the current block (DIF-M2-02)
+            if (cmd.targetSampleFrame > 0 && cmd.targetSampleFrame >= blockEndFrame) {
+                break;
+            }
+
+            (void)commandQueue.tryPop(cmd);
             AudioCommandStatus status = AudioCommandStatus::Applied;
+            std::uint64_t effectiveFrame = blockStartFrame;
+
             switch (cmd.type) {
                 case AudioCommandType::Start:
                     if (transportState == TransportState::Running ||
@@ -111,7 +129,12 @@ struct AudioEngine::Impl {
                 case AudioCommandType::SetTempoMap: {
                     const TempoMap newMap = cmd.extractTempoMap();
                     if (MusicClock::isSupportedTempoMap(newMap, sampleRate)) {
-                        (void)musicClock.setTempoMap(newMap);
+                        if (cmd.targetSampleFrame > blockStartFrame && cmd.targetSampleFrame < blockEndFrame) {
+                            effectiveFrame = cmd.targetSampleFrame;
+                        } else {
+                            effectiveFrame = blockStartFrame;
+                        }
+                        (void)musicClock.setTempoMap(newMap, effectiveFrame);
                         ++transportEpoch;
                     } else {
                         status = AudioCommandStatus::Rejected;
@@ -122,51 +145,96 @@ struct AudioEngine::Impl {
                     status = AudioCommandStatus::Rejected;
                     break;
             }
-            const std::uint64_t curCursor = renderCursor.load(std::memory_order_relaxed);
+
             if (!ackQueue.tryPush(AudioCommandAck{
                 .commandId = cmd.commandId,
                 .status = status,
-                .sampleFrame = curCursor,
+                .sampleFrame = effectiveFrame,
                 .transportEpoch = transportEpoch,
             })) {
                 droppedAcks.fetch_add(1, std::memory_order_relaxed);
             }
         }
 
-        // 2b. Consume scheduled audio events due for the current block (Spec §16.9, §20.7, ADR-0003 D-M2-03)
-        const std::uint64_t blockStartFrame = renderCursor.load(std::memory_order_relaxed);
-        const std::uint64_t blockEndFrame = blockStartFrame + frameCount;
-
-        ScheduledAudioEvent schedEvt;
-        while (scheduledEventQueue.peek(schedEvt)) {
-            if (schedEvt.sampleFrame < blockEndFrame) {
-                (void)scheduledEventQueue.tryPop(schedEvt);
-                totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
-            } else {
-                break;
-            }
-        }
-
-        // 3. Render PCM audio samples / handle paused/stopped silence (§20.8, DIF-M1-19)
+        // 3. Render PCM audio samples / handle paused/stopped silence (§20.8, DIF-M1-19, DIF-M2-03)
         if (transportState == TransportState::Paused || transportState == TransportState::Stopped) {
             if (pOutput != nullptr && frameCount > 0) {
                 for (std::size_t i = 0; i < static_cast<std::size_t>(frameCount) * channels; ++i) {
                     pOutput[i] = 0.0f;
                 }
             }
-            // Timeline is frozen during pause / stopped
+            // Timeline and scheduled event consumption are frozen during pause / stopped
         } else {
-            if (pOutput != nullptr && frameCount > 0) {
-                ma_waveform_read_pcm_frames(&waveform, pOutput, frameCount, nullptr);
+            // Render block with sample-accurate scheduled event offsets (Spec §7.5, ADR-0003 D-M2-03, DIF-M2-03)
+            std::uint32_t currentDevOffset = 0;
+
+            while (currentDevOffset < frameCount) {
+                ScheduledAudioEvent schedEvt;
+                if (scheduledEventQueue.peek(schedEvt) && schedEvt.sampleFrame < blockEndFrame) {
+                    // Determine device offset for event
+                    std::uint32_t targetDevOffset = currentDevOffset;
+                    if (schedEvt.sampleFrame > blockStartFrame) {
+                        const std::uint64_t devFrame = musicClock.internalToDeviceFrames(schedEvt.sampleFrame, sampleRate);
+                        if (devFrame > deviceFramesRendered) {
+                            targetDevOffset = static_cast<std::uint32_t>(devFrame - deviceFramesRendered);
+                            if (targetDevOffset > frameCount) targetDevOffset = frameCount;
+                        }
+                    }
+                    if (targetDevOffset < currentDevOffset) targetDevOffset = currentDevOffset;
+
+                    // Render slice before event if any
+                    if (targetDevOffset > currentDevOffset) {
+                        const std::uint32_t sliceFrames = targetDevOffset - currentDevOffset;
+                        if (pOutput != nullptr) {
+                            ma_waveform_read_pcm_frames(&waveform, pOutput + (static_cast<std::size_t>(currentDevOffset) * channels), sliceFrames, nullptr);
+                        }
+                        currentDevOffset = targetDevOffset;
+                    }
+
+                    // Consume and apply event at exact offset
+                    (void)scheduledEventQueue.tryPop(schedEvt);
+                    totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+
+                    switch (schedEvt.type) {
+                        case AudioEventType::NoteOn:
+                            ma_waveform_set_frequency(&waveform, schedEvt.valueA);
+                            ma_waveform_set_amplitude(&waveform, schedEvt.valueB * activeVolume);
+                            break;
+                        case AudioEventType::NoteOff:
+                            ma_waveform_set_amplitude(&waveform, 0.0f);
+                            break;
+                        case AudioEventType::ParameterChange:
+                            if (schedEvt.valueA > 0.0f) {
+                                ma_waveform_set_frequency(&waveform, schedEvt.valueA);
+                            }
+                            if (schedEvt.valueB >= 0.0f) {
+                                ma_waveform_set_amplitude(&waveform, schedEvt.valueB * activeVolume);
+                            }
+                            break;
+                    }
+                } else {
+                    // No more events in this block: render remaining frames to block boundary
+                    const std::uint32_t remainingFrames = frameCount - currentDevOffset;
+                    if (pOutput != nullptr && remainingFrames > 0) {
+                        ma_waveform_read_pcm_frames(&waveform, pOutput + (static_cast<std::size_t>(currentDevOffset) * channels), remainingFrames, nullptr);
+                    }
+                    currentDevOffset = frameCount;
+                }
             }
+
             deviceFramesRendered += frameCount;
             renderCursor.store(musicClock.deviceToInternalFrames(deviceFramesRendered, sampleRate), std::memory_order_release);
         }
 
-        // 3b. AudioProbe tap: lock-free, zero-alloc PCM capture (ADR-0003 D-AO-02, Spec §31.5)
-        AudioProbe* probe = audioProbe.load(std::memory_order_relaxed);
+        // 3b. AudioProbe tap: lock-free, zero-alloc PCM capture with quiescence tracking (ADR-0003 D-AO-02, Spec §31.5, DIF-M2-01)
+        AudioProbe* probe = audioProbe.load(std::memory_order_acquire);
         if (probe != nullptr && pOutput != nullptr && frameCount > 0) {
-            probe->writeFrames(pOutput, frameCount);
+            probeActiveWriters_.fetch_add(1, std::memory_order_acquire);
+            AudioProbe* activeProbe = audioProbe.load(std::memory_order_relaxed);
+            if (activeProbe != nullptr) {
+                activeProbe->writeFrames(pOutput, frameCount);
+            }
+            probeActiveWriters_.fetch_sub(1, std::memory_order_release);
         }
 
         const std::uint64_t currentInternalCursor = renderCursor.load(std::memory_order_relaxed);
@@ -213,6 +281,7 @@ bool AudioEngine::init(const AudioEngineConfig& config) {
     auto impl = std::make_unique<Impl>();
     impl->sampleRate = config.sampleRate;
     impl->channels = config.channels;
+    impl->deviceInitialized = true;
 
     ma_device_config devCfg = ma_device_config_init(ma_device_type_playback);
     devCfg.playback.format = ma_format_f32;
@@ -251,13 +320,48 @@ bool AudioEngine::init(const AudioEngineConfig& config) {
     return true;
 }
 
+bool AudioEngine::initOffline(const AudioEngineConfig& config) {
+    if (pImpl_) return true;
+
+    auto impl = std::make_unique<Impl>();
+    impl->sampleRate = config.sampleRate;
+    impl->channels = config.channels;
+    impl->deviceInitialized = false;
+
+    ma_waveform_config waveCfg = ma_waveform_config_init(
+        ma_format_f32,
+        config.channels,
+        config.sampleRate,
+        ma_waveform_type_sine,
+        0.0f,
+        config.defaultToneFreqHz
+    );
+    if (ma_waveform_init(&waveCfg, &impl->waveform) != MA_SUCCESS) {
+        return false;
+    }
+
+    impl->masterControl_.toneFrequencyHz = config.defaultToneFreqHz;
+    impl->masterControl_.toneVolume = 0.0f;
+
+    auto& ctrl = impl->controlBuffer.writeSlot();
+    ctrl = impl->masterControl_;
+    impl->controlBuffer.publish();
+
+    impl->transportState = TransportState::Running;
+
+    pImpl_ = impl.release();
+    return true;
+}
+
 void AudioEngine::shutdown() {
     if (!pImpl_) return;
-    if (pImpl_->deviceStarted.load(std::memory_order_acquire)) {
-        ma_device_stop(&pImpl_->device);
-        pImpl_->deviceStarted.store(false, std::memory_order_release);
+    if (pImpl_->deviceInitialized) {
+        if (pImpl_->deviceStarted.load(std::memory_order_acquire)) {
+            ma_device_stop(&pImpl_->device);
+            pImpl_->deviceStarted.store(false, std::memory_order_release);
+        }
+        ma_device_uninit(&pImpl_->device);
     }
-    ma_device_uninit(&pImpl_->device);
     delete pImpl_;
     pImpl_ = nullptr;
 }
@@ -268,11 +372,15 @@ bool AudioEngine::startTone(float freqHz, float amplitude) {
     pImpl_->masterControl_.toneVolume = amplitude;
     publishControl();
 
-    if (!pImpl_->deviceStarted.load(std::memory_order_acquire)) {
-        if (ma_device_start(&pImpl_->device) != MA_SUCCESS) {
-            return false;
+    if (pImpl_->deviceInitialized) {
+        if (!pImpl_->deviceStarted.load(std::memory_order_acquire)) {
+            if (ma_device_start(&pImpl_->device) != MA_SUCCESS) {
+                return false;
+            }
+            pImpl_->deviceStarted.store(true, std::memory_order_release);
         }
-        pImpl_->deviceStarted.store(true, std::memory_order_release);
+    } else {
+        pImpl_->transportState = TransportState::Running;
     }
     return true;
 }
@@ -284,13 +392,23 @@ void AudioEngine::setToneFrequency(float freqHz) noexcept {
 }
 
 void AudioEngine::stopTone() {
-    if (!pImpl_ || !pImpl_->deviceStarted.load(std::memory_order_acquire)) return;
-    ma_device_stop(&pImpl_->device);
-    pImpl_->deviceStarted.store(false, std::memory_order_release);
+    if (!pImpl_) return;
+    if (pImpl_->deviceInitialized) {
+        if (pImpl_->deviceStarted.load(std::memory_order_acquire)) {
+            ma_device_stop(&pImpl_->device);
+            pImpl_->deviceStarted.store(false, std::memory_order_release);
+        }
+    } else {
+        pImpl_->transportState = TransportState::Stopped;
+    }
 }
 
 bool AudioEngine::isRunning() const noexcept {
-    return pImpl_ && pImpl_->deviceStarted.load(std::memory_order_acquire);
+    if (!pImpl_) return false;
+    if (pImpl_->deviceInitialized) {
+        return pImpl_->deviceStarted.load(std::memory_order_acquire);
+    }
+    return pImpl_->transportState == TransportState::Running;
 }
 
 TransportState AudioEngine::transportState() const noexcept {
@@ -381,6 +499,12 @@ void AudioEngine::attachAudioProbe(AudioProbe* probe) noexcept {
 void AudioEngine::detachAudioProbe() noexcept {
     if (pImpl_) {
         pImpl_->audioProbe.store(nullptr, std::memory_order_release);
+        // Quiescence guarantee: wait until any in-flight processBlock writer has finished using the probe (DIF-M2-01)
+        while (pImpl_->probeActiveWriters_.load(std::memory_order_acquire) > 0) {
+            #if defined(_MSC_VER) || defined(__x86_64__) || defined(_M_X64)
+            _mm_pause();
+            #endif
+        }
     }
 }
 

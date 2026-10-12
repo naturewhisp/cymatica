@@ -223,3 +223,119 @@ TEST_CASE("MusicClock limits saturate conversions and reject unsupported arithme
     REQUIRE_FALSE(clock.setTempoMap(map));
     REQUIRE(clock.frameAtBeat(1) == 24000);
 }
+
+TEST_CASE("MusicClock calculates exact metric boundaries for 3/8, 6/8, 5/4, 2/2 (DIF-M2-04)", "[clock][metrics]") {
+    // Spec §7.5: BPM measures quarter notes per minute.
+    // At 120 BPM, 48 kHz: 1 quarter note = 24,000 frames.
+
+    // 1. Meter 3/8: beat = eighth note (12,000 frames), 3 beats/bar = 36,000 frames/bar
+    TempoMap meter38;
+    meter38.bpm = RationalBpm{120, 1};
+    meter38.timeSignatureNum = 3;
+    meter38.timeSignatureDen = 8;
+    meter38.beatsPerBar = 3;
+    meter38.barsPerPhrase = 4;
+    meter38.subdivisionsPerBeat = 2; // 16th notes (2 per 8th note)
+    auto clock38 = MusicClock::create(48000, meter38);
+    REQUIRE(clock38.has_value());
+    REQUIRE(clock38->frameAtBeat(0) == 0);
+    REQUIRE(clock38->frameAtBeat(1) == 12000);
+    REQUIRE(clock38->frameAtBeat(2) == 24000);
+    REQUIRE(clock38->frameAtBeat(3) == 36000);
+    REQUIRE(clock38->frameAtBar(1) == 36000);  // Exactly 36,000 frames, NOT 72,000! (DIF-M2-04)
+    REQUIRE(clock38->frameAtBar(2) == 72000);
+    REQUIRE(clock38->frameAtPhrase(1) == 144000); // 4 bars = 144,000 frames
+
+    const auto pos38_b1 = clock38->positionAtFrame(12000);
+    REQUIRE(pos38_b1.beat == 1);
+    REQUIRE(pos38_b1.bar == 0);
+    REQUIRE(pos38_b1.beatPhase == 0.0f);
+
+    const auto pos38_bar1 = clock38->positionAtFrame(36000);
+    REQUIRE(pos38_bar1.beat == 0);
+    REQUIRE(pos38_bar1.bar == 1);
+
+    // 2. Meter 6/8: beat = eighth note (12,000 frames), 6 beats/bar = 72,000 frames/bar
+    TempoMap meter68;
+    meter68.bpm = RationalBpm{120, 1};
+    meter68.timeSignatureNum = 6;
+    meter68.timeSignatureDen = 8;
+    meter68.beatsPerBar = 6;
+    meter68.barsPerPhrase = 4;
+    meter68.subdivisionsPerBeat = 2;
+    auto clock68 = MusicClock::create(48000, meter68);
+    REQUIRE(clock68.has_value());
+    REQUIRE(clock68->frameAtBeat(1) == 12000);
+    REQUIRE(clock68->frameAtBar(1) == 72000); // 6 beats = 72,000 frames
+    REQUIRE(clock68->frameAtPhrase(1) == 288000);
+
+    // 3. Meter 5/4: beat = quarter note (24,000 frames), 5 beats/bar = 120,000 frames/bar
+    TempoMap meter54;
+    meter54.bpm = RationalBpm{120, 1};
+    meter54.timeSignatureNum = 5;
+    meter54.timeSignatureDen = 4;
+    meter54.beatsPerBar = 5;
+    meter54.barsPerPhrase = 4;
+    meter54.subdivisionsPerBeat = 4;
+    auto clock54 = MusicClock::create(48000, meter54);
+    REQUIRE(clock54.has_value());
+    REQUIRE(clock54->frameAtBeat(1) == 24000);
+    REQUIRE(clock54->frameAtBar(1) == 120000); // 5 beats = 120,000 frames
+
+    // 4. Meter 2/2 (alla breve): beat = half note (48,000 frames), 2 beats/bar = 96,000 frames/bar
+    TempoMap meter22;
+    meter22.bpm = RationalBpm{120, 1};
+    meter22.timeSignatureNum = 2;
+    meter22.timeSignatureDen = 2;
+    meter22.beatsPerBar = 2;
+    meter22.barsPerPhrase = 4;
+    meter22.subdivisionsPerBeat = 8;
+    auto clock22 = MusicClock::create(48000, meter22);
+    REQUIRE(clock22.has_value());
+    REQUIRE(clock22->frameAtBeat(1) == 48000);
+    REQUIRE(clock22->frameAtBar(1) == 96000); // 2 beats = 96,000 frames
+}
+
+TEST_CASE("MusicClock continuous tempo transition preserves phase and beat continuity (DIF-M2-02)", "[clock][anchors]") {
+    // Start with 120 BPM 4/4 (24,000 frames per beat, 96,000 frames per bar)
+    TempoMap map1;
+    map1.bpm = RationalBpm{120, 1};
+    map1.timeSignatureNum = 4;
+    map1.timeSignatureDen = 4;
+    map1.beatsPerBar = 4;
+    map1.barsPerPhrase = 4;
+    map1.subdivisionsPerBeat = 4;
+
+    auto clockOpt = MusicClock::create(48000, map1);
+    REQUIRE(clockOpt.has_value());
+    auto& clock = *clockOpt;
+
+    // Transition at bar 1 = 96,000 frames to 140 BPM 4/4
+    TempoMap map2 = map1;
+    map2.bpm = RationalBpm{140, 1}; // 140 BPM
+
+    REQUIRE(clock.setTempoMap(map2, 96000));
+    REQUIRE(clock.segmentCount() == 2);
+
+    // Frame 95,999: belongs to segment 1, right before bar 1 boundary
+    const auto posBefore = clock.positionAtFrame(95999);
+    REQUIRE(posBefore.bar == 0);
+    REQUIRE(posBefore.beat == 3);
+    REQUIRE(posBefore.beatPhase >= 0.99f);
+
+    // Frame 96,000: exact boundary of segment 2
+    const auto posBoundary = clock.positionAtFrame(96000);
+    REQUIRE(posBoundary.bar == 1);
+    REQUIRE(posBoundary.beat == 0);
+    REQUIRE(posBoundary.beatPhase == 0.0f);
+
+    // In segment 2 (140 BPM, 48 kHz):
+    // 1 beat = 60 * 48000 / 140 = 2,880,000 / 140 = 144,000 / 7 frames = 20,571 frames (with remainder)
+    const std::uint64_t nextBeatFrame = clock.frameAtBeat(5); // beat 4 was at 96,000; beat 5 is 1st beat of new segment
+    REQUIRE(nextBeatFrame == 96000 + (144000 / 7));
+
+    const auto posNextBeat = clock.positionAtFrame(nextBeatFrame);
+    REQUIRE(posNextBeat.beat == 1);
+    REQUIRE(posNextBeat.bar == 1);
+    REQUIRE(posNextBeat.beatPhase == 0.0f);
+}

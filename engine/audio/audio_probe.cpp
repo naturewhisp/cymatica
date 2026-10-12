@@ -248,7 +248,15 @@ std::string ToneProbeResult::toJson() const {
     ss << "{\n";
     ss << "  \"manifest_version\": \"1.0\",\n";
     ss << "  \"scenario_id\": \"tone_probe_v0\",\n";
+    ss << "  \"build_id\": \"" << buildId << "\",\n";
     ss << "  \"verdict\": \"" << (passed ? "PASS" : "FAIL") << "\",\n";
+    ss << "  \"transport_epoch\": " << transportEpoch << ",\n";
+    ss << "  \"simulation_ticks\": " << simulationTicks << ",\n";
+    ss << "  \"requested_sample_frames\": " << requestedSampleFrames << ",\n";
+    ss << "  \"applied_sample_frames\": " << appliedSampleFrames << ",\n";
+    ss << "  \"presentation_quality\": \"" << presentationQuality << "\",\n";
+    ss << "  \"wav_write_success\": " << (wavWriteSuccess ? "true" : "false") << ",\n";
+    ss << "  \"manifest_write_success\": " << (manifestWriteSuccess ? "true" : "false") << ",\n";
     ss << "  \"timing_profile\": {\n";
     ss << "    \"sample_rate\": 48000,\n";
     ss << "    \"simulation_hz\": 120,\n";
@@ -307,6 +315,7 @@ static ToneProbeResult evaluateToneRecording(const std::vector<float>& stereoSam
     ToneProbeResult result{};
     result.totalCapturedFrames = stereoSamples.size() / 2;
     result.droppedFrames = droppedFrames;
+    result.appliedSampleFrames = result.totalCapturedFrames;
 
     const std::size_t totalExpectedFrames = 3 * sampleRate; // 3.0 s = 144,000 frames
     if (result.totalCapturedFrames < totalExpectedFrames) {
@@ -379,11 +388,26 @@ static ToneProbeResult evaluateToneRecording(const std::vector<float>& stereoSam
         result.wavFilePath = (dir / "tone_probe_v0.wav").lexically_normal().string();
         result.manifestFilePath = (dir / "tone_probe_v0_manifest.json").lexically_normal().string();
 
-        analysis::writeWavStereo16(result.wavFilePath, stereoSamples.data(), result.totalCapturedFrames, sampleRate);
+        const bool wavOk = analysis::writeWavStereo16(result.wavFilePath, stereoSamples.data(), result.totalCapturedFrames, sampleRate);
+        result.wavWriteSuccess = wavOk;
+        if (!wavOk) {
+            result.passed = false;
+            result.failureReason += "[WAV write failed] ";
+        }
 
         std::ofstream mf(result.manifestFilePath);
-        if (mf.is_open()) {
+        if (!mf.is_open()) {
+            result.passed = false;
+            result.manifestWriteSuccess = false;
+            result.failureReason += "[Manifest write failed] ";
+        } else {
+            result.manifestWriteSuccess = true;
             mf << result.toJson();
+            if (!mf.good()) {
+                result.passed = false;
+                result.manifestWriteSuccess = false;
+                result.failureReason += "[Manifest write failed] ";
+            }
         }
     }
 
@@ -444,18 +468,24 @@ ToneProbeResult runToneProbeV0(AudioEngine& engine,
     engine.detachAudioProbe();
     dispatcher.endDiagnosticSession();
 
-    return evaluateToneRecording(recordedStereo, sampleRate, probe.droppedFrames(), outputDir, writeFiles);
+    auto res = evaluateToneRecording(recordedStereo, sampleRate, probe.droppedFrames(), outputDir, writeFiles);
+    res.simulationTicks = kTotalTicks;
+    res.requestedSampleFrames = static_cast<std::uint64_t>(kTotalTicks) * kFramesPerTick;
+    res.appliedSampleFrames = res.totalCapturedFrames;
+    res.transportEpoch = 1;
+    res.presentationQuality = "Estimated";
+    return res;
 }
 
 ToneProbeResult runToneProbeV0Offline(const std::string& outputDir, bool writeFiles) {
     AudioEngine engine;
-    if (!engine.init({48000, 2, 220.0f})) {
+    if (!engine.initOffline({48000, 2, 220.0f})) {
         ToneProbeResult res{};
         res.passed = false;
-        res.failureReason = "Failed to initialize AudioEngine";
+        res.failureReason = "Failed to initialize AudioEngine in offline mode";
         return res;
     }
-    // Set running state in engine for direct processBlock rendering
+    // Set running state in offline engine for direct processBlock rendering without physical device callback (DIF-M2-01)
     engine.startTone(220.0f, 0.10f);
 
     cymatica::core::InputDispatcher dispatcher(cymatica::core::ActionSource::PhysicalInput);

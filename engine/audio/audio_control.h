@@ -84,12 +84,12 @@ struct AudioCommand {
         cmd.commandId = cmdId;
         cmd.type = AudioCommandType::SetTempoMap;
         cmd.paramU64 = (static_cast<std::uint64_t>(map.bpm.numerator) << 32) |
-                       static_cast<std::uint64_t>(map.bpm.denominator);
+                       (static_cast<std::uint64_t>(map.bpm.denominator) & 0xFFFFFFFFULL);
         cmd.paramExtraU64 = static_cast<std::uint64_t>(map.timeSignatureNum & 0xFF) |
                            (static_cast<std::uint64_t>(map.timeSignatureDen & 0xFF) << 8) |
                            (static_cast<std::uint64_t>(map.beatsPerBar & 0xFF) << 16) |
-                           (static_cast<std::uint64_t>(map.subdivisionsPerBeat & 0xFF) << 24) |
-                           (static_cast<std::uint64_t>(map.barsPerPhrase & 0xFF) << 32);
+                           (static_cast<std::uint64_t>(map.subdivisionsPerBeat & 0xFFFF) << 24) |
+                           (static_cast<std::uint64_t>(map.barsPerPhrase & 0xFFFF) << 40);
         cmd.targetSampleFrame = targetFrame;
         return cmd;
     }
@@ -101,8 +101,8 @@ struct AudioCommand {
         map.timeSignatureNum = static_cast<std::uint32_t>(paramExtraU64 & 0xFF);
         map.timeSignatureDen = static_cast<std::uint32_t>((paramExtraU64 >> 8) & 0xFF);
         map.beatsPerBar = static_cast<std::uint32_t>((paramExtraU64 >> 16) & 0xFF);
-        map.subdivisionsPerBeat = static_cast<std::uint32_t>((paramExtraU64 >> 24) & 0xFF);
-        map.barsPerPhrase = static_cast<std::uint32_t>((paramExtraU64 >> 32) & 0xFF);
+        map.subdivisionsPerBeat = static_cast<std::uint32_t>((paramExtraU64 >> 24) & 0xFFFF);
+        map.barsPerPhrase = static_cast<std::uint32_t>((paramExtraU64 >> 40) & 0xFFFF);
         return map;
     }
 };

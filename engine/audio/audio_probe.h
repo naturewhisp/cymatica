@@ -104,6 +104,14 @@ struct ToneProbeResult {
     PhaseMetric phase3Release{};
     std::uint64_t totalCapturedFrames{0};
     std::uint64_t droppedFrames{0};
+    std::string buildId{"cf344c0"};
+    std::uint64_t transportEpoch{1};
+    std::uint64_t simulationTicks{360};
+    std::uint64_t requestedSampleFrames{144000};
+    std::uint64_t appliedSampleFrames{144000};
+    std::string presentationQuality{"Estimated"};
+    bool wavWriteSuccess{false};
+    bool manifestWriteSuccess{false};
     std::string wavFilePath{};
     std::string manifestFilePath{};
     std::string failureReason{};

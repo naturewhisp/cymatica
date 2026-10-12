@@ -49,20 +49,28 @@ Leggere il file `artifacts/cacp/tone_probe_v0_manifest.json` tramite `view_file`
 
 ### Passo 3: Ascolto Multimodale Diretto (AC-AO-01B)
 
-Invocare lo strumento `view_file` sul file binario audio:
+Verificare preliminarmente se il client/modello in uso dispone della capacità di ingestione multimodale audio (`audio/wav`).
+Qualora l'ambiente o il client non supportino l'ingestione multimodale di audio binario, registrare formalmente lo stato come **`unsupported`** o **`blocked`** (Spec §31.5). L'assenza di tale capacità esterna non blocca il gate semantico mandatory AC-AO-01A (che resta validato quantitativamente dal manifest e dai test Catch2), ma non deve mai essere spacciata per ascolto avvenuto.
+
+Se la capacità multimodale audio è attiva, invocare lo strumento `view_file` sul file binario:
 
 ```text
 tool: view_file
 AbsolutePath: <repo_root>/artifacts/cacp/tone_probe_v0.wav
 ```
 
-Il sistema inietta la traccia audio direttamente nel contesto multimodale dell'agente. L'agente deve formulare un **giudizio percettivo qualitativo** valutando:
+Il sistema inietta la traccia audio direttamente nel contesto multimodale dell'agente. L'agente formula un **giudizio percettivo qualitativo** valutando:
 1. **Purezza del timbro:** la sinusoide deve risultare pulita e stabile, priva di armoniche spurie indesiderate;
 2. **Transizioni:** il passaggio 220 $\to$ 440 $\to$ 220 Hz deve avvenire senza click, pop, salti di fase violenti o distorsioni di clipping;
 3. **Dinamica:** il livello sonoro percepito deve rimanere costante ed equilibrato tra le fasi;
 4. **Artefatti temporali:** assenza totale di crackle, dropouts, jitter o discontinuità di buffer.
 
-Registrare il giudizio percettivo formale nell'evidenza di milestone (es. `docs/m2_tone_probe_evidence.md`).
+Registrare il giudizio percettivo formale nell'evidenza di milestone (es. `docs/m2_tone_probe_evidence.md`) includendo:
+- Identificativo client / modello agente;
+- Capacità multimodale verificata (`audio/wav`);
+- Hash crittografico SHA-256 dell'artefatto WAV;
+- Sessione e timestamp di valutazione;
+- Giudizio percettivo ed esito formale.
 
 ---
 

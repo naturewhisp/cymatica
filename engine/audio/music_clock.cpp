@@ -30,18 +30,26 @@ bool MusicClock::isSupportedTempoMap(const TempoMap& map, std::uint64_t rate) no
     if (map.timeSignatureNum > 16) {
         return false;
     }
+    if (map.subdivisionsPerBeat > 65535 || map.barsPerPhrase > 65535) {
+        return false;
+    }
     // Supported exact profile: >= one frame per beat and phrase numerator representable.
-    if (rate == 0 || rate > UINT64_MAX / 60 / map.bpm.denominator) return false;
-    const auto n = rate * 60 * map.bpm.denominator;
-    if (map.bpm.numerator > n || n > UINT64_MAX / map.beatsPerBar / map.barsPerPhrase) return false;
+    if (rate == 0 || rate > UINT64_MAX / 60 / map.bpm.denominator / 4) return false;
+    const auto n = rate * 60 * map.bpm.denominator * 4;
+    const auto d = static_cast<std::uint64_t>(map.bpm.numerator) * map.timeSignatureDen;
+    if (d > n || n > UINT64_MAX / map.beatsPerBar / map.barsPerPhrase) return false;
     return true;
 }
 
 MusicClock::MusicClock() noexcept
-    : sampleRate_(48000), tempoMap_(TempoMap{}) {}
+    : sampleRate_(48000), segmentCount_(1) {
+    segments_[0] = TempoSegment{.startFrame = 0, .startBeat = 0, .startBar = 0, .tempoMap = TempoMap{}};
+}
 
 MusicClock::MusicClock(std::uint64_t internalSampleRate, const TempoMap& tempoMap, DirectTag) noexcept
-    : sampleRate_(internalSampleRate), tempoMap_(tempoMap) {}
+    : sampleRate_(internalSampleRate), segmentCount_(1) {
+    segments_[0] = TempoSegment{.startFrame = 0, .startBeat = 0, .startBar = 0, .tempoMap = tempoMap};
+}
 
 std::optional<MusicClock> MusicClock::create(std::uint64_t internalSampleRate, const TempoMap& tempoMap) noexcept {
     if (internalSampleRate == 0) {
@@ -53,58 +61,169 @@ std::optional<MusicClock> MusicClock::create(std::uint64_t internalSampleRate, c
     return MusicClock(internalSampleRate, tempoMap, DirectTag{});
 }
 
+const TempoMap& MusicClock::tempoMap() const noexcept {
+    return segments_[segmentCount_ - 1].tempoMap;
+}
+
+const MusicClock::TempoSegment& MusicClock::segment(std::size_t index) const noexcept {
+    return segments_[std::min(index, segmentCount_ - 1)];
+}
+
 bool MusicClock::setTempoMap(const TempoMap& map) noexcept {
+    return setTempoMap(map, 0);
+}
+
+bool MusicClock::setTempoMap(const TempoMap& map, std::uint64_t targetSampleFrame) noexcept {
     if (!isSupportedTempoMap(map, sampleRate_)) {
         return false; // Explicit failure on unsupported / inconsistent configs (§7.5, DIF-M1-22)
     }
-    tempoMap_ = map;
+    if (targetSampleFrame == 0 && segmentCount_ == 1 && segments_[0].startFrame == 0) {
+        segments_[0].tempoMap = map;
+        return true;
+    }
+
+    if (targetSampleFrame == segments_[segmentCount_ - 1].startFrame) {
+        segments_[segmentCount_ - 1].tempoMap = map;
+        return true;
+    }
+
+    if (targetSampleFrame < segments_[segmentCount_ - 1].startFrame) {
+        return false; // Must be monotonically increasing
+    }
+
+    if (segmentCount_ >= kMaxTempoSegments) {
+        return false; // Bounded capacity, zero RT allocation
+    }
+
+    // Determine position at targetSampleFrame in existing timeline
+    std::size_t activeIdx = 0;
+    for (std::size_t i = 1; i < segmentCount_; ++i) {
+        if (segments_[i].startFrame <= targetSampleFrame) {
+            activeIdx = i;
+        } else {
+            break;
+        }
+    }
+    const auto& prevSeg = segments_[activeIdx];
+    const std::uint64_t deltaF = targetSampleFrame - prevSeg.startFrame;
+    const std::uint64_t K_num = 60ULL * sampleRate_ * prevSeg.tempoMap.bpm.denominator * 4ULL;
+    const std::uint64_t K_den = static_cast<std::uint64_t>(prevSeg.tempoMap.bpm.numerator) * prevSeg.tempoMap.timeSignatureDen;
+    const auto inverse = core::multiplyDivide(deltaF, K_den, K_num);
+    const std::uint64_t elapsedBeats = inverse.value +
+        static_cast<std::uint64_t>(inverse.remainder >= K_num - (K_den - 1));
+
+    const std::uint64_t totalBeats = prevSeg.startBeat + elapsedBeats;
+    const std::uint64_t elapsedBars = elapsedBeats / prevSeg.tempoMap.beatsPerBar;
+    const std::uint64_t totalBars = prevSeg.startBar + elapsedBars;
+
+    segments_[segmentCount_] = TempoSegment{
+        .startFrame = targetSampleFrame,
+        .startBeat = totalBeats,
+        .startBar = totalBars,
+        .tempoMap = map
+    };
+    ++segmentCount_;
     return true;
 }
 
 std::uint64_t MusicClock::frameAtBeat(std::uint64_t totalBeats) const noexcept {
-    return core::multiplyDivide(totalBeats, 60ULL * sampleRate_ * tempoMap_.bpm.denominator,
-                                tempoMap_.bpm.numerator).value;
+    if (segmentCount_ == 0 || sampleRate_ == 0) return 0;
+
+    std::size_t segIdx = 0;
+    for (std::size_t i = 1; i < segmentCount_; ++i) {
+        if (segments_[i].startBeat <= totalBeats) {
+            segIdx = i;
+        } else {
+            break;
+        }
+    }
+
+    const auto& seg = segments_[segIdx];
+    const std::uint64_t deltaBeats = totalBeats - seg.startBeat;
+    const std::uint64_t K_num = 60ULL * sampleRate_ * seg.tempoMap.bpm.denominator * 4ULL;
+    const std::uint64_t K_den = static_cast<std::uint64_t>(seg.tempoMap.bpm.numerator) * seg.tempoMap.timeSignatureDen;
+
+    const std::uint64_t deltaFrames = core::multiplyDivide(deltaBeats, K_num, K_den).value;
+    return core::saturatingAdd(seg.startFrame, deltaFrames);
 }
 
 std::uint64_t MusicClock::frameAtBar(std::uint64_t totalBars) const noexcept {
-    return core::multiplyDivide(totalBars, 60ULL * sampleRate_ * tempoMap_.bpm.denominator * tempoMap_.beatsPerBar,
-                                tempoMap_.bpm.numerator).value;
+    if (segmentCount_ == 0 || sampleRate_ == 0) return 0;
+
+    std::size_t segIdx = 0;
+    for (std::size_t i = 1; i < segmentCount_; ++i) {
+        if (segments_[i].startBar <= totalBars) {
+            segIdx = i;
+        } else {
+            break;
+        }
+    }
+
+    const auto& seg = segments_[segIdx];
+    const std::uint64_t deltaBars = totalBars - seg.startBar;
+    const std::uint64_t K_num = 60ULL * sampleRate_ * seg.tempoMap.bpm.denominator * 4ULL * seg.tempoMap.beatsPerBar;
+    const std::uint64_t K_den = static_cast<std::uint64_t>(seg.tempoMap.bpm.numerator) * seg.tempoMap.timeSignatureDen;
+
+    const std::uint64_t deltaFrames = core::multiplyDivide(deltaBars, K_num, K_den).value;
+    return core::saturatingAdd(seg.startFrame, deltaFrames);
 }
 
 std::uint64_t MusicClock::frameAtPhrase(std::uint64_t totalPhrases) const noexcept {
-    return core::multiplyDivide(totalPhrases, 60ULL * sampleRate_ * tempoMap_.bpm.denominator *
-                                tempoMap_.beatsPerBar * tempoMap_.barsPerPhrase, tempoMap_.bpm.numerator).value;
+    if (segmentCount_ == 0 || sampleRate_ == 0) return 0;
+    const auto& seg = segments_[0];
+    const std::uint64_t totalBars = core::multiplyDivide(totalPhrases, seg.tempoMap.barsPerPhrase, 1).value;
+    return frameAtBar(totalBars);
 }
 
 MusicPosition MusicClock::positionAtFrame(std::uint64_t frame, std::uint64_t epoch) const noexcept {
-    if (sampleRate_ == 0 || tempoMap_.beatsPerBar == 0 || tempoMap_.barsPerPhrase == 0 ||
-        tempoMap_.bpm.numerator == 0 || tempoMap_.bpm.denominator == 0) {
+    if (sampleRate_ == 0 || segmentCount_ == 0) {
         return MusicPosition{.sampleFrame = frame, .transportEpoch = epoch};
     }
 
-    const std::uint64_t num = tempoMap_.bpm.numerator;
-    const std::uint64_t den = tempoMap_.bpm.denominator;
-    const std::uint64_t framesNumerator = 60ULL * sampleRate_ * den;
+    std::size_t segIdx = 0;
+    for (std::size_t i = 1; i < segmentCount_; ++i) {
+        if (segments_[i].startFrame <= frame) {
+            segIdx = i;
+        } else {
+            break;
+        }
+    }
+
+    const auto& seg = segments_[segIdx];
+    const auto& map = seg.tempoMap;
+
+    if (map.beatsPerBar == 0 || map.barsPerPhrase == 0 ||
+        map.bpm.numerator == 0 || map.bpm.denominator == 0 || map.timeSignatureDen == 0) {
+        return MusicPosition{.sampleFrame = frame, .transportEpoch = epoch};
+    }
+
+    const std::uint64_t deltaF = frame - seg.startFrame;
+    const std::uint64_t K_num = 60ULL * sampleRate_ * map.bpm.denominator * 4ULL;
+    const std::uint64_t K_den = static_cast<std::uint64_t>(map.bpm.numerator) * map.timeSignatureDen;
 
     // Invert floor boundary exactly, including UINT64_MAX, without frame+1.
-    const auto inverse = core::multiplyDivide(frame, num, framesNumerator);
-    const std::uint64_t totalBeats = inverse.value +
-        static_cast<std::uint64_t>(inverse.remainder >= framesNumerator - (num - 1));
-    const auto boundary = core::multiplyDivide(totalBeats, framesNumerator, num);
-    const auto beatDurationFrames = framesNumerator / num +
-        static_cast<std::uint64_t>(boundary.remainder + framesNumerator % num >= num);
-    const auto frameInBeat = frame - boundary.value;
-    const float beatPhase = std::min(static_cast<float>(frameInBeat) / static_cast<float>(beatDurationFrames),
-                                     std::nextafter(1.0f, 0.0f));
+    const auto inverse = core::multiplyDivide(deltaF, K_den, K_num);
+    const std::uint64_t elapsedBeats = inverse.value +
+        static_cast<std::uint64_t>(inverse.remainder >= K_num - (K_den - 1));
+    const auto boundary = core::multiplyDivide(elapsedBeats, K_num, K_den);
+    const auto beatDurationFrames = K_num / K_den +
+        static_cast<std::uint64_t>(boundary.remainder + K_num % K_den >= K_den);
+    const auto frameInBeat = deltaF - boundary.value;
+    const float beatPhase = (beatDurationFrames > 0)
+        ? std::min(static_cast<float>(frameInBeat) / static_cast<float>(beatDurationFrames),
+                   std::nextafter(1.0f, 0.0f))
+        : 0.0f;
     const auto sub = static_cast<std::uint32_t>(std::min(
-        static_cast<double>(beatPhase) * tempoMap_.subdivisionsPerBeat,
-        static_cast<double>(tempoMap_.subdivisionsPerBeat - 1)));
+        static_cast<double>(beatPhase) * map.subdivisionsPerBeat,
+        static_cast<double>(map.subdivisionsPerBeat - 1)));
 
-    const std::uint64_t beatsPerBar = tempoMap_.beatsPerBar;
-    const std::uint64_t barsPerPhrase = tempoMap_.barsPerPhrase;
+    const std::uint64_t beatsPerBar = map.beatsPerBar;
+    const std::uint64_t barsPerPhrase = map.barsPerPhrase;
 
-    const auto beatInBar = static_cast<std::uint32_t>(totalBeats % beatsPerBar);
-    const std::uint64_t totalBars = totalBeats / beatsPerBar;
+    const std::uint64_t totalBeats = seg.startBeat + elapsedBeats;
+    const auto beatInBar = static_cast<std::uint32_t>(elapsedBeats % beatsPerBar);
+    const std::uint64_t elapsedBars = elapsedBeats / beatsPerBar;
+    const std::uint64_t totalBars = seg.startBar + elapsedBars;
     const auto barInPhrase = static_cast<std::uint32_t>(totalBars % barsPerPhrase);
     const auto phrase = static_cast<std::uint32_t>(std::min<std::uint64_t>(totalBars / barsPerPhrase, UINT32_MAX));
 

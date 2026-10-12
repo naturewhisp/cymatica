@@ -30,6 +30,8 @@ public:
     AudioEngine& operator=(const AudioEngine&) = delete;
 
     bool init(const AudioEngineConfig& config = {});
+    // Pure offline synthesis initialization without physical audio device or background callback (DIF-M2-01)
+    bool initOffline(const AudioEngineConfig& config = {});
     void shutdown();
 
     // Device control
