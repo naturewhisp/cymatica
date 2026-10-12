@@ -4,6 +4,7 @@
 #include "miniaudio.h"
 
 #include "audio_engine.h"
+#include "audio_probe.h"
 #include "music_clock.h"
 
 #include <atomic>
@@ -19,6 +20,8 @@ struct AudioEngine::Impl {
     std::atomic<bool> deviceStarted{false};
     std::uint32_t sampleRate{48000};
     std::uint32_t channels{2};
+
+    std::atomic<AudioProbe*> audioProbe{nullptr}; // Lock-free PCM tap (ADR-0003 D-AO-02)
 
     // Master control state owned by the control/game thread (§20.5, DIF-M1-17)
     AudioControlFrame masterControl_{};
@@ -129,6 +132,12 @@ struct AudioEngine::Impl {
             }
             deviceFramesRendered += frameCount;
             renderCursor.store(musicClock.deviceToInternalFrames(deviceFramesRendered, sampleRate), std::memory_order_release);
+        }
+
+        // 3b. AudioProbe tap: lock-free, zero-alloc PCM capture (ADR-0003 D-AO-02, Spec §31.5)
+        AudioProbe* probe = audioProbe.load(std::memory_order_relaxed);
+        if (probe != nullptr && pOutput != nullptr && frameCount > 0) {
+            probe->writeFrames(pOutput, frameCount);
         }
 
         const std::uint64_t currentInternalCursor = renderCursor.load(std::memory_order_relaxed);
@@ -315,6 +324,22 @@ bool AudioEngine::pollAck(AudioCommandAck& ack) noexcept {
 
 std::uint64_t AudioEngine::droppedAcks() const noexcept {
     return pImpl_ ? pImpl_->droppedAcks.load(std::memory_order_relaxed) : 0;
+}
+
+void AudioEngine::attachAudioProbe(AudioProbe* probe) noexcept {
+    if (pImpl_) {
+        pImpl_->audioProbe.store(probe, std::memory_order_release);
+    }
+}
+
+void AudioEngine::detachAudioProbe() noexcept {
+    if (pImpl_) {
+        pImpl_->audioProbe.store(nullptr, std::memory_order_release);
+    }
+}
+
+AudioProbe* AudioEngine::audioProbe() const noexcept {
+    return pImpl_ ? pImpl_->audioProbe.load(std::memory_order_acquire) : nullptr;
 }
 
 void AudioEngine::processBlock(float* pOutput, std::uint32_t frameCount) noexcept {

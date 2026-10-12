@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "audio_engine.h"
+#include "audio_probe.h"
 #include "realtime_exchange.h"
 
 #include <atomic>
@@ -682,6 +683,30 @@ TEST_CASE("AudioEngine processBlock performs zero heap allocations post-init", "
             (void)engine.updateTelemetry();
         }
         REQUIRE(scope.count() == 0);
+    }
+
+    // AudioProbe zero-allocation realtime verification (ADR-0003 D-AO-02, Spec §31.5)
+    // Verifies 0 heap allocations with probe attached, both with buffer available and under consumer stall
+    {
+        AudioProbe probe(1024, 2, 48000);
+        engine.attachAudioProbe(&probe);
+
+        AllocationScope scope;
+        // 1. Blocks processed when probe buffer has space
+        for (int b = 0; b < 2; ++b) {
+            engine.processBlock(buffer.data(), 512);
+        }
+        REQUIRE(probe.droppedFrames() == 0);
+        REQUIRE(probe.availableFrames() == 1024);
+
+        // 2. Blocks processed when probe buffer is full (consumer stall)
+        for (int b = 0; b < 5; ++b) {
+            engine.processBlock(buffer.data(), 512);
+        }
+        REQUIRE(probe.droppedFrames() == 5 * 512);
+
+        REQUIRE(scope.count() == 0);
+        engine.detachAudioProbe();
     }
 
     engine.shutdown();

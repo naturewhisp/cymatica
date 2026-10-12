@@ -1,6 +1,8 @@
-// CYMATICA M1 smoke application: window, input, test shader, realtime exchange.
+// CYMATICA M2 application: window, input dispatcher, test shader, realtime exchange, AudioProbe.
 #include "audio_engine.h"
+#include "audio_probe.h"
 #include "fixed_step.h"
+#include "input_dispatcher.h"
 #include "raylib.h"
 #include "run_record.h"
 
@@ -41,11 +43,20 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--smoke-seconds") == 0 && i + 1 < argc) {
             smokeSeconds = std::atof(argv[++i]);
+        } else if (std::strcmp(argv[i], "--cacp-run") == 0 && i + 1 < argc) {
+            const char* scenario = argv[++i];
+            if (std::strcmp(scenario, "tone_test") == 0 || std::strcmp(scenario, "tone_probe_v0") == 0) {
+                std::printf("[cacp] Running scenario '%s' (AC-AO-01A tone_probe_v0)...\n", scenario);
+                auto res = cymatica::audio::runToneProbeV0Offline("artifacts/cacp", true);
+                std::printf("[cacp] Verdict: %s\n", res.passed ? "PASS" : "FAIL");
+                std::printf("%s\n", res.toJson().c_str());
+                return res.passed ? 0 : 1;
+            }
         }
     }
 
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
-    InitWindow(1280, 720, "CYMATICA - Milestone 1");
+    InitWindow(1280, 720, "CYMATICA - Milestone 2: CACP Tone Dispatcher & AudioProbe");
     if (!IsWindowReady()) {
         std::fprintf(stderr, "[cymatica_game] window: FAIL\n");
         return 1;
@@ -68,6 +79,8 @@ int main(int argc, char** argv) {
         .framesPerTick = 400
     };
     runRecord.pureSeedEligible = true;
+
+    cymatica::core::InputDispatcher inputDispatcher;
 
     std::uint64_t frames = 0;
     const double start = GetTime();
@@ -100,7 +113,14 @@ int main(int argc, char** argv) {
             accumulator.reconcileToTick(accumulator.sampleFrameToTick(currentTelem.renderCursor));
         }
 
-        const float wanted = IsKeyDown(KEY_SPACE) ? kAltFreqHz : kBaseFreqHz;
+        // Process input through unified InputDispatcher (ADR-0003 D-AO-01, Spec §31.5)
+        const auto action = inputDispatcher.processPhysicalInput(
+            cymatica::core::InputAction::ToneShift,
+            IsKeyDown(KEY_SPACE),
+            accumulator.currentTick()
+        );
+
+        const float wanted = inputDispatcher.isDown(cymatica::core::InputAction::ToneShift) ? kAltFreqHz : kBaseFreqHz;
         if (wanted != freq) {
             freq = wanted;
             auto& ctrl = audio.controlWriter();
@@ -129,17 +149,16 @@ int main(int argc, char** argv) {
             DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), WHITE);
             EndShaderMode();
         }
-        DrawText("CYMATICA - Milestone 1: Deterministic Timing & Realtime Exchange", 24, 24, 22, RAYWHITE);
+        DrawText("CYMATICA - Milestone 2: CACP Tone Dispatcher & AudioProbe", 24, 24, 22, RAYWHITE);
         DrawText(TextFormat("Shader: %s | Audio: %s | Tone: %.0f Hz | Device rate: %u Hz | FPS: %d",
                             shaderOk ? "OK" : "FAIL", audioOk ? "OK" : "FAIL", freq, audio.sampleRate(),
                             GetFPS()),
                  24, 56, 18, (shaderOk && audioOk) ? GREEN : RED);
-        DrawText(TextFormat("Telemetry: epoch=%llu state=%s renderCursor=%llu frames=%llu bpm=%.0f",
+        DrawText(TextFormat("Input: Action=ToneShift State=%s Source=Physical | Epoch=%llu State=%s",
+                            action.state == cymatica::core::ActionState::Pressed ? "PRESSED" :
+                            (action.state == cymatica::core::ActionState::Held ? "HELD" : "RELEASED"),
                             static_cast<unsigned long long>(telem.transportEpoch),
-                            stateStr,
-                            static_cast<unsigned long long>(telem.renderCursor),
-                            static_cast<unsigned long long>(telem.framesRenderedTotal),
-                            telem.bpm),
+                            stateStr),
                  24, 82, 18, SKYBLUE);
         DrawText(TextFormat("Simulation: tick=%llu alpha=%.2f | Pure Seed: %s | Suspensions: %u",
                             static_cast<unsigned long long>(accumulator.currentTick()),
@@ -147,7 +166,7 @@ int main(int argc, char** argv) {
                             runRecord.pureSeedEligible ? "ELIGIBLE" : "INVALIDATED",
                             technicalSuspensionCount),
                  24, 108, 18, runRecord.pureSeedEligible ? ORANGE : RED);
-        DrawText("Hold SPACE: 440 Hz | ESC: exit", 24, GetScreenHeight() - 36, 18, YELLOW);
+        DrawText("Hold SPACE: 440 Hz (via InputDispatcher) | ESC: exit", 24, GetScreenHeight() - 36, 18, YELLOW);
         EndDrawing();
         ++frames;
     }

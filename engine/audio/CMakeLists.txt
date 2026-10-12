@@ -2,6 +2,8 @@ add_library(cymatica_audio STATIC
     audio_control.h
     audio_engine.cpp
     audio_engine.h
+    audio_probe.cpp
+    audio_probe.h
     audio_telemetry.h
     music_clock.cpp
     music_clock.h

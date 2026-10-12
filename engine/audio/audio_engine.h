@@ -8,6 +8,8 @@
 
 namespace cymatica::audio {
 
+class AudioProbe;
+
 struct AudioEngineConfig {
     std::uint32_t sampleRate{48000};
     std::uint32_t channels{2};
@@ -54,6 +56,11 @@ public:
     // Poll acknowledgement from audio callback
     bool pollAck(AudioCommandAck& ack) noexcept;
     [[nodiscard]] std::uint64_t droppedAcks() const noexcept;
+
+    // AudioProbe tap API (Spec §31.5, ADR-0003 D-AO-02)
+    void attachAudioProbe(AudioProbe* probe) noexcept;
+    void detachAudioProbe() noexcept;
+    [[nodiscard]] AudioProbe* audioProbe() const noexcept;
 
     // Direct block rendering (callable without audio device for deterministic testing & zero-alloc validation)
     void processBlock(float* pOutput, std::uint32_t frameCount) noexcept;
