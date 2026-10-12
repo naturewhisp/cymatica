@@ -113,10 +113,17 @@ int main(int argc, char** argv) {
             accumulator.reconcileToTick(accumulator.sampleFrameToTick(currentTelem.renderCursor));
         }
 
+        // If running in automated smoke test mode, simulate prolonged SPACE hold between 1.0s and 2.5s
+        // so that anyone listening hears the 220 Hz -> 440 Hz -> 220 Hz pitch transition live.
+        bool isSpaceDown = IsKeyDown(KEY_SPACE);
+        if (smokeSeconds > 0.0 && elapsed >= 1.0 && elapsed < 2.5) {
+            isSpaceDown = true;
+        }
+
         // Process input through unified InputDispatcher (ADR-0003 D-AO-01, Spec §31.5)
         const auto action = inputDispatcher.processPhysicalInput(
             cymatica::core::InputAction::ToneShift,
-            IsKeyDown(KEY_SPACE),
+            isSpaceDown,
             accumulator.currentTick()
         );
 

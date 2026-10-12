@@ -15,6 +15,10 @@ class AudioEngine;
 // Producer is the realtime audio callback (processBlock).
 // Consumer is an asynchronous worker or test diagnostic runner.
 // Invariants: zero heap allocation, zero blocking locks, bounded execution in realtime path.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4324) // structure was padded due to alignment specifier
+#endif
 class AudioProbe {
 public:
     static constexpr std::uint32_t kDefaultCapacityFrames = 24000; // 0.5 s @ 48 kHz stereo = 192 KB
@@ -56,6 +60,9 @@ private:
     alignas(64) std::atomic<std::uint64_t> readHead_{0};
     alignas(64) std::atomic<std::uint64_t> droppedFrames_{0};
 };
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 // Quantitative analysis utilities (ADR-0003 D-AO-02)
 namespace analysis {
