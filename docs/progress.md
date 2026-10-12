@@ -96,8 +96,8 @@ Suddivisione richiesta dal titolare il 2026-10-07; roadmap e criteri autoritativ
 
 | Sottofase | Stato | Evidenze / prossimo passo |
 |---|---|---|
-| M2.1 — Decisioni e contratti | **Da eseguire** | Congelare D-M2-01/02/03 e D-AO-01/02 prima dei task dipendenti; registrare parametri, limiti e verifiche. |
-| M2.2 — Controllo e osservazione del tono | **Da eseguire** | Implementare dispatcher comune e sonde; verificare AC-AO-01A, registrare AC-AO-01B separatamente. |
+| M2.1 — Decisioni e contratti | **Completata** | Congelate D-M2-01, D-M2-02, D-M2-03, D-AO-01, D-AO-02 in [ADR-0003](adr/0003-m2-decisions-contracts.md); contratti di transport, intent, scheduling, dispatcher del tono e AudioProbe accettati. |
+| M2.2 — Controllo e osservazione del tono | **In corso** | Implementazione del dispatcher comune (`InputAction`/`ActionState`), tap `AudioProbe` lock-free, runner offline/locale e validazione `AC-AO-01A` (`tone_probe_v0`). |
 | M2.3 — Transport e scheduler | **Da eseguire** | Implementare SetTempoMap/ack e scheduler bounded; raccogliere test timing/backpressure. |
 | M2.4 — Musica procedurale v1 | **Da eseguire** | Generatori, quattro ruoli, synth/mix e due sezioni; test/event trace e integrazione scheduler. |
 | M2.5 — Integrazione e verifica finale | **Da eseguire** | AC-AO-02, criteri originali M2 e review indipendente iterativa; record di build/profilo/procedura ed evidenza per ogni mandatory. |
@@ -108,9 +108,11 @@ La tabella traccia l'esecuzione e rinvia alla specifica per dipendenze e criteri
 
 | ID | Requisito / Decisione | Stato | Dettagli |
 |---|---|---|---|
-| D-M2-01 | **Canale thread-safe `SetTempoMap`** | **Prerequisito d'ingresso obbligatorio** | In M1 `AudioEngine` impiega una `MusicClock` interna a 120 BPM fissi. Per consentire a M2 di gestire sezioni musicali multiple, variazioni di tempo e time signature controllate da `MusicIntentEvent` e scheduler, è necessario un canale formale da Game/Coordinator verso `AudioEngine`.<br>• **Protocollo:** estensione di `AudioCommand` con comando `SetTempoMap` (oppure buffer lock-free dedicato `TripleBuffer<TempoMap>` / SPSC) contenente numeratore, denominatore e metrica.<br>• **Sincronizzazione:** applicazione sample-accurate all'inizio del blocco o all'epoch/frame designato con emissione di `AudioCommandAck`.<br>• **Invariante:** zero allocazioni dinamiche e assenza di lock bloccanti nella callback audio realtime, con aggiornamento atomico e coerente della telemetria senza salti o discontinuità di fase. |
-| D-M2-02 | Rappresentazione simbolica `MusicIntentEvent` | Open (M2 entry) | Definizione della struttura per i 4 ruoli (Pulso, Corpo, Trama, Vettore) e parametri di intensità/tensione (Spec §16, §20.5). |
-| D-M2-03 | Voice budget e DSP scheduling | Open (M2 entry) | Lookahead ahead-of-time (100–250 ms), limite polifonia per voce e policy di saturazione (Spec §20.7). |
+| D-M2-01 | **Canale thread-safe `SetTempoMap`** | **accepted for implementation** | Estensione `AudioCommand` con tipo `SetTempoMap`, numeratore/denominatore BPM e metrica compattati, applicazione sample-accurate all'inizio del blocco o frame designato, incremento `transportEpoch`, `AudioCommandAck` esplicito e zero RT allocazioni ([ADR-0003](adr/0003-m2-decisions-contracts.md)). |
+| D-M2-02 | Rappresentazione simbolica `MusicIntentEvent` | **accepted for implementation** | Struttura simbolica per i 4 ruoli (Pulso, Corpo, Trama, Vettore) con griglia ritmica euclidea pura (Bjorklund statico preallocato) e parametri di intensità/tensione ([ADR-0003](adr/0003-m2-decisions-contracts.md)). |
+| D-M2-03 | Voice budget e DSP scheduling | **accepted for implementation** | Finestra ahead-of-time (100–250 ms, nominale 150 ms = 18 tick), `SpscQueue<ScheduledAudioEvent, 256>` con Coordinator unico producer, budget 8 voci polifoniche (2 per ruolo), voice-stealing con micro-fadeout di 2 ms ([ADR-0003](adr/0003-m2-decisions-contracts.md)). |
+| D-AO-01 | Nucleo dispatcher comune del tono (`InputAction`/`ActionState`) | **accepted for implementation** | Dispatcher comune per SPACE fisico e runner diagnostico CACP M2; normalizzazione su `masterControl_` in Coordinator thread; mutua esclusione e runner locale a scenario finito ([ADR-0003](adr/0003-m2-decisions-contracts.md)). |
+| D-AO-02 | Tap AudioProbe e profilo `tone_probe_v0` | **accepted for implementation** | Ring buffer SPSC lock-free (24.000 campioni stereo f32 = 0.5 s), zero allocazioni e zero lock nel callback audio, drop counter atomico; profilo 3.0 s (220 -> 440 -> 220 Hz $\pm 2$ Hz); separazione AC-AO-01A (mandatory) e AC-AO-01B (supplementare) ([ADR-0003](adr/0003-m2-decisions-contracts.md)). |
 
 ## Estensione documentale — controllo e osservazione agentica (2026-10-07)
 
