@@ -226,11 +226,10 @@ struct AudioEngine::Impl {
             renderCursor.store(musicClock.deviceToInternalFrames(deviceFramesRendered, sampleRate), std::memory_order_release);
         }
 
-        // 3b. AudioProbe tap: lock-free, zero-alloc PCM capture with quiescence tracking (ADR-0003 D-AO-02, Spec §31.5, DIF-M2-01)
-        AudioProbe* probe = audioProbe.load(std::memory_order_acquire);
-        if (probe != nullptr && pOutput != nullptr && frameCount > 0) {
-            probeActiveWriters_.fetch_add(1, std::memory_order_acquire);
-            AudioProbe* activeProbe = audioProbe.load(std::memory_order_relaxed);
+        // 3b. AudioProbe tap: lock-free, zero-alloc PCM capture with quiescence tracking (ADR-0003 D-AO-02, Spec §31.5, DIF-M2-01, DIF-M2-09)
+        if (pOutput != nullptr && frameCount > 0) {
+            probeActiveWriters_.fetch_add(1, std::memory_order_seq_cst);
+            AudioProbe* activeProbe = audioProbe.load(std::memory_order_seq_cst);
             if (activeProbe != nullptr) {
                 activeProbe->writeFrames(pOutput, frameCount);
             }
@@ -492,15 +491,15 @@ std::uint64_t AudioEngine::totalScheduledEventsProcessed() const noexcept {
 
 void AudioEngine::attachAudioProbe(AudioProbe* probe) noexcept {
     if (pImpl_) {
-        pImpl_->audioProbe.store(probe, std::memory_order_release);
+        pImpl_->audioProbe.store(probe, std::memory_order_seq_cst);
     }
 }
 
 void AudioEngine::detachAudioProbe() noexcept {
     if (pImpl_) {
-        pImpl_->audioProbe.store(nullptr, std::memory_order_release);
-        // Quiescence guarantee: wait until any in-flight processBlock writer has finished using the probe (DIF-M2-01)
-        while (pImpl_->probeActiveWriters_.load(std::memory_order_acquire) > 0) {
+        pImpl_->audioProbe.store(nullptr, std::memory_order_seq_cst);
+        // Quiescence guarantee: wait until any in-flight processBlock writer has finished using the probe (DIF-M2-01, DIF-M2-09)
+        while (pImpl_->probeActiveWriters_.load(std::memory_order_seq_cst) > 0) {
             #if defined(_MSC_VER) || defined(__x86_64__) || defined(_M_X64)
             _mm_pause();
             #endif

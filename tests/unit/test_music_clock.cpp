@@ -339,3 +339,72 @@ TEST_CASE("MusicClock continuous tempo transition preserves phase and beat conti
     REQUIRE(posNextBeat.bar == 1);
     REQUIRE(posNextBeat.beatPhase == 0.0f);
 }
+
+TEST_CASE("MusicClock intra-measure tempo transition preserves bar count and beat continuity (DIF-M2-10)", "[clock][anchors][intra_measure]") {
+    // Start with 120 BPM 4/4 (24,000 frames per beat, 96,000 frames per bar)
+    TempoMap map1;
+    map1.bpm = RationalBpm{120, 1};
+    map1.timeSignatureNum = 4;
+    map1.timeSignatureDen = 4;
+    map1.beatsPerBar = 4;
+    map1.barsPerPhrase = 4;
+    map1.subdivisionsPerBeat = 4;
+
+    auto clockOpt = MusicClock::create(48000, map1);
+    REQUIRE(clockOpt.has_value());
+    auto& clock = *clockOpt;
+
+    // Transition at beat 3 (intra-measure! frame 72,000) to 140 BPM 4/4
+    // Bar 0 has beats 0, 1, 2, 3. Beat 3 is the 4th beat of bar 0 (beat index 3).
+    const std::uint64_t transFrame = clock.frameAtBeat(3);
+    REQUIRE(transFrame == 72000);
+
+    TempoMap map2 = map1;
+    map2.bpm = RationalBpm{140, 1}; // 140 BPM
+
+    REQUIRE(clock.setTempoMap(map2, transFrame));
+    REQUIRE(clock.segmentCount() == 2);
+
+    // Frame 71,999: right before transition, in segment 1 (beat 2, bar 0)
+    const auto posBefore = clock.positionAtFrame(71999);
+    REQUIRE(posBefore.bar == 0);
+    REQUIRE(posBefore.beat == 2);
+    REQUIRE(posBefore.beatPhase >= 0.99f);
+
+    // Frame 72,000: exact transition boundary (beat 3 of bar 0)
+    const auto posBoundary = clock.positionAtFrame(72000);
+    REQUIRE(posBoundary.bar == 0);
+    REQUIRE(posBoundary.beat == 3);
+    REQUIRE(posBoundary.beatPhase == 0.0f);
+
+    // 1 beat elapsed in segment 2:
+    // Beat 4 = 72000 + 144000/7. Since beat 3 was the last beat of bar 0, beat 4 MUST be bar 1, beat 0!
+    const std::uint64_t beat4Frame = clock.frameAtBeat(4);
+    REQUIRE(beat4Frame == 72000 + (144000 / 7));
+
+    const auto posBeat4 = clock.positionAtFrame(beat4Frame);
+    REQUIRE(posBeat4.bar == 1);
+    REQUIRE(posBeat4.beat == 0);
+    REQUIRE(posBeat4.beatPhase == 0.0f);
+
+    // 2 beats elapsed in segment 2:
+    // Beat 5 = bar 1, beat 1
+    const std::uint64_t beat5Frame = clock.frameAtBeat(5);
+    const auto posBeat5 = clock.positionAtFrame(beat5Frame);
+    REQUIRE(posBeat5.bar == 1);
+    REQUIRE(posBeat5.beat == 1);
+    REQUIRE(posBeat5.beatPhase == 0.0f);
+
+    // 5 beats elapsed in segment 2:
+    // Beat 8 = bar 2, beat 0
+    const std::uint64_t beat8Frame = clock.frameAtBeat(8);
+    const auto posBeat8 = clock.positionAtFrame(beat8Frame);
+    REQUIRE(posBeat8.bar == 2);
+    REQUIRE(posBeat8.beat == 0);
+    REQUIRE(posBeat8.beatPhase == 0.0f);
+
+    // frameAtBar continuity:
+    REQUIRE(clock.frameAtBar(0) == 0);
+    REQUIRE(clock.frameAtBar(1) == beat4Frame);
+    REQUIRE(clock.frameAtBar(2) == beat8Frame);
+}

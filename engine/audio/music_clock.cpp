@@ -113,8 +113,8 @@ bool MusicClock::setTempoMap(const TempoMap& map, std::uint64_t targetSampleFram
         static_cast<std::uint64_t>(inverse.remainder >= K_num - (K_den - 1));
 
     const std::uint64_t totalBeats = prevSeg.startBeat + elapsedBeats;
-    const std::uint64_t elapsedBars = elapsedBeats / prevSeg.tempoMap.beatsPerBar;
-    const std::uint64_t totalBars = prevSeg.startBar + elapsedBars;
+    const std::uint64_t elapsedBeatsWithOffset = (prevSeg.startBeat % prevSeg.tempoMap.beatsPerBar) + elapsedBeats;
+    const std::uint64_t totalBars = prevSeg.startBar + (elapsedBeatsWithOffset / prevSeg.tempoMap.beatsPerBar);
 
     segments_[segmentCount_] = TempoSegment{
         .startFrame = targetSampleFrame,
@@ -159,13 +159,24 @@ std::uint64_t MusicClock::frameAtBar(std::uint64_t totalBars) const noexcept {
         }
     }
 
-    const auto& seg = segments_[segIdx];
-    const std::uint64_t deltaBars = totalBars - seg.startBar;
-    const std::uint64_t K_num = 60ULL * sampleRate_ * seg.tempoMap.bpm.denominator * 4ULL * seg.tempoMap.beatsPerBar;
-    const std::uint64_t K_den = static_cast<std::uint64_t>(seg.tempoMap.bpm.numerator) * seg.tempoMap.timeSignatureDen;
+    // If segIdx started intra-bar, and totalBars == seg.startBar, then bar totalBars actually started in a previous segment
+    while (segIdx > 0 && segments_[segIdx].startBar == totalBars &&
+           (segments_[segIdx].startBeat % segments_[segIdx].tempoMap.beatsPerBar != 0)) {
+        --segIdx;
+    }
 
-    const std::uint64_t deltaFrames = core::multiplyDivide(deltaBars, K_num, K_den).value;
-    return core::saturatingAdd(seg.startFrame, deltaFrames);
+    const auto& seg = segments_[segIdx];
+    const std::uint64_t beatsPerBar = seg.tempoMap.beatsPerBar;
+    if (beatsPerBar == 0) return seg.startFrame;
+
+    std::uint64_t targetBeat = seg.startBeat;
+    if (totalBars > seg.startBar) {
+        const std::uint64_t rem = seg.startBeat % beatsPerBar;
+        const std::uint64_t beatsToNextBar = (rem == 0) ? 0 : (beatsPerBar - rem);
+        const std::uint64_t remainingBars = totalBars - seg.startBar - (rem == 0 ? 0 : 1);
+        targetBeat = seg.startBeat + beatsToNextBar + remainingBars * beatsPerBar;
+    }
+    return frameAtBeat(targetBeat);
 }
 
 std::uint64_t MusicClock::frameAtPhrase(std::uint64_t totalPhrases) const noexcept {
@@ -221,9 +232,9 @@ MusicPosition MusicClock::positionAtFrame(std::uint64_t frame, std::uint64_t epo
     const std::uint64_t barsPerPhrase = map.barsPerPhrase;
 
     const std::uint64_t totalBeats = seg.startBeat + elapsedBeats;
-    const auto beatInBar = static_cast<std::uint32_t>(elapsedBeats % beatsPerBar);
-    const std::uint64_t elapsedBars = elapsedBeats / beatsPerBar;
-    const std::uint64_t totalBars = seg.startBar + elapsedBars;
+    const auto beatInBar = static_cast<std::uint32_t>(totalBeats % beatsPerBar);
+    const std::uint64_t elapsedBeatsWithOffset = (seg.startBeat % beatsPerBar) + elapsedBeats;
+    const std::uint64_t totalBars = seg.startBar + (elapsedBeatsWithOffset / beatsPerBar);
     const auto barInPhrase = static_cast<std::uint32_t>(totalBars % barsPerPhrase);
     const auto phrase = static_cast<std::uint32_t>(std::min<std::uint64_t>(totalBars / barsPerPhrase, UINT32_MAX));
 

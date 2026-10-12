@@ -424,7 +424,6 @@ ToneProbeResult runToneProbeV0(AudioEngine& engine,
     dispatcher.startDiagnosticSession();
 
     const std::uint32_t sampleRate = engine.sampleRate();
-    constexpr std::uint32_t kSimulationHz = 120;
     constexpr std::uint32_t kFramesPerTick = 400; // 48000 / 120
     constexpr std::uint32_t kTotalTicks = 360;    // 3.0 s * 120 ticks/s = 360 ticks
     constexpr float kAmplitude = 0.10f;

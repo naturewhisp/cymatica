@@ -56,22 +56,26 @@
 | **DIF-M2-05** | **HIGH** | Il gate AC-AO-01A confondeva lo smoke sintetico con la consegna fisica degli eventi da parte dell'OS. | Separata e documentata esplicitamente la procedura di verifica interattiva con tastiera fisica SPACE da quella dello smoke sintetico CI. | **Risolto** (`m2_tone_probe_evidence.md`, `progress.md`) |
 | **DIF-M2-06** | **HIGH** | Manifest CACP privo di identificativi di run/build, epoch, tick e sample-frame richiesti/applicati; verdetto PASS anche in caso di fallimento export. | `ToneProbeResult::toJson()` esteso con `build_id`, `transport_epoch`, `simulation_ticks`, `requested_sample_frames`, `applied_sample_frames`, `presentation_quality`; `passed` condizionato obbligatoriamente a `wavWriteSuccess && manifestWriteSuccess`. | **Risolto** (`audio_probe.h`, `audio_probe.cpp`) |
 | **DIF-M2-07** | **MEDIUM** | La skill `cacp-testing` assumeva capacità multimodali non garantite senza tracciare fallback normativo, hash e modello. | Aggiornata la skill con fallback a `unsupported`/`blocked` per ambienti non multimodali; registrati modello `antigravity-gemini-2.5-pro`, capacità `audio/wav`, hash SHA-256 e timestamp. | **Risolto** (`.agents/skills/cacp-testing/SKILL.md`, `m2_tone_probe_evidence.md`) |
+| **DIF-M2-08** | **HIGH** | Variabili locali inutilizzate `totalBeats` e `kSimulationHz` generavano warning `C4189` violando il vincolo perentorio zero warning `/W4`. | Rimossa `kSimulationHz` in `audio_probe.cpp`; `totalBeats` integrato nel calcolo di `beatInBar` in `music_clock.cpp`. Compilazione pulita (`-Clean`) verificata su Release e Debug con zero warning. | **Risolto** (`audio_probe.cpp`, `music_clock.cpp`) |
+| **DIF-M2-09** | **MEDIUM** | Race condition nel protocollo di quiescenza in modalità online WASAPI: l'annuncio `fetch_add(1)` avveniva dopo la lettura del puntatore. | Annuncio sequential consistency simmetrico: `fetch_add(1, memory_order_seq_cst)` prima di `audioProbe.load(seq_cst)` in `processBlock`; corrispondente `store(nullptr, seq_cst)` e loop di quiescenza con `_mm_pause()` in `detachAudioProbe()`. | **Risolto** (`audio_engine.cpp`) |
+| **DIF-M2-10** | **LOW** | Disallineamento metrico intra-misura in `MusicClock::positionAtFrame` e `frameAtBar`: `beatInBar` ed `elapsedBars` ignoravano l'offset iniziale `startBeat`. | Introdotto calcolo continuo di `totalBars` ed `elapsedBeatsWithOffset` basato su `(startBeat % beatsPerBar)`; `frameAtBar` esteso per supportare segmenti che iniziano intra-misura. Aggiunto unit test dedicato `[intra_measure]`. | **Risolto** (`music_clock.cpp`, `test_music_clock.cpp`) |
 | **Secondari** | **LOW** | Troncamento con `& 0xFF` in `AudioCommand::makeSetTempoMap()` e overflow in `AudioScheduler::scheduleIntent()`. | Estesi i campi a 16-bit (`0xFFFF`) in `paramExtraU64` per `subdivisionsPerBeat` e `barsPerPhrase`; aggiunta protezione saturante contro overflow uint64 in `scheduleIntent`. | **Risolto** (`audio_control.h`, `audio_scheduler.cpp`) |
 
 ---
 
 ## 2. Risultati della Suite di Test (Tutte le Configurazioni)
 
-- **Release Build (62/62 test superati, 100% pass rate):**
+- **Release Build (63/63 test superati, 100% pass rate, zero warning /W4):**
   - CTest label `ac-ao-01a`: `AC-AO-01A: authoritative tone_probe_v0 execution and verification` — **Passed (0.02 s)**.
   - CTest label `metrics`: `MusicClock calculates exact metric boundaries for 3/8, 6/8, 5/4, 2/2 (DIF-M2-04)` — **Passed (0.01 s)**.
   - CTest label `anchors`: `MusicClock continuous tempo transition preserves phase and beat continuity (DIF-M2-02)` — **Passed (0.01 s)**.
+  - CTest label `intra_measure`: `MusicClock intra-measure tempo transition preserves bar count and beat continuity (DIF-M2-10)` — **Passed (0.01 s)**.
   - CTest label `sample_accurate`: `AudioEngine processBlock applies scheduled events at exact intra-block offsets (DIF-M2-03)` — **Passed (0.01 s)**.
   - CTest label `pause`: `AudioEngine processBlock does not consume scheduled events while Paused (DIF-M2-03)` — **Passed (0.01 s)**.
   - CTest label `command_future`: `AudioEngine holds AudioCommand with future targetSampleFrame (DIF-M2-02)` — **Passed (0.01 s)**.
   - CTest label `late`: `AudioScheduler handles late events safely without queue corruption` — **Passed (0.01 s)**.
   - CTest label `zero_alloc`: Zero allocazioni heap con probe attivo e stallato — **Passed (0.03 s)**.
-- **Headless Build:** 61/61 test superati (100% pass rate, device test escluso come previsto).
-- **Debug Build:** 62/62 test superati (100% pass rate).
+- **Headless Build:** 62/62 test superati (100% pass rate, device test escluso come previsto).
+- **Debug Build:** 63/63 test superati (100% pass rate, zero warning /W4).
 - **Smoke Run (Interactive):** `cymatica_game.exe -SmokeSeconds 4` completato con codice di uscita 0, 238 frame renderizzati, 59.5 FPS, 193.920 campioni audio, 478 tick, 0 sospensioni tecniche, `pure_seed=ELIGIBLE`.
 - **CACP Diagnostic CLI:** `cymatica_game.exe --cacp-run tone_test` produce verdetto `PASS` ed esporta gli artefatti completi.
