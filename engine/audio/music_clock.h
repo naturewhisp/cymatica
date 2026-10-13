@@ -46,6 +46,10 @@ public:
     // Absolute frame at phrase boundary
     [[nodiscard]] std::uint64_t frameAtPhrase(std::uint64_t totalPhrases) const noexcept;
 
+    // Calculate the next applicable beat/bar boundary >= frame (DIF-M2-R3-04)
+    [[nodiscard]] std::uint64_t nextBeatBoundary(std::uint64_t frame) const noexcept;
+    [[nodiscard]] std::uint64_t nextBarBoundary(std::uint64_t frame) const noexcept;
+
     // Sample rate conversion with exact rational factor (§7.5, ADR-0002, DIF-M1-22)
     [[nodiscard]] std::uint64_t deviceToInternalFrames(std::uint64_t deviceFrames, std::uint64_t deviceRate) const noexcept;
     [[nodiscard]] std::uint64_t internalToDeviceFrames(std::uint64_t internalFrames, std::uint64_t deviceRate) const noexcept;

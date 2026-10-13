@@ -55,16 +55,30 @@ struct AudioEngine::Impl {
     std::atomic<std::uint64_t> totalScheduledEventsProcessed{0};
 
     // Staging buffer for future scheduled commands (prevents head-of-line blocking on immediate transport commands)
-    static constexpr std::size_t kMaxPendingScheduledCommands = 16;
+    static constexpr std::size_t kMaxPendingScheduledCommands = 32;
     std::array<AudioCommand, kMaxPendingScheduledCommands> pendingScheduledCommands_{};
     std::size_t pendingScheduledCount_{0};
 
+    bool stagePendingCommand(const AudioCommand& cmd) noexcept {
+        if (pendingScheduledCount_ >= kMaxPendingScheduledCommands) {
+            return false;
+        }
+        std::size_t insertIdx = pendingScheduledCount_;
+        while (insertIdx > 0 && pendingScheduledCommands_[insertIdx - 1].targetSampleFrame > cmd.targetSampleFrame) {
+            pendingScheduledCommands_[insertIdx] = pendingScheduledCommands_[insertIdx - 1];
+            --insertIdx;
+        }
+        pendingScheduledCommands_[insertIdx] = cmd;
+        ++pendingScheduledCount_;
+        return true;
+    }
+
     AudioCommandStatus executeCommand(const AudioCommand& cmd,
                                       std::uint64_t blockStartFrame,
-                                      std::uint64_t blockEndFrame,
+                                      std::uint64_t /*blockEndFrame*/,
                                       std::uint64_t& effectiveFrame) noexcept {
         AudioCommandStatus status = AudioCommandStatus::Applied;
-        effectiveFrame = blockStartFrame;
+        effectiveFrame = cmd.targetSampleFrame;
 
         switch (cmd.type) {
             case AudioCommandType::Start:
@@ -124,13 +138,7 @@ struct AudioEngine::Impl {
             case AudioCommandType::SetTempoMap: {
                 const TempoMap newMap = cmd.extractTempoMap();
                 if (MusicClock::isSupportedTempoMap(newMap, sampleRate)) {
-                    if (cmd.targetSampleFrame > blockStartFrame && cmd.targetSampleFrame < blockEndFrame) {
-                        effectiveFrame = cmd.targetSampleFrame;
-                    } else if (cmd.targetSampleFrame == 0) {
-                        effectiveFrame = 0;
-                    } else {
-                        effectiveFrame = cmd.targetSampleFrame;
-                    }
+                    effectiveFrame = cmd.targetSampleFrame;
                     if (musicClock.setTempoMap(newMap, effectiveFrame)) {
                         ++transportEpoch;
                         status = AudioCommandStatus::Applied;
@@ -164,66 +172,91 @@ struct AudioEngine::Impl {
             }
         }
 
-        // 2a. Consume matured scheduled commands from staging buffer
-        std::size_t matureIdx = 0;
-        while (matureIdx < pendingScheduledCount_) {
-            const auto pendingCmd = pendingScheduledCommands_[matureIdx];
-            if (pendingCmd.targetSampleFrame < blockEndFrame) {
-                std::uint64_t effFrame = blockStartFrame;
-                const AudioCommandStatus status = executeCommand(pendingCmd, blockStartFrame, blockEndFrame, effFrame);
+        // 2. Consume commands from commandQueue and stage them chronologically (DIF-M2-R3-04)
+        for (std::uint32_t i = 0; i < AudioEngine::kMaxCommandsPerBlock; ++i) {
+            AudioCommand cmd;
+            if (!commandQueue.tryPop(cmd)) break;
+
+            // Reject late commands whose explicit target frame has already passed (DIF-M2-R3-04)
+            if (cmd.targetSampleFrame > 0 && cmd.targetSampleFrame < blockStartFrame) {
                 if (!ackQueue.tryPush(AudioCommandAck{
-                    .commandId = pendingCmd.commandId,
+                    .commandId = cmd.commandId,
+                    .status = AudioCommandStatus::Rejected,
+                    .sampleFrame = cmd.targetSampleFrame,
+                    .transportEpoch = transportEpoch,
+                })) {
+                    droppedAcks.fetch_add(1, std::memory_order_relaxed);
+                }
+                continue;
+            }
+
+            // Quantize immediate SetTempoMap during playback to next musical boundary (DIF-M2-R3-04)
+            if (cmd.type == AudioCommandType::SetTempoMap) {
+                const auto newMap = cmd.extractTempoMap();
+                if (!MusicClock::isSupportedTempoMap(newMap, sampleRate)) {
+                    if (!ackQueue.tryPush(AudioCommandAck{
+                        .commandId = cmd.commandId,
+                        .status = AudioCommandStatus::Rejected,
+                        .sampleFrame = cmd.targetSampleFrame > 0 ? cmd.targetSampleFrame : blockStartFrame,
+                        .transportEpoch = transportEpoch,
+                    })) {
+                        droppedAcks.fetch_add(1, std::memory_order_relaxed);
+                    }
+                    continue;
+                }
+
+                if (cmd.targetSampleFrame == 0) {
+                    if (blockStartFrame == 0 && renderCursor.load(std::memory_order_relaxed) == 0) {
+                        cmd.targetSampleFrame = 0;
+                    } else {
+                        const auto& curMap = musicClock.tempoMap();
+                        const bool meterChanged = (newMap.beatsPerBar != curMap.beatsPerBar ||
+                                                   newMap.timeSignatureDen != curMap.timeSignatureDen ||
+                                                   newMap.timeSignatureNum != curMap.timeSignatureNum);
+                        cmd.targetSampleFrame = meterChanged
+                            ? musicClock.nextBarBoundary(blockStartFrame)
+                            : musicClock.nextBeatBoundary(blockStartFrame);
+                    }
+                }
+            } else if (cmd.targetSampleFrame == 0) {
+                cmd.targetSampleFrame = blockStartFrame;
+            }
+
+            if (!stagePendingCommand(cmd)) {
+                if (!ackQueue.tryPush(AudioCommandAck{
+                    .commandId = cmd.commandId,
+                    .status = AudioCommandStatus::Rejected,
+                    .sampleFrame = cmd.targetSampleFrame,
+                    .transportEpoch = transportEpoch,
+                })) {
+                    droppedAcks.fetch_add(1, std::memory_order_relaxed);
+                }
+            }
+        }
+
+        // 3. Handle paused / stopped state
+        if (transportState == TransportState::Paused || transportState == TransportState::Stopped) {
+            // Check if a Resume or Start command was staged for blockStartFrame
+            while (pendingScheduledCount_ > 0 && pendingScheduledCommands_[0].targetSampleFrame <= blockStartFrame) {
+                AudioCommand cmd = pendingScheduledCommands_[0];
+                for (std::size_t j = 0; j + 1 < pendingScheduledCount_; ++j) {
+                    pendingScheduledCommands_[j] = pendingScheduledCommands_[j + 1];
+                }
+                --pendingScheduledCount_;
+
+                std::uint64_t effFrame = cmd.targetSampleFrame;
+                const AudioCommandStatus status = executeCommand(cmd, blockStartFrame, blockEndFrame, effFrame);
+                if (!ackQueue.tryPush(AudioCommandAck{
+                    .commandId = cmd.commandId,
                     .status = status,
                     .sampleFrame = effFrame,
                     .transportEpoch = transportEpoch,
                 })) {
                     droppedAcks.fetch_add(1, std::memory_order_relaxed);
                 }
-                for (std::size_t j = matureIdx; j + 1 < pendingScheduledCount_; ++j) {
-                    pendingScheduledCommands_[j] = pendingScheduledCommands_[j + 1];
-                }
-                --pendingScheduledCount_;
-            } else {
-                ++matureIdx;
             }
         }
 
-        // 2b. Consume identified commands from commandQueue (§20.7, §20.8, DIF-M1-18, DIF-M1-19, ADR-0003 D-M2-01)
-        for (std::uint32_t i = 0; i < AudioEngine::kMaxCommandsPerBlock; ++i) {
-            AudioCommand cmd;
-            if (!commandQueue.tryPop(cmd)) break;
-
-            // Future scheduled command: stage in pendingScheduledCommands_ so it doesn't block immediate commands behind it
-            if (cmd.targetSampleFrame > 0 && cmd.targetSampleFrame >= blockEndFrame) {
-                if (pendingScheduledCount_ < kMaxPendingScheduledCommands) {
-                    pendingScheduledCommands_[pendingScheduledCount_++] = cmd;
-                } else {
-                    if (!ackQueue.tryPush(AudioCommandAck{
-                        .commandId = cmd.commandId,
-                        .status = AudioCommandStatus::Rejected,
-                        .sampleFrame = blockStartFrame,
-                        .transportEpoch = transportEpoch,
-                    })) {
-                        droppedAcks.fetch_add(1, std::memory_order_relaxed);
-                    }
-                }
-                continue;
-            }
-
-            std::uint64_t effectiveFrame = blockStartFrame;
-            const AudioCommandStatus status = executeCommand(cmd, blockStartFrame, blockEndFrame, effectiveFrame);
-
-            if (!ackQueue.tryPush(AudioCommandAck{
-                .commandId = cmd.commandId,
-                .status = status,
-                .sampleFrame = effectiveFrame,
-                .transportEpoch = transportEpoch,
-            })) {
-                droppedAcks.fetch_add(1, std::memory_order_relaxed);
-            }
-        }
-
-        // 3. Render PCM audio samples / handle paused/stopped silence (§20.8, DIF-M1-19, DIF-M2-03)
         if (transportState == TransportState::Paused || transportState == TransportState::Stopped) {
             if (pOutput != nullptr && frameCount > 0) {
                 for (std::size_t i = 0; i < static_cast<std::size_t>(frameCount) * channels; ++i) {
@@ -232,80 +265,189 @@ struct AudioEngine::Impl {
             }
             // Timeline and scheduled event consumption are frozen during pause / stopped
         } else {
-            // Render block with sample-accurate scheduled event offsets (Spec §7.5, ADR-0003 D-M2-03, DIF-M2-03)
+            // Render block with sample-accurate interleaving of scheduled events and commands
+            // (Spec §7.5, ADR-0003 D-M2-03, DIF-M2-R3-02, DIF-M2-R3-05)
             std::uint32_t currentDevOffset = 0;
 
             while (currentDevOffset < frameCount) {
-                ScheduledAudioEvent schedEvt;
-                if (scheduledEventQueue.peek(schedEvt)) {
-                    // Epoch protection: drop obsolete events from earlier epochs without synthesizing DSP
+                const std::uint64_t currentLogicalFrame = (sampleRate == musicClock.internalSampleRate())
+                    ? (blockStartFrame + currentDevOffset)
+                    : musicClock.deviceToInternalFrames(deviceFramesRendered + currentDevOffset, sampleRate);
+
+                // Check next matured command in this block
+                bool hasCmd = (pendingScheduledCount_ > 0 && pendingScheduledCommands_[0].targetSampleFrame < blockEndFrame);
+                std::uint32_t targetCmdDevOffset = frameCount;
+                if (hasCmd) {
+                    const std::uint64_t cmdFrame = pendingScheduledCommands_[0].targetSampleFrame;
+                    if (cmdFrame <= currentLogicalFrame) {
+                        targetCmdDevOffset = currentDevOffset;
+                    } else {
+                        const std::uint64_t devF = musicClock.internalToDeviceFrames(cmdFrame, sampleRate);
+                        if (devF > deviceFramesRendered) {
+                            const std::uint64_t off = devF - deviceFramesRendered;
+                            targetCmdDevOffset = static_cast<std::uint32_t>(std::min<std::uint64_t>(off, frameCount));
+                        } else {
+                            targetCmdDevOffset = currentDevOffset;
+                        }
+                    }
+                    if (targetCmdDevOffset < currentDevOffset) targetCmdDevOffset = currentDevOffset;
+                }
+
+                // Check next scheduled event with 3-way epoch policy (DIF-M2-R3-05)
+                bool hasEvt = false;
+                std::uint32_t targetEvtDevOffset = frameCount;
+                ScheduledAudioEvent schedEvt{};
+
+                while (scheduledEventQueue.peek(schedEvt)) {
                     if (schedEvt.transportEpoch < transportEpoch) {
+                        // Obsolete event from earlier epoch: drop without synthesizing DSP
                         (void)scheduledEventQueue.tryPop(schedEvt);
                         totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
                         continue;
                     }
+                    if (schedEvt.transportEpoch > transportEpoch) {
+                        // Future epoch event (DIF-M2-R3-05)
+                        if (schedEvt.sampleFrame < blockStartFrame ||
+                            (schedEvt.sampleFrame <= currentLogicalFrame && (!hasCmd || pendingScheduledCommands_[0].targetSampleFrame > schedEvt.sampleFrame))) {
+                            // Unmatchable: cursor passed or reached event time without epoch advancing
+                            (void)scheduledEventQueue.tryPop(schedEvt);
+                            droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+                            continue;
+                        }
+                        if (schedEvt.sampleFrame < blockEndFrame) {
+                            hasEvt = true;
+                            const std::uint64_t devF = musicClock.internalToDeviceFrames(schedEvt.sampleFrame, sampleRate);
+                            if (devF > deviceFramesRendered) {
+                                const std::uint64_t off = devF - deviceFramesRendered;
+                                targetEvtDevOffset = static_cast<std::uint32_t>(std::min<std::uint64_t>(off, frameCount));
+                            } else {
+                                targetEvtDevOffset = currentDevOffset;
+                            }
+                            if (targetEvtDevOffset < currentDevOffset) targetEvtDevOffset = currentDevOffset;
+                        } else {
+                            hasEvt = false;
+                        }
+                        break;
+                    }
 
+                    // schedEvt.transportEpoch == transportEpoch
                     if (schedEvt.sampleFrame < blockEndFrame) {
-                        // Determine device offset for event
-                        std::uint32_t targetDevOffset = currentDevOffset;
-                        if (schedEvt.sampleFrame > blockStartFrame) {
-                            const std::uint64_t devFrame = musicClock.internalToDeviceFrames(schedEvt.sampleFrame, sampleRate);
-                            if (devFrame > deviceFramesRendered) {
-                                targetDevOffset = static_cast<std::uint32_t>(devFrame - deviceFramesRendered);
-                                if (targetDevOffset > frameCount) targetDevOffset = frameCount;
+                        hasEvt = true;
+                        if (schedEvt.sampleFrame <= currentLogicalFrame) {
+                            targetEvtDevOffset = currentDevOffset;
+                        } else {
+                            const std::uint64_t devF = musicClock.internalToDeviceFrames(schedEvt.sampleFrame, sampleRate);
+                            if (devF > deviceFramesRendered) {
+                                const std::uint64_t off = devF - deviceFramesRendered;
+                                targetEvtDevOffset = static_cast<std::uint32_t>(std::min<std::uint64_t>(off, frameCount));
+                            } else {
+                                targetEvtDevOffset = currentDevOffset;
                             }
                         }
-                        if (targetDevOffset < currentDevOffset) targetDevOffset = currentDevOffset;
-
-                        // Render slice before event if any
-                        if (targetDevOffset > currentDevOffset) {
-                            const std::uint32_t sliceFrames = targetDevOffset - currentDevOffset;
-                            if (pOutput != nullptr) {
-                                ma_waveform_read_pcm_frames(&waveform, pOutput + (static_cast<std::size_t>(currentDevOffset) * channels), sliceFrames, nullptr);
-                            }
-                            currentDevOffset = targetDevOffset;
-                        }
-
-                        // Consume and apply event at exact offset
-                        (void)scheduledEventQueue.tryPop(schedEvt);
-                        totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
-
-                        switch (schedEvt.type) {
-                            case AudioEventType::NoteOn:
-                                ma_waveform_set_frequency(&waveform, schedEvt.valueA);
-                                ma_waveform_set_amplitude(&waveform, schedEvt.valueB * activeVolume);
-                                break;
-                            case AudioEventType::NoteOff:
-                                ma_waveform_set_amplitude(&waveform, 0.0f);
-                                break;
-                            case AudioEventType::ParameterChange:
-                                if (schedEvt.valueA > 0.0f) {
-                                    ma_waveform_set_frequency(&waveform, schedEvt.valueA);
-                                }
-                                if (schedEvt.valueB >= 0.0f) {
-                                    ma_waveform_set_amplitude(&waveform, schedEvt.valueB * activeVolume);
-                                }
-                                break;
-                        }
+                        if (targetEvtDevOffset < currentDevOffset) targetEvtDevOffset = currentDevOffset;
                     } else {
-                        // Future event beyond current block: render remaining frames to block boundary
-                        const std::uint32_t remainingFrames = frameCount - currentDevOffset;
-                        if (pOutput != nullptr && remainingFrames > 0) {
-                            ma_waveform_read_pcm_frames(&waveform, pOutput + (static_cast<std::size_t>(currentDevOffset) * channels), remainingFrames, nullptr);
+                        hasEvt = false;
+                    }
+                    break;
+                }
+
+                if (hasCmd && (!hasEvt || targetCmdDevOffset <= targetEvtDevOffset)) {
+                    // Render slice before command
+                    if (targetCmdDevOffset > currentDevOffset) {
+                        const std::uint32_t sliceFrames = targetCmdDevOffset - currentDevOffset;
+                        if (pOutput != nullptr) {
+                            ma_waveform_read_pcm_frames(&waveform, pOutput + (static_cast<std::size_t>(currentDevOffset) * channels), sliceFrames, nullptr);
                         }
-                        currentDevOffset = frameCount;
+                        currentDevOffset = targetCmdDevOffset;
+                    }
+
+                    // Execute ALL commands that mature at or before current offset (handles Pause + Resume in same tick!)
+                    while (pendingScheduledCount_ > 0 && pendingScheduledCommands_[0].targetSampleFrame <= currentLogicalFrame) {
+                        AudioCommand cmd = pendingScheduledCommands_[0];
+                        for (std::size_t j = 0; j + 1 < pendingScheduledCount_; ++j) {
+                            pendingScheduledCommands_[j] = pendingScheduledCommands_[j + 1];
+                        }
+                        --pendingScheduledCount_;
+
+                        std::uint64_t effFrame = cmd.targetSampleFrame;
+                        const AudioCommandStatus status = executeCommand(cmd, blockStartFrame, blockEndFrame, effFrame);
+
+                        if (!ackQueue.tryPush(AudioCommandAck{
+                            .commandId = cmd.commandId,
+                            .status = status,
+                            .sampleFrame = effFrame,
+                            .transportEpoch = transportEpoch,
+                        })) {
+                            droppedAcks.fetch_add(1, std::memory_order_relaxed);
+                        }
+                    }
+
+                    // If paused or stopped, silence remainder and break
+                    if (transportState != TransportState::Running) {
+                        if (pOutput != nullptr && currentDevOffset < frameCount) {
+                            const std::uint32_t rem = frameCount - currentDevOffset;
+                            for (std::size_t s = 0; s < static_cast<std::size_t>(rem) * channels; ++s) {
+                                pOutput[static_cast<std::size_t>(currentDevOffset) * channels + s] = 0.0f;
+                            }
+                        }
+                        break;
+                    }
+                } else if (hasEvt) {
+                    // Render slice before event
+                    if (targetEvtDevOffset > currentDevOffset) {
+                        const std::uint32_t sliceFrames = targetEvtDevOffset - currentDevOffset;
+                        if (pOutput != nullptr) {
+                            ma_waveform_read_pcm_frames(&waveform, pOutput + (static_cast<std::size_t>(currentDevOffset) * channels), sliceFrames, nullptr);
+                        }
+                        currentDevOffset = targetEvtDevOffset;
+                    }
+
+                    if (scheduledEventQueue.peek(schedEvt)) {
+                        if (schedEvt.transportEpoch < transportEpoch) {
+                            (void)scheduledEventQueue.tryPop(schedEvt);
+                            totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+                        } else if (schedEvt.transportEpoch > transportEpoch) {
+                            // Reached event frame without epoch advancing: unmatchable! (DIF-M2-R3-05)
+                            (void)scheduledEventQueue.tryPop(schedEvt);
+                            droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+                        } else {
+                            (void)scheduledEventQueue.tryPop(schedEvt);
+                            totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+
+                            switch (schedEvt.type) {
+                                case AudioEventType::NoteOn:
+                                    ma_waveform_set_frequency(&waveform, schedEvt.valueA);
+                                    ma_waveform_set_amplitude(&waveform, schedEvt.valueB * activeVolume);
+                                    break;
+                                case AudioEventType::NoteOff:
+                                    ma_waveform_set_amplitude(&waveform, 0.0f);
+                                    break;
+                                case AudioEventType::ParameterChange:
+                                    if (schedEvt.valueA > 0.0f) {
+                                        ma_waveform_set_frequency(&waveform, schedEvt.valueA);
+                                    }
+                                    if (schedEvt.valueB >= 0.0f) {
+                                        ma_waveform_set_amplitude(&waveform, schedEvt.valueB * activeVolume);
+                                    }
+                                    break;
+                            }
+                        }
                     }
                 } else {
-                    // No more events in this block: render remaining frames to block boundary
-                    const std::uint32_t remainingFrames = frameCount - currentDevOffset;
-                    if (pOutput != nullptr && remainingFrames > 0) {
-                        ma_waveform_read_pcm_frames(&waveform, pOutput + (static_cast<std::size_t>(currentDevOffset) * channels), remainingFrames, nullptr);
+                    // Render remaining frames to block boundary
+                    const std::uint32_t rem = frameCount - currentDevOffset;
+                    if (pOutput != nullptr && rem > 0) {
+                        ma_waveform_read_pcm_frames(&waveform, pOutput + (static_cast<std::size_t>(currentDevOffset) * channels), rem, nullptr);
                     }
                     currentDevOffset = frameCount;
                 }
             }
 
-            deviceFramesRendered += frameCount;
+            if (transportState == TransportState::Running) {
+                deviceFramesRendered += frameCount;
+            } else {
+                deviceFramesRendered += currentDevOffset;
+            }
             renderCursor.store(musicClock.deviceToInternalFrames(deviceFramesRendered, sampleRate), std::memory_order_release);
         }
 

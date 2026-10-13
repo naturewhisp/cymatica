@@ -764,8 +764,10 @@ TEST_CASE("SetTempoMap command updates tempo, increments transportEpoch, and emi
 
     REQUIRE(engine.sendCommand(AudioCommand::makeSetTempoMap(101, map34)));
 
-    // Process block in audio callback to apply command
-    engine.processBlock(buffer.data(), 512);
+    // Process blocks in audio callback until the quantized bar boundary (frame 96,000) is reached (DIF-M2-R3-04)
+    while (engine.framesRendered() < 96000) {
+        engine.processBlock(buffer.data(), 512);
+    }
 
     // Verify acknowledgement
     AudioCommandAck ack;

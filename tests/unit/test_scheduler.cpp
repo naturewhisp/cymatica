@@ -438,7 +438,198 @@ TEST_CASE("AudioEngine drops obsolete epoch scheduled events without DSP synthes
     // Event 42 has epoch 1 < currentEpoch (3), so it must be dropped without synthesizing DSP
     REQUIRE(engine.totalScheduledEventsProcessed() == 1); // Popped and counted
     REQUIRE(engine.updateTelemetry());
-    REQUIRE(engine.telemetry().pulse.pitchHz != 880.0f);
+
+    // Verify rendered PCM directly (Section 4): pitch must remain at 220 Hz base tone, NOT 880 Hz!
+    // 220 Hz at 48000 Hz over 1000 frames produces ~9.16 zero crossings.
+    // If 880 Hz had been synthesized, zero crossings would be ~23!
+    std::size_t zc = 0;
+    for (std::size_t i = 1; i < 1000; ++i) {
+        if ((block[(i - 1) * 2] <= 0.0f && block[i * 2] > 0.0f) ||
+            (block[(i - 1) * 2] >= 0.0f && block[i * 2] < 0.0f)) {
+            ++zc;
+        }
+    }
+    CHECK(zc >= 7);
+    CHECK(zc <= 11);
+}
+
+TEST_CASE("AudioEngine preserves intra-block temporal order between events and SetTempoMap (DIF-M2-R3-02)", "[scheduler][intra_block_order]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    REQUIRE(engine.startTone(220.0f, 0.25f));
+
+    // Fast-forward engine to frame 23552:
+    std::vector<float> preRoll(23552 * 2, 0.0f);
+    engine.processBlock(preRoll.data(), 23552);
+    REQUIRE(engine.framesRendered() == 23552);
+
+    TempoMap map140;
+    map140.bpm = RationalBpm{140, 1};
+    map140.timeSignatureNum = 4;
+    map140.timeSignatureDen = 4;
+    map140.beatsPerBar = 4;
+    map140.barsPerPhrase = 4;
+    map140.subdivisionsPerBeat = 4;
+
+    // Block: [23552, 24064) (512 frames)
+    // 1. NoteOn at frame 23600 (offset 48 in block), epoch 1 -> sets frequency to 880 Hz
+    ScheduledAudioEvent noteOnEvt{
+        .eventId = 1,
+        .sampleFrame = 23600,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .valueA = 880.0f, // 880 Hz
+        .valueB = 1.0f
+    };
+    REQUIRE(engine.scheduleAudioEvent(noteOnEvt));
+
+    // 2. SetTempoMap targeting frame 24000 (offset 448 in block) -> transitions to epoch 2
+    const auto tempoCmd = AudioCommand::makeSetTempoMap(200, map140, 24000);
+    REQUIRE(engine.sendCommand(tempoCmd));
+
+    // Render block of 512 frames:
+    std::vector<float> block(512 * 2, 0.0f);
+    engine.processBlock(block.data(), 512);
+
+    // Event at 23600 must NOT be dropped! It was processed and applied!
+    REQUIRE(engine.totalScheduledEventsProcessed() == 1);
+
+    // Command at 24000 must be applied!
+    AudioCommandAck ack;
+    REQUIRE(engine.pollAck(ack));
+    REQUIRE(ack.commandId == 200);
+    REQUIRE(ack.status == AudioCommandStatus::Applied);
+    REQUIRE(ack.sampleFrame == 24000);
+    REQUIRE(ack.transportEpoch >= 2);
+
+    // Verify PCM content:
+    // Before frame 23600 (offsets 0..47): 220 Hz
+    // Between frame 23600 and 24000 (offsets 48..447, 400 frames): 880 Hz!
+    std::size_t zc880 = 0;
+    for (std::size_t i = 49; i < 448; ++i) {
+        if ((block[(i - 1) * 2] <= 0.0f && block[i * 2] > 0.0f) ||
+            (block[(i - 1) * 2] >= 0.0f && block[i * 2] < 0.0f)) {
+            ++zc880;
+        }
+    }
+    // 880 Hz over 400 frames at 48000 Hz is ~14.67 zero crossings
+    CHECK(zc880 >= 12);
+    CHECK(zc880 <= 17);
+}
+
+TEST_CASE("AudioEngine immediate SetTempoMap during playback quantizes to next boundary and rejects late commands (DIF-M2-R3-04)", "[scheduler][immediate_quantize]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    REQUIRE(engine.startTone(220.0f, 0.25f));
+
+    // Render 10,000 frames (cursor is at 10,000, inside beat 0 of bar 0 at 120 BPM 4/4)
+    std::vector<float> out(10000 * 2, 0.0f);
+    engine.processBlock(out.data(), 10000);
+    REQUIRE(engine.framesRendered() == 10000);
+
+    TempoMap map140;
+    map140.bpm = RationalBpm{140, 1};
+    map140.timeSignatureNum = 4;
+    map140.timeSignatureDen = 4;
+    map140.beatsPerBar = 4;
+    map140.barsPerPhrase = 4;
+    map140.subdivisionsPerBeat = 4;
+
+    // Send immediate SetTempoMap (targetSampleFrame == 0) while playing at frame 10,000
+    // Must quantize to next beat boundary: frame 24,000! Not frame 0!
+    const auto immCmd = AudioCommand::makeSetTempoMap(1, map140, 0);
+    REQUIRE(engine.sendCommand(immCmd));
+
+    // Send late command with explicit target frame 5,000 (< current cursor 10,000)
+    const auto lateCmd = AudioCommand::makeSetTempoMap(2, map140, 5000);
+    REQUIRE(engine.sendCommand(lateCmd));
+
+    // Render block from 10,000 to 20,000 (10,000 frames)
+    engine.processBlock(out.data(), 10000);
+
+    // Late command (id 2) must be immediately rejected!
+    AudioCommandAck ackLate;
+    REQUIRE(engine.pollAck(ackLate));
+    REQUIRE(ackLate.commandId == 2);
+    REQUIRE(ackLate.status == AudioCommandStatus::Rejected);
+
+    // Immediate command (id 1) was quantized to frame 24,000, so it hasn't acked yet at frame 20,000!
+    AudioCommandAck ackPending;
+    REQUIRE_FALSE(engine.pollAck(ackPending));
+
+    // Render block covering frame 24,000 (from 20,000 to 30,000)
+    engine.processBlock(out.data(), 10000);
+
+    // Now immediate command must have been applied at frame 24,000!
+    AudioCommandAck ackImm;
+    REQUIRE(engine.pollAck(ackImm));
+    REQUIRE(ackImm.commandId == 1);
+    REQUIRE(ackImm.status == AudioCommandStatus::Applied);
+    REQUIRE(ackImm.sampleFrame == 24000);
+}
+
+TEST_CASE("AudioEngine protects future epoch events and executes them only when epoch matches (DIF-M2-R3-05)", "[scheduler][future_epoch]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    REQUIRE(engine.startTone(220.0f, 0.25f));
+
+    // Schedule event targeting frame 24000 with FUTURE epoch 2:
+    ScheduledAudioEvent futureEvt{
+        .eventId = 99,
+        .sampleFrame = 24000,
+        .transportEpoch = 2,
+        .type = AudioEventType::NoteOn,
+        .valueA = 880.0f,
+        .valueB = 1.0f
+    };
+    REQUIRE(engine.scheduleAudioEvent(futureEvt));
+
+    // Schedule SetTempoMap at frame 24000 to advance epoch from 1 to 2!
+    TempoMap map140;
+    map140.bpm = RationalBpm{140, 1};
+    map140.timeSignatureNum = 4;
+    map140.timeSignatureDen = 4;
+    map140.beatsPerBar = 4;
+    map140.barsPerPhrase = 4;
+    map140.subdivisionsPerBeat = 4;
+    const auto tempoCmd = AudioCommand::makeSetTempoMap(50, map140, 24000);
+    REQUIRE(engine.sendCommand(tempoCmd));
+
+    // Render block 0..12000: event must be held in queue
+    std::vector<float> out(12000 * 2, 0.0f);
+    engine.processBlock(out.data(), 12000);
+    REQUIRE(engine.totalScheduledEventsProcessed() == 0);
+
+    // Render block 12000..30000 (18000 frames covering 24000):
+    std::vector<float> out2(18000 * 2, 0.0f);
+    engine.processBlock(out2.data(), 18000);
+
+    // Tempo command executed at 24000, advancing epoch to 2.
+    // Event 99 matched epoch 2 and was processed!
+    REQUIRE(engine.totalScheduledEventsProcessed() == 1);
+    AudioCommandAck ack;
+    REQUIRE(engine.pollAck(ack));
+    REQUIRE(ack.commandId == 50);
+    REQUIRE(ack.status == AudioCommandStatus::Applied);
+
+    // Now test unmatchable future epoch event:
+    // Event targeting frame 32000 with epoch 99, but no command ever transitions to epoch 99.
+    ScheduledAudioEvent unmatchableEvt{
+        .eventId = 100,
+        .sampleFrame = 32000,
+        .transportEpoch = 99,
+        .type = AudioEventType::NoteOn,
+        .valueA = 880.0f,
+        .valueB = 1.0f
+    };
+    REQUIRE(engine.scheduleAudioEvent(unmatchableEvt));
+
+    // Render block covering frame 32000 (from 30000 to 40000):
+    std::vector<float> out3(10000 * 2, 0.0f);
+    engine.processBlock(out3.data(), 10000);
+
+    // Event 100 could not match epoch 99 and cursor passed it -> dropped as unmatchable!
+    CHECK(engine.droppedScheduledEvents() >= 1);
 }
 
 TEST_CASE("AudioScheduler handles late events safely without queue corruption", "[scheduler][late]") {
@@ -466,3 +657,4 @@ TEST_CASE("AudioScheduler handles late events safely without queue corruption", 
     engine.processBlock(out2.data(), 2000);
     REQUIRE(engine.totalScheduledEventsProcessed() == 2);
 }
+

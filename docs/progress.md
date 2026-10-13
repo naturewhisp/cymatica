@@ -98,7 +98,7 @@ Suddivisione richiesta dal titolare il 2026-10-07; roadmap e criteri autoritativ
 |---|---|---|
 | M2.1 — Decisioni e contratti | **Completata** | Congelate D-M2-01, D-M2-02, D-M2-03, D-AO-01, D-AO-02 in [ADR-0003](adr/0003-m2-decisions-contracts.md); contratti di transport, intent, scheduling, dispatcher del tono e AudioProbe accettati. |
 | M2.2 — Controllo e osservazione del tono | **Completata (remediation validata)** | AC-AO-01A superato (modalità offline `initOffline` priva di callback fisica WASAPI concorrente, quiescence garantita su `detachAudioProbe`, manifest JSON completo con correlation fields ed export gate vincolante, frequenze 220 $\to$ 440 $\to$ 220 Hz $\pm 2$ Hz verificate, prova fisica OS SPACE documentata distintamente dallo smoke sintetico); AC-AO-01B superato (capacità multimodale verificata su modello `antigravity-gemini-2.5-pro`, artefatto WAV `0A1F68A...` ascoltato e giudizio percettivo registrato in [m2_tone_probe_evidence.md](m2_tone_probe_evidence.md)). |
-| M2.3 — Transport e scheduler | **Completata (remediation validata)** | Canale `SetTempoMap` sample-accurate con trattenimento comandi futuri fino al blocco di competenza (`peek`), ancore `TempoSegment` per continuità esatta di battute/fasi senza salti (DIF-M2-02). Applicazione degli eventi `ScheduledAudioEvent` agli offset campionari esatti intra-blocco (`[sample_accurate]`), congelamento del consumo durante `Paused`/`Stopped` (`[pause]`), conversione coerente coordinate 44.1/48 kHz (DIF-M2-03). Metrica musicale razionale esatta per 3/8 (36.000 frame/battuta a 120 BPM), 6/8, 5/4, 2/2 (DIF-M2-04). Protezione overflow uint64 in `scheduleIntent`. 62/62 test superati (Release, Debug), 61/61 Headless. |
+| M2.3 — Transport e scheduler | **Completata (remediation validata)** | Canale `SetTempoMap` sample-accurate con trattenimento comandi futuri fino al blocco di competenza (`peek`), ancore `TempoSegment` per continuità esatta di battute/fasi senza salti (DIF-M2-02). Applicazione degli eventi `ScheduledAudioEvent` agli offset campionari esatti intra-blocco (`[sample_accurate]`), congelamento del consumo durante `Paused`/`Stopped` (`[pause]`), conversione coerente coordinate 44.1/48 kHz (DIF-M2-03). Metrica musicale razionale esatta per 3/8 (36.000 frame/battuta a 120 BPM), 6/8, 5/4, 2/2 (DIF-M2-04). Protezione overflow uint64 in `scheduleIntent`. Ordinamento causale intra-blocco comandi/eventi, quantizzazione comandi tempo a confini musicali, gestione 3-way degli epoch e deserializzazione JSON Windows conforme (DIF-M2-R3-01..05). 73/73 test superati (Release, Debug), 72/72 Headless. |
 | M2.4 — Musica procedurale v1 | **Prossimo passo** | Generatori procedurali dei 4 ruoli (Pulso, Corpo, Trama, Vettore), pattern euclidei puri di Bjorklund, synth polifonico a 8 voci e due sezioni musicali con transizione tempo/metrica. |
 | M2.5 — Integrazione e verifica finale | **Da eseguire** | AC-AO-02, criteri originali M2 e review indipendente iterativa; record di build/profilo/procedura ed evidenza per ogni mandatory. |
 
@@ -187,6 +187,28 @@ Risoluzione dei 7 difetti identificati nella terza revisione indipendente di M2 
 - **Release:** 67/67 superati (100%), 0 falliti.
 - **Headless:** 66/66 superati (100%), 0 falliti.
 - **Debug:** 67/67 superati (100%), 0 falliti.
-- **Smoke test interattivo (4s):** exit 0, 239 frame, 59.7 fps, pure_seed=ELIGIBLE, 0 sospensioni, shader=OK, audio=OK.
-- **CACP CLI (`cymatica_game --cacp-run tone_test`):** Verdetto PASS, `build_id="0ec9d02"`, 0 frame persi, 144.000 frame catturati, tutte le fasi (220 Hz → 440 Hz → 220 Hz) convalidate. Zero warning `/W4`.
+
+---
+
+## Remediation M2 Review — Round 3 Follow-up (DIF-M2-R3-01 – DIF-M2-R3-05)
+
+Risoluzione dei 5 difetti (1 Blocker, 4 High) e dei requisiti di test/CI identificati nella revisione successiva di M2.3:
+
+| ID | Severità | Descrizione Defetto | Intervento Applicato | Stato / Evidenza |
+|---|---|---|---|---|
+| DIF-M2-R3-01 | **HIGH** | `ToneProbeResult::toJson()` produceva JSON non valido su Windows per via dei backslash non escapati nei percorsi (`artifacts\cacp\...`). La CI mascherava il problema con una replace. | Implementato helper `escapeJsonString()` in `audio_probe.cpp` che esegue l'escape di `\`, `"`, `\n`, `\r`, `\t` e caratteri di controllo. Rimosso il workaround string-replace dalla CI e aggiunto test Catch2 che valida il parsing diretto via `nlohmann::json::parse()`. | **Risolto** (`audio_probe.cpp`, `test_audio_probe.cpp`, `.github/workflows/windows-ci.yml`) |
+| DIF-M2-R3-02 | **BLOCKER** | Avanzamento prematuro di `transportEpoch` in `processBlock()`: consumava comandi tempo prima di processare campioni ed eventi schedulati precedenti nello stesso blocco, scartando note valide. | Riscritto il render loop con slicing temporale causale: comandi schedulati ed eventi audio vengono interleavati e consumati in ordine cronologico intra-blocco. L'epoch avanza solo all'effettivo offset campionario del comando. Aggiunto test intra-blocco con verifica zero-crossings PCM. | **Risolto** (`audio_engine.cpp`, `test_scheduler.cpp`) |
+| DIF-M2-R3-03 | **HIGH** | `MusicClock::setTempoMap()` rifiutava confini di beat validi a BPM frazionari (es. 140 BPM, frame 20.571) a causa di `inverse.remainder != 0`. | Allineato il criterio di validazione: se `deltaF == boundary.value` (dove `boundary` è calcolato da `frameAtBeat`), la transizione è accettata come confine esatto. Aggiunti unit test per 140 BPM e 127.5 BPM. | **Risolto** (`music_clock.cpp`, `test_music_clock.cpp`) |
+| DIF-M2-R3-04 | **HIGH** | `SetTempoMap` immediato durante riproduzione riscriveva retroattivamente il segmento 0 o falliva per frame nel passato. | Comandi immediati (`targetSampleFrame == 0`) durante la riproduzione vengono quantizzati in avanti al successivo confine musicale (`nextBeatBoundary()` o `nextBarBoundary()`); comandi passati (`targetSampleFrame < blockStartFrame`) vengono rifiutati esplicitamente con `Rejected`. | **Risolto** (`music_clock.h`, `music_clock.cpp`, `audio_engine.cpp`, `test_scheduler.cpp`) |
+| DIF-M2-R3-05 | **HIGH** | Eventi con epoch futura (`schedEvt.transportEpoch > transportEpoch`) venivano consumati o scartati senza protezione causale. | Gestione causale a 3 vie: eventi con epoch passata vengono scartati; con epoch corrente vengono sintetizzati; con epoch futura vengono trattenuti fino all'offset designato e, se l'epoch non avanza all'arrivo dell'evento, scartati come non-matching incrementando `droppedScheduledEvents`. | **Risolto** (`audio_engine.cpp`, `test_scheduler.cpp`) |
+| Test Quality | **MEDIUM** | Il test `[scheduler][epoch_drop]` verificava una costante di telemetria anziché il buffer PCM reale renderizzato. | Test esteso: verifica reale sui campioni audio PCM sintetizzati (conteggio zero-crossings tra frequenza base 220 Hz e nota scartata 880 Hz). | **Risolto** (`test_scheduler.cpp`) |
+| CI Hygiene | **LOW** | `actions/checkout` in GitHub Actions non era vincolato a commit SHA immutabile. | Fissato `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1`. | **Risolto** (`.github/workflows/windows-ci.yml`) |
+
+**Esito suite completa post-remediation Round 3 Follow-up:**
+- **Release:** 73/73 superati (100%), 0 falliti.
+- **Headless:** 72/72 superati (100%), 0 falliti.
+- **Debug:** 73/73 superati (100%), 0 falliti.
+- **Smoke test interattivo (3s):** exit 0, 179 frame, 59.6 fps, 145.920 campioni audio, 358 tick, pure_seed=ELIGIBLE, 0 sospensioni, shader=OK, audio=OK.
+- **CACP CLI (`cymatica_game --cacp-run tone_test`):** Verdetto PASS, 0 frame persi, 144.000 frame catturati, validazione JSON diretta nativa con path backslash escapati (`artifacts\\cacp\\...`). Zero warning `/W4`.
+
 

@@ -243,18 +243,48 @@ bool writeWavStereo16(const std::string& filePath,
 
 } // namespace analysis
 
+namespace {
+
+std::string escapeJsonString(std::string_view s) {
+    std::string out;
+    out.reserve(s.size() + 16);
+    for (char c : s) {
+        switch (c) {
+            case '"': out += "\\\""; break;
+            case '\\': out += "\\\\"; break;
+            case '\b': out += "\\b"; break;
+            case '\f': out += "\\f"; break;
+            case '\n': out += "\\n"; break;
+            case '\r': out += "\\r"; break;
+            case '\t': out += "\\t"; break;
+            default:
+                if (static_cast<unsigned char>(c) < 0x20) {
+                    char buf[8];
+                    std::snprintf(buf, sizeof(buf), "\\u%04x", static_cast<unsigned char>(c));
+                    out += buf;
+                } else {
+                    out += c;
+                }
+                break;
+        }
+    }
+    return out;
+}
+
+} // namespace
+
 std::string ToneProbeResult::toJson() const {
     std::ostringstream ss;
     ss << "{\n";
     ss << "  \"manifest_version\": \"1.0\",\n";
     ss << "  \"scenario_id\": \"tone_probe_v0\",\n";
-    ss << "  \"build_id\": \"" << buildId << "\",\n";
+    ss << "  \"build_id\": \"" << escapeJsonString(buildId) << "\",\n";
     ss << "  \"verdict\": \"" << (passed ? "PASS" : "FAIL") << "\",\n";
     ss << "  \"transport_epoch\": " << transportEpoch << ",\n";
     ss << "  \"simulation_ticks\": " << simulationTicks << ",\n";
     ss << "  \"requested_sample_frames\": " << requestedSampleFrames << ",\n";
     ss << "  \"applied_sample_frames\": " << appliedSampleFrames << ",\n";
-    ss << "  \"presentation_quality\": \"" << presentationQuality << "\",\n";
+    ss << "  \"presentation_quality\": \"" << escapeJsonString(presentationQuality) << "\",\n";
     ss << "  \"wav_write_success\": " << (wavWriteSuccess ? "true" : "false") << ",\n";
     ss << "  \"manifest_write_success\": " << (manifestWriteSuccess ? "true" : "false") << ",\n";
     ss << "  \"timing_profile\": {\n";
@@ -300,13 +330,13 @@ std::string ToneProbeResult::toJson() const {
     ss << "    \"passed\": " << (phase3Release.passed ? "true" : "false") << "\n";
     ss << "  },\n";
     ss << "  \"artifacts\": {\n";
-    ss << "    \"wav_file\": \"" << wavFilePath << "\",\n";
-    ss << "    \"manifest_file\": \"" << manifestFilePath << "\"\n";
-    ss << "  }\n";
+    ss << "    \"wav_file\": \"" << escapeJsonString(wavFilePath) << "\",\n";
+    ss << "    \"manifest_file\": \"" << escapeJsonString(manifestFilePath) << "\"\n";
+    ss << "  }";
     if (!failureReason.empty()) {
-        ss << "  ,\"failure_reason\": \"" << failureReason << "\"\n";
+        ss << ",\n  \"failure_reason\": \"" << escapeJsonString(failureReason) << "\"";
     }
-    ss << "}\n";
+    ss << "\n}\n";
     return ss.str();
 }
 

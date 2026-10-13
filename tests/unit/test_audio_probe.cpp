@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <nlohmann/json.hpp>
 
 #include "audio_engine.h"
 #include "audio_probe.h"
@@ -215,7 +216,38 @@ TEST_CASE("AC-AO-01A: authoritative tone_probe_v0 execution and verification", "
     CHECK(std::filesystem::file_size(result.wavFilePath) >= 144000 * 4); // 44 + 144000 * 4
     CHECK(std::filesystem::file_size(result.manifestFilePath) > 100);
 
+    // Verify manifest JSON is directly parseable without any string replacements
+    nlohmann::json manifestJson;
+    REQUIRE_NOTHROW(manifestJson = nlohmann::json::parse(result.toJson()));
+    CHECK(manifestJson["verdict"] == "PASS");
+    CHECK(manifestJson["telemetry"]["dropped_frames"] == 0);
+
     // Clean up temporary test artifacts
     std::filesystem::remove(result.wavFilePath);
     std::filesystem::remove(result.manifestFilePath);
 }
+
+TEST_CASE("ToneProbeResult: toJson produces valid JSON with escaped Windows backslashes (DIF-M2-R3-01)", "[audio][probe][json]") {
+    ToneProbeResult res{};
+    res.buildId = "git_hash_test\\123\"with_quotes";
+    res.passed = true;
+    res.presentationQuality = "Realtime\\HighPrecision";
+    res.wavFilePath = "C:\\cymatica\\artifacts\\cacp\\tone_probe_v0.wav";
+    res.manifestFilePath = "C:\\cymatica\\artifacts\\cacp\\tone_probe_v0_manifest.json";
+    res.failureReason = "No \"failure\" occurred\\clean\nnewline\ttab";
+
+    const std::string jsonStr = res.toJson();
+
+    // Must parse directly without any preprocessing, sanitization, or string replacements
+    nlohmann::json j;
+    REQUIRE_NOTHROW(j = nlohmann::json::parse(jsonStr));
+
+    CHECK(j["scenario_id"] == "tone_probe_v0");
+    CHECK(j["build_id"] == "git_hash_test\\123\"with_quotes");
+    CHECK(j["verdict"] == "PASS");
+    CHECK(j["presentation_quality"] == "Realtime\\HighPrecision");
+    CHECK(j["artifacts"]["wav_file"] == "C:\\cymatica\\artifacts\\cacp\\tone_probe_v0.wav");
+    CHECK(j["artifacts"]["manifest_file"] == "C:\\cymatica\\artifacts\\cacp\\tone_probe_v0_manifest.json");
+    CHECK(j["failure_reason"] == "No \"failure\" occurred\\clean\nnewline\ttab");
+}
+

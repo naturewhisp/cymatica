@@ -452,3 +452,86 @@ TEST_CASE("MusicClock meter change from 4/4 to 3/8 at bar boundary resets bar be
     TempoMap mapMeterChange = map38;
     REQUIRE_FALSE(clock.setTempoMap(mapMeterChange, 24000));
 }
+
+TEST_CASE("MusicClock accepts beat transitions at fractional BPM boundaries (DIF-M2-R3-03)", "[clock][fractional_bpm]") {
+    TempoMap map140;
+    map140.bpm = RationalBpm{140, 1}; // 140 BPM: 1 beat = 48000 * 60 / 140 = 20,571.428... frames
+    map140.timeSignatureNum = 4;
+    map140.timeSignatureDen = 4;
+    map140.beatsPerBar = 4;
+    map140.barsPerPhrase = 4;
+    map140.subdivisionsPerBeat = 4;
+
+    auto clockOpt = MusicClock::create(48000, map140);
+    REQUIRE(clockOpt.has_value());
+    auto& clock = *clockOpt;
+
+    // Check exact frame from frameAtBeat
+    const std::uint64_t b1 = clock.frameAtBeat(1);
+    REQUIRE(b1 == 20571);
+
+    // setTempoMap on exact beat 1 frame must succeed!
+    TempoMap map130 = map140;
+    map130.bpm = RationalBpm{130, 1};
+    REQUIRE(clock.setTempoMap(map130, b1));
+
+    // Non-boundary frames must be explicitly rejected
+    TempoMap map120 = map140;
+    map120.bpm = RationalBpm{120, 1};
+    REQUIRE_FALSE(clock.setTempoMap(map120, 20570));
+    REQUIRE_FALSE(clock.setTempoMap(map120, 20572));
+
+    // Test with 127.5 BPM (255 / 2):
+    TempoMap map127_5;
+    map127_5.bpm = RationalBpm{255, 2};
+    map127_5.timeSignatureNum = 4;
+    map127_5.timeSignatureDen = 4;
+    map127_5.beatsPerBar = 4;
+    map127_5.barsPerPhrase = 4;
+    map127_5.subdivisionsPerBeat = 4;
+
+    auto clock127Opt = MusicClock::create(48000, map127_5);
+    REQUIRE(clock127Opt.has_value());
+    auto& clock127 = *clock127Opt;
+
+    // Beat 1: 48000 * 60 / 127.5 = 22,588.235... frames -> frame 22588
+    const std::uint64_t beat1Frame = clock127.frameAtBeat(1);
+    REQUIRE(beat1Frame == 22588);
+    REQUIRE(clock127.setTempoMap(map140, beat1Frame));
+
+    // Beat 2 in segment 2:
+    const std::uint64_t beat2Frame = clock127.frameAtBeat(2);
+    REQUIRE(clock127.setTempoMap(map130, beat2Frame));
+    REQUIRE(clock127.segmentCount() == 3);
+}
+
+TEST_CASE("MusicClock nextBeatBoundary and nextBarBoundary quantize accurately (DIF-M2-R3-04)", "[clock][boundary]") {
+    TempoMap map120;
+    map120.bpm = RationalBpm{120, 1}; // 24,000 frames per beat, 96,000 frames per bar
+    map120.timeSignatureNum = 4;
+    map120.timeSignatureDen = 4;
+    map120.beatsPerBar = 4;
+    map120.barsPerPhrase = 4;
+    map120.subdivisionsPerBeat = 4;
+
+    auto clockOpt = MusicClock::create(48000, map120);
+    REQUIRE(clockOpt.has_value());
+    const auto& clock = *clockOpt;
+
+    // Frame 0 is already on a beat and bar boundary
+    CHECK(clock.nextBeatBoundary(0) == 0);
+    CHECK(clock.nextBarBoundary(0) == 0);
+
+    // Frame 10,000: inside beat 0 of bar 0
+    CHECK(clock.nextBeatBoundary(10000) == 24000);
+    CHECK(clock.nextBarBoundary(10000) == 96000);
+
+    // Frame 24,000: on beat 1 boundary
+    CHECK(clock.nextBeatBoundary(24000) == 24000);
+    CHECK(clock.nextBarBoundary(24000) == 96000);
+
+    // Frame 96,000: on bar 1 boundary
+    CHECK(clock.nextBeatBoundary(96000) == 96000);
+    CHECK(clock.nextBarBoundary(96000) == 96000);
+}
+

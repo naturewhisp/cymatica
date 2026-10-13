@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Toolchain diagnostics
         shell: pwsh
@@ -72,8 +72,7 @@ jobs:
           }
 
           $rawJson = Get-Content $manifestPath -Raw
-          $sanitizedJson = $rawJson.Replace('\', '/')
-          $manifest = $sanitizedJson | ConvertFrom-Json
+          $manifest = $rawJson | ConvertFrom-Json
           Write-Host "[cacp] Validating tone_probe_v0 manifest:" -ForegroundColor Cyan
           Write-Host "  scenario_id: $($manifest.scenario_id)"
           Write-Host "  verdict: $($manifest.verdict)"

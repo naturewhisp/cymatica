@@ -109,13 +109,15 @@ bool MusicClock::setTempoMap(const TempoMap& map, std::uint64_t targetSampleFram
     const std::uint64_t K_num = 60ULL * sampleRate_ * prevSeg.tempoMap.bpm.denominator * 4ULL;
     const std::uint64_t K_den = static_cast<std::uint64_t>(prevSeg.tempoMap.bpm.numerator) * prevSeg.tempoMap.timeSignatureDen;
     const auto inverse = core::multiplyDivide(deltaF, K_den, K_num);
+    const std::uint64_t elapsedBeats = inverse.value +
+        static_cast<std::uint64_t>(inverse.remainder >= K_num - (K_den - 1));
+    const auto boundary = core::multiplyDivide(elapsedBeats, K_num, K_den);
 
-    // Explicit Policy (§7.5, DIF-M2-02/03):
-    // 1. Target frame must fall exactly on a beat boundary (no intra-beat fractional jumps)
-    if (inverse.remainder != 0) {
+    // Explicit Policy (§7.5, DIF-M2-02/03, DIF-M2-R3-03):
+    // 1. Target frame must fall exactly on a beat boundary (reconciled with frameAtBeat)
+    if (deltaF != boundary.value) {
         return false;
     }
-    const std::uint64_t elapsedBeats = inverse.value;
     const std::uint64_t beatsInBarBefore = prevSeg.beatOffsetInBar + elapsedBeats;
 
     // 2. A meter change (time signature / beatsPerBar) must fall on a bar boundary
@@ -208,6 +210,70 @@ std::uint64_t MusicClock::frameAtPhrase(std::uint64_t totalPhrases) const noexce
     const auto& seg = segments_[0];
     const std::uint64_t totalBars = core::multiplyDivide(totalPhrases, seg.tempoMap.barsPerPhrase, 1).value;
     return frameAtBar(totalBars);
+}
+
+std::uint64_t MusicClock::nextBeatBoundary(std::uint64_t frame) const noexcept {
+    if (segmentCount_ == 0 || sampleRate_ == 0) return frame;
+    std::size_t segIdx = 0;
+    for (std::size_t i = 1; i < segmentCount_; ++i) {
+        if (segments_[i].startFrame <= frame) {
+            segIdx = i;
+        } else {
+            break;
+        }
+    }
+    const auto& seg = segments_[segIdx];
+    const auto& map = seg.tempoMap;
+    if (map.bpm.numerator == 0 || map.bpm.denominator == 0 || map.timeSignatureDen == 0) return frame;
+
+    const std::uint64_t deltaF = frame - seg.startFrame;
+    const std::uint64_t K_num = 60ULL * sampleRate_ * map.bpm.denominator * 4ULL;
+    const std::uint64_t K_den = static_cast<std::uint64_t>(map.bpm.numerator) * map.timeSignatureDen;
+
+    const auto inverse = core::multiplyDivide(deltaF, K_den, K_num);
+    const std::uint64_t elapsedBeats = inverse.value +
+        static_cast<std::uint64_t>(inverse.remainder >= K_num - (K_den - 1));
+    const auto boundary = core::multiplyDivide(elapsedBeats, K_num, K_den);
+
+    const std::uint64_t totalBeats = seg.startBeat + elapsedBeats;
+    if (deltaF == boundary.value) {
+        return frame; // Exactly on beat boundary
+    }
+    return frameAtBeat(core::saturatingAdd(totalBeats, 1ULL));
+}
+
+std::uint64_t MusicClock::nextBarBoundary(std::uint64_t frame) const noexcept {
+    if (segmentCount_ == 0 || sampleRate_ == 0) return frame;
+    std::size_t segIdx = 0;
+    for (std::size_t i = 1; i < segmentCount_; ++i) {
+        if (segments_[i].startFrame <= frame) {
+            segIdx = i;
+        } else {
+            break;
+        }
+    }
+    const auto& seg = segments_[segIdx];
+    const auto& map = seg.tempoMap;
+    if (map.beatsPerBar == 0 || map.bpm.numerator == 0 || map.bpm.denominator == 0 || map.timeSignatureDen == 0) return frame;
+
+    const std::uint64_t deltaF = frame - seg.startFrame;
+    const std::uint64_t K_num = 60ULL * sampleRate_ * map.bpm.denominator * 4ULL;
+    const std::uint64_t K_den = static_cast<std::uint64_t>(map.bpm.numerator) * map.timeSignatureDen;
+
+    const auto inverse = core::multiplyDivide(deltaF, K_den, K_num);
+    const std::uint64_t elapsedBeats = inverse.value +
+        static_cast<std::uint64_t>(inverse.remainder >= K_num - (K_den - 1));
+    const auto boundary = core::multiplyDivide(elapsedBeats, K_num, K_den);
+
+    const std::uint64_t totalBeats = seg.startBeat + elapsedBeats;
+    const std::uint64_t beatsInBar = seg.beatOffsetInBar + elapsedBeats;
+    const std::uint64_t beatOffset = beatsInBar % map.beatsPerBar;
+
+    if (beatOffset == 0 && deltaF == boundary.value) {
+        return frame; // Exactly on bar boundary
+    }
+    const std::uint64_t beatsToNextBar = map.beatsPerBar - beatOffset;
+    return frameAtBeat(core::saturatingAdd(totalBeats, beatsToNextBar));
 }
 
 MusicPosition MusicClock::positionAtFrame(std::uint64_t frame, std::uint64_t epoch) const noexcept {
