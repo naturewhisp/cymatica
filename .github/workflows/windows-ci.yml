@@ -1,0 +1,124 @@
+name: Windows CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.config }} (windows-2025)
+    runs-on: windows-2025
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [Release, Debug]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Toolchain diagnostics
+        shell: pwsh
+        run: |
+          Write-Host "=== Toolchain Environment Diagnostics ===" -ForegroundColor Cyan
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (Test-Path $vswhere) {
+              Write-Host "Visual Studio installations found via vswhere:" -ForegroundColor Yellow
+              & $vswhere -products * -property displayName, installationPath, installationVersion
+          } else {
+              Write-Host "vswhere.exe not found at standard path." -ForegroundColor Yellow
+          }
+          Write-Host "`nCMake version and location:" -ForegroundColor Yellow
+          Get-Command cmake -ErrorAction SilentlyContinue | Format-Table -AutoSize
+          cmake --version
+          Write-Host "`nNinja version and location:" -ForegroundColor Yellow
+          Get-Command ninja -ErrorAction SilentlyContinue | Format-Table -AutoSize
+          ninja --version
+
+      - name: Clean Build and Headless CTest (${{ matrix.config }})
+        shell: pwsh
+        run: |
+          .\scripts\build.ps1 -Clean -Config ${{ matrix.config }} -Test -Headless
+
+      - name: Run CACP Diagnostic Tone Test (Release only)
+        if: matrix.config == 'Release'
+        shell: pwsh
+        run: |
+          Write-Host "[cacp] Running CACP offline tone_test..." -ForegroundColor Cyan
+          $exe = ".\build\x64-release\apps\cymatica_game\cymatica_game.exe"
+          if (-not (Test-Path $exe)) {
+              throw "cymatica_game.exe binary not found at $exe"
+          }
+          & $exe --cacp-run tone_test
+          if ($LASTEXITCODE -ne 0) {
+              throw "cymatica_game.exe --cacp-run tone_test exited with error code $LASTEXITCODE"
+          }
+
+          $manifestPath = "artifacts/cacp/tone_probe_v0_manifest.json"
+          if (-not (Test-Path $manifestPath)) {
+              throw "Expected CACP manifest not found: $manifestPath"
+          }
+
+          $rawJson = Get-Content $manifestPath -Raw
+          $sanitizedJson = $rawJson.Replace('\', '/')
+          $manifest = $sanitizedJson | ConvertFrom-Json
+          Write-Host "[cacp] Validating tone_probe_v0 manifest:" -ForegroundColor Cyan
+          Write-Host "  scenario_id: $($manifest.scenario_id)"
+          Write-Host "  verdict: $($manifest.verdict)"
+          Write-Host "  dropped_frames: $($manifest.telemetry.dropped_frames)"
+          Write-Host "  phase_1_baseline passed: $($manifest.phase_1_baseline.passed) ($($manifest.phase_1_baseline.estimated_freq_hz) Hz)"
+          Write-Host "  phase_2_hold passed: $($manifest.phase_2_hold.passed) ($($manifest.phase_2_hold.estimated_freq_hz) Hz)"
+          Write-Host "  phase_3_release passed: $($manifest.phase_3_release.passed) ($($manifest.phase_3_release.estimated_freq_hz) Hz)"
+          Write-Host "  wav_write_success: $($manifest.wav_write_success)"
+          Write-Host "  manifest_write_success: $($manifest.manifest_write_success)"
+
+          if ($manifest.verdict -ne "PASS") {
+              throw "CACP verification failed: verdict is '$($manifest.verdict)', expected 'PASS'"
+          }
+          if ($manifest.telemetry.dropped_frames -ne 0) {
+              throw "CACP verification failed: dropped_frames is $($manifest.telemetry.dropped_frames), expected 0"
+          }
+          if (-not $manifest.phase_1_baseline.passed) {
+              throw "CACP verification failed: phase 1 baseline (220 Hz) did not pass"
+          }
+          if (-not $manifest.phase_2_hold.passed) {
+              throw "CACP verification failed: phase 2 hold (440 Hz) did not pass"
+          }
+          if (-not $manifest.phase_3_release.passed) {
+              throw "CACP verification failed: phase 3 release (220 Hz) did not pass"
+          }
+          if (-not $manifest.wav_write_success) {
+              throw "CACP verification failed: wav_write_success is false"
+          }
+          if (-not $manifest.manifest_write_success) {
+              throw "CACP verification failed: manifest_write_success is false"
+          }
+
+          $wavPath = $manifest.artifacts.wav_file
+          if (-not (Test-Path $wavPath)) {
+              throw "CACP verification failed: generated WAV file not found at $wavPath"
+          }
+          Write-Host "[cacp] Offline tone_test verification PASSED." -ForegroundColor Green
+
+      - name: Upload Diagnostic Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostic-logs-${{ matrix.config }}
+          path: |
+            build/**/Testing/Temporary/*.log
+            artifacts/cacp/*.json
+          retention-days: 3
+          if-no-files-found: ignore

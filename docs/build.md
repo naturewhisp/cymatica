@@ -23,6 +23,7 @@ Le installazioni Preview/Insiders di Visual Studio possono coesistere: lo script
 .\scripts\build.ps1 -Test                    # Release + tutti i test CTest (richiede un device audio)
 .\scripts\build.ps1 -Test -Headless          # Release, esclude i test con label "device" (CI/senza audio)
 .\scripts\build.ps1 -Config Debug -Test      # Debug
+.\scripts\build.ps1 -Config Debug -Test -Headless # Debug, esclude i test con label "device" (CI/senza audio)
 .\scripts\build.ps1 -Clean -Test             # rimuove la build dir prima di configurare
 .\scripts\build.ps1 -Run                     # avvia il gioco
 .\scripts\build.ps1 -Run -SmokeSeconds 3     # avvio temporizzato, esce da solo
@@ -41,8 +42,9 @@ Da una **Developer PowerShell for VS** (Build Tools 2026), nella radice del repo
 ```powershell
 cmake --preset x64-release            # oppure x64-debug
 cmake --build --preset x64-release
-ctest --preset x64-release            # tutti i test
-ctest --preset x64-release-headless   # esclude label "device"
+ctest --preset x64-release            # tutti i test (Release)
+ctest --preset x64-release-headless   # esclude label "device" (Release)
+ctest --preset x64-debug-headless     # esclude label "device" (Debug)
 .\build\x64-release\apps\cymatica_game\cymatica_game.exe
 ```
 
