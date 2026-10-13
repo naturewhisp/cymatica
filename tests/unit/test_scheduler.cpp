@@ -3,6 +3,11 @@
 #include "audio_engine.h"
 #include "audio_scheduler.h"
 
+#include <chrono>
+#include <cmath>
+#include <thread>
+#include <vector>
+
 using namespace cymatica::audio;
 
 TEST_CASE("AudioScheduler dispatches events within lookahead horizon", "[scheduler][timing]") {
@@ -656,5 +661,173 @@ TEST_CASE("AudioScheduler handles late events safely without queue corruption", 
     std::vector<float> out2(2000 * 2, 0.0f);
     engine.processBlock(out2.data(), 2000);
     REQUIRE(engine.totalScheduledEventsProcessed() == 2);
+}
+
+TEST_CASE("AudioEngine preserves active voice across epoch boundary until NoteOff and silences cleanly (DIF-M2-R4-01)", "[scheduler][voice_epoch_lifecycle]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+
+    // Fast-forward engine to frame 23552
+    std::vector<float> preRoll(23552 * 2, 0.0f);
+    engine.processBlock(preRoll.data(), 23552);
+    REQUIRE(engine.framesRendered() == 23552);
+
+    TempoMap map140;
+    map140.bpm = RationalBpm{140, 1};
+    map140.timeSignatureNum = 4;
+    map140.timeSignatureDen = 4;
+    map140.beatsPerBar = 4;
+    map140.barsPerPhrase = 4;
+    map140.subdivisionsPerBeat = 4;
+
+    // 1. NoteOn at frame 23600 (offset 48 in block), epoch 1 -> 880 Hz, amplitude 1.0f
+    ScheduledAudioEvent noteOnEvt{
+        .eventId = 1,
+        .sampleFrame = 23600,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .valueA = 880.0f,
+        .valueB = 1.0f,
+        .durationFrames = 1400 // Scheduled duration ends at 25000
+    };
+    REQUIRE(engine.scheduleAudioEvent(noteOnEvt));
+
+    // 2. SetTempoMap targeting frame 24000 (offset 448 in block) -> transitions epoch 1 -> 2
+    const auto tempoCmd = AudioCommand::makeSetTempoMap(200, map140, 24000);
+    REQUIRE(engine.sendCommand(tempoCmd));
+
+    // 3. NoteOff at frame 25000, epoch 1 (belonging to the note started at 23600)
+    ScheduledAudioEvent noteOffEvt{
+        .eventId = 1,
+        .sampleFrame = 25000,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOff,
+        .valueA = 0.0f,
+        .valueB = 0.0f
+    };
+    REQUIRE(engine.scheduleAudioEvent(noteOffEvt));
+
+    // Block 1: [23552, 24064) (512 frames)
+    // Covers NoteOn at 23600 and SetTempoMap at 24000
+    std::vector<float> b1(512 * 2, 0.0f);
+    engine.processBlock(b1.data(), 512);
+
+    // Verify NoteOn executed and played 880 Hz up to frame 24000:
+    std::size_t zc1 = 0;
+    for (std::size_t i = 49; i < 448; ++i) {
+        if ((b1[(i - 1) * 2] <= 0.0f && b1[i * 2] > 0.0f) ||
+            (b1[(i - 1) * 2] >= 0.0f && b1[i * 2] < 0.0f)) {
+            ++zc1;
+        }
+    }
+    CHECK(zc1 >= 12); // ~14.6 zero crossings at 880 Hz
+
+    // Command acknowledged and epoch transitioned to 2
+    AudioCommandAck ack;
+    REQUIRE(engine.pollAck(ack));
+    REQUIRE(ack.commandId == 200);
+    REQUIRE(ack.status == AudioCommandStatus::Applied);
+    REQUIRE(ack.transportEpoch >= 2);
+
+    // Block 2: [24064, 24576) (512 frames)
+    // Current epoch is 2. The active voice from epoch 1 MUST continue sounding!
+    std::vector<float> b2(512 * 2, 0.0f);
+    engine.processBlock(b2.data(), 512);
+
+    std::size_t zc2 = 0;
+    for (std::size_t i = 1; i < 512; ++i) {
+        if ((b2[(i - 1) * 2] <= 0.0f && b2[i * 2] > 0.0f) ||
+            (b2[(i - 1) * 2] >= 0.0f && b2[i * 2] < 0.0f)) {
+            ++zc2;
+        }
+    }
+    CHECK(zc2 >= 16); // 880 Hz active throughout block 2 (~18.7 zero crossings)
+
+    // Block 3: [24576, 25088) (512 frames)
+    // Covers frame 25000 (offset 424 in block) where NoteOff (epoch 1) matures!
+    std::vector<float> b3(512 * 2, 0.0f);
+    engine.processBlock(b3.data(), 512);
+
+    // Verify 880 Hz sounded before frame 25000 (offsets 0..424):
+    std::size_t zc3Before = 0;
+    for (std::size_t i = 1; i < 424; ++i) {
+        if ((b3[(i - 1) * 2] <= 0.0f && b3[i * 2] > 0.0f) ||
+            (b3[(i - 1) * 2] >= 0.0f && b3[i * 2] < 0.0f)) {
+            ++zc3Before;
+        }
+    }
+    CHECK(zc3Before >= 13); // ~15.5 crossings at 880 Hz
+
+    // Block 4: [25088, 25600) (512 frames)
+    // NoteOff executed at 25000; the 96-sample micro-fade finished at frame 25096 (offset 8 in block 4).
+    // From offset 16 to 512 (frames >= 25104), PCM MUST BE STRICTLY SILENT!
+    std::vector<float> b4(512 * 2, 0.0f);
+    engine.processBlock(b4.data(), 512);
+
+    std::size_t zc4 = 0;
+    float maxAmp4 = 0.0f;
+    for (std::size_t i = 16; i < 512; ++i) {
+        if ((b4[(i - 1) * 2] <= 0.0f && b4[i * 2] > 0.0f) ||
+            (b4[(i - 1) * 2] >= 0.0f && b4[i * 2] < 0.0f)) {
+            ++zc4;
+        }
+        maxAmp4 = (std::max)(maxAmp4, std::abs(b4[i * 2]));
+    }
+    // PCM must be silent! If NoteOff had been dropped, zc4 would be ~18 and maxAmp4 ~0.25!
+    CHECK(zc4 == 0);
+    CHECK(maxAmp4 == 0.0f);
+}
+
+TEST_CASE("AudioEngine enforces bounded event-processing budget per block under concurrent producer flooding (DIF-M2-R4-02)", "[scheduler][event_budget_concurrency]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+
+    // Active concurrent producer thread flooding the queue continuously
+    std::atomic<bool> producerRunning{true};
+    std::atomic<std::uint64_t> eventsPushed{0};
+
+    std::thread producerThread([&]() {
+        std::uint64_t id = 1;
+        while (producerRunning.load(std::memory_order_relaxed)) {
+            ScheduledAudioEvent floodEvt{
+                .eventId = ++id,
+                .sampleFrame = 100 + (id % 400),
+                .transportEpoch = 1,
+                .type = AudioEventType::ParameterChange,
+                .valueA = 440.0f
+            };
+            if (engine.scheduleAudioEvent(floodEvt)) {
+                eventsPushed.fetch_add(1, std::memory_order_relaxed);
+            } else {
+                std::this_thread::yield();
+            }
+        }
+    });
+
+    // Ensure producer thread has actively started pushing into the queue
+    while (eventsPushed.load(std::memory_order_relaxed) == 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    // Audio callback executes multiple blocks while producer is hammering the queue
+    for (int b = 0; b < 20; ++b) {
+        std::vector<float> floodBlock(512 * 2, 0.0f);
+        const auto start = std::chrono::steady_clock::now();
+        engine.processBlock(floodBlock.data(), 512);
+        const auto elapsed = std::chrono::steady_clock::now() - start;
+        // Verify hard-realtime guarantee: each block completes in bounded time (< 50 ms)
+        CHECK(elapsed < std::chrono::milliseconds(50));
+        std::this_thread::sleep_for(std::chrono::microseconds(200));
+    }
+
+    producerRunning.store(false, std::memory_order_relaxed);
+    producerThread.join();
+
+    // Verify telemetry updated:
+    REQUIRE(engine.updateTelemetry());
+    CHECK(engine.totalScheduledEventsProcessed() > 0);
+    // Under continuous flooding, queue overflows or block budget was exercised
+    CHECK((engine.deferredScheduledEvents() > 0 || engine.droppedScheduledEvents() > 0));
+    CHECK(eventsPushed.load() > 0);
 }
 

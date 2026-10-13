@@ -98,7 +98,7 @@ Suddivisione richiesta dal titolare il 2026-10-07; roadmap e criteri autoritativ
 |---|---|---|
 | M2.1 — Decisioni e contratti | **Completata** | Congelate D-M2-01, D-M2-02, D-M2-03, D-AO-01, D-AO-02 in [ADR-0003](adr/0003-m2-decisions-contracts.md); contratti di transport, intent, scheduling, dispatcher del tono e AudioProbe accettati. |
 | M2.2 — Controllo e osservazione del tono | **Completata (remediation validata)** | AC-AO-01A superato (modalità offline `initOffline` priva di callback fisica WASAPI concorrente, quiescence garantita su `detachAudioProbe`, manifest JSON completo con correlation fields ed export gate vincolante, frequenze 220 $\to$ 440 $\to$ 220 Hz $\pm 2$ Hz verificate, prova fisica OS SPACE documentata distintamente dallo smoke sintetico); AC-AO-01B superato (capacità multimodale verificata su modello `antigravity-gemini-2.5-pro`, artefatto WAV `0A1F68A...` ascoltato e giudizio percettivo registrato in [m2_tone_probe_evidence.md](m2_tone_probe_evidence.md)). |
-| M2.3 — Transport e scheduler | **Completata (remediation validata)** | Canale `SetTempoMap` sample-accurate con trattenimento comandi futuri fino al blocco di competenza (`peek`), ancore `TempoSegment` per continuità esatta di battute/fasi senza salti (DIF-M2-02). Applicazione degli eventi `ScheduledAudioEvent` agli offset campionari esatti intra-blocco (`[sample_accurate]`), congelamento del consumo durante `Paused`/`Stopped` (`[pause]`), conversione coerente coordinate 44.1/48 kHz (DIF-M2-03). Metrica musicale razionale esatta per 3/8 (36.000 frame/battuta a 120 BPM), 6/8, 5/4, 2/2 (DIF-M2-04). Protezione overflow uint64 in `scheduleIntent`. Ordinamento causale intra-blocco comandi/eventi, quantizzazione comandi tempo a confini musicali, gestione 3-way degli epoch e deserializzazione JSON Windows conforme (DIF-M2-R3-01..05). 73/73 test superati (Release, Debug), 72/72 Headless. |
+| M2.3 — Transport e scheduler | **Completata (remediation validata)** | Canale `SetTempoMap` sample-accurate con trattenimento comandi futuri fino al blocco di competenza (`peek`), ancore `TempoSegment` per continuità esatta di battute/fasi senza salti (DIF-M2-02). Applicazione degli eventi `ScheduledAudioEvent` agli offset campionari esatti intra-blocco (`[sample_accurate]`), congelamento del consumo durante `Paused`/`Stopped` (`[pause]`), conversione coerente coordinate 44.1/48 kHz (DIF-M2-03). Metrica musicale razionale esatta per 3/8 (36.000 frame/battuta a 120 BPM), 6/8, 5/4, 2/2 (DIF-M2-04). Protezione overflow uint64 in `scheduleIntent`. Ordinamento causale intra-blocco comandi/eventi, quantizzazione comandi tempo a confini musicali, gestione 3-way degli epoch, conservazione voci attive con micro-fadeout anti-click (DIF-M2-R4-01) e budget deterministico hard-realtime per callback (DIF-M2-R4-02). 75/75 test superati (Release, Debug), 74/74 Headless. |
 | M2.4 — Musica procedurale v1 | **Prossimo passo** | Generatori procedurali dei 4 ruoli (Pulso, Corpo, Trama, Vettore), pattern euclidei puri di Bjorklund, synth polifonico a 8 voci e due sezioni musicali con transizione tempo/metrica. |
 | M2.5 — Integrazione e verifica finale | **Da eseguire** | AC-AO-02, criteri originali M2 e review indipendente iterativa; record di build/profilo/procedura ed evidenza per ogni mandatory. |
 
@@ -208,7 +208,24 @@ Risoluzione dei 5 difetti (1 Blocker, 4 High) e dei requisiti di test/CI identif
 - **Release:** 73/73 superati (100%), 0 falliti.
 - **Headless:** 72/72 superati (100%), 0 falliti.
 - **Debug:** 73/73 superati (100%), 0 falliti.
-- **Smoke test interattivo (3s):** exit 0, 179 frame, 59.6 fps, 145.920 campioni audio, 358 tick, pure_seed=ELIGIBLE, 0 sospensioni, shader=OK, audio=OK.
+
+---
+
+## Remediation M2 Review — Round 4 (DIF-M2-R4-01 & DIF-M2-R4-02)
+
+Risoluzione dei 2 difetti emersi dalla revisione del commit `572875a`:
+
+| ID | Severità | Descrizione Defetto | Intervento Applicato | Stato / Evidenza |
+|---|---|---|---|---|
+| DIF-M2-R4-01 | **HIGH** | Nota attiva senza `NoteOff`: con cambio di epoch (es. al frame 24.000 da 1 a 2), il `NoteOff` pianificato originariamente per il frame 25.000 veniva scartato come obsoleto (`epoch < current`), lasciando la nota a suonare indefinitamente. | Introdotta policy esplicita di conservazione voce attiva: `activeNoteEpoch_` traccia l'epoch di avvio; se un `NoteOff` con epoch precedente corrisponde alla voce attiva, non viene scartato ma applicato al suo frame naturale. Introdotto micro-fadeout di 2 ms (96 campioni at 48 kHz, ADR-0003) anti-click e salvaguardia auto-release dopo 1s per voci orfane. Unit test `[scheduler][voice_epoch_lifecycle]` verifica la continuità e convalida analiticamente silenzio assoluto (0 crossing, 0.0f amp) dopo la conclusione della nota. | **Risolto** (`audio_engine.cpp`, `test_scheduler.cpp`) |
+| DIF-M2-R4-02 | **HIGH** | Manca budget massimo di eventi per callback hard-realtime: `while (scheduledEventQueue.peek(schedEvt))` in presenza di producer concorrente o loop intra-blocco poteva elaborare un numero illimitato di eventi, violando il contratto realtime di CYMATICA. | Introdotto budget per callback `kMaxScheduledEventsPerBlock = 256` (pari alla capacità totale della coda SPSC), applicato anche agli eventi scartati. Gli eventi eccedenti vengono differiti al blocco successivo; contatore atomico `deferredScheduledEvents` esposto su `AudioEngine` e pubblicato in `AudioTelemetryFrame`. Unit test `[scheduler][event_budget_concurrency]` con thread producer concorrente che satura la coda a ciclo continuo e verifica tempi di callback strettamente bounded ($< 50\text{ ms}$). | **Risolto** (`audio_engine.h`, `audio_engine.cpp`, `audio_telemetry.h`, `test_scheduler.cpp`) |
+
+**Esito suite completa post-remediation Round 4:**
+- **Release:** 75/75 superati (100%), 0 falliti.
+- **Headless:** 74/74 superati (100%), 0 falliti.
+- **Debug:** 75/75 superati (100%), 0 falliti.
+- **Smoke test interattivo (3s):** exit 0, 179 frame, 59.5 fps, 145.920 campioni audio, 358 tick, pure_seed=ELIGIBLE, 0 sospensioni, shader=OK, audio=OK.
 - **CACP CLI (`cymatica_game --cacp-run tone_test`):** Verdetto PASS, 0 frame persi, 144.000 frame catturati, validazione JSON diretta nativa con path backslash escapati (`artifacts\\cacp\\...`). Zero warning `/W4`.
+
 
 

@@ -53,11 +53,69 @@ struct AudioEngine::Impl {
     SpscQueue<ScheduledAudioEvent, kScheduledEventCapacity> scheduledEventQueue{};
     std::atomic<std::uint64_t> droppedScheduledEvents{0};
     std::atomic<std::uint64_t> totalScheduledEventsProcessed{0};
+    std::atomic<std::uint64_t> deferredScheduledEvents{0}; // Monotonic count of deferred events (DIF-M2-R4-02)
 
     // Staging buffer for future scheduled commands (prevents head-of-line blocking on immediate transport commands)
     static constexpr std::size_t kMaxPendingScheduledCommands = 32;
     std::array<AudioCommand, kMaxPendingScheduledCommands> pendingScheduledCommands_{};
     std::size_t pendingScheduledCount_{0};
+
+    // Voice lifecycle & micro-fadeout (DIF-M2-R4-01, ADR-0003 D-M2-03)
+    bool activeNotePlaying_{false};
+    std::uint64_t activeNoteEpoch_{0};
+    std::uint64_t lastEpochTransitionFrame_{0};
+    static constexpr std::uint32_t kVoiceFadeFrames = 96; // 2 ms micro-fadeout at 48 kHz
+    std::uint32_t voiceFadeRemaining_{0};
+    float voiceFadeAmp_{0.0f};
+
+    void renderWaveformSlice(float* pOut, std::uint32_t offset, std::uint32_t count) noexcept {
+        if (pOut == nullptr || count == 0) return;
+        float* dest = pOut + (static_cast<std::size_t>(offset) * channels);
+        ma_waveform_read_pcm_frames(&waveform, dest, count, nullptr);
+        if (voiceFadeRemaining_ > 0) {
+            const std::uint32_t rampFrames = (std::min)(count, voiceFadeRemaining_);
+            for (std::uint32_t i = 0; i < rampFrames; ++i) {
+                const float factor = static_cast<float>(voiceFadeRemaining_ - i) / static_cast<float>(kVoiceFadeFrames);
+                for (std::uint32_t c = 0; c < channels; ++c) {
+                    dest[static_cast<std::size_t>(i) * channels + c] *= factor;
+                }
+            }
+            voiceFadeRemaining_ -= rampFrames;
+            if (voiceFadeRemaining_ == 0) {
+                ma_waveform_set_amplitude(&waveform, 0.0f);
+                voiceFadeAmp_ = 0.0f;
+            }
+            if (rampFrames < count) {
+                const std::size_t zeroStart = static_cast<std::size_t>(rampFrames) * channels;
+                const std::size_t zeroCount = static_cast<std::size_t>(count - rampFrames) * channels;
+                for (std::size_t s = 0; s < zeroCount; ++s) {
+                    dest[zeroStart + s] = 0.0f;
+                }
+            }
+        }
+    }
+
+    void triggerNoteOff() noexcept {
+        if (activeNotePlaying_ || voiceFadeAmp_ > 0.0f) {
+            activeNotePlaying_ = false;
+            activeNoteEpoch_ = 0;
+            voiceFadeRemaining_ = kVoiceFadeFrames;
+        } else {
+            ma_waveform_set_amplitude(&waveform, 0.0f);
+            voiceFadeRemaining_ = 0;
+            voiceFadeAmp_ = 0.0f;
+        }
+    }
+
+    void triggerNoteOn(const ScheduledAudioEvent& evt, float masterVol) noexcept {
+        voiceFadeRemaining_ = 0;
+        const float amp = (masterVol > 0.0f) ? (evt.valueB * masterVol) : (evt.valueB * 0.25f);
+        voiceFadeAmp_ = amp;
+        activeNotePlaying_ = true;
+        activeNoteEpoch_ = evt.transportEpoch;
+        ma_waveform_set_frequency(&waveform, evt.valueA);
+        ma_waveform_set_amplitude(&waveform, voiceFadeAmp_);
+    }
 
     bool stagePendingCommand(const AudioCommand& cmd) noexcept {
         if (pendingScheduledCount_ >= kMaxPendingScheduledCommands) {
@@ -94,9 +152,10 @@ struct AudioEngine::Impl {
             case AudioCommandType::Pause:
                 if (isValidTransportTransition(transportState, TransportState::Pausing)) {
                     transportState = TransportState::Pausing;
-                    ma_waveform_set_amplitude(&waveform, 0.0f);
+                    triggerNoteOff();
                     transportState = TransportState::Paused;
                     ++transportEpoch;
+                    lastEpochTransitionFrame_ = effectiveFrame;
                 } else {
                     status = AudioCommandStatus::Rejected;
                 }
@@ -107,15 +166,17 @@ struct AudioEngine::Impl {
                     ma_waveform_set_amplitude(&waveform, activeVolume);
                     transportState = TransportState::Running;
                     ++transportEpoch;
+                    lastEpochTransitionFrame_ = effectiveFrame;
                 } else {
                     status = AudioCommandStatus::Rejected;
                 }
                 break;
             case AudioCommandType::Stop:
                 if (isValidTransportTransition(transportState, TransportState::Stopped)) {
-                    ma_waveform_set_amplitude(&waveform, 0.0f);
+                    triggerNoteOff();
                     transportState = TransportState::Stopped;
                     ++transportEpoch;
+                    lastEpochTransitionFrame_ = effectiveFrame;
                     // Reject any remaining staged future commands upon transport stop
                     for (std::size_t j = 0; j < pendingScheduledCount_; ++j) {
                         if (!ackQueue.tryPush(AudioCommandAck{
@@ -141,6 +202,7 @@ struct AudioEngine::Impl {
                     effectiveFrame = cmd.targetSampleFrame;
                     if (musicClock.setTempoMap(newMap, effectiveFrame)) {
                         ++transportEpoch;
+                        lastEpochTransitionFrame_ = effectiveFrame;
                         status = AudioCommandStatus::Applied;
                     } else {
                         status = AudioCommandStatus::Rejected;
@@ -266,13 +328,20 @@ struct AudioEngine::Impl {
             // Timeline and scheduled event consumption are frozen during pause / stopped
         } else {
             // Render block with sample-accurate interleaving of scheduled events and commands
-            // (Spec §7.5, ADR-0003 D-M2-03, DIF-M2-R3-02, DIF-M2-R3-05)
+            // (Spec §7.5, ADR-0003 D-M2-03, DIF-M2-R3-02, DIF-M2-R3-05, DIF-M2-R4-01, DIF-M2-R4-02)
             std::uint32_t currentDevOffset = 0;
+            std::uint32_t eventsExaminedInBlock = 0;
 
             while (currentDevOffset < frameCount) {
                 const std::uint64_t currentLogicalFrame = (sampleRate == musicClock.internalSampleRate())
                     ? (blockStartFrame + currentDevOffset)
                     : musicClock.deviceToInternalFrames(deviceFramesRendered + currentDevOffset, sampleRate);
+
+                // Auto-release orphaned voice from past epoch if no NoteOff arrived within 1s (DIF-M2-R4-01 safeguard)
+                if (activeNotePlaying_ && activeNoteEpoch_ < transportEpoch &&
+                    currentLogicalFrame > lastEpochTransitionFrame_ + 48000) {
+                    triggerNoteOff();
+                }
 
                 // Check next matured command in this block
                 bool hasCmd = (pendingScheduledCount_ > 0 && pendingScheduledCommands_[0].targetSampleFrame < blockEndFrame);
@@ -293,18 +362,56 @@ struct AudioEngine::Impl {
                     if (targetCmdDevOffset < currentDevOffset) targetCmdDevOffset = currentDevOffset;
                 }
 
-                // Check next scheduled event with 3-way epoch policy (DIF-M2-R3-05)
+                // Check next scheduled event with bounded budget & 3-way epoch policy
+                // (DIF-M2-R3-05, DIF-M2-R4-01, DIF-M2-R4-02)
                 bool hasEvt = false;
                 std::uint32_t targetEvtDevOffset = frameCount;
                 ScheduledAudioEvent schedEvt{};
 
                 while (scheduledEventQueue.peek(schedEvt)) {
-                    if (schedEvt.transportEpoch < transportEpoch) {
-                        // Obsolete event from earlier epoch: drop without synthesizing DSP
-                        (void)scheduledEventQueue.tryPop(schedEvt);
-                        totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
-                        continue;
+                    if (eventsExaminedInBlock >= AudioEngine::kMaxScheduledEventsPerBlock) {
+                        // Hard-realtime budget exhausted for this block! (DIF-M2-R4-02)
+                        if (schedEvt.sampleFrame < blockEndFrame) {
+                            deferredScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+                        }
+                        hasEvt = false;
+                        break;
                     }
+
+                    if (schedEvt.transportEpoch < transportEpoch) {
+                        // Event from earlier epoch: check if this is the legitimate NoteOff for active voice (DIF-M2-R4-01)
+                        const bool isMatchingActiveNoteOff = (schedEvt.type == AudioEventType::NoteOff) &&
+                                                             activeNotePlaying_ &&
+                                                             (schedEvt.transportEpoch == activeNoteEpoch_);
+                        if (isMatchingActiveNoteOff) {
+                            // Voice preservation: keep event until its scheduled frame
+                            if (schedEvt.sampleFrame < blockEndFrame) {
+                                hasEvt = true;
+                                if (schedEvt.sampleFrame <= currentLogicalFrame) {
+                                    targetEvtDevOffset = currentDevOffset;
+                                } else {
+                                    const std::uint64_t devF = musicClock.internalToDeviceFrames(schedEvt.sampleFrame, sampleRate);
+                                    if (devF > deviceFramesRendered) {
+                                        const std::uint64_t off = devF - deviceFramesRendered;
+                                        targetEvtDevOffset = static_cast<std::uint32_t>(std::min<std::uint64_t>(off, frameCount));
+                                    } else {
+                                        targetEvtDevOffset = currentDevOffset;
+                                    }
+                                }
+                                if (targetEvtDevOffset < currentDevOffset) targetEvtDevOffset = currentDevOffset;
+                            } else {
+                                hasEvt = false;
+                            }
+                            break;
+                        } else {
+                            // Obsolete event from earlier epoch: drop without synthesizing DSP
+                            (void)scheduledEventQueue.tryPop(schedEvt);
+                            totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+                            ++eventsExaminedInBlock;
+                            continue;
+                        }
+                    }
+
                     if (schedEvt.transportEpoch > transportEpoch) {
                         // Future epoch event (DIF-M2-R3-05)
                         if (schedEvt.sampleFrame < blockStartFrame ||
@@ -312,6 +419,7 @@ struct AudioEngine::Impl {
                             // Unmatchable: cursor passed or reached event time without epoch advancing
                             (void)scheduledEventQueue.tryPop(schedEvt);
                             droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+                            ++eventsExaminedInBlock;
                             continue;
                         }
                         if (schedEvt.sampleFrame < blockEndFrame) {
@@ -355,9 +463,7 @@ struct AudioEngine::Impl {
                     // Render slice before command
                     if (targetCmdDevOffset > currentDevOffset) {
                         const std::uint32_t sliceFrames = targetCmdDevOffset - currentDevOffset;
-                        if (pOutput != nullptr) {
-                            ma_waveform_read_pcm_frames(&waveform, pOutput + (static_cast<std::size_t>(currentDevOffset) * channels), sliceFrames, nullptr);
-                        }
+                        renderWaveformSlice(pOutput, currentDevOffset, sliceFrames);
                         currentDevOffset = targetCmdDevOffset;
                     }
 
@@ -384,6 +490,7 @@ struct AudioEngine::Impl {
 
                     // If paused or stopped, silence remainder and break
                     if (transportState != TransportState::Running) {
+                        triggerNoteOff();
                         if (pOutput != nullptr && currentDevOffset < frameCount) {
                             const std::uint32_t rem = frameCount - currentDevOffset;
                             for (std::size_t s = 0; s < static_cast<std::size_t>(rem) * channels; ++s) {
@@ -396,40 +503,51 @@ struct AudioEngine::Impl {
                     // Render slice before event
                     if (targetEvtDevOffset > currentDevOffset) {
                         const std::uint32_t sliceFrames = targetEvtDevOffset - currentDevOffset;
-                        if (pOutput != nullptr) {
-                            ma_waveform_read_pcm_frames(&waveform, pOutput + (static_cast<std::size_t>(currentDevOffset) * channels), sliceFrames, nullptr);
-                        }
+                        renderWaveformSlice(pOutput, currentDevOffset, sliceFrames);
                         currentDevOffset = targetEvtDevOffset;
                     }
 
                     if (scheduledEventQueue.peek(schedEvt)) {
-                        if (schedEvt.transportEpoch < transportEpoch) {
-                            (void)scheduledEventQueue.tryPop(schedEvt);
-                            totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
-                        } else if (schedEvt.transportEpoch > transportEpoch) {
-                            // Reached event frame without epoch advancing: unmatchable! (DIF-M2-R3-05)
-                            (void)scheduledEventQueue.tryPop(schedEvt);
-                            droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+                        if (eventsExaminedInBlock >= AudioEngine::kMaxScheduledEventsPerBlock) {
+                            deferredScheduledEvents.fetch_add(1, std::memory_order_relaxed);
                         } else {
-                            (void)scheduledEventQueue.tryPop(schedEvt);
-                            totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+                            if (schedEvt.transportEpoch < transportEpoch) {
+                                const bool isMatchingActiveNoteOff = (schedEvt.type == AudioEventType::NoteOff) &&
+                                                                     activeNotePlaying_ &&
+                                                                     (schedEvt.transportEpoch == activeNoteEpoch_);
+                                (void)scheduledEventQueue.tryPop(schedEvt);
+                                totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+                                ++eventsExaminedInBlock;
+                                if (isMatchingActiveNoteOff) {
+                                    triggerNoteOff();
+                                }
+                            } else if (schedEvt.transportEpoch > transportEpoch) {
+                                // Reached event frame without epoch advancing: unmatchable! (DIF-M2-R3-05)
+                                (void)scheduledEventQueue.tryPop(schedEvt);
+                                droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+                                ++eventsExaminedInBlock;
+                            } else {
+                                (void)scheduledEventQueue.tryPop(schedEvt);
+                                totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+                                ++eventsExaminedInBlock;
 
-                            switch (schedEvt.type) {
-                                case AudioEventType::NoteOn:
-                                    ma_waveform_set_frequency(&waveform, schedEvt.valueA);
-                                    ma_waveform_set_amplitude(&waveform, schedEvt.valueB * activeVolume);
-                                    break;
-                                case AudioEventType::NoteOff:
-                                    ma_waveform_set_amplitude(&waveform, 0.0f);
-                                    break;
-                                case AudioEventType::ParameterChange:
-                                    if (schedEvt.valueA > 0.0f) {
-                                        ma_waveform_set_frequency(&waveform, schedEvt.valueA);
-                                    }
-                                    if (schedEvt.valueB >= 0.0f) {
-                                        ma_waveform_set_amplitude(&waveform, schedEvt.valueB * activeVolume);
-                                    }
-                                    break;
+                                switch (schedEvt.type) {
+                                    case AudioEventType::NoteOn:
+                                        triggerNoteOn(schedEvt, activeVolume);
+                                        break;
+                                    case AudioEventType::NoteOff:
+                                        triggerNoteOff();
+                                        break;
+                                    case AudioEventType::ParameterChange:
+                                        if (schedEvt.valueA > 0.0f) {
+                                            ma_waveform_set_frequency(&waveform, schedEvt.valueA);
+                                        }
+                                        if (schedEvt.valueB >= 0.0f) {
+                                            voiceFadeAmp_ = schedEvt.valueB * (activeVolume > 0.0f ? activeVolume : 0.25f);
+                                            ma_waveform_set_amplitude(&waveform, voiceFadeAmp_);
+                                        }
+                                        break;
+                                }
                             }
                         }
                     }
@@ -437,7 +555,7 @@ struct AudioEngine::Impl {
                     // Render remaining frames to block boundary
                     const std::uint32_t rem = frameCount - currentDevOffset;
                     if (pOutput != nullptr && rem > 0) {
-                        ma_waveform_read_pcm_frames(&waveform, pOutput + (static_cast<std::size_t>(currentDevOffset) * channels), rem, nullptr);
+                        renderWaveformSlice(pOutput, currentDevOffset, rem);
                     }
                     currentDevOffset = frameCount;
                 }
@@ -484,6 +602,8 @@ struct AudioEngine::Impl {
         telem.globalEnergy = (transportState == TransportState::Running) ? 0.5f : 0.0f;
         telem.pulse.energy = (transportState == TransportState::Running) ? 0.5f : 0.0f;
         telem.pulse.pitchHz = 220.0f;
+        telem.scheduledEventsDeferred = static_cast<std::uint32_t>(deferredScheduledEvents.load(std::memory_order_relaxed));
+        telem.scheduledEventsDroppedTotal = static_cast<std::uint32_t>(droppedScheduledEvents.load(std::memory_order_relaxed));
         telemetryBuffer.publish();
     }
 
@@ -712,6 +832,10 @@ std::uint64_t AudioEngine::droppedScheduledEvents() const noexcept {
 
 std::uint64_t AudioEngine::totalScheduledEventsProcessed() const noexcept {
     return pImpl_ ? pImpl_->totalScheduledEventsProcessed.load(std::memory_order_relaxed) : 0;
+}
+
+std::uint64_t AudioEngine::deferredScheduledEvents() const noexcept {
+    return pImpl_ ? pImpl_->deferredScheduledEvents.load(std::memory_order_relaxed) : 0;
 }
 
 void AudioEngine::attachAudioProbe(AudioProbe* probe) noexcept {

@@ -37,6 +37,8 @@ struct AudioTelemetryFrame {
     float spectralFlux{0.0f};
     std::uint32_t detectedArchetypeId{0};
     std::uint64_t framesRenderedTotal{0};
+    std::uint32_t scheduledEventsDeferred{0};      // Scheduled events deferred due to per-block budget (DIF-M2-R4-02)
+    std::uint32_t scheduledEventsDroppedTotal{0};  // Monotonic count of dropped scheduled events
 
     [[nodiscard]] constexpr bool operator==(const AudioTelemetryFrame& other) const noexcept = default;
 };

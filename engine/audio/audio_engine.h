@@ -22,6 +22,7 @@ struct AudioEngineConfig {
 class AudioEngine {
 public:
     static constexpr std::uint32_t kMaxCommandsPerBlock = 16; // ADR-0002 command_budget_v1
+    static constexpr std::uint32_t kMaxScheduledEventsPerBlock = 256; // Event-processing budget per callback block (DIF-M2-R4-02)
 
     AudioEngine();
     ~AudioEngine();
@@ -64,6 +65,7 @@ public:
     bool scheduleAudioEvent(const ScheduledAudioEvent& event) noexcept;
     [[nodiscard]] std::uint64_t droppedScheduledEvents() const noexcept;
     [[nodiscard]] std::uint64_t totalScheduledEventsProcessed() const noexcept;
+    [[nodiscard]] std::uint64_t deferredScheduledEvents() const noexcept;
 
     // AudioProbe tap API (Spec §31.5, ADR-0003 D-AO-02)
     void attachAudioProbe(AudioProbe* probe) noexcept;
