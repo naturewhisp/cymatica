@@ -25,7 +25,7 @@ In Milestone 2, il controllo del tono e la sintesi audio vengono verificati tram
 Eseguire lo scenario diagnostico locale tramite CLI del gioco:
 
 ```powershell
-.\build\x64-release\apps\cymatica_game\cymatica_game.exe --cacp-run tone_test
+.\build\ninja-vcpkg-release\cymatica_game.exe --cacp-run tone_test
 ```
 
 Il runner opera a scenario finito (3.0 secondi a 120 Hz / 48 kHz = 144.000 campioni stereo):
@@ -46,6 +46,13 @@ Leggere il file `artifacts/cacp/tone_probe_v0_manifest.json` tramite `view_file`
   - Fase 1: frequenza stimata $220\text{ Hz} \pm 2\text{ Hz}$, RMS $> -40\text{ dBFS}$
   - Fase 2: frequenza stimata $440\text{ Hz} \pm 2\text{ Hz}$, RMS $> -40\text{ dBFS}$
   - Fase 3: frequenza stimata $220\text{ Hz} \pm 2\text{ Hz}$, RMS $> -40\text{ dBFS}$
+- `"wav_write_success": true` e `"manifest_write_success": true`
+
+### Passo 2b: Convalida Automatica in CI e Integrità JSON
+La pipeline GitHub Actions (`.github/workflows/windows-ci.yml`) esegue questo runner su ogni push e Pull Request in configurazione Release.
+- Il manifest JSON generato deve essere rigorosamente conforme a RFC 8259 senza richiedere sostituzioni manuali di caratteri (`.Replace('\', '/')`).
+- I percorsi Windows contenenti backslash devono essere serializzati con escape nativo esplicito (`\\`).
+- La CI valida il file direttamente tramite `ConvertFrom-Json` in PowerShell e i test Catch2 con `nlohmann::json::parse()`.
 
 ### Passo 3: Ascolto Multimodale Diretto (AC-AO-01B)
 
