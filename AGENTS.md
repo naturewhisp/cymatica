@@ -1,6 +1,6 @@
 # AGENTS.md — CYMATICA
 
-Operational rules for agents working in this repository. Updated 2026-10-05. Current milestone status: `docs/progress.md`.
+Operational rules for agents working in this repository. Updated 2026-10-13. Current milestone status: `docs/progress.md`.
 
 `CYMATICA_Specifica_Agentica_Sviluppo.md` is authoritative for architecture, contracts, roadmap and technical decisions. `DESIGN.md` is authoritative for gameplay, audio-visual language, UX and accessibility. Do not duplicate either document here. If requirements conflict, resolve the conflict in both documents; examples are not executable schemas, benchmark results or approved tuning values.
 
@@ -10,10 +10,10 @@ Before changing files:
 
 1. read the main specification;
 2. read `DESIGN.md` when the task affects player-facing behavior;
-3. inspect the relevant code and tests if present; the reviewed baseline is documentation-only, so do not invent build/test results;
+3. inspect current code, tests, CI and recorded evidence; do not invent results or assume that historical test reports validate the current commit;
 4. identify the active milestone and its acceptance criteria.
 
-The initial active milestone is **Milestone 0**. Documentation changes do not advance implementation status. Before M3/M4, freeze the minimal player contract required by the validator; M5 completes it. An unresolved choice blocks only tasks depending on that choice, not unrelated M0 work. Do not implement later-milestone work unless the user changes scope or the repository records that decision.
+The project began at **Milestone 0**; the current milestone is recorded in `docs/progress.md` (M2 at this revision). Documentation changes do not advance implementation status. The minimal player contract `PlayerProfile_v1` was frozen in M1 (`docs/player_contract_m1.md`) for the dependent M3/M4 work; its empirical tuning and player-feel validation remain for M5/M7. An unresolved choice blocks only the work depending on it. Do not implement later-milestone work unless the user changes scope or the repository records that decision.
 
 Prefer the smallest reversible change. Report unresolved ambiguity instead of inventing a permanent decision.
 
@@ -31,7 +31,7 @@ Make routine, reversible implementation choices autonomously within the approved
 
 Distinguish **deferred**, **proposed**, **accepted for implementation** and **validated** decisions. A proposed option is not an accepted requirement; an accepted initial value is not an experimentally validated value. Tuning may remain open, but implementation must use an explicit, versioned initial profile, not hidden defaults. Define how and when that profile will be evaluated.
 
-M0 includes choosing and pinning the toolchain, dependencies and test framework, documenting setup and establishing a single audio owner. Do not block M0 on later gameplay decisions. Freeze the minimal movement/dash contract before dependent M3 gameplay and M4 validation; changes during M5 require corresponding validator regression checks.
+M0 established the pinned toolchain, dependencies, test framework, documented setup and a single audio owner. `PlayerProfile_v1` is already `accepted for implementation` in `docs/player_contract_m1.md`; M3 must implement the relevant player primitives and M4 must validate against that profile. Changes during M5 require corresponding M4 validator regression checks.
 
 ## 2. Scope and dependencies
 
@@ -92,7 +92,7 @@ Do not declare a milestone complete merely because its files exist or its implem
 
 A missing or failed mandatory check leaves the milestone incomplete. Report the exact gap and next action; do not silently weaken acceptance criteria, change golden outputs to hide a regression or infer completion from a future milestone's plans. A change to agreed scope or acceptance criteria must be explicitly recorded with its rationale and any required user decision.
 
-Keep a concise milestone status record in the repository, initially `docs/progress.md` when M0 creates it: active milestone, entry decisions, acceptance evidence and remaining blockers. This record tracks execution; the specification remains authoritative for the roadmap. Until the record exists, M0 is the initial active milestone. Update status only when supported by evidence, and do not advance to later work outside the authorized scope.
+Maintain `docs/progress.md` as the current milestone status record: active milestone/subphase, entry decisions, acceptance evidence, build/commit provenance and remaining blockers. This record tracks execution; the specification remains authoritative for the roadmap. Update status only when supported by evidence, and do not advance to later work outside the authorized scope.
 
 ### 5.1.1 Independent review loop at milestone completion
 

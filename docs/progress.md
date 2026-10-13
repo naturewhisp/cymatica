@@ -6,14 +6,16 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 
 | Campo | Valore |
 |---|---|
-| Milestone attiva | **M2 — Music Intent e musica procedurale v1** (M1 rivalidata dopo remediation round 3) |
+| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse, **M2.4 prossima**, M2.5 ancora da verificare. M2 complessiva non conclusa. |
 | Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
 | Stato M1 | **Completata: review indipendente OK, zero difetti residui, gate round 3 passati** |
-| Specifica | 0.8.3 (baseline 0.8.1/0.8.2 accettata; controllo/osservazione agentica documentati il 2026-10-07) |
+| Specifica | Versione **0.8.3** con nota integrativa di ricerca M2.4 del 2026-10-13 (§16.12–16.13 e §32); nessuna nuova decisione artistica/DSP approvata dalla sola ricerca. |
 | Design | 0.3.1 (baseline identità 0.3 approvata il 2026-10-06; osservazione agentica documentata il 2026-10-07) |
-| Commit / Build verificato | `b39bddb46449ee0b203c7234746185ba241d9a42`; Release 41/41, Debug 41/41, headless 40/40, smoke exit 0, /W4 zero warning; [evidenze](m1_review_round3.md) |
+| Evidenza storica M1 | `b39bddb46449ee0b203c7234746185ba241d9a42`; Release 41/41, Debug 41/41, Headless 40/40, smoke exit 0, `/W4` zero warning; [evidenze](m1_review_round3.md). Questi risultati appartengono al gate M1. |
+| Ultima CI Headless verificata | Commit documentale [`02885b699402cbabc8ef1cd6877de24c9ff0a1a9`](https://github.com/naturewhisp/cymatica/commit/02885b699402cbabc8ef1cd6877de24c9ff0a1a9): [GitHub Actions run #38395937263](https://github.com/naturewhisp/cymatica/actions/runs/38395937263) PASS — Windows/MSVC Release 74/74, Debug 74/74, CACP `tone_test` PASS; non sostituisce collaudo hardware o giudizio artistico. |
+| Integrazione documentale M2.4 | Nello stesso commit `02885b6994`: ricerca revisionata, piano/protocollo sperimentale, addendum proposto per milestone future e raccordo nella specifica; implementazione M2.4 non ancora attestata. |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_core` (static lib), `cymatica_replay` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
-| Ultimo aggiornamento | 2026-10-07 |
+| Ultimo aggiornamento | 2026-10-13 (riallineamento metadati e documenti, senza nuove prove hardware) |
 
 ## Decisioni d'ingresso M0
 

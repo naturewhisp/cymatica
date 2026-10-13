@@ -36,7 +36,7 @@ La valutazione distingue qualità tecnica (underrun/tempo/RT), coerenza simbolic
 
 Attivare M2.4 secondo la [specifica §32](CYMATICA_Specifica_Agentica_Sviluppo.md), usando il [piano di implementazione](docs/research/M2_4_Implementation_Plan.md) come supporto. Dopo il voice allocator a 8 voci, il generatore simbolico e il DSP, verificare due sezioni musicalmente distinguibili, trace same-seed, WAV/CACP e profilo realtime. Il [protocollo sperimentale](docs/research/M2_4_Evaluation_Protocol.md) propone un confronto A/B compositivo e timbrico; **non sostituisce il gate M2.5**.
 
-Prima di M3/M4 rimangono da completare i contratti di giocatore e la prova di spike con movimento, pattern, telegraph e fallback; riferimento [player contract M1](docs/player_contract_m1.md). Cimatica e l'adattamento sono modelli di design da verificare, non dimostrazioni già acquisite di accuratezza fisica o psicologica.
+Il contratto minimo del giocatore `PlayerProfile_v1` è **già congelato in M1** come `accepted for implementation` ([player contract M1](docs/player_contract_m1.md)). Prima di M3/M4 restano da implementare e verificare movimento, un pattern, telegraph e fallback; il profilo necessita ancora della validazione empirica prevista in M5/M7 e di regressioni del validator in caso di modifiche. Cimatica e adattamento rimangono modelli di design da verificare, non prove acquisite di accuratezza fisica o psicologica.
 
 ## Licenza
 
