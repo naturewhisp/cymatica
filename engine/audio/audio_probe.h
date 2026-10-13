@@ -85,9 +85,14 @@ bool writeWavStereo16(const std::string& filePath,
 
 } // namespace analysis
 
+#ifndef CYMATICA_BUILD_ID
+#define CYMATICA_BUILD_ID "unknown"
+#endif
+
 // Profile metrics for tone_probe_v0 (Spec §31.5, ADR-0003 D-AO-02)
 struct PhaseMetric {
     std::uint32_t startMs{0};
+    std::uint64_t startSampleFrame{0};
     std::uint32_t durationMs{250};
     float targetFreqHz{220.0f};
     float estimatedFreqHz{0.0f};
@@ -104,7 +109,7 @@ struct ToneProbeResult {
     PhaseMetric phase3Release{};
     std::uint64_t totalCapturedFrames{0};
     std::uint64_t droppedFrames{0};
-    std::string buildId{"cf344c0"};
+    std::string buildId{CYMATICA_BUILD_ID};
     std::uint64_t transportEpoch{1};
     std::uint64_t simulationTicks{360};
     std::uint64_t requestedSampleFrames{144000};

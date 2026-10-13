@@ -17,6 +17,18 @@ else()
     target_compile_options(cymatica_compile_options INTERFACE -Wall -Wextra -Wpedantic)
 endif()
 
+execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE CYMATICA_GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+)
+if(NOT CYMATICA_GIT_COMMIT_HASH)
+    set(CYMATICA_GIT_COMMIT_HASH "unknown")
+endif()
+target_compile_definitions(cymatica_compile_options INTERFACE CYMATICA_BUILD_ID="${CYMATICA_GIT_COMMIT_HASH}")
+
 include(FetchContent)
 
 # -----------------------------------------------------------------------------

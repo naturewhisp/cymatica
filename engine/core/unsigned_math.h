@@ -31,4 +31,9 @@ inline Quotient multiplyDivide(std::uint64_t a, std::uint64_t b, std::uint64_t d
 inline std::uint64_t saturatingAdd(std::uint64_t a, std::uint64_t b) noexcept {
     return b > UINT64_MAX - a ? UINT64_MAX : a + b;
 }
+inline std::uint64_t saturatingMul(std::uint64_t a, std::uint64_t b) noexcept {
+    if (a == 0 || b == 0) return 0;
+    if (a > UINT64_MAX / b) return UINT64_MAX;
+    return a * b;
+}
 } // namespace cymatica::core

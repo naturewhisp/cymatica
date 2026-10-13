@@ -109,17 +109,35 @@ bool MusicClock::setTempoMap(const TempoMap& map, std::uint64_t targetSampleFram
     const std::uint64_t K_num = 60ULL * sampleRate_ * prevSeg.tempoMap.bpm.denominator * 4ULL;
     const std::uint64_t K_den = static_cast<std::uint64_t>(prevSeg.tempoMap.bpm.numerator) * prevSeg.tempoMap.timeSignatureDen;
     const auto inverse = core::multiplyDivide(deltaF, K_den, K_num);
-    const std::uint64_t elapsedBeats = inverse.value +
-        static_cast<std::uint64_t>(inverse.remainder >= K_num - (K_den - 1));
 
+    // Explicit Policy (§7.5, DIF-M2-02/03):
+    // 1. Target frame must fall exactly on a beat boundary (no intra-beat fractional jumps)
+    if (inverse.remainder != 0) {
+        return false;
+    }
+    const std::uint64_t elapsedBeats = inverse.value;
+    const std::uint64_t beatsInBarBefore = prevSeg.beatOffsetInBar + elapsedBeats;
+
+    // 2. A meter change (time signature / beatsPerBar) must fall on a bar boundary
+    const bool meterChanged = (map.beatsPerBar != prevSeg.tempoMap.beatsPerBar ||
+                               map.timeSignatureDen != prevSeg.tempoMap.timeSignatureDen ||
+                               map.timeSignatureNum != prevSeg.tempoMap.timeSignatureNum);
+    if (meterChanged && (beatsInBarBefore % prevSeg.tempoMap.beatsPerBar != 0)) {
+        return false; // Meter change intra-measure is rejected
+    }
+
+    const std::uint32_t newBeatOffsetInBar = meterChanged
+        ? 0
+        : static_cast<std::uint32_t>(beatsInBarBefore % prevSeg.tempoMap.beatsPerBar);
+    const std::uint64_t barsElapsed = beatsInBarBefore / prevSeg.tempoMap.beatsPerBar;
+    const std::uint64_t totalBars = prevSeg.startBar + barsElapsed;
     const std::uint64_t totalBeats = prevSeg.startBeat + elapsedBeats;
-    const std::uint64_t elapsedBeatsWithOffset = (prevSeg.startBeat % prevSeg.tempoMap.beatsPerBar) + elapsedBeats;
-    const std::uint64_t totalBars = prevSeg.startBar + (elapsedBeatsWithOffset / prevSeg.tempoMap.beatsPerBar);
 
     segments_[segmentCount_] = TempoSegment{
         .startFrame = targetSampleFrame,
         .startBeat = totalBeats,
         .startBar = totalBars,
+        .beatOffsetInBar = newBeatOffsetInBar,
         .tempoMap = map
     };
     ++segmentCount_;
@@ -139,7 +157,7 @@ std::uint64_t MusicClock::frameAtBeat(std::uint64_t totalBeats) const noexcept {
     }
 
     const auto& seg = segments_[segIdx];
-    const std::uint64_t deltaBeats = totalBeats - seg.startBeat;
+    const std::uint64_t deltaBeats = totalBeats >= seg.startBeat ? (totalBeats - seg.startBeat) : 0;
     const std::uint64_t K_num = 60ULL * sampleRate_ * seg.tempoMap.bpm.denominator * 4ULL;
     const std::uint64_t K_den = static_cast<std::uint64_t>(seg.tempoMap.bpm.numerator) * seg.tempoMap.timeSignatureDen;
 
@@ -159,9 +177,9 @@ std::uint64_t MusicClock::frameAtBar(std::uint64_t totalBars) const noexcept {
         }
     }
 
-    // If segIdx started intra-bar, and totalBars == seg.startBar, then bar totalBars actually started in a previous segment
-    while (segIdx > 0 && segments_[segIdx].startBar == totalBars &&
-           (segments_[segIdx].startBeat % segments_[segIdx].tempoMap.beatsPerBar != 0)) {
+    // If segIdx started intra-bar (beatOffsetInBar != 0) and totalBars == seg.startBar,
+    // then the bar totalBars actually started in the previous segment!
+    while (segIdx > 0 && segments_[segIdx].startBar == totalBars && segments_[segIdx].beatOffsetInBar != 0) {
         --segIdx;
     }
 
@@ -169,14 +187,20 @@ std::uint64_t MusicClock::frameAtBar(std::uint64_t totalBars) const noexcept {
     const std::uint64_t beatsPerBar = seg.tempoMap.beatsPerBar;
     if (beatsPerBar == 0) return seg.startFrame;
 
-    std::uint64_t targetBeat = seg.startBeat;
-    if (totalBars > seg.startBar) {
-        const std::uint64_t rem = seg.startBeat % beatsPerBar;
-        const std::uint64_t beatsToNextBar = (rem == 0) ? 0 : (beatsPerBar - rem);
-        const std::uint64_t remainingBars = totalBars - seg.startBar - (rem == 0 ? 0 : 1);
-        targetBeat = seg.startBeat + beatsToNextBar + remainingBars * beatsPerBar;
-    }
-    return frameAtBeat(targetBeat);
+    const std::uint64_t deltaBars = (totalBars >= seg.startBar) ? (totalBars - seg.startBar) : 0;
+    const std::uint64_t beatsToNextBar = (seg.beatOffsetInBar == 0) ? 0 : (beatsPerBar - seg.beatOffsetInBar);
+    const std::uint64_t remainingBars = (deltaBars == 0) ? 0 : (deltaBars - (seg.beatOffsetInBar == 0 ? 0 : 1));
+
+    // Overflow-safe saturating arithmetic (DIF-M2-review)
+    const std::uint64_t deltaBeats = (deltaBars == 0)
+        ? 0
+        : core::saturatingAdd(beatsToNextBar, core::saturatingMul(remainingBars, beatsPerBar));
+
+    const std::uint64_t K_num = 60ULL * sampleRate_ * seg.tempoMap.bpm.denominator * 4ULL;
+    const std::uint64_t K_den = static_cast<std::uint64_t>(seg.tempoMap.bpm.numerator) * seg.tempoMap.timeSignatureDen;
+
+    const std::uint64_t deltaFrames = core::multiplyDivide(deltaBeats, K_num, K_den).value;
+    return core::saturatingAdd(seg.startFrame, deltaFrames);
 }
 
 std::uint64_t MusicClock::frameAtPhrase(std::uint64_t totalPhrases) const noexcept {
@@ -231,10 +255,10 @@ MusicPosition MusicClock::positionAtFrame(std::uint64_t frame, std::uint64_t epo
     const std::uint64_t beatsPerBar = map.beatsPerBar;
     const std::uint64_t barsPerPhrase = map.barsPerPhrase;
 
-    const std::uint64_t totalBeats = seg.startBeat + elapsedBeats;
-    const auto beatInBar = static_cast<std::uint32_t>(totalBeats % beatsPerBar);
-    const std::uint64_t elapsedBeatsWithOffset = (seg.startBeat % beatsPerBar) + elapsedBeats;
-    const std::uint64_t totalBars = seg.startBar + (elapsedBeatsWithOffset / beatsPerBar);
+    const std::uint64_t beatsInBar = seg.beatOffsetInBar + elapsedBeats;
+    const auto beatInBar = static_cast<std::uint32_t>(beatsInBar % beatsPerBar);
+    const std::uint64_t barsInSeg = beatsInBar / beatsPerBar;
+    const std::uint64_t totalBars = seg.startBar + barsInSeg;
     const auto barInPhrase = static_cast<std::uint32_t>(totalBars % barsPerPhrase);
     const auto phrase = static_cast<std::uint32_t>(std::min<std::uint64_t>(totalBars / barsPerPhrase, UINT32_MAX));
 
@@ -271,7 +295,9 @@ std::uint64_t MusicClock::internalToDeviceFrames(std::uint64_t internalFrames, s
     if (deviceRate == sampleRate_) {
         return internalFrames;
     }
-    return core::multiplyDivide(internalFrames, deviceRate, sampleRate_).value;
+    // Ceiling division so an event is never triggered before its logical internal time (DIF-M2-review)
+    const auto res = core::multiplyDivide(internalFrames, deviceRate, sampleRate_);
+    return core::saturatingAdd(res.value, static_cast<std::uint64_t>(res.remainder > 0));
 }
 
 } // namespace cymatica::audio

@@ -38,7 +38,11 @@ public:
 
     // Staging API (Coordinator thread only, outside realtime audio callback)
     void stageEvent(const ScheduledAudioEvent& event);
-    void scheduleIntent(const MusicIntentEvent& intent);
+    void scheduleIntent(const MusicIntentEvent& intent, std::uint64_t transportEpoch = 0);
+
+    // Transport epoch tracking
+    void setTransportEpoch(std::uint64_t epoch) noexcept;
+    [[nodiscard]] std::uint64_t transportEpoch() const noexcept;
 
     // Lookahead dispatch: pushes events within [currentRenderCursor, currentRenderCursor + lookaheadFrames]
     // into AudioEngine::scheduleAudioEvent. Returns number of events successfully dispatched in this call.
@@ -55,6 +59,7 @@ public:
 
 private:
     AudioSchedulerConfig config_{};
+    std::uint64_t currentEpoch_{1};
     std::vector<ScheduledAudioEvent> stagedEvents_{};
     std::uint64_t totalDispatched_{0};
     std::uint64_t backpressureDrops_{0};

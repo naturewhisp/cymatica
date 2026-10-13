@@ -278,32 +278,167 @@ TEST_CASE("AudioEngine holds AudioCommand with future targetSampleFrame (DIF-M2-
     map.barsPerPhrase = 4;
     map.subdivisionsPerBeat = 4;
 
-    // Send SetTempoMap command targeting frame 2000
-    const auto cmd = AudioCommand::makeSetTempoMap(100, map, 2000);
+    // Send SetTempoMap command targeting frame 24000 (beat 1 boundary at 120 BPM 4/4)
+    const auto cmd = AudioCommand::makeSetTempoMap(100, map, 24000);
     REQUIRE(engine.sendCommand(cmd));
 
-    std::vector<float> out(1000 * 2, 0.0f);
+    std::vector<float> out(6000 * 2, 0.0f);
 
-    // Block 1: 0..500. Target frame 2000 is far in future. Command must NOT execute or ack yet!
-    engine.processBlock(out.data(), 500);
+    // Block 1: 0..6000. Target frame 24000 is far in future. Command must NOT execute or ack yet!
+    engine.processBlock(out.data(), 6000);
     AudioCommandAck ack;
     REQUIRE_FALSE(engine.pollAck(ack));
 
-    // Block 2: 500..1000
-    engine.processBlock(out.data(), 500);
+    // Block 2: 6000..12000
+    engine.processBlock(out.data(), 6000);
     REQUIRE_FALSE(engine.pollAck(ack));
 
-    // Block 3: 1000..1500
-    engine.processBlock(out.data(), 500);
+    // Block 3: 12000..18000
+    engine.processBlock(out.data(), 6000);
     REQUIRE_FALSE(engine.pollAck(ack));
 
-    // Block 4: 1500..2500 (1000 frames). Target frame 2000 is inside this block!
-    engine.processBlock(out.data(), 1000);
+    // Block 4: 18000..30000 (12000 frames). Target frame 24000 is inside this block!
+    std::vector<float> outBlock4(12000 * 2, 0.0f);
+    engine.processBlock(outBlock4.data(), 12000);
     REQUIRE(engine.pollAck(ack));
     REQUIRE(ack.commandId == 100);
     REQUIRE(ack.status == AudioCommandStatus::Applied);
-    REQUIRE(ack.sampleFrame == 2000); // Executed at exact requested sample frame!
+    REQUIRE(ack.sampleFrame == 24000); // Executed at exact requested sample frame!
     REQUIRE(ack.transportEpoch >= 2);
+}
+
+TEST_CASE("AudioEngine rejects 17th tempo segment and preserves transport epoch", "[scheduler][epoch_ack]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    REQUIRE(engine.startTone(220.0f, 0.25f));
+
+    TempoMap map;
+    map.bpm = RationalBpm{120, 1};
+    map.timeSignatureNum = 4;
+    map.timeSignatureDen = 4;
+    map.beatsPerBar = 4;
+    map.barsPerPhrase = 4;
+    map.subdivisionsPerBeat = 4;
+
+    std::vector<float> out(500 * 2, 0.0f);
+
+    // Initial segment is 0. MusicClock supports up to 16 segments total.
+    // 15 additional segments can be added (indices 1..15), making 16 total.
+    std::uint64_t targetFrame = 24000;
+    for (std::uint64_t i = 1; i <= 15; ++i) {
+        const auto cmd = AudioCommand::makeSetTempoMap(100 + i, map, targetFrame);
+        REQUIRE(engine.sendCommand(cmd));
+        engine.processBlock(out.data(), 500);
+        std::vector<float> bigOut(24000 * 2, 0.0f);
+        engine.processBlock(bigOut.data(), 24000);
+        AudioCommandAck ack;
+        REQUIRE(engine.pollAck(ack));
+        REQUIRE(ack.commandId == 100 + i);
+        REQUIRE(ack.status == AudioCommandStatus::Applied);
+        targetFrame += 24000;
+    }
+
+    // Now send the 16th command (which would be segment 17):
+    const auto cmdOverflow = AudioCommand::makeSetTempoMap(200, map, targetFrame);
+    REQUIRE(engine.sendCommand(cmdOverflow));
+    std::vector<float> bigOut(24000 * 2, 0.0f);
+    engine.processBlock(bigOut.data(), 24000);
+    AudioCommandAck ackOverflow;
+    REQUIRE(engine.pollAck(ackOverflow));
+    REQUIRE(ackOverflow.commandId == 200);
+    REQUIRE(ackOverflow.status == AudioCommandStatus::Rejected);
+}
+
+TEST_CASE("AudioEngine future SetTempoMap does not cause head-of-line blocking on Pause and Resume", "[scheduler][hol_blocking]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    REQUIRE(engine.startTone(220.0f, 0.25f));
+
+    TempoMap map;
+    map.bpm = RationalBpm{140, 1};
+    map.timeSignatureNum = 4;
+    map.timeSignatureDen = 4;
+    map.beatsPerBar = 4;
+    map.barsPerPhrase = 4;
+    map.subdivisionsPerBeat = 4;
+
+    // Send Pause command
+    AudioCommand pauseCmd{.commandId = 1, .type = AudioCommandType::Pause};
+    REQUIRE(engine.sendCommand(pauseCmd));
+
+    // Send future SetTempoMap command targeting frame 48,000
+    const auto futureTempoCmd = AudioCommand::makeSetTempoMap(2, map, 48000);
+    REQUIRE(engine.sendCommand(futureTempoCmd));
+
+    // Send Resume command right behind the future command!
+    AudioCommand resumeCmd{.commandId = 3, .type = AudioCommandType::Resume};
+    REQUIRE(engine.sendCommand(resumeCmd));
+
+    // Process a block of 500 frames (cursor is at 0, 48000 is far in future)
+    std::vector<float> out(500 * 2, 0.0f);
+    engine.processBlock(out.data(), 500);
+
+    // Pause must be applied!
+    AudioCommandAck ack1;
+    REQUIRE(engine.pollAck(ack1));
+    REQUIRE(ack1.commandId == 1);
+    REQUIRE(ack1.status == AudioCommandStatus::Applied);
+
+    // Resume must be applied immediately without waiting for frame 48,000!
+    AudioCommandAck ack3;
+    REQUIRE(engine.pollAck(ack3));
+    REQUIRE(ack3.commandId == 3);
+    REQUIRE(ack3.status == AudioCommandStatus::Applied);
+
+    // Future tempo command (commandId 2) has NOT acked yet because it's staged for frame 48000
+    AudioCommandAck ackPending;
+    REQUIRE_FALSE(engine.pollAck(ackPending));
+
+    // Engine transport state must be Running!
+    REQUIRE(engine.updateTelemetry());
+    REQUIRE(engine.telemetry().transportState == TransportState::Running);
+}
+
+TEST_CASE("AudioEngine drops obsolete epoch scheduled events without DSP synthesis", "[scheduler][epoch_drop]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    REQUIRE(engine.startTone(220.0f, 0.25f));
+
+    // Initial transportEpoch is 1.
+    // Stage an event with transportEpoch = 1 at frame 1000
+    ScheduledAudioEvent oldEvt{
+        .eventId = 42,
+        .sampleFrame = 1000,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .valueA = 880.0f, // high pitch
+        .valueB = 1.0f
+    };
+    REQUIRE(engine.scheduleAudioEvent(oldEvt));
+
+    // Now bump the engine epoch to 2 and 3 via Pause and Resume
+    AudioCommand pauseCmd{.commandId = 10, .type = AudioCommandType::Pause};
+    REQUIRE(engine.sendCommand(pauseCmd));
+    AudioCommand resumeCmd{.commandId = 11, .type = AudioCommandType::Resume};
+    REQUIRE(engine.sendCommand(resumeCmd));
+
+    std::vector<float> out(500 * 2, 0.0f);
+    engine.processBlock(out.data(), 500); // Processes Pause & Resume, bumps epoch to 3!
+
+    AudioCommandAck ack;
+    REQUIRE(engine.pollAck(ack)); // Pause ack
+    REQUIRE(engine.pollAck(ack)); // Resume ack
+    REQUIRE(engine.updateTelemetry());
+    REQUIRE(engine.telemetry().transportEpoch >= 3);
+
+    // Render block covering frame 1000 (from 500 to 1500)
+    std::vector<float> block(1000 * 2, 0.0f);
+    engine.processBlock(block.data(), 1000);
+
+    // Event 42 has epoch 1 < currentEpoch (3), so it must be dropped without synthesizing DSP
+    REQUIRE(engine.totalScheduledEventsProcessed() == 1); // Popped and counted
+    REQUIRE(engine.updateTelemetry());
+    REQUIRE(engine.telemetry().pulse.pitchHz != 880.0f);
 }
 
 TEST_CASE("AudioScheduler handles late events safely without queue corruption", "[scheduler][late]") {

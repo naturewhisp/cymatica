@@ -209,7 +209,10 @@ TEST_CASE("MusicClock limits saturate conversions and reject unsupported arithme
     REQUIRE(clock.frameAtBar(UINT64_MAX) == UINT64_MAX);
     REQUIRE(clock.frameAtPhrase(UINT64_MAX) == UINT64_MAX);
     REQUIRE(clock.deviceToInternalFrames(UINT64_MAX, 44100) == UINT64_MAX);
-    REQUIRE(clock.internalToDeviceFrames(UINT64_MAX, 44100) == 16'947'946'117'720'650'546ULL);
+    REQUIRE(clock.internalToDeviceFrames(UINT64_MAX, 44100) == 16'947'946'117'720'650'547ULL);
+    REQUIRE(clock.internalToDeviceFrames(48, 44100) == 45);
+    REQUIRE(clock.deviceToInternalFrames(45, 44100) == 48);
+    REQUIRE(clock.frameAtBar(1ULL << 62) == UINT64_MAX);
     const auto pos = clock.positionAtFrame(UINT64_MAX);
     REQUIRE(pos.beat == 0);
     REQUIRE(pos.bar == 1);
@@ -407,4 +410,45 @@ TEST_CASE("MusicClock intra-measure tempo transition preserves bar count and bea
     REQUIRE(clock.frameAtBar(0) == 0);
     REQUIRE(clock.frameAtBar(1) == beat4Frame);
     REQUIRE(clock.frameAtBar(2) == beat8Frame);
+}
+
+TEST_CASE("MusicClock meter change from 4/4 to 3/8 at bar boundary resets bar beat count to 0 (DIF-M2-review)", "[clock][meter_change]") {
+    TempoMap map44;
+    map44.bpm = RationalBpm{120, 1};
+    map44.timeSignatureNum = 4;
+    map44.timeSignatureDen = 4;
+    map44.beatsPerBar = 4;
+    map44.barsPerPhrase = 4;
+    map44.subdivisionsPerBeat = 4;
+
+    auto clockOpt = MusicClock::create(48000, map44);
+    REQUIRE(clockOpt.has_value());
+    auto& clock = *clockOpt;
+
+    // Transition at bar 1 (frame 96,000) to 3/8 meter (3 beats/bar, dotted quarter)
+    TempoMap map38;
+    map38.bpm = RationalBpm{120, 1};
+    map38.timeSignatureNum = 3;
+    map38.timeSignatureDen = 8;
+    map38.beatsPerBar = 3;
+    map38.barsPerPhrase = 4;
+    map38.subdivisionsPerBeat = 2;
+
+    REQUIRE(clock.setTempoMap(map38, 96000));
+    REQUIRE(clock.segmentCount() == 2);
+
+    // Frame 96,000 must be Bar 1, Beat 0, BeatPhase 0.0
+    const auto pos = clock.positionAtFrame(96000);
+    REQUIRE(pos.bar == 1);
+    REQUIRE(pos.beat == 0);
+    REQUIRE(pos.beatPhase == 0.0f);
+
+    // Rejection of non-beat tempo change (e.g. frame 12,000 is half beat)
+    TempoMap mapInvalid = map44;
+    mapInvalid.bpm = RationalBpm{130, 1};
+    REQUIRE_FALSE(clock.setTempoMap(mapInvalid, 12000));
+
+    // Rejection of meter change intra-measure (e.g. frame 24,000 is beat 1 of bar 0 under 4/4)
+    TempoMap mapMeterChange = map38;
+    REQUIRE_FALSE(clock.setTempoMap(mapMeterChange, 24000));
 }

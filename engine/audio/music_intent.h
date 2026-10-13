@@ -17,6 +17,7 @@ struct MusicIntentEvent {
     std::uint64_t eventId{0};
     std::uint64_t sampleFrame{0};      // Internal 48 kHz logical timeline
     std::uint64_t tick{0};             // Fixed-step simulation tick (120 Hz)
+    std::uint64_t transportEpoch{1};   // Associated transport epoch
     MusicRole role{MusicRole::Pulso};
     float pitchHz{220.0f};             // Nominal pitch frequency
     float velocity{1.0f};              // Normalized intensity in [0.0f, 1.0f]
@@ -40,6 +41,7 @@ using VoiceId = std::uint8_t;
 struct ScheduledAudioEvent {
     std::uint64_t eventId{0};
     std::uint64_t sampleFrame{0};
+    std::uint64_t transportEpoch{1};
     AudioEventType type{AudioEventType::NoteOn};
     VoiceId voice{0};
     MusicRole role{MusicRole::Pulso};

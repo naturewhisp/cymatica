@@ -27,6 +27,7 @@ public:
         std::uint64_t startFrame{0};
         std::uint64_t startBeat{0};
         std::uint64_t startBar{0};
+        std::uint32_t beatOffsetInBar{0};
         TempoMap tempoMap{};
     };
 

@@ -268,6 +268,7 @@ std::string ToneProbeResult::toJson() const {
     ss << "  },\n";
     ss << "  \"phase_1_baseline\": {\n";
     ss << "    \"start_ms\": " << phase1Baseline.startMs << ",\n";
+    ss << "    \"start_sample_frame\": " << phase1Baseline.startSampleFrame << ",\n";
     ss << "    \"duration_ms\": " << phase1Baseline.durationMs << ",\n";
     ss << "    \"target_freq_hz\": " << phase1Baseline.targetFreqHz << ",\n";
     ss << "    \"estimated_freq_hz\": " << phase1Baseline.estimatedFreqHz << ",\n";
@@ -278,6 +279,7 @@ std::string ToneProbeResult::toJson() const {
     ss << "  },\n";
     ss << "  \"phase_2_hold\": {\n";
     ss << "    \"start_ms\": " << phase2Hold.startMs << ",\n";
+    ss << "    \"start_sample_frame\": " << phase2Hold.startSampleFrame << ",\n";
     ss << "    \"duration_ms\": " << phase2Hold.durationMs << ",\n";
     ss << "    \"target_freq_hz\": " << phase2Hold.targetFreqHz << ",\n";
     ss << "    \"estimated_freq_hz\": " << phase2Hold.estimatedFreqHz << ",\n";
@@ -288,6 +290,7 @@ std::string ToneProbeResult::toJson() const {
     ss << "  },\n";
     ss << "  \"phase_3_release\": {\n";
     ss << "    \"start_ms\": " << phase3Release.startMs << ",\n";
+    ss << "    \"start_sample_frame\": " << phase3Release.startSampleFrame << ",\n";
     ss << "    \"duration_ms\": " << phase3Release.durationMs << ",\n";
     ss << "    \"target_freq_hz\": " << phase3Release.targetFreqHz << ",\n";
     ss << "    \"estimated_freq_hz\": " << phase3Release.estimatedFreqHz << ",\n";
@@ -335,6 +338,7 @@ static ToneProbeResult evaluateToneRecording(const std::vector<float>& stereoSam
     const std::size_t p1Start = (500 * sampleRate) / 1000;
     const std::size_t windowFrames = (250 * sampleRate) / 1000; // 12000 frames
     result.phase1Baseline.startMs = 500;
+    result.phase1Baseline.startSampleFrame = p1Start;
     result.phase1Baseline.durationMs = 250;
     result.phase1Baseline.targetFreqHz = 220.0f;
     result.phase1Baseline.estimatedFreqHz = analysis::estimatePitchHz(&mono[p1Start], windowFrames, sampleRate);
@@ -346,6 +350,7 @@ static ToneProbeResult evaluateToneRecording(const std::vector<float>& stereoSam
     // Phase 2 stable window: 1500 ms to 1750 ms (sample 72000 to 84000)
     const std::size_t p2Start = (1500 * sampleRate) / 1000;
     result.phase2Hold.startMs = 1500;
+    result.phase2Hold.startSampleFrame = p2Start;
     result.phase2Hold.durationMs = 250;
     result.phase2Hold.targetFreqHz = 440.0f;
     result.phase2Hold.estimatedFreqHz = analysis::estimatePitchHz(&mono[p2Start], windowFrames, sampleRate);
@@ -357,6 +362,7 @@ static ToneProbeResult evaluateToneRecording(const std::vector<float>& stereoSam
     // Phase 3 stable window: 2500 ms to 2750 ms (sample 120000 to 132000)
     const std::size_t p3Start = (2500 * sampleRate) / 1000;
     result.phase3Release.startMs = 2500;
+    result.phase3Release.startSampleFrame = p3Start;
     result.phase3Release.durationMs = 250;
     result.phase3Release.targetFreqHz = 220.0f;
     result.phase3Release.estimatedFreqHz = analysis::estimatePitchHz(&mono[p3Start], windowFrames, sampleRate);
@@ -471,7 +477,8 @@ ToneProbeResult runToneProbeV0(AudioEngine& engine,
     res.simulationTicks = kTotalTicks;
     res.requestedSampleFrames = static_cast<std::uint64_t>(kTotalTicks) * kFramesPerTick;
     res.appliedSampleFrames = res.totalCapturedFrames;
-    res.transportEpoch = 1;
+    (void)engine.updateTelemetry();
+    res.transportEpoch = engine.telemetry().transportEpoch;
     res.presentationQuality = "Estimated";
     return res;
 }

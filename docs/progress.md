@@ -167,5 +167,26 @@ Revisione indipendente dei commit M2.1–M2.3 conclusa con richiesta di remediat
 | DIF-M2-10 | **LOW** | Disallineamento metrico intra-misura in `MusicClock::positionAtFrame` e `frameAtBar`: `beatInBar` ed `elapsedBars` ignoravano l'offset iniziale `startBeat`. | Introdotto calcolo continuo di `totalBars` ed `elapsedBeatsWithOffset` basato su `(startBeat % beatsPerBar)`; `frameAtBar` esteso per supportare segmenti che iniziano intra-misura. Aggiunto unit test dedicato `[intra_measure]`. | **Risolto** (`music_clock.cpp`, `test_music_clock.cpp`) |
 | Secondari | **LOW** | Troncamento con `& 0xFF` in `makeSetTempoMap()` e overflow uint64 in `scheduleIntent()`. | Campi estesi a 16-bit (`0xFFFF`) per `subdivisionsPerBeat` e `barsPerPhrase`; protezione saturante contro overflow uint64 su `sampleFrame + durationFrames`. | **Risolto** (`audio_control.h`, `audio_scheduler.cpp`) |
 
-**Esito suite completa post-remediation:** 63/63 Release (100%), 63/63 Debug (100%), 62/62 Headless (100%), smoke run 4s exit 0 (239 frame, 0 sospensioni, pure_seed=ELIGIBLE), CACP runner tone_test verdetto PASS. Zero warning `/W4` verificati su Clean Release e Clean Debug.
+---
+
+## Remediation M2 Review — Round 3 (Findings 1–7)
+
+Risoluzione dei 7 difetti identificati nella terza revisione indipendente di M2 (commit `0ec9d02`):
+
+| ID / Problema | Severità | Descrizione Defetto | Intervento Applicato | Stato / Evidenza |
+|---|---|---|---|---|
+| Problema 1 | **ALTO** | Falso ACK: `setTempoMap()` falliva al 17º segmento ma `AudioEngine` emetteva `Applied` e incrementava `transportEpoch`. | `executeCommand()` verifica il ritorno di `setTempoMap()`: se `false`, emette `Rejected` e non incrementa l'epoch. Aggiunto test per rigetto del 17º segmento. | **Risolto** (`audio_engine.cpp`, `test_scheduler.cpp`) |
+| Problema 2 | **ALTO** | Transizione metrica 4/4 → 3/8 al frame 96.000 produceva battuta 1 anziché battuta 0 (`4 % 3 = 1`). | Introdotto ancoraggio metrico locale `beatOffsetInBar`: al cambio di metrica su confine di misura viene azzerato a 0, garantendo Battuta 1, Beat 0, BeatPhase 0.0. Aggiunto test `[clock][meter_change]`. | **Risolto** (`music_clock.h`, `music_clock.cpp`, `test_music_clock.cpp`) |
+| Problema 3 | **MEDIO** | Discontinuità intra-beat: cambio tempo a frame frazionario (es. frame 12.000) azzerava la fase. | Adottata politica esplicita fail-fast: `setTempoMap()` rifiuta salti frazionari intra-beat (`inverse.remainder != 0`) e cambi di metrica intra-misura. | **Risolto** (`music_clock.cpp`, `test_music_clock.cpp`) |
+| Problema 4 | **BLOCKER** | Head-of-line blocking sul trasporto: comandi futuri in `commandQueue` bloccavano `Pause`, `Resume` e `Stop`, causando potenziale stallo permanente. | Disaccoppiati i comandi schedulati futuri in buffer locale bounded `pendingScheduledCommands_` (capacità 16) in `Impl`. Comandi di controllo immediati eseguiti all'istante senza attesa. Aggiunto test `[scheduler][hol_blocking]`. | **Risolto** (`audio_engine.cpp`, `test_scheduler.cpp`) |
+| Problema 5 | **ALTO** | Eventi audio non protetti da cambi di epoch: note obsolete della vecchia mappa venivano sintetizzate dopo transizione. | Aggiunto `transportEpoch` a `MusicIntentEvent` e `ScheduledAudioEvent` (default 1). Nella callback audio, gli eventi con `transportEpoch < currentEpoch` vengono scartati immediatamente senza sintesi DSP. Aggiunto test `[scheduler][epoch_drop]`. | **Risolto** (`music_intent.h`, `audio_scheduler.h`, `audio_scheduler.cpp`, `audio_engine.cpp`, `test_scheduler.cpp`) |
+| Problema 6 | **ALTO** | Limiti aritmetici: overflow uint64 in `remainingBars * beatsPerBar` e `currentRenderCursor + lookaheadFrames`; troncamento anticipato a 44,1 kHz. | Introdotta `core::saturatingMul` in `unsigned_math.h`; aritmetica saturante in `frameAtBar()` e `dispatchDueEvents()`; divisione ceil intera in `internalToDeviceFrames()`. Verificato con test di saturazione. | **Risolto** (`unsigned_math.h`, `music_clock.cpp`, `audio_scheduler.cpp`, `test_music_clock.cpp`) |
+| Problema 7 | **MEDIO** | Provenienza manifest CACP: `buildId` statico obsoleto, `transportEpoch` hardcoded a 1, assenza di timestamp campionari per fase. | Iniettato `CYMATICA_BUILD_ID` dinamico da Git commit hash via CMake; lettura dinamica di `transportEpoch` da telemetria; aggiunto `start_sample_frame` a `PhaseMetric` e manifest JSON. | **Risolto** (`CMakeLists.txt`, `audio_probe.h`, `audio_probe.cpp`, test CACP CLI) |
+
+**Esito suite completa post-remediation Round 3:**
+- **Release:** 67/67 superati (100%), 0 falliti.
+- **Headless:** 66/66 superati (100%), 0 falliti.
+- **Debug:** 67/67 superati (100%), 0 falliti.
+- **Smoke test interattivo (4s):** exit 0, 239 frame, 59.7 fps, pure_seed=ELIGIBLE, 0 sospensioni, shader=OK, audio=OK.
+- **CACP CLI (`cymatica_game --cacp-run tone_test`):** Verdetto PASS, `build_id="0ec9d02"`, 0 frame persi, 144.000 frame catturati, tutte le fasi (220 Hz → 440 Hz → 220 Hz) convalidate. Zero warning `/W4`.
 
