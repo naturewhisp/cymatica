@@ -57,17 +57,21 @@ Le unità B, C e D possono avere worktree separati se l'integrazione non rompe o
 - Prima prova: variante A (scala + Euclidean), variante B (A+planner/motif). Il voice-leading e la variante C entrano solo dopo che B è riproducibile.
 - Armonia: grafo finito di **stabilità → preparazione → tensione → risoluzione**, con vocaboli modali e accordi volutamente ridotti; non codificare una grammatica tonale universale.
 - `tension` è **multidimensionale musicale** (armonia/ritmo/registro/timbro/densità), distinta dalla Dissonanza di salute.
+- **Schema compositivo di prova per la run di 3 minuti (non template obbligatorio):** forma con esposizione/sviluppo, contrasto e ritorno trasformato. Durate e sezioni sono obiettivi di orchestrazione indicativi: fissare i veri `sampleFrame` tramite `MusicClock`, non partendo da minuti arrotondati.
+  1. *Esposizione e sviluppo:* `Pulso` stabilisce la griglia, `Corpo` presenta fondamento armonico e `Vettore` espone `Motif_0`; la seconda frase introduce `Trama` e una trasformazione conservativa. A 120 BPM in 4/4, un eventuale cambio dopo 36 battute cade a 72 secondi ed è un bar boundary valido; è **solo un esempio**, non una durata fissa.
+  2. *Contrasto:* introdurre `SetTempoMap` soltanto al beat boundary accettato dal clock (bar boundary per cambi di metrica); `Pulso` e `Trama` adottano la nuova griglia, mentre il pad già attivo di `Corpo` segue il lifecycle cross-epoch. Durata della sezione ricavata dal numero di barre/frasi nel nuovo tempo, non dall’ora `1:15` arbitraria.
+  3. *Ritorno e risoluzione:* ripresentare un `Motif_0` riconoscibile, trasposto o riorchestrato, e chiudere la frase/cadenza su boundary derivati dal clock. Adattare le durate musicali per un rendering continuo di almeno 180 s con finale documentato, senza cambi di metrica a metà battuta.
 
 ### 4.2 Unità voci/identità
 
 - **Contratto vigente:** massimo otto DSP voice slot, fissi per ruolo, due ciascuno, preallocati. *Numero di oscillatori interni allo slot* e *numero di note indipendenti* non vanno confusi; un'espansione composita che aggiri il limite va sottoposta a modifica ADR.
-- `NoteOn` e relativo `NoteOff` si correlano tramite almeno `(role, eventId)` più **unicità/ambito di validità** dell'ID. Se `eventId` è univoco nella run, documentare overflow e restart; se è riutilizzabile, la chiave deve includere un generation token/epoch appropriato. Non basta `activeNoteEpoch_`.
-- Al voice stealing conservare ownership/token di slot: un vecchio `NoteOff` non interrompe il nuovo occupant. Testare steal al confine di blocco e nel mezzo di un micro-fade.
-- Note con `durationFrames` esplicito: gestire NoteOff tardivo, perso, duplicato, non matching e superiore al budget; nessuna release infinita. Le note sustain legittime non devono essere troncate dal timeout **globale M2.3** di 1 s dopo epoch.
-- `Pause`, `Stop`, replay reset, device restart, errore trasporto, nuove run: definire comportamento sicuro di tail, resumption e flush. Un silenzio immediato può essere necessario per stop tecnico; altrimenti preferire micro-fade anti-click con comportamento sample-accurate e deterministico.
+- **Pairing e rilascio failsafe (proposta):** il scheduler M2.3 emette già `NoteOn`/`NoteOff` per `durationFrames > 0`. Non introdurre un secondo rilascio non idempotente: testare un fallback interno allo slot con scadenza assoluta `sampleFrame + durationFrames` nella timeline logica a 48 kHz, usato quando manca il `NoteOff`, non un countdown cieco in frame del device. Un `NoteOff` matching deve poter avviare il Release una sola volta; gestire eventi tardivi, duplicati, persi, fuori ordine e post-steal. La semantica delle note con `durationFrames == 0` è una decisione d’ingresso da registrare; non assumere un gate implicito.
+- **Voice stealing con micro-rilascio misurabile:** applicare la policy di selezione ADR-0003 (preferire inviluppo più avanzato, due slot per ruolo) e rispettare il `sampleFrame` della nuova nota. Confrontare micro-fade di 2 ms, crossfade bounded e coda DSP transitoria che conservi una parte appropriata dello stato uscente. Nessuna di queste tecniche da sola garantisce matematicamente assenza di click o di artefatti timbrici: validare valore/derivata del PCM, ascolto e costo realtime. Un token interno impedisce vecchi `NoteOff` sul nuovo occupante, senza nuovi campi pubblici obbligatori.
+- **Continuità cross-epoch e revisione del piano:** preservare una nota già attiva in `SetTempoMap` con `NoteOff` matching, senza assumere che gli eventi futuri di epoch precedente restino tutti validi. Definire separate politiche per eventi committed (frame garantiti), eventi non committed (ripianificazione) e note sostenute, compatibili con la SPSC e con l’ordinamento M2.3. `Pause` recuperabile congela il transport secondo la policy da scegliere; `Stop`/nuova run eliminano il piano precedente. Non imporre flush di tutte le voci durante una pausa senza una decisione motivata.
+- `Pause`, `Resume`, `Stop`, replay reset, device restart, errore trasporto e nuova run: definire una matrice di stati che specifichi cursore logico, slot/inviluppi, queue/epoch e uscita sonora. Se il device emette subito silenzio, non dichiarare eseguito un fade di 2 ms; una coda udibile richiede rendering bounded e una transizione compatibile con Stop. Registrare differenze rispetto al tono monofonico M2.3 e aggiungere test sample-accurate.
 - `voiceDropCount`, `orphanNoteCount` e `staleNoteOffCount` (nomi proposti, non API accettate) aiutano CACP e offline diagnosis. Telemetria esclusivamente bounded.
 
-### 4.3 Palette timbrica
+### 4.3 Palette timbrica, candidati DSP e gain staging
 
 | Ruolo | Ipotesi iniziale | Vincolo artistico | Esperimento alternativo |
 |---|---|---|---|
@@ -77,6 +81,20 @@ Le unità B, C e D possono avere worktree separati se l'integrazione non rompe o
 | Vettore | wavetable/FM con modulazione/glide bounded | linea tematica leggibile, non sweep casuale | FM 2 vs 3 operatori |
 
 Non tutte queste tecniche devono essere implementate nella prima iterazione. Preferire **una firma timbrica udibile e rifinita per ruolo** rispetto alla quantità di preset. Verificare antialiasing alla frequenza massima supportata, numerica dei filtri a bassa ampiezza, gain staging e separazione spettro/telegraph.
+
+#### Profilo sperimentale di sintesi C++20 (proposte da verificare, non nuove prescrizioni ADR)
+
+L’obiettivo è un timbro distintivo e riproducibile per ciascun ruolo, con DSP per-sample bounded, senza allocazioni o lock, nel target callback già accettato di 2 ms / 512 device frame a 48 kHz. Le tecniche seguenti sono **alternative misurabili**: selezionarle mediante WAV a intent identico, profiling e ascolto; non implementarle tutte in M2.4-A/D.
+
+1. **Pulso — corpo percussivo:** sine/FM o forma d’onda opportunamente band-limited con pitch envelope rapido e transient noise generato da seed isolato. Reset della fase solo se desiderato per la firma del transient; verificare l’attacco, la continuità e il bilanciamento tra punch, headroom e feedback ludico. Tempi dell’inviluppo (es. 15–40 ms) sono valori iniziali da confrontare.
+2. **Corpo — basso/pad:** confrontare wavetable band-limited o PolyBLEP con filtri SVF/TPT e biquad opportunamente implementati, stabilizzati e sottoposti a smoothing. Non vietare per principio Direct Form I/II: scegliere la topologia dopo stress test su cutoff, risonanza, modulazione, precisione numerica e costo. Il suono deve conservare continuità nei sustain cross-epoch.
+3. **Trama — texture/contrappunto:** FM a due operatori e, come spike opzionale, Karplus–Strong/digital waveguide con delay line statica e interpolazione frazionaria quando necessaria. A 48 kHz una linea ideale di 160 campioni corrisponde a 300 Hz; non esiste una soglia universale di errore grave *sopra* 300 Hz. Una linea da 1.024 campioni impone invece una frequenza minima nominale vicina a 46,9 Hz prima della fase del filtro. Studiare tuning e stabilità del loop nel range realmente usato.
+4. **Vettore — lead:** FM a due operatori, wavetable o PolyBLEP con glide/vibrato deterministici. Un eventuale indice `I(t)` dipendente da `timbreParam` va limitato in relazione a frequenza modulante, sideband significative e Nyquist, con controllo spettrale; scalarlo come `1/f_c` non prova assenza di aliasing. Valutare oversampling/bandlimiting soltanto se giustificati dal profilo CPU.
+5. **Stabilità e smoothing:** controllare NaN/Inf, velocità dei controlli, code di inviluppo e subnormali. FTZ/DAZ dove supportato o flush software degli stati sono candidate tecniche di mitigazione, valutate rispetto a portabilità e correttezza numerica. Smoothing one-pole 5–10 ms è un intervallo di prova per **controlli continui**, non un obbligo per NoteOn, transienti o azioni discrete; versionare i parametri selezionati.
+6. **Bus, mix ed effetti:** mantenere un numero statico/bounded di bus per i quattro ruoli. Esplorare sidechain leggero e delay condiviso soltanto se migliorano leggibilità e coesione senza violare il budget; gain di ruolo (ad esempio −6/−8/−10/−6 dB) sono punti di ascolto iniziali e **non** garantiscono headroom sommando otto segnali in fase. Misurare somma peggiore, transient peak, true peak e margine master. Se si sceglie un soft-clipper/limiter, dimostrare che la funzione sia effettivamente bounded nel dominio d’ingresso o imporre un ceiling esplicito; una forma razionale di `tanh` non è automaticamente limitata a ±1.
+7. **Telemetria per ruolo:** definire misure bounded e interpretabili sui bus/slot (onset dal trigger, energy dal segnale o da inviluppo, density da occupancy, pitch dalla voce rilevante, confidence dal criterio noto). Confrontare feature e costo con eventuali analisi offline; non eseguire FFT ridondanti in callback senza motivazione e test. La telemetria non sostituisce la traccia simbolica autoritativa.
+
+Per ciascuna scelta registrare parametro/profilo, seed, intento identico, WAV, evidenza uditiva, costo medio e coda della distribuzione, massimi osservati e possibili regressioni. Solo le decisioni che alterano contratti accettati, ABI o voice budget richiedono revisione dell’ADR; il tuning reversibile resta versione/profilo sperimentale.
 
 ## 5. Realtime, determinismo e test
 
@@ -97,9 +115,9 @@ Canonical output per M2.4: piano simbolico/versionato, `MusicIntentEvent` ordina
 
 1. Pairing multilivello `(role,eventId)`: note sovrapposte, `NoteOff` out-of-order, epoch cambio, voice stealing, flush/stop, release interrotto, note zero-length.
 2. Scheduler: timestamp esatti inclusi confini di blocco, meter/tempo change intra-block, old/future epoch, saturation budget e late event.
-3. DSP: zero heap/lock/logging nella callback, bounded work, no NaN/Inf/denorm issues, range frequency/gain, antialiasing, peak/true peak controllo finale.
+3. DSP: zero heap/lock/logging nella callback, bounded work e misure di deadline, PCM finito (no NaN/Inf), mitigazione subnormali profilata, range validi di frequenza/gain, test aliasing per ogni renderer scelto, headroom/campionamento e true peak analizzati separatamente, discontinuità/click ai boundary osservati senza una soglia arbitraria resa mandatory; `ChannelFrame` con semantica/versione e telemetria coerenti.
 4. Composizione: same-seed trace identico, seed isolation, trasformazioni che preservano invarianti, novelty controllata, risoluzione delle frasi, ruolo dominante distinguibile.
-5. CACP: onset e sample timing correlati a intent, WAV continuo e manifest validi; confronto con evidenza dell'ascolto e non solo analisi FFT.
+5. CACP (`AC-AO-02`): onset e sample timing correlati a trace/intent sul WAV di `AudioProbe`, con offset e conversioni device/logical dichiarati; integrità dei 3 minuti, validità manifest, prove cross-epoch dei pad e giudizio percettivo separato dalle misure automatiche. Rispettare i criteri obbligatori esistenti senza inventarne di nuovi.
 
 ## 6. Decisioni aperte e criteri di promozione a ADR
 

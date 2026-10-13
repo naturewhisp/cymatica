@@ -78,6 +78,18 @@ Registrare per callback tempo CPU o wall time con clock monotono appropriato, p5
 
 Il tempo limite 50 ms del test M2.3 di flooding protegge contro hanging, non dà margine su callback da 10,667 ms. La registrazione non deve utilizzare file I/O, log o allocazioni nella callback.
 
+### Verifica quantitativa del PCM e correlazione `AC-AO-02` (M2.4 / M2.5)
+
+Oltre al profilo realtime e alle verifiche obbligatorie già definite da Spec §32 e ADR-0003, usare **analisi offline diagnostiche** sul WAV/manifest `AudioProbe` della run di 3 minuti. L’analisi non introduce nuovi gate artistici, nuove soglie obbligatorie o una diversa definizione di `AC-AO-02` senza decisione normativa. A 48 kHz per 180 s si attendono 8.640.000 frame per canale (17.280.000 campioni interleaved stereo), salvo durata e profilo effettivi registrati.
+
+1. **Integrità e numerica (vincoli tecnici):** confrontare numero di frame, sample rate, continuità del capture, dropped/gap, corretta serializzazione del manifest e valori PCM finiti (`NaN`/`Inf` non ammessi). Registrare anche subnormali e denormal slowdown come diagnosi; non richiedere arbitrariamente zero subnormali nel file WAV se non previsto dal profilo numerico adottato.
+2. **Dinamica e silenzi intenzionali:** misurare picco campionato e true peak separatamente, RMS/loudness per finestre significative, eventuale hard clipping e guadagno dei bus. Per output float normalizzato usare il limite campionato adottato dal renderer (es. `|x[n]| <= 1`), senza interpretarlo come garanzia di true peak o assenza di distorsione. La soglia `-40 dBFS` di `tone_probe_v0` non si applica a pause, recovery, code e altri silenzi compositivi intenzionali.
+3. **DC offset e continuità:** stimare media e drift per canale su finestre definite, includendo un controllo in segmenti nominalmente silenziosi. `|mu| < 0.005` su 1 s è un esempio di soglia pilota da calibrare rispetto alla palette, non un criterio universalmente obbligatorio.
+4. **Click e cambi musicali:** osservare differenze campione-campione, contenuto ad alta frequenza e forma d’onda attorno a voice stealing, `NoteOff`, pause/resume e `SetTempoMap`. `|x[n]-x[n-1]| > 0.25` è solo un possibile *flag* esplorativo; controlli su onset percussivi e segnali ad alta frequenza servono a contenere falsi positivi. Integrare ascolto umano e prova di continuità dei pad prima/dopo i boundary.
+5. **Correlazione intent ↔ audio (`AC-AO-02`):** usare eventi/trace e timestamp del tap per determinare l’offset di acquisizione, convertire correttamente fra timeline logica e sample rate del device e confrontare onset riconoscibili con l’inviluppo PCM. La latenza di attacco dipende da ruolo, ADSR e timbro: la finestra sperimentale di 5 ms/240 frame per `Pulso` è un candidato da profilare su fixture isolate, non un vincolo imposto ai pad. I cambi di BPM/metrica vanno letti rispetto ai boundary accettati dal `MusicClock`; nessun evento committed deve essere riscritto retroattivamente.
+
+Registrare esiti `PASS`/`FAIL`/`NOT_RUN` per ogni controllo tecnico già normativo e `MEASURED`/`INCONCLUSIVE` per le misure esplorative, con seed, commit, profilo di synth e fixture. I risultati percettivi non vengono dedotti dai soli numeri.
+
 ## 6. Evidenza / manifest consigliato
 
 Directory locale `artifacts/research/m2_4/<experiment-id>/` (non committare grandi WAV per default). Ogni esperienza esporta un manifest **versionato** con:

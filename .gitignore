@@ -73,3 +73,7 @@ vcpkg_installed/
 Testing/
 .cache/
 artifacts/
+
+# NotebookLM bundle & export script
+scripts/export_notebook_bundle.ps1
+*notebook_bundle*

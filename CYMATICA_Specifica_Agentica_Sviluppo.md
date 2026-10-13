@@ -455,6 +455,8 @@ struct MusicIntentEvent {
 
 ---
 
+> **Nota di allineamento M2 (esempio vs tipo eseguibile):** La struttura di §7.4 è un esempio concettuale della rappresentazione musicale futura, non l’ABI di `MusicIntentEvent`. Per M2 il contratto approvato è D-M2-02 di [ADR-0003](docs/adr/0003-m2-decisions-contracts.md), realizzato in `engine/audio/music_intent.h`: `MusicRole` usa `Pulso`, `Corpo`, `Trama`, `Vettore`; il tipo esecutivo include `eventId`, `sampleFrame`, `tick`, `transportEpoch`, `role`, `pitchHz`, `velocity`, `durationFrames` e `timbreParam`. Il campo `transportEpoch` è già presente nell’header corrente come estensione operativa del profilo M2. Eventuali ID di motivo/frase rimangono interni al planner finché una decisione distinta non ne autorizzi l’esposizione pubblica.
+
 ### 7.5 Transport, unità e sincronizzazione
 
 Contratto richiesto entro M1:
@@ -1680,6 +1682,8 @@ struct ScheduledAudioEvent {
 ```
 
 La callback non decide la forma musicale; esegue eventi già pianificati e applica controlli latest-value.
+
+> **Nota di allineamento M2 (esempio vs evento eseguibile):** Lo `ScheduledAudioEvent` mostrato in §16.9 è illustrativo. Il tipo attuale in `engine/audio/music_intent.h` porta anche `eventId`, `transportEpoch`, `role`, `durationFrames` e `timbreParam` oltre ai campi di dispatch. M2.4 deve conservare l’identità `(role, eventId)` nei `NoteOn`/`NoteOff` e il contratto di ordinamento/epoch; questa precisazione **non** autorizza nuovi campi pubblici o una diversa policy di invalidazione senza revisione di D-M2-02/D-M2-03.
 
 ### 16.10 Adattamento musicale
 
