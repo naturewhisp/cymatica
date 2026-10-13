@@ -16,6 +16,12 @@
 
 ## 0. Changelog
 
+### Nota integrativa alla revisione 0.8.3 — ricerca musicale M2.4 (2026-10-13)
+
+- Aggiunte in §16.12-16.13 indicazioni operative e rinvii alla ricerca musicale specialistica revisionata; i risultati scientifici e le ipotesi originali rimangono distinti.
+- Aggiornato il raccordo con M2.4/M2.5 e i checkpoint di ricerca per M3-M13 in §32, **senza aggiungere gate mandatory**, rinumerare milestone o modificare decisioni approvate in ADR-0003.
+- La versione 0.8.3 e i contratti accettati restano invariati. La documentazione di ricerca guida gli esperimenti: le scelte che cambiano ABI, budget voci, fairness o design richiedono una decisione distinta secondo `AGENTS.md` §1.1.
+
 ### 0.8.3 — 2026-10-07
 
 **Rettifica stato M1 (review successiva):** la chiusura storica citata in questa revisione documentale è stata riaperta per DIF-M1-26/27/28; il record corrente e il nuovo gate sono in `docs/progress.md`, decisioni della remediation in ADR-0002. Le sottofasi M2 restano pianificate finché il nuovo gate M1 non passa.
@@ -1693,6 +1699,32 @@ Non modificare retroattivamente note già schedulate né introdurre click, salto
 
 Strudel e Tidal sono utili per studiare pattern ciclici, mini-notation, trasformazioni e randomizzazione. CYMATICA deve derivare una grammatica nativa più piccola, tipizzata e orientata a Music Intent. Non dipendere da Strudel nel runtime senza decisione esplicita su licenza e stack.
 
+### 16.12 Approfondimento compositivo M2.4 (guida di ricerca; contratti invariati)
+
+La ricerca specialistica del 2026-10-13 approfondisce la baseline di §16 e `DESIGN.md` §8/16, senza sostituirla. Documenti di riferimento: [studio revisionato](docs/research/M2_4_Deep_Research_Reviewed.md), [revisione critica](docs/research/M2_4_Research_Review.md), [piano M2.4](docs/research/M2_4_Implementation_Plan.md) e [protocollo sperimentale](docs/research/M2_4_Evaluation_Protocol.md). Questi documenti hanno stato **consultivo/proposto**: i contratti vigenti restano nella presente specifica, in `DESIGN.md` e in [ADR-0003](docs/adr/0003-m2-decisions-contracts.md).
+
+Per l'implementazione della musica procedurale v1, valutare in ordine crescente di complessità:
+
+- **Forma e memoria:** planner gerarchico di sezione/frase, motivi relativi a scala e griglia, ricorrenza e almeno una trasformazione riconoscibile del materiale precedente. `Motif`, `PhrasePlan` e simili rimangono oggetti **interni al planner**; non aggiungere identificatori pubblici a `MusicIntentEvent` senza revisione D-M2-02.
+- **Direzione armonica:** piccolo grafo di stabilità/preparazione/tensione/risoluzione o grammatica modale equivalente; pochi voicing candidati, vincoli espliciti e costo di voice-leading deterministico con tie-break stabile. La tensione musicale non coincide con la Dissonanza/health del giocatore.
+- **Ritmo e orchestrazione:** Bjorklund come primitiva di distribuzione degli onset, completata da accenti metrici, maschere di frase e politiche dei quattro ruoli. Non equiparare groove o humanization a jitter casuale. Conservare la gerarchia fra ruolo dominante, supporto e texture.
+- **Scelte generative:** candidate set e lavoro del planner bounded e fuori callback; seed gerarchici isolati secondo M1 e ordinamento canonico. Modelli probabilistici possono diventare variatori subordinati, ma ML, factor oracle live e solver generali non sono prerequisiti di M2.4.
+- **Timbri:** sperimentare palette distinguibili per Pulso, Corpo, Trama e Vettore, partendo da sintesi band-limited/wavetable, FM e sottrattiva dove idonee; physical modeling semplice e transient sampling licenziato restano opzioni da verificare. Nessuna famiglia DSP aggiuntiva va considerata automaticamente accettata.
+
+L'allocazione approvata resta **otto voci preallocate, due per ruolo** (D-M2-03 e addendum del 2026-10-13). L'implementazione polifonica deve correlare `NoteOn`/`NoteOff` con identità di nota e ruolo, prevenire la cancellazione di una nuova nota da parte di un `NoteOff` obsoleto, distinguere sustain legittimo da voce orfana e gestire steal/stop/epoch con release controllata. Il timeout globale monofonico M2.3 non va trasferito automaticamente ai pad sostenuti M2.4. Un aumento di polifonia, un pool condiviso o una composite voice che alteri la semantica delle voci richiede revisione D-M2-03 prima dell'adozione.
+
+La soglia **2,0 ms per 512 device frame a 48 kHz** registrata nell'addendum D-M2-03 è un **target di profilo da verificare**, non una garanzia generale di assenza di underrun. Misurare callback completa, 8 voci, transizioni, voice stealing, bus/mix ed eventuale overhead delle sonde su configurazioni documentate; distinguere deadline del quantum reale, percentili, massimo osservato e zero-drop effettivamente riscontrato. Il test M2.3 a 50 ms dimostra terminazione bounded, non realtime idoneo.
+
+La valutazione della musica v1 tiene separati: (a) correttezza tecnica/replay, (b) struttura e memoria compositiva, (c) diversità, (d) preferenza e giudizio artistico umano. Confronti A/B a parità di seed/materiale e renderer, WAV correlati al trace e ascolto in cieco sono **checkpoint di ricerca**; non equivalgono a certificazione automatica di eccellenza artistica e non sostituiscono i gate obbligatori M2.5.
+
+### 16.13 Ricerca futura: proiezione strutturale musica-geometria (proposta M3-M8)
+
+La relazione fra musica e campo giocabile non dovrebbe esaurirsi in un semplice spawn sul beat. La ricerca propone, **come ipotesi da sperimentare e non come capacità validata**, un piano strutturale condiviso i cui motivi, frasi e trasformazioni possano avere realizzazioni musicali e geometriche coerenti. Identificatori concettuali come `motifId`, `phraseId` e `transformId` possono inizialmente vivere in un piano interno o *sidecar* bounded, versionato e deterministico; non modificare automaticamente `MusicIntentEvent`, `ScheduledAudioEvent` o i formati pubblici.
+
+Prima dell'implementazione in M3 di pattern dipendenti da tale piano, definire la semantica degli identificatori, il contratto di proiezione e l'ownership del dato secondo `AGENTS.md` §1.1. M4 resta autoritativa sulla raggiungibilità/fairness: inversione, densificazione, trasformazioni spaziali e novità musicale **non autorizzano** maggiore letalità, telegraph insufficiente o modifiche retroattive alle minacce committed. M6 potrà sperimentare adattamento che preserva identità e budget condiviso di sorpresa; M7 ne verificherà la leggibilità audiovisiva con persone; M8 potrà misurare diversità musicale e geometrica senza sostituire il validator.
+
+Per valutazioni, dipendenze e decisioni rimandate a M9-M13, vedere l'[addendum di roadmap musicale](docs/roadmap_music_research_addendum.md). Le ipotesi *transformation-equivariant*, *shared surprisal budget* e memoria cross-modale sono proposte originali di ricerca, non risultati empirici già dimostrati per CYMATICA.
+
 
 ---
 
@@ -3193,6 +3225,8 @@ M2 si esegue nelle sottofasi seguenti, senza aggiungere milestone o modificare i
 
 Ogni passaggio registra comando/procedura, build/commit, ambiente, esito e posizione dell'evidenza. I test pertinenti si eseguono durante lo sviluppo; le sottofasi non sostituiscono le verifiche runtime, hardware o umane richieste né la remediation/re-review del gate finale. M2.5 può dichiararsi conclusa solo quando M2 soddisfa integralmente tali condizioni.
 
+**Raccordo con la ricerca artistica M2.4 (2026-10-13):** utilizzare le linee guida §16.12 e il [piano di implementazione](docs/research/M2_4_Implementation_Plan.md) per scegliere e documentare grammatica dei motivi, armonia bounded, orchestrazione e palette timbrica. Affiancare ai golden test una prova di ascolto e confronto, secondo il [protocollo sperimentale](docs/research/M2_4_Evaluation_Protocol.md), registrandone anche risultati negativi o inconcludenti. La documentazione di ricerca è **supplementare e non certifica da sola la qualità artistica**. Non introdurre soglie di preferenza o nuovi test percettivi come criteri mandatory M2 senza decisione esplicita; restano vincolanti tutti i gate M2 e AC-AO-02 riportati sopra.
+
 ### Milestone 3 — Pattern catalog e generatore costruttivo
 
 **Obiettivo:** produrre livelli da Music Intent senza adattamento.
@@ -3359,6 +3393,22 @@ Accettazione:
 - Recall@K del retriever baseline misurato contro il planner di riferimento, con K e soglia fissati prima della misura.
 
 **Estensione agentica (§31.5, AC-AO-08):** il Lab riusa contratto/scenari e manifest delle sonde; risultati indicizzati per versioni/seed/persona e informazioni disponibili al controller. Accettazione: confronti riproducibili e corpus senza leakage, controller privilegiati/percettivi distinti e runtime indipendente da agenti/adapter esterni.
+
+#### Checkpoint della ricerca musicale per le milestone successive (indirizzi, non nuovi gate)
+
+La [roadmap di integrazione della ricerca](docs/roadmap_music_research_addendum.md) raccoglie proposte di verifica future. Le seguenti indicazioni aiutano a non perdere la ricerca durante lo sviluppo, **senza modificare i deliverable o le condizioni di accettazione vigenti**:
+
+| Fase | Decisione o verifica da valutare al momento opportuno |
+|---|---|
+| **M3** | Prima dei pattern basati su motivi/frasi, decidere se serve un piano semantico condiviso o un sidecar interno; confrontare mapping beat-only, per ruolo e strutturale mantenendo trace deterministico. |
+| **M4** | Se sono implementate trasformazioni geometriche musicalmente derivate, validarne la composizione spazio-temporale, il telegraph e la fairness come qualsiasi altro candidato. |
+| **M5** | Valutare con utenti reali la leggibilità dei segnali musicali rispetto a SFX, feedback istantaneo, accessibilità e recovery. |
+| **M6** | Valutare adattamento della frase che preservi motivi e cadenze già committed; eventuale budget condiviso di sorpresa resta sperimentale e non supera il System 2. |
+| **M7** | Affiancare ai gate di vertical slice una valutazione umana di riconoscibilità audio-spaziale, coerenza e affaticamento; promuovere nuovi criteri obbligatori solo con decisione preventiva su procedure/soglie. |
+| **M8** | Se utili al Lab, studiare descriptor/versioning di motivi, tensione e trasformazioni; separare coverage statistica da valore artistico e conservare sempre il validator. |
+| **M9-M13** | Considerare schema opzionale per il piano semantico (M9), differenza fra generazione nativa e analisi custom audio (M10), verifiche di licenza (M11), budget DSP su Android reale (M12) e strumenti di authoring solo dopo stabilizzazione dei formati (M13). |
+
+Le scelte che cambiano i contratti vigenti richiedono una decisione di ingresso/ADR e, se influenzano l'esperienza del giocatore, allineamento con `DESIGN.md`. Non introdurre retroattivamente questi checkpoint nei PASS storici di M0-M2.
 
 ### Milestone 9 — Pacchetti, timeline e tool CLI
 
