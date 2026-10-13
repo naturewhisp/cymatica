@@ -227,5 +227,28 @@ Risoluzione dei 2 difetti emersi dalla revisione del commit `572875a`:
 - **Smoke test interattivo (3s):** exit 0, 179 frame, 59.5 fps, 145.920 campioni audio, 358 tick, pure_seed=ELIGIBLE, 0 sospensioni, shader=OK, audio=OK.
 - **CACP CLI (`cymatica_game --cacp-run tone_test`):** Verdetto PASS, 0 frame persi, 144.000 frame catturati, validazione JSON diretta nativa con path backslash escapati (`artifacts\\cacp\\...`). Zero warning `/W4`.
 
+---
+
+## Sottofase M2.4 — Musica procedurale v1 (Pianificazione e Contratti d'Ingresso)
+
+**Stato sottofase:** Prossima (Pianificazione congelata con commit propedeutica; sviluppo in attesa di avvio autorizzato).
+
+In conformità a `AGENTS.md §1.1`, Spec §32 (Milestone 2) e ADR-0003, sono formalizzati i seguenti contratti architetturali propedeutici all'avvio dell'implementazione di M2.4:
+
+### Aspetti architetturali trasferiti da M2.3 a M2.4 e M2.5
+1. **Identità delle voci e correlazione NoteOn/NoteOff (M2.4):**
+   - Superamento del modello monofonico temporaneo (`activeNoteEpoch_`).
+   - Implementazione del **Voice Allocator polifonico a 8 voci** preallocate (2 Pulso, 2 Corpo, 2 Trama, 2 Vettore).
+   - Correlazione biunivoca tra `NoteOn` e `NoteOff` tramite `(role, eventId)` nei voice slot, impedendo che un `NoteOff` con `eventId` diverso o ritardato interrompa una nota più recente sullo stesso epoch.
+2. **Ciclo di vita delle note sostenute e gestione pad di Corpo (M2.4):**
+   - Superamento della salvaguardia globale monofonica a 1 secondo (48.000 campioni post-transizione epoch).
+   - Gestione del ciclo di vita basata sugli stadi di inviluppo (ADSR) per voce.
+   - Note e pad armonici di `Corpo` possono essere legittimamente sostenuti attraverso i confini di misura, frase ed epoch, terminando su `NoteOff` esplicito o per saturazione del budget di ruolo (voice-stealing con micro-fadeout di 2 ms anti-click).
+3. **Budget computazionale e deadline realtime della callback DSP (M2.4 / M2.5):**
+   - Risoluzione del divario tra la soglia di hang test ($50\text{ ms}$) e la deadline fisica audio a 48 kHz ($10,67\text{ ms}$ per 512 campioni).
+   - Target di budget DSP: tempo di calcolo callback $\le 2,0\text{ ms}$ per blocco da 512 campioni ($< 20\%$ del quantum audio).
+   - Verifica tramite benchmark prestazionali in M2.4 e validazione continuativa in M2.5 su 3 minuti di generazione ininterrotta senza glitch né buffer underrun.
+
+
 
 

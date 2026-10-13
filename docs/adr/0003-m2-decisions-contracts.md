@@ -81,6 +81,18 @@ In ottemperanza a `AGENTS.md` §1.1 e alla sottofase **M2.1 — Decisioni e cont
     - 2 voci per `Trama`;
     - 2 voci per `Vettore`.
   - **Policy di saturazione:** Se una voce per un ruolo è satura, si applica voice-stealing sulla voce con inviluppo più avanzato con micro-fadeout di 2 ms (senza pop), registrando un contatore `voiceDropCount` nella telemetria senza mai bloccare la callback.
+  - **Evoluzione polifonica M2.4 & M2.5 (Addendum architetturale propedeutico):**
+    1. *Identità delle voci e mapping NoteOn/NoteOff:*
+       In M2.2/M2.3 l'oscillatore di test era monofonico e tracciava l'epoch globale della nota attiva (`activeNoteEpoch_`). In M2.4 viene introdotto il pool statico di 8 voci (`VoiceSlot[8]`, preallocate senza allocazioni dinamiche):
+       - 2 voci per `Pulso` (percussione/kick/snare sintetico);
+       - 2 voci per `Corpo` (armonia/basso/pad);
+       - 2 voci per `Trama` (arpeggi/texture);
+       - 2 voci per `Vettore` (melodia lead/sweep).
+       Ogni slot voce traccia `(role, eventId, noteActive, phase, envelopeState)`. L'associazione tra `NoteOn` e `NoteOff` è biunivoca tramite `(role, eventId)`, garantendo che un `NoteOff` ritardato o appartenente a un evento distinto non interrompa mai una nota più recente o una voce concorrente nello stesso epoch.
+    2. *Ciclo di vita delle note sostenute (Pad di Corpo) e superamento del timeout arbitrario:*
+       La salvaguardia temporanea monofonica introdotta in M2.3 (auto-release forzato a 48.000 campioni / 1s post-transizione epoch) viene superata in M2.4. Le note sostenute (es. pad e droni armonici di `Corpo`) mantengono la fase di Sustain legittimamente attraverso i confini di misura, frase ed epoch, terminando unicamente all'arrivo del loro legittimo `NoteOff` (o per voice-stealing all'interno delle 2 voci di quel ruolo con micro-fadeout di 2 ms). Il rilevamento di voci orfane sarà governato dallo stato dell'inviluppo ADSR e dalla durata nominale (`durationFrames`) specificata in `MusicIntentEvent`.
+    3. *Budget di calcolo e deadline realtime della callback DSP (M2.4 / M2.5):*
+       A 48 kHz con buffer da 512 campioni, la deadline fisica è $\approx 10,67\text{ ms}$. Il test di flooding M2.3 usa una guardia difensiva contro blocchi infiniti ($< 50\text{ ms}$). In M2.4 e M2.5 la sintesi completa a 8 voci e il mixdown devono rispettare un budget computazionale stringente di $\le 2,0\text{ ms}$ per blocco ($< 20\%$ della deadline fisica audio), verificato mediante benchmark e stress test analitici per garantire assenza assoluta di underrun e zero drop frame su qualsiasi configurazione supportata.
 - **Stato:** `accepted for implementation`.
 
 ---

@@ -337,7 +337,11 @@ struct AudioEngine::Impl {
                     ? (blockStartFrame + currentDevOffset)
                     : musicClock.deviceToInternalFrames(deviceFramesRendered + currentDevOffset, sampleRate);
 
-                // Auto-release orphaned voice from past epoch if no NoteOff arrived within 1s (DIF-M2-R4-01 safeguard)
+                // Monophonic test-tone safeguard (DIF-M2-R4-01): auto-release orphaned voice from past epoch
+                // if no NoteOff arrived within 1s.
+                // NOTE [M2.4 / M2.5 Handoff]: To be superseded in M2.4 by the 8-voice polyphonic synthesizer
+                // (ADR-0003 D-M2-03), where sustained notes (e.g. Corpo pads) maintain their ADSR sustain
+                // stage across epochs, and orphan detection is governed by per-voice envelope lifetimes.
                 if (activeNotePlaying_ && activeNoteEpoch_ < transportEpoch &&
                     currentLogicalFrame > lastEpochTransitionFrame_ + 48000) {
                     triggerNoteOff();
@@ -512,6 +516,10 @@ struct AudioEngine::Impl {
                             deferredScheduledEvents.fetch_add(1, std::memory_order_relaxed);
                         } else {
                             if (schedEvt.transportEpoch < transportEpoch) {
+                                // Monophonic test-tone voice matching (DIF-M2-R4-01):
+                                // NOTE [M2.4 Handoff]: In M2.4 with 8 polyphonic voices (ADR-0003 D-M2-03),
+                                // NoteOn and NoteOff will be correlated by (role, eventId) in VoiceSlot[8]
+                                // to ensure distinct notes within the same epoch never cross-cancel.
                                 const bool isMatchingActiveNoteOff = (schedEvt.type == AudioEventType::NoteOff) &&
                                                                      activeNotePlaying_ &&
                                                                      (schedEvt.transportEpoch == activeNoteEpoch_);

@@ -815,7 +815,11 @@ TEST_CASE("AudioEngine enforces bounded event-processing budget per block under 
         const auto start = std::chrono::steady_clock::now();
         engine.processBlock(floodBlock.data(), 512);
         const auto elapsed = std::chrono::steady_clock::now() - start;
-        // Verify hard-realtime guarantee: each block completes in bounded time (< 50 ms)
+        // Verify hard-realtime guarantee: each block completes in bounded time (< 50 ms).
+        // NOTE [M2.4 / M2.5 Handoff]: This 50 ms check validates termination and absence of unbounded loops
+        // under queue saturation. In M2.4 DSP benchmarks and M2.5 integrated audio testing, the real DSP
+        // callback budget for all 8 voices is strictly evaluated against <= 2.0 ms per 512-sample block
+        // (audio quantum deadline is 10.67 ms at 48 kHz).
         CHECK(elapsed < std::chrono::milliseconds(50));
         std::this_thread::sleep_for(std::chrono::microseconds(200));
     }
