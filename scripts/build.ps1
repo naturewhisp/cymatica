@@ -73,8 +73,7 @@ try {
 
     if ($Test) {
         $testPreset = if ($Headless) {
-            if ($Config -ne 'Release') { throw '-Headless is only defined for Release (preset x64-release-headless).' }
-            'x64-release-headless'
+            "$preset-headless"
         } else { $preset }
         Invoke-Checked ctest @('--preset', $testPreset)
     }

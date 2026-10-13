@@ -38,6 +38,13 @@
       "output": { "outputOnFailure": true }
     },
     {
+      "name": "x64-debug-headless",
+      "displayName": "Debug tests without audio hardware",
+      "configurePreset": "x64-debug",
+      "output": { "outputOnFailure": true },
+      "filter": { "exclude": { "label": "device" } }
+    },
+    {
       "name": "x64-release-headless",
       "displayName": "Release tests without audio hardware",
       "configurePreset": "x64-release",

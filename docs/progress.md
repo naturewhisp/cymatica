@@ -24,7 +24,7 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 | D-M0-03 | miniaudio 0.11.25 `9634bed…` vendored, unico owner audio in `cymatica_audio` | **validated** | ADR-0001 |
 | D-M0-04 | Catch2 v3.16.0 `317ac1e…` + CTest | **validated** | ADR-0001 |
 | D-M0-05 | Libreria JSON: nlohmann/json 3.11.3 commit `9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03` | **validated** | ADR-0002 |
-| D-M0-06 | CI Windows | open (non blocca M0/M1 locale) | spec §32 |
+| D-M0-06 | CI Windows: pipeline GitHub Actions (`.github/workflows/windows-ci.yml`, runner `windows-2025`, matrice Release/Debug Headless, test CACP offline) | **validated** | [docs/ci.md](ci.md), `.github/workflows/windows-ci.yml` |
 
 ## Criteri di accettazione M0 (Spec §32)
 
