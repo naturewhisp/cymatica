@@ -16,6 +16,7 @@ description: Invarianti su serializzazione JSON Windows, callback realtime bound
 - Gli eventi in eccesso devono essere differiti al blocco successivo e tracciati nella telemetria (`deferredScheduledEvents`), garantendo complessità $O(1)$ rispetto alle risorse computazionali del frame.
 
 ## 3. Gestione Voci, Transizioni di Epoch e Micro-fadeout Anti-Click
-- Le transizioni di trasporto/epoch (`SetTempoMap`, salti di misura) non devono mai lasciare voci attive prive di `NoteOff` o orfane in stato di oscillazione indefinita.
-- Qualsiasi terminazione di voce, cambio di frequenza discontinuo o operazione di voice-stealing DEVE applicare un micro-fadeout lineare a zero di 2 ms (96 campioni a 48 kHz, conforme ad ADR-0003) prima di mutare i parametri o silenziare l'uscita, eliminando pop e click di fase.
-- Le verifiche audio di spegnimento note devono testare direttamente i campioni PCM accertando silenzio numerico assoluto (0 crossing, ampiezza 0.0f).
+- Le transizioni di trasporto/epoch (`SetTempoMap`) sono non distruttive e non devono mai troncare arbitrariamente voci attive o pad in `Sustain`; i `NoteOff` cross-epoch matching vengono regolarmente applicati al loro frame campionario nominale.
+- Qualsiasi terminazione forzata di voce, furto di voce (voice stealing su saturazione) o transizione di pausa/stop deve applicare una rampa di de-click lineare di 2 ms (96 campioni a 48 kHz, 88 a 44.1 kHz, calcolata come $\lfloor 0.002 \times f_{s,\text{device}} \rfloor$).
+- Nelle steal tails sature, il residuo composito per canale $S_{\text{ch}} = y_{\text{tail, ch}}[0] + y_{\text{voice, ch}}[0]$ decade progressivamente senza clamp prematuro pre-master. L'assenza percepita di click deve essere sempre verificata empiricamente su campioni PCM ed ascolto reale.
+- Separazione dei domini di trasporto: `Pause` congela immediatamente ($O(1)$) la timeline logica di simulazione a $t_{\text{pause}}$, mentre la tail di de-click fisica opera esclusivamente nel buffer del device garantendo silenzio numerico ($0.0\text{f}$) a partire da $n_{\text{device, pause}} + N_{\text{tail}}$.
