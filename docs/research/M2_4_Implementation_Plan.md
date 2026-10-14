@@ -1,6 +1,6 @@
 # CYMATICA M2.4 — Piano di integrazione compositiva e DSP v1
 
-- **Stato:** **piano operativo allineato ai contratti d'ingresso M2.4 ratificati in [ADR-0003](../adr/0003-m2-decisions-contracts.md)** (2026-10-14); non sostituisce la roadmap normativa.
+- **Stato:** **documento di ricerca e architettura compositiva allineato ai contratti d'ingresso M2.4 ratificati in [ADR-0003](../adr/0003-m2-decisions-contracts.md)** (2026-10-14); la sequenza operativa vincolante di sviluppo è esclusivamente articolata negli incrementi **Inc-1..Inc-5** definiti in `docs/progress.md`. Non sostituisce la roadmap normativa.
 - **Baseline:** commit `460bc286378b473218bc07f751e3615964626a11` (2026-10-13), aggiornato con formalizzazione D-M2-04..07 (2026-10-14).
 - **Fonti:** [ricerca revisionata](M2_4_Deep_Research_Reviewed.md), [review metodologica](M2_4_Research_Review.md), [Spec §16/§32](../../CYMATICA_Specifica_Agentica_Sviluppo.md), [ADR-0003](../adr/0003-m2-decisions-contracts.md), [DESIGN §8/§16](../../DESIGN.md).
 - **Owner del piano:** Coordinatore sviluppo M2.4; scelta artistica finale del titolare. Non attribuire un'autorità normativa autonoma al documento.
@@ -34,7 +34,14 @@ Core/deterministic planner (mai nella callback)
 
 `MotifMemory`, `PhrasePlan`, `HarmonicFunction` sono oggetti concettuali **non ancora contratti/API**. Non imporre la memorizzazione permanente dei motivi in `MusicIntentEvent`. Per la futura proiezione geometrica servirà invece un piano semantico condiviso, da formalizzare all'ingresso di M3 senza duplicare la timeline.
 
-## 3. Sequenza di sviluppo proposta
+## 3. Sequenza operativa autoritativa (Inc-1..Inc-5) e mappatura dei workstream di ricerca
+
+La **sequenza operativa autoritativa e vincolante** di implementazione per M2.4 è definita unicamente dagli incrementi indipendenti **Inc-1..Inc-5** in `docs/progress.md`. Le unità di ricerca concettuale **M2.4-A..F** sotto riportate costituiscono stream consultivi di approfondimento e checkpoint di qualità artistica, mappati in modo univoco sull'avanzamento degli incrementi tecnici:
+- **Inc-1 (Voice Allocator & Lifecycle):** implementa i contratti normativi di M2.4-C (allocazione a 8 voci, pairing, steal tails statiche, freeze su Pause, Stop distruttivo).
+- **Inc-2 (Sintesi 4 Ruoli & 4 Bus):** implementa le firme timbriche e il routing di M2.4-D (primitive analitiche, bus dedicati, micro-ducking, soft-clipper master).
+- **Inc-3 (Music Planner Gerarchico & Candidate Search):** implementa la generazione simbolica di M2.4-A e M2.4-B (motivo relativo, trasformazioni pure, scoring deterministico, fallback bounded).
+- **Inc-4 (Fixture A-B-A' 96 battute & Profiling Realtime):** implementa la forma musicale a due sezioni e la transizione di M2.4-E, unitamente al profiling Release $\le 2,0\text{ ms}$.
+- **Inc-5 (Integrazione CACP, Artefatti WAV & Handoff M2.5):** implementa l'esportazione degli artefatti, i test quantitativi e il dossier CACP di M2.4-F per il gate M2.5.
 
 | Unità di lavoro | Deliverable | Prova minima | Condizione di uscita |
 |---|---|---|---|
@@ -47,7 +54,7 @@ Core/deterministic planner (mai nella callback)
 
 Le unità B, C e D possono avere worktree separati se l'integrazione non rompe ownership e API; non integrare più di una nuova famiglia DSP prima della misura del relativo costo. M2.4-F è un *checkpoint artistico di qualità* non una sostituzione dei test obbligatori normativi.
 
-## 4. Politiche progettuali iniziali (da decidere prima dell'implementazione dipendente)
+## 4. Politiche progettuali ratificate in ADR-0003 (Invarianti e Profili)
 
 ### 4.1 Motivi, forma e scoring
 
@@ -57,18 +64,18 @@ Le unità B, C e D possono avere worktree separati se l'integrazione non rompe o
 - Prima prova: variante A (scala + Euclidean), variante B (A+planner/motif). Il voice-leading e la variante C entrano solo dopo che B è riproducibile.
 - Armonia: grafo finito di **stabilità → preparazione → tensione → risoluzione**, con vocaboli modali e accordi volutamente ridotti; non codificare una grammatica tonale universale.
 - `tension` è **multidimensionale musicale** (armonia/ritmo/registro/timbro/densità), distinta dalla Dissonanza di salute.
-- **Schema compositivo di prova per la run di 3 minuti (non template obbligatorio):** forma con esposizione/sviluppo, contrasto e ritorno trasformato. Durate e sezioni sono obiettivi di orchestrazione indicativi: fissare i veri `sampleFrame` tramite `MusicClock`, non partendo da minuti arrotondati.
-  1. *Esposizione e sviluppo:* `Pulso` stabilisce la griglia, `Corpo` presenta fondamento armonico e `Vettore` espone `Motif_0`; la seconda frase introduce `Trama` e una trasformazione conservativa. A 120 BPM in 4/4, un eventuale cambio dopo 36 battute cade a 72 secondi ed è un bar boundary valido; è **solo un esempio**, non una durata fissa.
-  2. *Contrasto:* introdurre `SetTempoMap` soltanto al beat boundary accettato dal clock (bar boundary per cambi di metrica); `Pulso` e `Trama` adottano la nuova griglia, mentre il pad già attivo di `Corpo` segue il lifecycle cross-epoch. Durata della sezione ricavata dal numero di barre/frasi nel nuovo tempo, non dall’ora `1:15` arbitraria.
-  3. *Ritorno e risoluzione:* ripresentare un `Motif_0` riconoscibile, trasposto o riorchestrato, e chiudere la frase/cadenza su boundary derivati dal clock. Adattare le durate musicali per un rendering continuo di almeno 180 s con finale documentato, senza cambi di metrica a metà battuta.
+- **Schema compositivo di prova per la run di 3 minuti (fixture-m2-4-v1, profilo sperimentale versionato):** forma tripartita A–B–A′ con 32 battute per sezione (96 battute totali, durata nominale 182,857125 s = 8.777.142 campioni a 48 kHz).
+  1. *Sezione A (Esposizione e sviluppo):* Re Dorico, 120 BPM 4/4 (32 battute = 128 semiminime = 64,0 s = 3.072.000 campioni a 48 kHz). `Pulso` stabilisce la griglia euclidea fondamentale, `Corpo` presenta il fondamento armonico, `Vettore` espone il motivo principale `Motif_0`, `Trama` introduce contrappunto nella seconda metà.
+  2. *Sezione B (Contrasto e tensione):* Transizione `SetTempoMap` su confine di battuta esatto a Sol Eolio, 140 BPM 4/4 (32 battute = 128 semiminime = 2.633.142 campioni a 48 kHz; inizio al frame assoluto 3.072.000, fine al frame assoluto 5.705.142). Il pad di `Corpo` sostiene la transizione cross-epoch; `Pulso` e `Trama` adottano nuove configurazioni euclidee; `Vettore` esegue variazioni trasformazionali del motivo. `MusicClock::setTempoMap()` riconcilia esattamente `deltaF == boundary.value` accettando il boundary al frame 2.633.142 (non utilizzare valori arrotondati come 2.633.143 che causerebbero `Rejected`).
+  3. *Sezione A′ (Ritorno e cadenza):* Transizione `SetTempoMap` su confine di battuta esatto di ritorno a Re Dorico, 120 BPM 4/4 (32 battute = 128 semiminime = 64,0 s = 3.072.000 campioni a 48 kHz; inizio al frame assoluto 5.705.142, fine al frame assoluto 8.777.142). Ripresentazione variata di `Motif_0` e cadenza finale risolutiva. Triadi orchestrate distribuendo le note tra Corpo (max 2 voci) e Trama/Vettore.
 
 ### 4.2 Unità voci/identità
 
 - **Contratto vigente:** massimo otto DSP voice slot, fissi per ruolo, due ciascuno, preallocati. *Numero di oscillatori interni allo slot* e *numero di note indipendenti* non vanno confusi; un'espansione composita che aggiri il limite va sottoposta a modifica ADR.
-- **Pairing e rilascio failsafe (proposta):** il scheduler M2.3 emette già `NoteOn`/`NoteOff` per `durationFrames > 0`. Non introdurre un secondo rilascio non idempotente: testare un fallback interno allo slot con scadenza assoluta `sampleFrame + durationFrames` nella timeline logica a 48 kHz, usato quando manca il `NoteOff`, non un countdown cieco in frame del device. Un `NoteOff` matching deve poter avviare il Release una sola volta; gestire eventi tardivi, duplicati, persi, fuori ordine e post-steal. La semantica delle note con `durationFrames == 0` è una decisione d’ingresso da registrare; non assumere un gate implicito.
-- **Voice stealing con micro-rilascio misurabile:** applicare la policy di selezione ADR-0003 (preferire inviluppo più avanzato, due slot per ruolo) e rispettare il `sampleFrame` della nuova nota. Confrontare micro-fade di 2 ms, crossfade bounded e coda DSP transitoria che conservi una parte appropriata dello stato uscente. Nessuna di queste tecniche da sola garantisce matematicamente assenza di click o di artefatti timbrici: validare valore/derivata del PCM, ascolto e costo realtime. Un token interno impedisce vecchi `NoteOff` sul nuovo occupante, senza nuovi campi pubblici obbligatori.
-- **Continuità cross-epoch e revisione del piano:** preservare una nota già attiva in `SetTempoMap` con `NoteOff` matching, senza assumere che gli eventi futuri di epoch precedente restino tutti validi. Definire separate politiche per eventi committed (frame garantiti), eventi non committed (ripianificazione) e note sostenute, compatibili con la SPSC e con l’ordinamento M2.3. `Pause` recuperabile congela il transport secondo la policy da scegliere; `Stop`/nuova run eliminano il piano precedente. Non imporre flush di tutte le voci durante una pausa senza una decisione motivata.
-- `Pause`, `Resume`, `Stop`, replay reset, device restart, errore trasporto e nuova run: definire una matrice di stati che specifichi cursore logico, slot/inviluppi, queue/epoch e uscita sonora. Se il device emette subito silenzio, non dichiarare eseguito un fade di 2 ms; una coda udibile richiede rendering bounded e una transizione compatibile con Stop. Registrare differenze rispetto al tono monofonico M2.3 e aggiungere test sample-accurate.
+- **Pairing, rilascio failsafe e note aperte (`accepted for implementation` in ADR-0003):** lo scheduler emette `NoteOn`/`NoteOff` per `durationFrames > 0`. `AudioScheduler::dispatchDueEvents()` mantiene gli eventi staged durante la backpressure SPSC e ritenta il dispacciamento (distinguendo backpressure ordinaria, eventi tardivi, drop effettivo e NoteOff assente). Per eventi con `durationFrames > 0`, lo slot applica un timer failsafe interno su scadenza assoluta `sampleFrame + durationFrames` nella timeline logica a 48 kHz per prevenire note appese da drop effettivo. Per `durationFrames == 0` (gate aperto, pad di Corpo), il planner gestisce un lease deterministico legato a frase/sezione con responsabilità dell'emissione del matching `NoteOff` alla cadenza/confine; la recoverability di sicurezza scatta ai confini di sezione, per voice stealing all'arrivo di nuove note del ruolo, o per reset forzato a `Idle` su Stop/Reset/Nuova Run. Rimosso il timeout monofonico temporaneo di 1s.
+- **Voice stealing bounded con steal tails statiche (`accepted for implementation` in ADR-0003):** onset esatto del nuovo `NoteOn` sample-accurate senza ritardo; la voce uscente viene trasferita su una steal tail statica preallocata nello slot (max 1 tail per slot, 8 totali nel sistema) con rampa lineare discendente a zero di 2 ms (96 campioni a 48 kHz). Su saturazione da furti ravvicinati (< 96 campioni), degradazione continua dell'ampiezza d'uscita della steal tail precedente e incremento di `voiceDropCount`. Ordinamento totale di selezione: priorità 1 = Release (ampiezza minore, bonificando NaN/Inf a 0.0f), priorità 2 = età inviluppo, tie-break finale su `slotIndex` (0 prima di 1). L'assenza percepita di click va validata empiricamente con analisi PCM e ascolto multimodale, senza assunzioni aprioristiche.
+- **Continuità cross-epoch e confine di commitment (`accepted for implementation` in ADR-0003):** note attive proseguono inalterate attraverso `SetTempoMap`; eventi nella finestra di lookahead SPSC (150 ms) sono committed e i loro `NoteOn` mantengono il `sampleFrame` nominale garantito; i `NoteOff` cross-epoch matching per `(role, eventId)` con epoch precedente vengono regolarmente onorati. Il planner ripianifica unicamente le intenzioni non committed nel Mutable Planning Horizon. L'implementazione storica M2.3 (`audio_engine.cpp`), che scartava indistintamente tutti i NoteOn di vecchia epoch, viene formalmente dichiarata come soggetta a migrazione durante lo sviluppo M2.4, con riesame motivato dei test storici (`[scheduler][epoch_drop]`).
+- **Matrice stati di trasporto (`accepted for implementation` in ADR-0003):** `Pause` congela **immediatamente** il cursore logico, la pianificazione, il consumo SPSC, le fasi, gli inviluppi ADSR e gli LFO al frame nominale del comando; il de-click di 2 ms (96 campioni a 48 kHz) è un output-only tail fisico applicato esclusivamente al buffer d'uscita del device, evitando click acustici senza consumare eventi musicali futuri né spostare la timeline. `Resume` riparte esattamente dal medesimo frame logico congelato con fade-in fisico di 2 ms. Gestione deterministica di ACK e sequenze ravvicinate. `Stop` è distruttivo al suo boundary (reset a `Idle`, incremento `generationToken`, drain bounded di SPSC e code comandi, invalidazione piano nel Coordinator). `Emergency Mute` applica silenzio immediato senza fade.
 - `voiceDropCount`, `orphanNoteCount` e `staleNoteOffCount` (nomi proposti, non API accettate) aiutano CACP e offline diagnosis. Telemetria esclusivamente bounded.
 
 ### 4.3 Palette timbrica, candidati DSP e gain staging
@@ -119,17 +126,21 @@ Canonical output per M2.4: piano simbolico/versionato, `MusicIntentEvent` ordina
 4. Composizione: same-seed trace identico, seed isolation, trasformazioni che preservano invarianti, novelty controllata, risoluzione delle frasi, ruolo dominante distinguibile.
 5. CACP (`AC-AO-02`): onset e sample timing correlati a trace/intent sul WAV di `AudioProbe`, con offset e conversioni device/logical dichiarati; integrità dei 3 minuti, validità manifest, prove cross-epoch dei pad e giudizio percettivo separato dalle misure automatiche. Rispettare i criteri obbligatori esistenti senza inventarne di nuovi.
 
-## 6. Decisioni aperte e criteri di promozione a ADR
+## 6. Quadro normativo consolidato ADR-0003 e perimetro di future revisioni
 
-| Questione | Baseline | Trigger per una nuova decisione normativa |
+Tutte le decisioni d'ingresso per la sottofase M2.4 sono formalmente definite e ratificate in [ADR-0003](../adr/0003-m2-decisions-contracts.md) (decisioni D-M2-04..07, stato `accepted for implementation (review remediation pending)`). Nessuna decisione d'ingresso architetturale rimane aperta per l'avvio della sequenza operativa Inc-1..Inc-5.
+
+La tabella seguente riepiloga il perimetro dei contratti congelati rispetto a eventuali future revisioni normative (riservate a milestone successive o a evidenze empiriche formali):
+
+| Ambito | Stato in ADR-0003 / M2.4 | Condizione per eventuale revisione normativa futura |
 |---|---|---|
-| 8 voci/2 per ruolo | Invariata | Benchmark/ascolto dimostrano fallimento riproducibile e miglioramento superiore alle alternative sparse |
-| `MusicIntentEvent` | Invariato | Necessità concreta di ID strutturali per replay/CIE con contratto pubblico, non semplice eleganza |
-| Motif grammar | Proposta | Evidenza di coerenza senza monotonia su seed e ascolti pilota |
-| Renderer KS/granulare | Spike opzionale | Vantaggio timbrico riconoscibile e costo DSP ammissibile |
-| Perceptual metric threshold | Nessun threshold artistico normativo M2.4 | Studio pilota, misure affidabili e scelta deliberata del titolare |
-| 2 ms / 512 frame | Target già documentato ADR-0003 | Misure su hardware reali potrebbero richiedere profili/soglie distinti: cambiare tramite ADR, non nascondere il miss |
-| Semantica strutturale musica→geometria | Non pubblica in M2.4 | Prima della generazione di geometria dipendente da motivi in M3/M6 definire shared plan e fairness validation |
+| Pool 8 voci statiche (2/ruolo) | Normativo (`accepted for implementation`) | Benchmark/ascolto dimostrano fallimento riproducibile e miglioramento superiore alle alternative sparse |
+| `MusicIntentEvent` (IR pubblico) | Normativo invariato (D-M2-02) | Necessità concreta di ID strutturali per replay/CIE con contratto pubblico in M3+, non per comodità interna |
+| Bounded Candidate Search & Tie-Break | Normativo (`accepted for implementation`) | Vincoli hard di sistema; tie-break deterministico totale e stabile; scoring e pesi sono profili versionati |
+| Fixture A-B-A' 96 battute (~182,86s) | Profilo sperimentale versionato (`fixture-m2-4-v1`) | Calibrazione artistica o test di cambi metrici ulteriori approvati come profili aggiuntivi, non per presunti limiti matematici |
+| Palette timbrica e Gain staging | Profilo sperimentale versionato (`synth-palette-v1`) | Taratura fine mediante ascolto e WAV; future estensioni timbriche (KS, wavetable) subordinate a misura CPU |
+| Target callback $\le 2,0\text{ ms}$ / 512 frame | Normativo Release (D-M2-07) | Evidenze su target hardware eterogenei in M2.5; mai declassare il target a runtime senza revisione ADR |
+| Semantica musica $\to$ geometria | Esclusa da M2.4 (riservata a M3+) | Prima della generazione di geometria dipendente da motivi in M3/M6 definire shared plan e fairness validation |
 
 ## 7. Handoff a M2.5
 
