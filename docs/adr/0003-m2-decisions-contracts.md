@@ -10,13 +10,18 @@
 ## 1. Contesto
 
 La Milestone 2 stabilisce la prima forma musicale simbolica condivisa di CYMATICA e introduce il controllo agentico e l'osservazione audiovisiva incrementale (CACP, Spec §31.5).
-In ottemperanza a `AGENTS.md` §1.1 e alla sottofase **M2.1 — Decisioni e contratti** (Spec §32), prima di implementare i task dipendenti (M2.2 per tono e AudioProbe, M2.3 per transport e scheduler, M2.4 per musica procedurale v1) è necessario congelare formalmente cinque decisioni architetturali d'ingresso:
-
-1. **D-M2-01:** Canale thread-safe `SetTempoMap` (Spec §20.7, §32);
-2. **D-M2-02:** Rappresentazione simbolica `MusicIntentEvent` per i 4 ruoli musicali (Spec §16, §20.5, §32);
-3. **D-M2-03:** Voice budget polifonico e scheduling ahead-of-time (Spec §20.7, §32);
-4. **D-AO-01:** Nucleo comune del dispatcher input per il tono (`InputAction`/`ActionState`) e runner locale CACP (Spec §31.5, §32, Analisi CACP §4, §9, §12);
-5. **D-AO-02:** Tap AudioProbe e profilo di verifica del tono `tone_probe_v0` (Spec §31.5, §32, Analisi CACP §6, §9, §12).
+In ottemperanza a `AGENTS.md` §1.1 e alle sottofasi **M2.1** e **M2.4** (Spec §32), questo ADR formalizza i contratti architetturali vincolanti di Milestone 2:
+- Per **M2.1** (congelate all'avvio di M2):
+  1. **D-M2-01:** Canale thread-safe `SetTempoMap` (Spec §20.7, §32);
+  2. **D-M2-02:** Rappresentazione simbolica `MusicIntentEvent` per i 4 ruoli musicali (Spec §16, §20.5, §32);
+  3. **D-M2-03:** Voice budget polifonico e scheduling ahead-of-time (Spec §20.7, §32);
+  4. **D-AO-01:** Nucleo comune del dispatcher input per il tono (`InputAction`/`ActionState`) e runner locale CACP (Spec §31.5, §32, Analisi CACP §4, §9, §12);
+  5. **D-AO-02:** Tap AudioProbe e profilo di verifica del tono `tone_probe_v0` (Spec §31.5, §32, Analisi CACP §6, §9, §12).
+- Per **M2.4** (contratti d'ingresso deliberati il 2026-10-14 per la musica procedurale v1 e il synth a 8 voci):
+  6. **D-M2-04:** Allocazione polifonica a 8 voci, voice stealing bounded (crossfade 2 ms), note aperte, continuità cross-epoch e matrice stati di trasporto;
+  7. **D-M2-05:** Architettura compositiva del Music Planner gerarchico, bounded candidate search e profilo sperimentale fixture A-B-A';
+  8. **D-M2-06:** Architettura DSP dei 4 ruoli, 4 bus dedicati, gain staging iniziale e protezione master bounded;
+  9. **D-M2-07:** Profiling realtime DSP (target $\le 2,0\text{ ms}$ / 512 frame) e protocollo di validazione per handoff M2.5.
 
 ---
 
@@ -81,26 +86,8 @@ In ottemperanza a `AGENTS.md` §1.1 e alla sottofase **M2.1 — Decisioni e cont
     - 2 voci per `Trama`;
     - 2 voci per `Vettore`.
   - **Policy di saturazione:** Se una voce per un ruolo è satura, si applica voice-stealing sulla voce con inviluppo più avanzato con micro-fadeout di 2 ms (senza pop), registrando un contatore `voiceDropCount` nella telemetria senza mai bloccare la callback.
-  - **Evoluzione polifonica M2.4 & M2.5 (Addendum architetturale propedeutico):**
-    1. *Identità delle voci e mapping NoteOn/NoteOff:*
-       In M2.2/M2.3 l'oscillatore di test era monofonico e tracciava l'epoch globale della nota attiva (`activeNoteEpoch_`). In M2.4 viene introdotto il pool statico di 8 voci (`VoiceSlot[8]`, preallocate senza allocazioni dinamiche):
-       - 2 voci per `Pulso` (percussione/kick/snare sintetico);
-       - 2 voci per `Corpo` (armonia/basso/pad);
-       - 2 voci per `Trama` (arpeggi/texture);
-       - 2 voci per `Vettore` (melodia lead/sweep).
-       Ogni slot polifonico conserva almeno ruolo, `eventId` dell’occupante, stato attivo, fase e inviluppo, con ownership interna che impedisca a `NoteOff` tardivi di interrompere un nuovo occupante. Un `generationToken` di slot è un’opzione di implementazione interna, **non** un campo aggiunto automaticamente agli eventi pubblici. Definire unicità/riuso degli `eventId` prima di integrare le otto voci.
-       - **Durata nominale e rilascio sicuro (decisione implementativa M2.4):** In M2.3 `AudioScheduler::scheduleIntent()` genera già `NoteOn` e, se `durationFrames > 0`, un `NoteOff` con lo stesso `(role, eventId)`. Conservare questa semantica finché la decisione d’ingresso M2.4 non approvi un’alternativa. Valutare una scadenza di rilascio *failsafe* interna allo slot, calcolata nella timeline logica a 48 kHz come `sampleFrame + durationFrames` con saturazione: se il `NoteOff` previsto non arriva, la voce non rimane appesa. Un `NoteOff` esplicito e l’eventuale failsafe devono essere idempotenti e verificati su backpressure, duplicati, drop e voice stealing. Definire esplicitamente il caso `durationFrames == 0` (nota aperta/non schedulata o evento da rifiutare) prima della relativa implementazione; nessun countdown in frame del device può sostituire la timeline logica.
-       - **Voice stealing con riduzione dei click:** Resta la policy approvata di due voci per ruolo e rilascio breve nominale di 2 ms (96 frame logici a 48 kHz). Una coda DSP bounded (*steal tail*), un crossfade o un inviluppo di micro-rilascio sono **alternative da confrontare**, non garanzie automatiche di assenza di click. L’attacco della nuova nota deve rispettare il sample frame accettato; eventuali code transitorie consumano CPU/memoria e non diventano nuove note indipendenti. Verificare waveform e continuità ai confini, incluse fase e pendenza quando pertinenti, e registrare gli eventuali artefatti residui.
-    2. *Ciclo di vita delle note sostenute (Pad di Corpo) e superamento del timeout arbitrario:*
-       La salvaguardia temporanea monofonica introdotta in M2.3 (auto-release forzato a 48.000 campioni / 1s post-transizione epoch) viene superata in M2.4. Le note sostenute (es. pad e droni armonici di `Corpo`) mantengono la fase di Sustain legittimamente attraverso i confini di misura, frase ed epoch, terminando unicamente all'arrivo del loro legittimo `NoteOff` (o per voice-stealing all'interno delle 2 voci di quel ruolo con micro-fadeout di 2 ms). Il rilevamento di voci orfane sarà governato dallo stato dell'inviluppo ADSR e dalla durata nominale (`durationFrames`) specificata in `MusicIntentEvent`.
-       - **Epoch, piano committed e trasporto:** L’attuale M2.3 incrementa `transportEpoch` su `SetTempoMap`, scarta eventi obsoleti salvo `NoteOff` riconciliabili con una voce attiva e lascia invariata la timeline `sampleFrame` logica. M2.4 deve preservare le voci già attive, rispettare gli eventi effettivamente *committed* e definire come invalidare/ripianificare le intenzioni future non committed con BPM/metrica cambiati: non è corretto né scartare indiscriminatamente tutte le note né conservare indistintamente tutti gli eventi di epoch precedente. Registrare prima dell’implementazione la policy di revisione del piano, i boundary e la riconciliazione delle code SPSC, con test intra-blocco e cross-epoch; non attribuire questa nuova semantica al runtime M2.3 già chiuso.
-       - **Pause/Resume vs Stop/Reset (decisione differita a M2.4):** Una pausa recuperabile congela la timeline; definire esplicitamente se mantiene lo stato interno delle voci/inviluppi e come silenziare l’uscita e riprenderla senza click. `Stop`, cambio run e un eventuale `Reset` richiedono invece invalidazione del piano e pulizia dello stato. Non prescrivere un fade in un percorso che genera immediatamente zeri: un tail di 2 ms richiede un render di coda bounded, oppure va dichiarato un arresto tecnico immediato. Il comportamento attuale monofonico M2.3 non è una prova della futura policy polifonica.
-    3. *Budget di calcolo e deadline realtime della callback DSP (M2.4 / M2.5):*
-       A 48 kHz con quantum effettivo del device di 512 frame, il periodo nominale è $512/48000 \approx 10,67\text{ ms}$. Il test di flooding M2.3 con soglia $< 50\text{ ms}$ verifica la terminazione bounded, ma **non** certifica il rispetto della deadline audio.
-       **Target accettato M2.4/M2.5:** la callback completa (8 voci, inviluppi, gestione eventi, mix ed eventuale overhead delle sonde) deve essere profilata rispetto a $\le 2,0\text{ ms}$ per 512 device frame a 48 kHz ($< 20\%$ del quantum). Registrare hardware, backend, sample rate e quantum effettivi, carico, percentili e massimo osservato, deadline miss, underrun e frame persi; eseguire benchmark Release e verifiche su hardware reale. Il rispetto del target non garantisce universalmente zero underrun: profili device differenti, incluso Android, richiedono misure dedicate. Ogni revisione del budget va registrata nell'ADR; restano invariati i gate audio obbligatori di M2.5 (Spec §32).
-    4. *Vincoli trasversali per il sintetizzatore M2.4 (senza congelare algoritmi timbrici):*
-       - **Realtime e stabilità numerica:** La callback mantiene lavoro bounded, nessuna allocazione/lock/I/O, campioni e stati DSP finiti, e strumenti per rilevare NaN/Inf e rallentamenti da subnormali. FTZ/DAZ dove disponibile, flush controllato degli stati e smoothing dei parametri sono tecniche candidate da selezionare in base a profilo numerico, portabilità, comportamento degli inviluppi e misure; tempi di smoothing e soglie di flush non sono automaticamente valori normativi.
-       - **Telemetria di ruolo:** `AudioTelemetryFrame` conserva i quattro `ChannelFrame` (`pulse`, `body`, `texture`, `vector`); in M2.4 definire semantica misurabile di `energy`, `onset`, `pitchHz`, `density` e `confidence` coerente con i quattro bus e l’osservabilità CACP. Derivare preferibilmente feature bounded dallo stato simbolico/DSP anziché da FFT ridondanti nella callback, senza inventare un nuovo campo o dichiarare accuratezze non testate.
+  - **Evoluzione polifonica M2.4 (Rinvio normativo):**
+    I dettagli implementativi dell'allocatore a 8 voci, voice stealing bounded con steal tails, note aperte, continuità cross-epoch e matrice stati di trasporto sono formalizzati in **D-M2-04**; i vincoli di budget realtime ($\le 2,0\text{ ms}$) in **D-M2-07**.
 - **Stato:** `accepted for implementation`.
 
 ---
@@ -165,9 +152,108 @@ In ottemperanza a `AGENTS.md` §1.1 e alla sottofase **M2.1 — Decisioni e cont
 
 ---
 
+### D-M2-04: Allocazione polifonica a 8 voci, Voice Stealing Bounded, Note Aperte, Continuità Cross-Epoch e Matrice Stati di Trasporto (Spec §16.9, §20.7, §20.8, §32)
+
+- **Problema:** Superare il modello monofonico temporaneo di M2.2/M2.3 (`activeNoteEpoch_`, timeout forzato a 1s) implementando l'allocazione polifonica a 8 voci, il ciclo di vita delle note sostenute (pad di `Corpo`), la gestione deterministica del voice stealing senza click, la riconciliazione causale dei `NoteOff` cross-epoch e la semantica non distruttiva di `Pause`/`Resume` rispetto a `Stop`/`Reset`.
+- **Invarianti architetturali normativi (`accepted for implementation`):**
+  1. **Pool polifonico fisso a 8 voci:** 8 slot statici preallocati a tempo di compilazione (`VoiceSlot[8]`), ripartiti rigidamente in 2 voci per ruolo:
+     - 2 voci per `Pulso` (percussione/kick/transient);
+     - 2 voci per `Corpo` (armonia/pad/basso);
+     - 2 voci per `Trama` (arpeggi/micro-contrappunto);
+     - 2 voci per `Vettore` (melodia lead/sweep).
+     Nessuna allocazione dinamica, nessun pool dinamico condiviso, nessuna espansione di voci composite senza revisione formale dell'ADR.
+  2. **Identità e accoppiamento delle note:** Correlazione biunivoca rigorosa su `(role, eventId)`. Ogni voice slot conserva: ruolo, `activeEventId`, stato di inviluppo (`Idle`, `Attack`, `Decay`, `Sustain`, `Release`), fase dell'oscillatore, frequenza, parametri DSP e un `generationToken` numerico interno (uint32). Il `generationToken` viene incrementato ad ogni nuova allocazione o furto; un `NoteOff` tardivo o riferito a un occupante precedente viene scartato senza mai interrompere la nuova nota. Gli `eventId` sono generati come identificatori univoci e monotoni all'interno della run dal Coordinator.
+  3. **Durata nominale e rilascio failsafe:** Per eventi con `durationFrames > 0`, la scadenza nominale è calcolata come `sampleFrame + durationFrames` sulla timeline logica interna a 48 kHz (con protezione anti-overflow saturante). Lo scheduler emette il `NoteOff` programmato, mentre lo slot implementa un timer failsafe interno su tale scadenza assoluta: se il `NoteOff` previsto viene perso per backpressure o congestione SPSC, la voce entra comunque in Release evitando note appese indefinitamente. L'applicazione del `NoteOff` esplicito e del failsafe interno è strettamente idempotente.
+  4. **Semantica delle note aperte (`durationFrames == 0`) e recoverability:**
+     - `durationFrames == 0` costituisce un gate aperto con rilascio gestito unicamente da un `NoteOff` esplicito. Il planner M2.4 ne limita l'uso iniziale ai pad sostenuti di `Corpo`, senza tuttavia introdurre un divieto strutturale irreversibile nel contratto pubblico.
+     - La rimozione del timeout monofonico arbitrario di 1s (48.000 campioni) consente ai pad di rimanere legittimamente nello stadio di `Sustain` attraverso confini di misura, frase ed epoch.
+     - Il recupero deterministico di note aperte orfane (in caso di `NoteOff` perso) è garantito a livello di voice allocator: quando entrambi gli slot del ruolo sono occupati e giunge una nuova richiesta, si attiva la policy di voice stealing. In caso di invalidazione del piano, `Stop`, `Reset` o Nuova Run, tutte le note aperte vengono forzatamente rilasciate e resettate.
+  5. **Voice Stealing Bounded con Steal Tails statiche:**
+     - Al frame campionario esatto del nuovo `NoteOn`, la voce subentrante attacca immediatamente il suo inviluppo, preservando l'onset ritmico sample-accurate senza alcun ritardo.
+     - La voce uscente viene trasferita su una *steal tail* secondaria, statica e preallocata all'interno dello slot, che applica una rampa lineare discendente a zero di esattamente 2 ms (96 campioni a 48 kHz).
+     - La steal tail preserva lo stato della forma d'onda uscente (fase, ampiezza istantanea, stato del filtro) sfumandolo nel buffer dello slot con il segnale della nuova voce.
+     - Limite rigido: esiste al massimo 1 steal tail attiva per slot (massimo 8 steal tails simultanee nel sistema, preallocate senza heap allocation).
+     - *Saturazione (steal su steal):* se interviene un ulteriore furto sullo stesso slot prima del decadimento dei 2 ms, la steal tail precedente viene troncata a singolo campione/clamp e riassegnata alla nuova transizione, registrando `voiceDropCount` nella telemetria.
+     - *Ordinamento deterministico di selezione:* se entrambi i 2 slot del ruolo sono attivi, la selezione dello slot da rubare segue:
+       1. Priorità 1: slot in stadio di `Release` (tra due in Release, quello con ampiezza minore);
+       2. Priorità 2: slot con inviluppo nello stadio più anziano o attivo da più tempo (`sampleFrame` di avvio più remoto).
+     - L'assenza percepita di click non viene assunta a priori, ma verificata empiricamente su forma d'onda PCM e ascolto multimodale.
+  6. **Confine di commitment e riconciliazione SPSC cross-epoch:**
+     - *Mutable Planning Horizon:* frasi e sezioni future mantenute nelle strutture del Coordinator/Planner, non ancora trasferite alla SPSC; liberamente modificabili, invalidabili o ripianificabili in caso di cambio metrica/tempo (`SetTempoMap`) o interventi di gameplay.
+     - *Committed Horizon:* eventi già trasferiti nella `SpscQueue<ScheduledAudioEvent, 256>` nella finestra di lookahead nominale (150 ms = 7.200 campioni = 18 tick a 120 Hz). Una volta inseriti nella SPSC, gli eventi sono garantiti al loro `sampleFrame` nominale.
+     - Su transizione di tempo/metrica (`SetTempoMap` con incremento di `transportEpoch`): le note già attive proseguono inalterate; i `NoteOff` cross-epoch matching per `(role, eventId)` con epoch precedente vengono regolarmente onorati al loro frame nominale; eventi futuri committed con vecchia epoch vengono processati dalla logica causale validata in M2.3. Il planner invalida e ripianifica unicamente le intenzioni non committed nella nuova mappa di tempo.
+  7. **Matrice Stati di Trasporto (`Pause`/`Resume` vs `Stop`/`Reset`):**
+     - `Pause` (Non distruttivo / Freeze): il comando avvia una fase transitoria `Pausing` con rampa di fade-out master lineare di 2 ms (96 campioni a 48 kHz), mantenendo il DSP attivo. Al termine dei 96 campioni, al boundary di freeze effettivo, il motore transita a `TransportState::Paused`: la timeline logica e i cursori si congelano, tutte le 8 voci congelano fasi, inviluppi ADSR, LFO e scadenze nominali senza ricevere `NoteOff`, e la `SpscQueue` congela il consumo degli eventi. Durante `Paused` il device emette silenzio (0.0f). Al `Resume`, il motore transita a `Resuming`, ripristina la timeline logica dal punto congelato e applica un fade-in master lineare di 2 ms tornando a `Running`.
+     - `Stop` (Distruttivo): comando ordinario `Stop` $\to$ fade-out lineare master di 2 ms $\to$ al termine dei 2 ms, reset forzato di tutti gli 8 slot a `Idle` (fasi azzerate, inviluppi inattivi, `generationToken` incrementato), invalidazione e drenaggio bounded della coda comandi ed eventi SPSC, invalidazione del piano nel Coordinator.
+     - `Emergency Mute`: azzeramento immediato del buffer audio senza fade-out ammesso per guasti tecnici o terminazione forzata, registrato come anomalia tecnica.
+- **Stato:** `accepted for implementation`.
+
+---
+
+### D-M2-05: Architettura Compositiva del Music Planner gerarchico, Bounded Candidate Search e Profilo Sperimentale Fixture A-B-A' (Spec §14, §15.9, §16.2–§16.6, §32)
+
+- **Problema:** Strutturare il generatore compositivo procedurale per garantire forma, memoria tematica, sviluppo cadenzale e continuità armonica su run estese ($\ge 180\text{ s}$), mantenendo determinismo assoluto, isolamento dei seed ed esecuzione confinata fuori dalla callback realtime.
+- **Invarianti architetturali normativi (`accepted for implementation`):**
+  1. **Pipeline gerarchica multilivello:** `FormPlan` $\to$ `SectionPlan` $\to$ `PhrasePlan` $\to$ `Motif` $\to$ `Bounded Candidate Generator` $\to$ `Hard Constraints` $\to$ `Deterministic Scoring` $\to$ `MusicIntentEvent[]`. Tutte le entità risiedono esclusivamente nel thread del Coordinator. `MusicIntentEvent` (ADR-0003 D-M2-02) rimane l'IR pubblico invariato.
+  2. **Rappresentazione simbolica relativa del Motivo (`Motif`):**
+     - Struttura puramente interna al planner: identificatore semantico `motifId`, contorno melodico espresso in gradi di scala relativi rispetto alla fondamentale corrente, durate razionali rispetto alla suddivisione metrica, maschera di accenti dinamici e registro target.
+     - Trasformazioni pure con conservazione dell'identità: trasposizione modale, inversione di contorno, variazione ritmica euclidea (rotazione/impulsi di Bjorklund), alterazioni cromatiche controllate e riorchestrazione di ruolo.
+  3. **Tempi musicali razionali:** confini di frase e sezione rigorosamente derivati dai confini di misura e beat del `MusicClock` a 48 kHz, senza accumulo di float e con zero drift.
+  4. **Bounded Candidate Search:** la generazione di ciascuna frase/decisione opera su un insieme finito e piccolo di candidati (profilo iniziale 4–8 opzioni).
+  5. **Vincoli Hard (Validazione di sistema):** filtraggio preventivo rigoroso applicato prima di qualsiasi scoring. Include unicamente: validità di parametri ed eventi, rispetto del budget di 2 voci per ruolo, aderenza ai confini della timeline e dell'orizzonte di commitment, capienza della coda SPSC e invarianti strutturali del piano. Vincoli di registro, assenza di cromatismi, consonanza o posizionamento su beat forti NON sono vincoli hard automatici. Il voice stealing è ammesso e può essere penalizzato musicalmente nello scoring se eccessivo.
+  6. **Scoring deterministico e tie-break canonico:** funzione di costo versionata che valuta continuità di voice-leading, aderenza al target di tensione/risoluzione e novità controllata. Il tie-break tra candidati a pari merito è totale, stabile e rigorosamente indipendente dall'ordine di allocazione in memoria o dall'iterazione dei container, indicizzato da `RandomKey` (Stafford Mix 13) secondo la policy di determinismo M1.
+  7. **Fallback compositivo garantito:** qualora nessun candidato superi i vincoli hard, il planner emette un pattern di fallback predefinito, bounded, valido e tracciabile (es. sustain neutro o silenzio sul ruolo), registrando l'intervento nel trace senza bloccare la generazione né lanciare eccezioni.
+  8. **Orchestrazione delle triadi:** gli accordi a tre o più note devono essere realizzati distribuendo le voci tra Corpo (fondamentale e quinta/terza, max 2 voci) e Trama/Vettore, senza violare il budget dei 2 slot di Corpo e senza sacrificare la linea melodica.
+- **Profilo sperimentale iniziale versionato (`fixture-m2-4-v1` / `proposed`):**
+  - *Forma tripartita A–B–A′ con 32 battute per sezione (128 battute totali):*
+    - **Sezione A (Esposizione e sviluppo):** Re Dorico, 120 BPM 4/4 (32 battute = 64,0 s = 3.072.000 campioni a 48 kHz). Pulso stabilisce la griglia euclidea fondamentale, Corpo presenta il fondamento armonico, Vettore espone il motivo principale `Motif_0`, Trama introduce contrappunto nella seconda metà.
+    - **Sezione B (Contrasto e tensione):** Transizione `SetTempoMap` su confine di battuta esatto a Sol Eolio, 140 BPM 4/4 (32 battute $\approx 54,857$ s = 2.633.143 campioni a 48 kHz). Il pad di Corpo sostiene la transizione cross-epoch; Pulso e Trama adottano nuove configurazioni euclidee; Vettore esegue variazioni trasformazionali del motivo (inversione/trasposizione).
+    - **Sezione A′ (Ritorno e cadenza):** Transizione `SetTempoMap` su confine di battuta esatto di ritorno a Re Dorico, 120 BPM 4/4 (32 battute = 64,0 s = 3.072.000 campioni a 48 kHz). Ripresentazione variata di `Motif_0` e cadenza finale risolutiva.
+  - *Durata nominale totale:* $64,0 + 54,857 + 64,0 \approx 182,86\text{ secondi}$ ($8.777.143$ campioni a 48 kHz), conforme al requisito $\ge 180\text{ s}$ di Spec §32 e AC-AO-02.
+  - *Nota metodologica:* questa fixture costituisce un profilo di prova versionato. Il planner procedurale non deve codificare tonalità, BPM o progressioni come costanti architetturali immutabili nel codice.
+- **Stato:** `accepted for implementation` (con profilo `fixture-m2-4-v1` come `experimental initial profile`).
+
+---
+
+### D-M2-06: Architettura DSP dei 4 Ruoli, 4 Bus Musicali, Gain Staging e Protezione Master (Spec §16.8, §16.12, §20.2, §32)
+
+- **Problema:** Definire l'infrastruttura di sintesi audio polifonica a 8 voci per i 4 ruoli musicali (Pulso, Corpo, Trama, Vettore), il routing dei bus, la sicurezza numerica e la prevenzione del clipping sul master, nel rispetto dei vincoli hard-realtime.
+- **Invarianti architetturali normativi (`accepted for implementation`):**
+  1. **Quattro bus preallocati dedicati:** un bus stereo float32 per ciascun ruolo (`Pulso`, `Corpo`, `Trama`, `Vettore`). Ciascun bus accumula in modo deterministico le uscite dei propri 2 voice slot e delle rispettive steal tails attive. Nessuna allocazione dinamica, nessun lock, nessun I/O nella callback realtime.
+  2. **Sintesi nativa pura (zero campioni esterni per M2.4):** generazione audio basata su primitive DSP modulari condivise e sintesi analitica C++20, senza dipendenze da file audio esterni o decodifiche su disco, garantendo build pulita, determinismo e indipendenza del toolchain.
+  3. **Sicurezza numerica e floating-point:** campioni e stati dei filtri/oscillatori garantiti finiti; rilevamento e bonifica attiva di `NaN`/`Inf`; tecniche di mitigazione dei denormali (FTZ/DAZ su piattaforme supportate o flush periodico a zero); smoothing dei parametri continui.
+  4. **Protezione master bounded:** stadio finale di mix a costo computazionale $O(1)$ deterministico, senza lookahead obbligatorio in M2.4. Funzione matematica continua a comportamento bounded per ogni ingresso finito, con clamp di sicurezza a $[-1.0\text{f}, +1.0\text{f}]$. La protezione master previene il clipping digitale hard, ma la corretta gestione dinamica deve essere garantita a monte dal gain staging (il soft-clipper non deve compensare un arrangiamento saturato). Verifica distinta di clipping campionato, true peak offline, headroom e distorsione.
+  5. **Telemetria per ruolo (`ChannelFrame`):** per ciascun ruolo, `AudioTelemetryFrame` pubblica metriche calcolate direttamente dai bus: RMS energy (misurata post-bus e pre-master per rappresentare fedelmente l'energia udibile), envelope peak e onset trigger autoritativi desunti da Music Intent. Nessuna FFT ridondante nella callback.
+- **Profilo sperimentale iniziale versionato (`synth-palette-v1` / `proposed`):**
+  - *Pulso:* percussione/kick sintetico (oscillatore sinusoidale con pitch sweep esponenziale rapido da 140 a 50 Hz in 25 ms) + generatore di transient click/noise band-limited da seed isolato (durata 15 ms). `timbreParam` modula la brillantezza del transiente e il decadimento.
+  - *Corpo:* oscillatore PolyBLEP/wavetable a dente di sega ad alto contenuto armonico + filtro passa-basso risonante State Variable Filter (SVF/TPT) trapezoidale incondizionatamente stabile + inviluppo ADSR completo (attacco 60 ms, decay 150 ms, sustain sostenibile, release 250 ms). `timbreParam` controlla cutoff e risonanza.
+  - *Trama:* sintesi FM a 2 operatori (portante sinusoidale + modulante a rapporto intero/razionale) + micro-delay stereo tempo-sync bounded preallocato (max 0.5s, feedback $<0.5$). `timbreParam` modula l'indice di modulazione FM e il send del delay.
+  - *Vettore:* lead melodico agile (PolyBLEP/wavetable) con inviluppo rapido (attacco 10 ms), pitch glide deterministico lineare bounded e LFO vibrato controllato. `timbreParam` modula apertura del filtro e vibrato depth.
+  - *Gain staging iniziale:* Pulso −6 dB ($0,501$), Corpo −8 dB ($0,398$), Trama −10 dB ($0,316$), Vettore −6 dB ($0,501$). Guadagni calibrabili senza alterare contratti pubblici.
+  - *Micro-ducking deterministico:* attenuazione di Corpo di 2–3 dB su attacco di Pulso con recupero rapido (50–80 ms), gestito come parametro opzionale del profilo di mix per liberare headroom sui transienti bassi.
+- **Stato:** `accepted for implementation` (con preset e parametri come `experimental initial profile`).
+
+---
+
+### D-M2-07: Profiling Realtime DSP e Protocollo di Validazione per Handoff M2.5 (Spec §20.2, §31.5, §32)
+
+- **Problema:** Stabilire le condizioni di benchmark e misurazione del rispetto della deadline realtime della callback audio, e definire il protocollo di verifica tecnica e multimodale per il passaggio di consegne da M2.4 a M2.5.
+- **Invarianti architetturali normativi (`accepted for implementation`):**
+  1. **Target prestazionale realtime:** la callback audio completa (8 voci simultanee attive, inviluppi ADSR, steal tails, micro-ducking, 4 bus, mix master, protezione clipping ed eventuale tap `AudioProbe`) deve operare entro il target $\le 2,0\text{ ms}$ per blocco da 512 frame device a 48 kHz ($<20\%$ del periodo fisico del quantum audio di $10,67\text{ ms}$).
+  2. **Profiling lock-free preallocato:** misurazione dei tempi di esecuzione tramite clock monotono ad alta risoluzione (`QueryPerformanceCounter` su Windows o `std::chrono::steady_clock`) all'ingresso e all'uscita di `processBlock`. Raccolta statistica preallocata di p50, p95, p99, p99.9, massimo osservato e contatore di deadline miss (> 2.0 ms e > 10.67 ms). Nessun file I/O o log nella callback. Profiling confrontato con CACP attivo e disattivo.
+  3. **Distinzione dei profili di build:** il target $\le 2,0\text{ ms}$ è vincolo per le build Release e per i benchmark controllati. Non applicare il target come asserzione bloccante (hard-fail) nelle build Debug, dove verifiche di consistenza, iteratori di controllo e strumentazioni diagnostiche possono legittimamente superare i 2 ms.
+  4. **Protocollo Run continua $\ge 180\text{ s}$:** generazione di una run continua di almeno 180 secondi (fixture A-B-A'), esportando file audio WAV stereo a 48 kHz tramite `AudioProbe` e manifest JSON correlato con metadati completi (`build_id`, `transport_epoch`, `simulation_ticks`, metriche di fase).
+  5. **Separazione rigorosa delle evidenze per il gate M2.5:**
+     - *Verifiche tecniche vincolanti (Mandatory):* suite CTest 100% superata su Release, Debug e Headless; zero warning del compilatore (`/W4`); zero allocazioni heap o lock nella callback (verificate con hook CRT/aligned tracker); assenza di campioni non finiti (`NaN`/`Inf`); continuità campionaria esatta (zero gap o sample drop); assenza di underrun.
+     - *Analisi quantitativa del segnale:* continuità PCM ai confini di epoch e durante voice stealing (assenza di discontinuità rettangolari); assenza di clipping campionato ($|x[n]| \le 1.0$); stima del true peak offline; verifica di silenzio numerico post-terminazione.
+     - *Valutazione percettiva multimodale:* ispezione diretta degli artefatti tramite CACP (`view_file` su manifest e WAV) da parte dell'agente con giudizio esplicito su purezza timbrica, differenziazione dei ruoli e organicità delle transizioni. La valutazione percettiva dell'agente è supplementare (capability-dependent) e non sostituisce l'ascolto e il playtest umano obbligatorio per la chiusura finale di milestone.
+- **Stato:** `accepted for implementation`.
+
+---
+
 ## 3. Conseguenze e Compatibilità
 
-- **Modulo `engine/core`:** Rimane puramente C++20 standard, indipendente da miniaudio e raylib. Ospiterà le definizioni di `InputAction`, `ActionState`, `NormalizedAction` e `euclideanRhythm`.
-- **Modulo `engine/audio`:** Estende `AudioCommandType` con `SetTempoMap`, ospita `AudioProbe` (tap SPSC lock-free) e le strutture di sintesi polifonica a 8 voci per i 4 ruoli musicali.
-- **Replay e determinismo:** I parametri congelati in D-M2-01..03 e D-AO-01..02 non introducono numeri casuali non tracciati né dipendenze esterne.
-- **Roadmap:** Con il congelamento di questo ADR, la sottofase **M2.1** è completata, sbloccando l'implementazione della sottofase **M2.2 — Controllo e osservazione del tono (AC-AO-01A)**.
+- **Modulo `engine/core`:** Rimane puramente C++20 standard, indipendente da miniaudio e raylib. Ospiterà le definizioni di `InputAction`, `ActionState`, `NormalizedAction`, `euclideanRhythm`, e le strutture del motivo/planner simbolico.
+- **Modulo `engine/audio`:** Estende `AudioCommandType` con `SetTempoMap`, ospita `AudioProbe` (tap SPSC lock-free), il Voice Allocator polifonico a 8 voci (`VoiceSlot[8]`) con steal tails statiche, i generatori DSP dei 4 ruoli, l'architettura a 4 bus con micro-ducking e la protezione master bounded.
+- **Replay e determinismo:** I parametri congelati in D-M2-01..07 non introducono numeri casuali non tracciati né dipendenze esterne. Il tie-break totale del planner garantisce replay deterministico e seed isolation invariante.
+- **Roadmap:** Con il congelamento di questo ADR, tutte le decisioni d'ingresso per la sottofase **M2.4 — Musica procedurale v1** sono formalmente chiuse e approvate come `accepted for implementation`. Lo sviluppo può procedere per incrementi indipendenti verificabili verso il gate d'integrazione **M2.5**.

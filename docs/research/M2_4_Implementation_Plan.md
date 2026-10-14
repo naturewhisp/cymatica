@@ -1,7 +1,7 @@
 # CYMATICA M2.4 — Piano di integrazione compositiva e DSP v1
 
-- **Stato:** **proposta di implementazione, da confermare in ingresso M2.4**; non sostituisce la roadmap normativa.
-- **Baseline:** commit `460bc286378b473218bc07f751e3615964626a11` (2026-10-13).
+- **Stato:** **piano operativo allineato ai contratti d'ingresso M2.4 ratificati in [ADR-0003](../adr/0003-m2-decisions-contracts.md)** (2026-10-14); non sostituisce la roadmap normativa.
+- **Baseline:** commit `460bc286378b473218bc07f751e3615964626a11` (2026-10-13), aggiornato con formalizzazione D-M2-04..07 (2026-10-14).
 - **Fonti:** [ricerca revisionata](M2_4_Deep_Research_Reviewed.md), [review metodologica](M2_4_Research_Review.md), [Spec §16/§32](../../CYMATICA_Specifica_Agentica_Sviluppo.md), [ADR-0003](../adr/0003-m2-decisions-contracts.md), [DESIGN §8/§16](../../DESIGN.md).
 - **Owner del piano:** Coordinatore sviluppo M2.4; scelta artistica finale del titolare. Non attribuire un'autorità normativa autonoma al documento.
 
