@@ -238,6 +238,16 @@ Risoluzione dei 2 difetti emersi dalla revisione del commit `572875a`:
 
 ---
 
+## Remediation M2.4 Inc-1 — Risoluzione Distorsione, Headroom & CACP Multimodale (DIF-M2-INC1-01)
+
+A seguito della segnalazione dell'utente e dell'analisi del documento scientifico `distortion-aliasing.html`, l'agente ha condotto un'indagine approfondita e una validazione in prima persona tramite CACP e capacità multimodali (`view_file`):
+
+| ID | Severità | Descrizione Defetto | Causa Radice Ingegneristica | Intervento Applicato | Stato / Evidenza |
+|---|---|---|---|---|---|
+| DIF-M2-INC1-01 | **CRITICAL** | Audio distorto e aspro in `voice_probe_v1.wav` anziché sinusoidi pure a 220, 330 e 440 Hz. | 1. **Collisione a doppia sintesi:** `ScheduledAudioEvent` pilotava simultaneamente `VoiceAllocator` e il generatore monofonico legacy `ma_waveform` (a 0.2f con salti di tono improvvisi).<br>2. **Assenza di gain staging nel pool voci:** Voci a velocity 0.8f sommate direttamente (fino a 2.28f, +7.1 dBFS), provocando clipping duro a fondo scala $\pm 32767$ (22.434 campioni saturati per 0.79 ms).<br>3. **Aliasing da saturazione non lineare:** Il clipping rettangolare ha generato armoniche dispari e prodotti d'intermodulazione oltre la frequenza di Nyquist (24 kHz a 48 kHz), ripiegati nello spettro udibile come rumore inarmonico aspro. | 1. Introdotto fattore di scala nominale per voce `kNominalVoiceScale = 0.25f` in `VoiceAllocator` (ADR-0003 D-M2-06, $\ge 6\text{ dB}$ headroom sul bus).<br>2. Disaccoppiato totalmente `ma_waveform` in `AudioEngine`: silenziato quando `activeVolume <= 1e-6f`, riservato ai test monofonici espliciti.<br>3. Documentazione scientifica completa in `docs/research/M2_4_Voice_Distortion_Aliasing_Evidence.md`. | **Risolto** (`audio_engine.cpp`, `voice_allocator.h`, `voice_allocator.cpp`). Test CTest 83/83 PASS (100%), CACP `voice_probe_v1` PASS, 0 campioni clippati, peak -9.37 dBFS, ispezione multimodale `view_file` OK. |
+
+---
+
 ## Sottofase M2.4 — Musica procedurale v1 (Decisioni e Contratti d'Ingresso Ratificati)
 
 **Stato sottofase:** In attesa di approvazione della review documentale (`accepted for implementation (review remediation pending)`). Nessuna modifica a codice C++ o test eseguita prima dell'approvazione formale.

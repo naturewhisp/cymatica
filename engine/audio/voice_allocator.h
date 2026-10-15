@@ -70,7 +70,7 @@ struct VoiceSlot {
 
     [[nodiscard]] float currentVoiceOutput() const noexcept {
         if (state == VoiceState::Idle) return 0.0f;
-        return std::sin(phase) * velocity * envelopeLevel;
+        return std::sin(phase) * velocity * envelopeLevel * 0.25f;
     }
 
     void reset() noexcept {
@@ -96,6 +96,8 @@ public:
     static constexpr std::size_t kTotalSlots = 8;
     static constexpr std::size_t kSlotsPerRole = 2;
     static constexpr std::size_t kRoleCount = 4;
+    // Nominal voice scaling to guarantee >= 6 dB headroom per role bus (ADR-0003 D-M2-06)
+    static constexpr float kNominalVoiceScale = 0.25f;
     // Conservative lease backstop for open pads: 36 bars @ 120 BPM 4/4 (72s = 3,456,000 frames @ 48kHz)
     static constexpr std::uint32_t kMaxLeaseDurationFrames = 3456000;
     static constexpr std::uint32_t kTransportDeclickFrames = 96; // 2 ms @ 48 kHz

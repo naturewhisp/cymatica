@@ -74,30 +74,36 @@ struct AudioEngine::Impl {
     void renderWaveformSlice(float* pOut, std::uint32_t offset, std::uint32_t count, std::uint64_t logicalFrame) noexcept {
         if (pOut == nullptr || count == 0) return;
         float* dest = pOut + (static_cast<std::size_t>(offset) * channels);
-        ma_waveform_read_pcm_frames(&waveform, dest, count, nullptr);
-        if (voiceFadeRemaining_ > 0) {
-            const std::uint32_t rampFrames = (std::min)(count, voiceFadeRemaining_);
-            for (std::uint32_t i = 0; i < rampFrames; ++i) {
-                const float factor = static_cast<float>(voiceFadeRemaining_ - i) / static_cast<float>(kVoiceFadeFrames);
-                for (std::uint32_t c = 0; c < channels; ++c) {
-                    dest[static_cast<std::size_t>(i) * channels + c] *= factor;
+
+        if (activeVolume > 1e-6f || activeNotePlaying_) {
+            ma_waveform_read_pcm_frames(&waveform, dest, count, nullptr);
+            if (voiceFadeRemaining_ > 0) {
+                const std::uint32_t rampFrames = (std::min)(count, voiceFadeRemaining_);
+                for (std::uint32_t i = 0; i < rampFrames; ++i) {
+                    const float factor = static_cast<float>(voiceFadeRemaining_ - i) / static_cast<float>(kVoiceFadeFrames);
+                    for (std::uint32_t c = 0; c < channels; ++c) {
+                        dest[static_cast<std::size_t>(i) * channels + c] *= factor;
+                    }
+                }
+                voiceFadeRemaining_ -= rampFrames;
+                if (voiceFadeRemaining_ == 0) {
+                    ma_waveform_set_amplitude(&waveform, 0.0f);
+                    voiceFadeAmp_ = 0.0f;
+                }
+                if (rampFrames < count) {
+                    const std::size_t zeroStart = static_cast<std::size_t>(rampFrames) * channels;
+                    const std::size_t zeroCount = static_cast<std::size_t>(count - rampFrames) * channels;
+                    for (std::size_t s = 0; s < zeroCount; ++s) {
+                        dest[zeroStart + s] = 0.0f;
+                    }
                 }
             }
-            voiceFadeRemaining_ -= rampFrames;
-            if (voiceFadeRemaining_ == 0) {
-                ma_waveform_set_amplitude(&waveform, 0.0f);
-                voiceFadeAmp_ = 0.0f;
-            }
-            if (rampFrames < count) {
-                const std::size_t zeroStart = static_cast<std::size_t>(rampFrames) * channels;
-                const std::size_t zeroCount = static_cast<std::size_t>(count - rampFrames) * channels;
-                for (std::size_t s = 0; s < zeroCount; ++s) {
-                    dest[zeroStart + s] = 0.0f;
-                }
-            }
+            // Mix polyphonic voices from VoiceAllocator on top of test tone
+            voiceAllocator.renderBlock(dest, count, logicalFrame, (transportState == TransportState::Paused), true);
+        } else {
+            // Pure polyphonic synthesis without background test tone (zero-out destination then render)
+            voiceAllocator.renderBlock(dest, count, logicalFrame, (transportState == TransportState::Paused), false);
         }
-        // Mix polyphonic voices from VoiceAllocator
-        voiceAllocator.renderBlock(dest, count, logicalFrame, (transportState == TransportState::Paused), true);
     }
 
     void triggerNoteOff() noexcept {
@@ -113,9 +119,12 @@ struct AudioEngine::Impl {
     }
 
     void triggerNoteOn(const ScheduledAudioEvent& evt, float masterVol) noexcept {
+        if (masterVol <= 1e-6f) {
+            // No continuous diagnostic tone active: ScheduledAudioEvent is handled exclusively by VoiceAllocator.
+            return;
+        }
         voiceFadeRemaining_ = 0;
-        const float amp = (masterVol > 0.0f) ? (evt.valueB * masterVol) : (evt.valueB * 0.25f);
-        voiceFadeAmp_ = amp;
+        voiceFadeAmp_ = evt.valueB * masterVol;
         activeNotePlaying_ = true;
         activeNoteEpoch_ = evt.transportEpoch;
         ma_waveform_set_frequency(&waveform, evt.valueA);

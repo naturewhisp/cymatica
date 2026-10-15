@@ -10,6 +10,7 @@ Documenti dedicati alla qualità compositiva, timbrica e audiovisiva di CYMATICA
 | [Studio tecnico protezione audio e LUFS](M2_4_Audio_Safety_Design.md) | Limiter master e metering: principi architetturali ratificati con ADR-0004, algoritmi/soglie ancora sperimentali |
 | [ADR-0004: renderer/sicurezza (RATIFICATO)](../adr/0004-m2-4-audio-renderer-safety-proposal.md) | **Accepted for implementation**, con emendamenti mirati a D-M2-06/D-M2-07 e gate locale pre-Inc-2 |
 | [Piano di implementazione M2.4](M2_4_Implementation_Plan.md) | Roadmap Inc-1..5, contratti voice/epoch, palette, test e differimento delle scelte sperimentali |
+| [Analisi scientifica distorsione e aliasing Inc-1](M2_4_Voice_Distortion_Aliasing_Evidence.md) | Diagnosi quantitativa campioni clippati, THD+N, aliasing da hard-clipping e gain staging in `voice_probe_v1` |
 | [Protocollo di valutazione](M2_4_Evaluation_Protocol.md) | Esperimenti A/B, test di ascolto, metriche separate e profiling realtime |
 | [Roadmap di ricerca futura](../roadmap_music_research_addendum.md) | Conseguenze proposte per M2.4/M2.5 e M3–M13 |
 

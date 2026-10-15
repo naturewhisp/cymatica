@@ -254,7 +254,7 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
         for (auto& slot : slots_) {
             // 1. Voice synthesis & envelope progression
             if (slot.state != VoiceState::Idle) {
-                const float s = std::sin(slot.phase) * slot.velocity * slot.envelopeLevel;
+                const float s = std::sin(slot.phase) * slot.velocity * slot.envelopeLevel * kNominalVoiceScale;
                 left += s;
                 right += s;
 
