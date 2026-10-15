@@ -39,6 +39,10 @@ struct AudioTelemetryFrame {
     std::uint64_t framesRenderedTotal{0};
     std::uint32_t scheduledEventsDeferred{0};      // Scheduled events deferred due to per-block budget (DIF-M2-R4-02)
     std::uint32_t scheduledEventsDroppedTotal{0};  // Monotonic count of dropped scheduled events
+    std::uint32_t activeVoiceCount{0};             // Number of active voices (ADR-0003 D-M2-03)
+    std::uint32_t voiceDropCount{0};               // Monotonic count of voice steals (ADR-0003, ADR-0004)
+    std::uint32_t orphanNoteRecoveredCount{0};     // Open-pad lease backstop auto-releases (ADR-0003)
+    std::uint32_t dspAnomalyCount{0};              // Non-finite (NaN/Inf) samples sanitised
 
     [[nodiscard]] constexpr bool operator==(const AudioTelemetryFrame& other) const noexcept = default;
 };

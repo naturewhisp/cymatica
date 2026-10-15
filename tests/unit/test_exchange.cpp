@@ -12,12 +12,18 @@
 #include <thread>
 #include <vector>
 
+#include "allocation_tracker.h"
+
 using namespace cymatica::audio;
+using cymatica::test::AllocationScope;
+
+namespace cymatica::test {
+std::atomic<bool> gTrackAllocations{false};
+std::atomic<std::size_t> gAllocationCount{0};
+} // namespace cymatica::test
 
 namespace {
 
-std::atomic<bool> gTrackAllocations{false};
-std::atomic<std::size_t> gAllocationCount{0};
 thread_local bool gInOperatorNew{false};
 
 struct NewGuard {
@@ -46,6 +52,9 @@ struct TestPayload {
 };
 
 } // namespace
+
+using cymatica::test::gTrackAllocations;
+using cymatica::test::gAllocationCount;
 
 void* operator new(std::size_t size) {
     if (gTrackAllocations.load(std::memory_order_relaxed)) {
@@ -201,29 +210,28 @@ static int CrtAllocTrackerHook(int allocType, void* /*userData*/, size_t /*size*
 }
 #endif
 
-struct AllocationScope {
-    AllocationScope() {
-        gAllocationCount.store(0, std::memory_order_seq_cst);
-        gTrackAllocations.store(true, std::memory_order_seq_cst);
-#if defined(_MSC_VER) && defined(_DEBUG)
-        oldHook_ = _CrtSetAllocHook(CrtAllocTrackerHook);
-#endif
-    }
-    ~AllocationScope() {
-        gTrackAllocations.store(false, std::memory_order_seq_cst);
-#if defined(_MSC_VER) && defined(_DEBUG)
-        _CrtSetAllocHook(oldHook_);
-#endif
-    }
-    [[nodiscard]] std::size_t count() const noexcept {
-        return gAllocationCount.load(std::memory_order_seq_cst);
-    }
+namespace cymatica::test {
 
+AllocationScope::AllocationScope() {
+    gAllocationCount.store(0, std::memory_order_seq_cst);
+    gTrackAllocations.store(true, std::memory_order_seq_cst);
 #if defined(_MSC_VER) && defined(_DEBUG)
-private:
-    _CRT_ALLOC_HOOK oldHook_{nullptr};
+    oldHook_ = reinterpret_cast<void*>(_CrtSetAllocHook(CrtAllocTrackerHook));
 #endif
-};
+}
+
+AllocationScope::~AllocationScope() {
+    gTrackAllocations.store(false, std::memory_order_seq_cst);
+#if defined(_MSC_VER) && defined(_DEBUG)
+    _CrtSetAllocHook(reinterpret_cast<_CRT_ALLOC_HOOK>(oldHook_));
+#endif
+}
+
+std::size_t AllocationScope::count() const noexcept {
+    return gAllocationCount.load(std::memory_order_seq_cst);
+}
+
+} // namespace cymatica::test
 
 TEST_CASE("TripleBuffer provides coherent snapshots without tearing under concurrent access", "[exchange][concurrency]") {
     // Acceptance criterion Spec §32: snapshot concorrenti coerenti

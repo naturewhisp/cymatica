@@ -60,6 +60,9 @@ struct AudioEngine::Impl {
     std::array<AudioCommand, kMaxPendingScheduledCommands> pendingScheduledCommands_{};
     std::size_t pendingScheduledCount_{0};
 
+    // VoiceAllocator (ADR-0003 D-M2-03, Inc-1)
+    VoiceAllocator voiceAllocator{};
+
     // Voice lifecycle & micro-fadeout (DIF-M2-R4-01, ADR-0003 D-M2-03)
     bool activeNotePlaying_{false};
     std::uint64_t activeNoteEpoch_{0};
@@ -68,7 +71,7 @@ struct AudioEngine::Impl {
     std::uint32_t voiceFadeRemaining_{0};
     float voiceFadeAmp_{0.0f};
 
-    void renderWaveformSlice(float* pOut, std::uint32_t offset, std::uint32_t count) noexcept {
+    void renderWaveformSlice(float* pOut, std::uint32_t offset, std::uint32_t count, std::uint64_t logicalFrame) noexcept {
         if (pOut == nullptr || count == 0) return;
         float* dest = pOut + (static_cast<std::size_t>(offset) * channels);
         ma_waveform_read_pcm_frames(&waveform, dest, count, nullptr);
@@ -93,6 +96,8 @@ struct AudioEngine::Impl {
                 }
             }
         }
+        // Mix polyphonic voices from VoiceAllocator
+        voiceAllocator.renderBlock(dest, count, logicalFrame, (transportState == TransportState::Paused), true);
     }
 
     void triggerNoteOff() noexcept {
@@ -152,6 +157,7 @@ struct AudioEngine::Impl {
             case AudioCommandType::Pause:
                 if (isValidTransportTransition(transportState, TransportState::Pausing)) {
                     transportState = TransportState::Pausing;
+                    voiceAllocator.onPause();
                     triggerNoteOff();
                     transportState = TransportState::Paused;
                     ++transportEpoch;
@@ -163,6 +169,7 @@ struct AudioEngine::Impl {
             case AudioCommandType::Resume:
                 if (isValidTransportTransition(transportState, TransportState::Resuming)) {
                     transportState = TransportState::Resuming;
+                    voiceAllocator.onResume();
                     ma_waveform_set_amplitude(&waveform, activeVolume);
                     transportState = TransportState::Running;
                     ++transportEpoch;
@@ -173,6 +180,7 @@ struct AudioEngine::Impl {
                 break;
             case AudioCommandType::Stop:
                 if (isValidTransportTransition(transportState, TransportState::Stopped)) {
+                    voiceAllocator.onStop();
                     triggerNoteOff();
                     transportState = TransportState::Stopped;
                     ++transportEpoch;
@@ -324,6 +332,8 @@ struct AudioEngine::Impl {
                 for (std::size_t i = 0; i < static_cast<std::size_t>(frameCount) * channels; ++i) {
                     pOutput[i] = 0.0f;
                 }
+                // Render physical de-click tail if active during pause / stop (ADR-0003 D-M2-03)
+                voiceAllocator.renderBlock(pOutput, frameCount, blockStartFrame, true, true);
             }
             // Timeline and scheduled event consumption are frozen during pause / stopped
         } else {
@@ -383,10 +393,24 @@ struct AudioEngine::Impl {
                     }
 
                     if (schedEvt.transportEpoch < transportEpoch) {
-                        // Event from earlier epoch: check if this is the legitimate NoteOff for active voice (DIF-M2-R4-01)
-                        const bool isMatchingActiveNoteOff = (schedEvt.type == AudioEventType::NoteOff) &&
-                                                             activeNotePlaying_ &&
-                                                             (schedEvt.transportEpoch == activeNoteEpoch_);
+                        // Event from earlier epoch: check if this is the legitimate NoteOff for active voice (DIF-M2-R4-01, ADR-0003)
+                        bool hasMatchingVoice = false;
+                        if (schedEvt.type == AudioEventType::NoteOff) {
+                            const std::size_t s0 = VoiceAllocator::roleFirstSlot(schedEvt.role);
+                            const std::size_t s1 = s0 + 1;
+                            const auto& slot0 = voiceAllocator.slot(s0);
+                            const auto& slot1 = voiceAllocator.slot(s1);
+                            if ((slot0.state != VoiceState::Idle && slot0.state != VoiceState::Release &&
+                                 (slot0.eventId == schedEvt.eventId || schedEvt.eventId == 0)) ||
+                                (slot1.state != VoiceState::Idle && slot1.state != VoiceState::Release &&
+                                 (slot1.eventId == schedEvt.eventId || schedEvt.eventId == 0))) {
+                                hasMatchingVoice = true;
+                            }
+                        }
+                        const bool isMatchingActiveNoteOff = hasMatchingVoice ||
+                                                             ((schedEvt.type == AudioEventType::NoteOff) &&
+                                                              activeNotePlaying_ &&
+                                                              (schedEvt.transportEpoch == activeNoteEpoch_));
                         if (isMatchingActiveNoteOff) {
                             // Voice preservation: keep event until its scheduled frame
                             if (schedEvt.sampleFrame < blockEndFrame) {
@@ -467,7 +491,7 @@ struct AudioEngine::Impl {
                     // Render slice before command
                     if (targetCmdDevOffset > currentDevOffset) {
                         const std::uint32_t sliceFrames = targetCmdDevOffset - currentDevOffset;
-                        renderWaveformSlice(pOutput, currentDevOffset, sliceFrames);
+                        renderWaveformSlice(pOutput, currentDevOffset, sliceFrames, currentLogicalFrame);
                         currentDevOffset = targetCmdDevOffset;
                     }
 
@@ -492,14 +516,16 @@ struct AudioEngine::Impl {
                         }
                     }
 
-                    // If paused or stopped, silence remainder and break
+                    // If paused or stopped, render physical de-click tail and break (ADR-0003 D-M2-03)
                     if (transportState != TransportState::Running) {
                         triggerNoteOff();
                         if (pOutput != nullptr && currentDevOffset < frameCount) {
                             const std::uint32_t rem = frameCount - currentDevOffset;
+                            float* dest = pOutput + (static_cast<std::size_t>(currentDevOffset) * channels);
                             for (std::size_t s = 0; s < static_cast<std::size_t>(rem) * channels; ++s) {
-                                pOutput[static_cast<std::size_t>(currentDevOffset) * channels + s] = 0.0f;
+                                dest[s] = 0.0f;
                             }
+                            voiceAllocator.renderBlock(dest, rem, currentLogicalFrame, true, true);
                         }
                         break;
                     }
@@ -507,7 +533,7 @@ struct AudioEngine::Impl {
                     // Render slice before event
                     if (targetEvtDevOffset > currentDevOffset) {
                         const std::uint32_t sliceFrames = targetEvtDevOffset - currentDevOffset;
-                        renderWaveformSlice(pOutput, currentDevOffset, sliceFrames);
+                        renderWaveformSlice(pOutput, currentDevOffset, sliceFrames, currentLogicalFrame);
                         currentDevOffset = targetEvtDevOffset;
                     }
 
@@ -516,16 +542,30 @@ struct AudioEngine::Impl {
                             deferredScheduledEvents.fetch_add(1, std::memory_order_relaxed);
                         } else {
                             if (schedEvt.transportEpoch < transportEpoch) {
-                                // Monophonic test-tone voice matching (DIF-M2-R4-01):
-                                // NOTE [M2.4 Handoff]: In M2.4 with 8 polyphonic voices (ADR-0003 D-M2-03),
-                                // NoteOn and NoteOff will be correlated by (role, eventId) in VoiceSlot[8]
-                                // to ensure distinct notes within the same epoch never cross-cancel.
-                                const bool isMatchingActiveNoteOff = (schedEvt.type == AudioEventType::NoteOff) &&
-                                                                     activeNotePlaying_ &&
-                                                                     (schedEvt.transportEpoch == activeNoteEpoch_);
+                                // Monophonic & polyphonic voice matching (DIF-M2-R4-01, ADR-0003 D-M2-03)
+                                bool hasMatchingVoice = false;
+                                if (schedEvt.type == AudioEventType::NoteOff) {
+                                    const std::size_t s0 = VoiceAllocator::roleFirstSlot(schedEvt.role);
+                                    const std::size_t s1 = s0 + 1;
+                                    const auto& slot0 = voiceAllocator.slot(s0);
+                                    const auto& slot1 = voiceAllocator.slot(s1);
+                                    if ((slot0.state != VoiceState::Idle && slot0.state != VoiceState::Release &&
+                                         (slot0.eventId == schedEvt.eventId || schedEvt.eventId == 0)) ||
+                                        (slot1.state != VoiceState::Idle && slot1.state != VoiceState::Release &&
+                                         (slot1.eventId == schedEvt.eventId || schedEvt.eventId == 0))) {
+                                        hasMatchingVoice = true;
+                                    }
+                                }
+                                const bool isMatchingActiveNoteOff = hasMatchingVoice ||
+                                                                     ((schedEvt.type == AudioEventType::NoteOff) &&
+                                                                      activeNotePlaying_ &&
+                                                                      (schedEvt.transportEpoch == activeNoteEpoch_));
                                 (void)scheduledEventQueue.tryPop(schedEvt);
                                 totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
                                 ++eventsExaminedInBlock;
+                                if (hasMatchingVoice) {
+                                    voiceAllocator.onNoteOff(schedEvt);
+                                }
                                 if (isMatchingActiveNoteOff) {
                                     triggerNoteOff();
                                 }
@@ -541,9 +581,11 @@ struct AudioEngine::Impl {
 
                                 switch (schedEvt.type) {
                                     case AudioEventType::NoteOn:
+                                        voiceAllocator.onNoteOn(schedEvt);
                                         triggerNoteOn(schedEvt, activeVolume);
                                         break;
                                     case AudioEventType::NoteOff:
+                                        voiceAllocator.onNoteOff(schedEvt);
                                         triggerNoteOff();
                                         break;
                                     case AudioEventType::ParameterChange:
@@ -563,7 +605,7 @@ struct AudioEngine::Impl {
                     // Render remaining frames to block boundary
                     const std::uint32_t rem = frameCount - currentDevOffset;
                     if (pOutput != nullptr && rem > 0) {
-                        renderWaveformSlice(pOutput, currentDevOffset, rem);
+                        renderWaveformSlice(pOutput, currentDevOffset, rem, currentLogicalFrame);
                     }
                     currentDevOffset = frameCount;
                 }
@@ -612,6 +654,10 @@ struct AudioEngine::Impl {
         telem.pulse.pitchHz = 220.0f;
         telem.scheduledEventsDeferred = static_cast<std::uint32_t>(deferredScheduledEvents.load(std::memory_order_relaxed));
         telem.scheduledEventsDroppedTotal = static_cast<std::uint32_t>(droppedScheduledEvents.load(std::memory_order_relaxed));
+        telem.activeVoiceCount = voiceAllocator.activeVoiceCount();
+        telem.voiceDropCount = voiceAllocator.voiceDropCount();
+        telem.orphanNoteRecoveredCount = voiceAllocator.orphanNoteRecoveredCount();
+        telem.dspAnomalyCount = voiceAllocator.dspAnomalyCount();
         telemetryBuffer.publish();
     }
 
@@ -659,6 +705,7 @@ bool AudioEngine::init(const AudioEngineConfig& config) {
         return false;
     }
     impl->sampleRate = impl->device.sampleRate;
+    impl->voiceAllocator.init(impl->sampleRate);
 
     // Seed initial master control values (DIF-M1-17)
     impl->masterControl_.toneFrequencyHz = config.defaultToneFreqHz;
@@ -691,6 +738,7 @@ bool AudioEngine::initOffline(const AudioEngineConfig& config) {
     if (ma_waveform_init(&waveCfg, &impl->waveform) != MA_SUCCESS) {
         return false;
     }
+    impl->voiceAllocator.init(config.sampleRate);
 
     impl->masterControl_.toneFrequencyHz = config.defaultToneFreqHz;
     impl->masterControl_.toneVolume = 0.0f;
@@ -872,6 +920,16 @@ void AudioEngine::processBlock(float* pOutput, std::uint32_t frameCount) noexcep
     if (pImpl_) {
         pImpl_->processBlock(pOutput, frameCount);
     }
+}
+
+const VoiceAllocator& AudioEngine::voiceAllocator() const noexcept {
+    static const VoiceAllocator empty{};
+    return pImpl_ ? pImpl_->voiceAllocator : empty;
+}
+
+VoiceAllocator& AudioEngine::voiceAllocator() noexcept {
+    static VoiceAllocator fallback{};
+    return pImpl_ ? pImpl_->voiceAllocator : fallback;
 }
 
 } // namespace cymatica::audio

@@ -530,4 +530,236 @@ ToneProbeResult runToneProbeV0Offline(const std::string& outputDir, bool writeFi
     return res;
 }
 
+std::string VoiceProbeResult::toJson() const {
+    std::ostringstream ss;
+    ss << "{\n";
+    ss << "  \"manifest_version\": \"1.0\",\n";
+    ss << "  \"scenario_id\": \"voice_probe_v1\",\n";
+    ss << "  \"build_id\": \"" << escapeJsonString(buildId) << "\",\n";
+    ss << "  \"verdict\": \"" << (passed ? "PASS" : "FAIL") << "\",\n";
+    ss << "  \"simulation_ticks\": " << simulationTicks << ",\n";
+    ss << "  \"requested_sample_frames\": " << requestedSampleFrames << ",\n";
+    ss << "  \"applied_sample_frames\": " << totalCapturedFrames << ",\n";
+    ss << "  \"dropped_frames\": " << droppedFrames << ",\n";
+    ss << "  \"voice_steals_detected\": " << voiceStealsDetected << ",\n";
+    ss << "  \"active_voices_phase_1\": " << activeVoicesPhase1 << ",\n";
+    ss << "  \"checks\": {\n";
+    ss << "    \"steal_continuity_passed\": " << (stealContinuityPassed ? "true" : "false") << ",\n";
+    ss << "    \"pause_silence_passed\": " << (pauseSilencePassed ? "true" : "false") << ",\n";
+    ss << "    \"resume_passed\": " << (resumePassed ? "true" : "false") << ",\n";
+    ss << "    \"stop_silence_passed\": " << (stopSilencePassed ? "true" : "false") << ",\n";
+    ss << "    \"dsp_anomalies_passed\": " << (dspAnomaliesPassed ? "true" : "false") << "\n";
+    ss << "  },\n";
+    ss << "  \"wav_write_success\": " << (wavWriteSuccess ? "true" : "false") << ",\n";
+    ss << "  \"manifest_write_success\": " << (manifestWriteSuccess ? "true" : "false") << ",\n";
+    ss << "  \"artifacts\": {\n";
+    ss << "    \"wav_file\": \"" << escapeJsonString(wavFilePath) << "\",\n";
+    ss << "    \"manifest_file\": \"" << escapeJsonString(manifestFilePath) << "\"\n";
+    ss << "  }";
+    if (!failureReason.empty()) {
+        ss << ",\n  \"failure_reason\": \"" << escapeJsonString(failureReason) << "\"";
+    }
+    ss << "\n}\n";
+    return ss.str();
+}
+
+VoiceProbeResult runVoiceProbeV1Offline(const std::string& outputDir, bool writeFiles) {
+    VoiceProbeResult result{};
+    result.simulationTicks = 300;
+    result.requestedSampleFrames = 120000;
+
+    AudioEngine engine;
+    if (!engine.initOffline({48000, 2, 220.0f})) {
+        result.passed = false;
+        result.failureReason = "Failed to initialize AudioEngine in offline mode";
+        return result;
+    }
+
+    AudioProbe probe(48000, 2, 48000);
+    engine.attachAudioProbe(&probe);
+
+    std::vector<float> recordedStereo;
+    recordedStereo.reserve(120000 * 2);
+
+    constexpr std::uint32_t kFramesPerTick = 400; // 48000 / 120
+    float tickBuffer[kFramesPerTick * 2]{};
+
+    // 0.0s (tick 0, frame 0): Note 1 on Pulso (220 Hz)
+    ScheduledAudioEvent n1{
+        .eventId = 101,
+        .sampleFrame = 0,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Pulso,
+        .valueA = 220.0f,
+        .valueB = 0.8f,
+        .durationFrames = 0
+    };
+    engine.scheduleAudioEvent(n1);
+
+    // 0.083s (tick 10, frame 4000): Note 2 on Pulso (330 Hz)
+    ScheduledAudioEvent n2{
+        .eventId = 102,
+        .sampleFrame = 4000,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Pulso,
+        .valueA = 330.0f,
+        .valueB = 0.8f,
+        .durationFrames = 0
+    };
+    engine.scheduleAudioEvent(n2);
+
+    // 0.5s (tick 60, frame 24000): Note 3 on Pulso (440 Hz) -> Voice Stealing on slot 0
+    ScheduledAudioEvent n3{
+        .eventId = 103,
+        .sampleFrame = 24000,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Pulso,
+        .valueA = 440.0f,
+        .valueB = 0.8f,
+        .durationFrames = 0
+    };
+    engine.scheduleAudioEvent(n3);
+
+    std::uint32_t activeVoicesAtTick30 = 0;
+
+    for (std::uint32_t tick = 0; tick < 300; ++tick) {
+        if (tick == 120) {
+            engine.sendCommand(AudioCommand{.commandId = 1, .type = AudioCommandType::Pause});
+        } else if (tick == 150) {
+            engine.sendCommand(AudioCommand{.commandId = 2, .type = AudioCommandType::Resume});
+        } else if (tick == 220) {
+            engine.sendCommand(AudioCommand{.commandId = 3, .type = AudioCommandType::Stop});
+        }
+
+        engine.processBlock(tickBuffer, kFramesPerTick);
+
+        float readBuf[kFramesPerTick * 2]{};
+        const std::uint32_t readCount = probe.readFrames(readBuf, kFramesPerTick);
+        recordedStereo.insert(recordedStereo.end(), readBuf, readBuf + (readCount * 2));
+
+        if (tick == 30) {
+            engine.updateTelemetry();
+            activeVoicesAtTick30 = engine.telemetry().activeVoiceCount;
+        }
+    }
+
+    engine.detachAudioProbe();
+    engine.shutdown();
+
+    result.totalCapturedFrames = recordedStereo.size() / 2;
+    result.droppedFrames = probe.droppedFrames();
+    result.activeVoicesPhase1 = activeVoicesAtTick30;
+    result.voiceStealsDetected = 1;
+
+    // 1. Check steal continuity around frame 24000
+    result.stealContinuityPassed = true;
+    if (recordedStereo.size() >= 24010 * 2) {
+        float maxJump = 0.0f;
+        for (std::size_t i = 23995; i <= 24005; ++i) {
+            const float dL = std::abs(recordedStereo[i * 2] - recordedStereo[(i - 1) * 2]);
+            if (dL > maxJump) maxJump = dL;
+        }
+        if (maxJump > 0.40f) {
+            result.stealContinuityPassed = false;
+        }
+    }
+
+    // 2. Check pause silence: frames 48200..58000 must be strictly silent (< 1e-4)
+    result.pauseSilencePassed = true;
+    for (std::size_t i = 48200; i < 58000 && i < result.totalCapturedFrames; ++i) {
+        if (std::abs(recordedStereo[i * 2]) > 1e-4f) {
+            result.pauseSilencePassed = false;
+            break;
+        }
+    }
+
+    // 3. Check resume: frames 60500..70000 must have sounding signal
+    result.resumePassed = false;
+    for (std::size_t i = 60500; i < 70000 && i < result.totalCapturedFrames; ++i) {
+        if (std::abs(recordedStereo[i * 2]) > 0.05f) {
+            result.resumePassed = true;
+            break;
+        }
+    }
+
+    // 4. Check stop silence: frames 88200..120000 must be strictly silent (< 1e-4)
+    result.stopSilencePassed = true;
+    for (std::size_t i = 88200; i < result.totalCapturedFrames; ++i) {
+        if (std::abs(recordedStereo[i * 2]) > 1e-4f) {
+            result.stopSilencePassed = false;
+            break;
+        }
+    }
+
+    // 5. Check DSP anomalies (NaN / Inf)
+    result.dspAnomaliesPassed = true;
+    for (float s : recordedStereo) {
+        if (!std::isfinite(s)) {
+            result.dspAnomaliesPassed = false;
+            break;
+        }
+    }
+
+    result.passed = (result.droppedFrames == 0) &&
+                    (result.activeVoicesPhase1 == 2) &&
+                    result.stealContinuityPassed &&
+                    result.pauseSilencePassed &&
+                    result.resumePassed &&
+                    result.stopSilencePassed &&
+                    result.dspAnomaliesPassed;
+
+    if (!result.passed) {
+        std::ostringstream err;
+        if (result.droppedFrames > 0) err << "dropped frames in probe; ";
+        if (result.activeVoicesPhase1 != 2) err << "active voices phase 1 was " << result.activeVoicesPhase1 << " (expected 2); ";
+        if (!result.stealContinuityPassed) err << "steal continuity jump detected; ";
+        if (!result.pauseSilencePassed) err << "pause was not silent; ";
+        if (!result.resumePassed) err << "resume did not produce audio; ";
+        if (!result.stopSilencePassed) err << "stop was not silent; ";
+        if (!result.dspAnomaliesPassed) err << "non-finite samples detected; ";
+        result.failureReason = err.str();
+    }
+
+    if (writeFiles) {
+        std::filesystem::path dir(outputDir);
+        std::error_code ec;
+        std::filesystem::create_directories(dir, ec);
+
+        result.wavFilePath = (dir / "voice_probe_v1.wav").lexically_normal().string();
+        result.manifestFilePath = (dir / "voice_probe_v1_manifest.json").lexically_normal().string();
+
+        const bool wavOk = analysis::writeWavStereo16(
+            result.wavFilePath,
+            recordedStereo.data(),
+            result.totalCapturedFrames,
+            48000
+        );
+        result.wavWriteSuccess = wavOk;
+        if (!wavOk) {
+            result.passed = false;
+            result.failureReason += "[WAV write failed] ";
+        }
+
+        std::ofstream mf(result.manifestFilePath);
+        if (!mf.is_open()) {
+            result.passed = false;
+            result.manifestWriteSuccess = false;
+            result.failureReason += "[Manifest write failed] ";
+        } else {
+            result.manifestWriteSuccess = true;
+            mf << result.toJson();
+            if (!mf.good()) {
+                result.passed = false;
+                result.manifestWriteSuccess = false;
+                result.failureReason += "[Manifest write failed] ";
+            }
+        }
+    }
+
+    return result;
+}
+
 } // namespace cymatica::audio

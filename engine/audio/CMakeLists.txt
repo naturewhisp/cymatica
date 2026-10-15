@@ -12,6 +12,8 @@ add_library(cymatica_audio STATIC
     music_intent.h
     music_position.h
     realtime_exchange.h
+    voice_allocator.cpp
+    voice_allocator.h
 )
 
 target_include_directories(cymatica_audio PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

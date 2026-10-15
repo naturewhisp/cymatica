@@ -4,6 +4,7 @@
 #include "audio_telemetry.h"
 #include "music_intent.h"
 #include "realtime_exchange.h"
+#include "voice_allocator.h"
 
 #include <cstdint>
 
@@ -71,6 +72,10 @@ public:
     void attachAudioProbe(AudioProbe* probe) noexcept;
     void detachAudioProbe() noexcept;
     [[nodiscard]] AudioProbe* audioProbe() const noexcept;
+
+    // VoiceAllocator API (ADR-0003 D-M2-03, Inc-1)
+    [[nodiscard]] const VoiceAllocator& voiceAllocator() const noexcept;
+    [[nodiscard]] VoiceAllocator& voiceAllocator() noexcept;
 
     // Direct block rendering (callable without audio device for deterministic testing & zero-alloc validation)
     void processBlock(float* pOutput, std::uint32_t frameCount) noexcept;

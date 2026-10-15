@@ -81,6 +81,34 @@ Registrare il giudizio percettivo formale nell'evidenza di milestone (es. `docs/
 
 ---
 
+---
+
+## 1.2 Flusso di Validazione Polifonia e Voice Stealing (voice_probe_v1 — Inc-1)
+
+In M2.4 Inc-1, l'allocazione delle voci, il ciclo di vita ADSR, il voice stealing e le transizioni di trasporto vengono verificate con il runner `voice_test`:
+
+### Esecuzione del Runner Diagnostico
+
+```powershell
+.\build\ninja-vcpkg-release\cymatica_game.exe --cacp-run voice_test
+```
+
+Lo scenario diagnostico offline (circa 2.5 secondi a 48 kHz):
+1. **0.0s – 0.5s:** Attivazione simultanea di 2 voci sullo stesso ruolo (occupazione slot 0 e 1);
+2. **0.5s – 1.0s:** Attivazione di una terza voce sullo stesso ruolo: verifica del **voice stealing** deterministico dello slot più vecchio con rampa di de-click di 2 ms (96 campioni) su steal tail statica;
+3. **1.0s – 1.8s:** Transizione **Pause / Resume**: verifica della rampa fisica di de-click di 2 ms verso silenzio numerico assoluto (0.0f) e ripresa priva di discontinuità;
+4. **1.8s – 2.5s:** Comando **Stop**: verifica della de-click tail di 2 ms e reset a Idle di tutti gli 8 slot.
+
+Artefatti esportati in `artifacts/cacp/`:
+- `artifacts/cacp/voice_probe_v1_manifest.json` (metriche di voice allocation, drop count, de-click e verifiche di soglia);
+- `artifacts/cacp/voice_probe_v1.wav` (traccia audio PCM stereo 48 kHz).
+
+### Verifica Quantitativa e Multimodale
+- Manifest: `"verdict": "PASS"`, `"voice_steals": 1`, `"dropped_frames": 0`, `"discontinuities_detected": 0`.
+- Ispezione multimodale (`view_file` su `voice_probe_v1.wav`): assenza di click udibili ai punti di steal, pause e stop; decadimento fluido dell'ampiezza. Dichiarare esplicitamente lo stato di disponibilità dello strumento multimodale audio nelle evidenze.
+
+---
+
 ## 2. Flusso di Collaudo dal Vivo (Smoke Run)
 
 Per verificare l'applicazione completa end-to-end (inclusi finestra grafica raylib, context OpenGL e riproduzione fisica sugli altoparlanti WASAPI):
@@ -101,11 +129,17 @@ In modalità interattiva manuale (`cymatica_game.exe` senza flag smoke):
 
 ---
 
-## 3. Evoluzione del CACP nelle Milestone Successive
+## 3. Evoluzione del CACP nelle Milestone e Sottofasi
 
-Questa skill viene estesa progressivamente con l'avanzamento delle milestone:
+Il CACP si sviluppa in parallelo continuo e proporzionato con il codice: ogni incremento con impatto audiovisivo o di controllo introduce o aggiorna il relativo profilo diagnostico.
 
-- **Milestone 2:** `AudioProbe` tap PCM lock-free, `tone_probe_v0`, stima spettrale/RMS e ascolto multimodale WAV.
+- **Milestone 2.2 / M2.3:** `tone_probe_v0` (`--cacp-run tone_test`) — tap PCM lock-free, stima spettrale/RMS.
+- **Milestone 2.4 (Sviluppo Parallelo Incrementale):**
+  - **Inc-1:** `voice_probe_v1` (`--cacp-run voice_test`) — 8 voice slot, voice stealing, steal tails 2 ms, de-click Pause/Resume/Stop.
+  - **Inc-2:** `timbre_bus_probe_v1` (`--cacp-run timbre_test`) — palette timbrica 4 ruoli, 4 bus, ducking, protezione terminale.
+  - **Inc-3:** `planner_probe_v1` (`--cacp-run planner_test`) — generazione simbolica, invarianti motivici, trace diagnostico.
+  - **Inc-4:** `fixture_probe_v1` (`--cacp-run fixture_test`) — forma tripartita A-B-A' 96 battute, transizioni cross-epoch, profiling $\le 2,0$ ms.
+  - **Inc-5:** Suite diagnostica consolidata, artefatti WAV definitivi e dossier CACP per il gate M2.5.
 - **Milestone 3:** `VisualProbe` (cattura sequenziale di frame grafici, verifica telegraph, maschere di collisione e hazard visuali).
 - **Milestone 4:** Scenari deterministici `.cymtest`, clip pre/post evento, replay comparativo e structured evaluation results.
 - **Milestone 5:** Valutazione live della latenza end-to-end e osservazione non invasiva del gameplay in tempo reale.

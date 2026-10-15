@@ -134,4 +134,32 @@ ToneProbeResult runToneProbeV0(AudioEngine& engine,
                                const std::string& outputDir = "artifacts/cacp",
                                bool writeFiles = true);
 
+// Profile metrics for voice_probe_v1 (ADR-0003 D-M2-03, ADR-0004 AUD-D-01)
+struct VoiceProbeResult {
+    bool passed{false};
+    std::uint64_t totalCapturedFrames{0};
+    std::uint64_t droppedFrames{0};
+    std::uint32_t voiceStealsDetected{0};
+    std::uint32_t activeVoicesPhase1{0};
+    bool stealContinuityPassed{false};
+    bool pauseSilencePassed{false};
+    bool resumePassed{false};
+    bool stopSilencePassed{false};
+    bool dspAnomaliesPassed{false};
+    std::string buildId{CYMATICA_BUILD_ID};
+    std::uint64_t simulationTicks{300};
+    std::uint64_t requestedSampleFrames{120000};
+    bool wavWriteSuccess{false};
+    bool manifestWriteSuccess{false};
+    std::string wavFilePath{};
+    std::string manifestFilePath{};
+    std::string failureReason{};
+
+    [[nodiscard]] std::string toJson() const;
+};
+
+// Runs the authoritative voice_probe_v1 scenario offline in 120 Hz simulation ticks (Inc-1)
+VoiceProbeResult runVoiceProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
+                                        bool writeFiles = true);
+
 } // namespace cymatica::audio
