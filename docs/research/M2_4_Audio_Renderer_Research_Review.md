@@ -4,7 +4,7 @@
 - **Stato:** ricerca tecnica revisionata, **non normativa**; nessuna modifica al runtime attestata.
 - **Baseline verificata:** `main` a `090dc2a45cf3785a2055c492415f9151321ea18a` (2026-10-14).
 - **Input:** rapporto fornito dal titolare, *CYMATICA — Deep Research conclusiva sull'architettura audio M2.4*; addendum antecedente su transport/sidechain, entrambi revisionati criticamente. I marcatori `turn...search...` o `filecite` della sessione originale **non sono citazioni trasferibili al repository**; qui sono sostituiti da collegamenti pubblici e durevoli.
-- **Autorità:** [Specifica](../../CYMATICA_Specifica_Agentica_Sviluppo.md) > [DESIGN](../../DESIGN.md) > [AGENTS](../../AGENTS.md) > [ADR-0003](../adr/0003-m2-decisions-contracts.md) > [piano operativo](../progress.md) > ricerca, secondo le regole di progetto. Vedere la [proposta ADR-0004](../adr/0004-m2-4-audio-renderer-safety-proposal.md) per le modifiche **non ancora approvate**.
+- **Autorità:** [Specifica](../../CYMATICA_Specifica_Agentica_Sviluppo.md) > [DESIGN](../../DESIGN.md) > [AGENTS](../../AGENTS.md) > [ADR-0003](../adr/0003-m2-decisions-contracts.md) e [ADR-0004 ratificato](../adr/0004-m2-4-audio-renderer-safety-proposal.md) > [piano operativo](../progress.md) > ricerca. La review qui conserva lo stato storico delle **evidenze**, non annulla la ratifica architetturale del 2026-10-15.
 
 ## 1. Esito della review
 
@@ -74,7 +74,7 @@ Future SFX / UI (se presenti) --------------+--> Game Master
                                       worker CACP / meter offline
 ```
 
-`(*)` La protezione terminale e l'ordine rispetto a eventuale resampling/gain sono oggetto della [proposta di sicurezza](M2_4_Audio_Safety_Design.md), **non** una feature implementata né già prescritta dall'ADR-0003. Qualsiasi amplificazione o conversione **dopo** il limiter può invalidare il suo ceiling; la validazione riguarda i campioni effettivamente consegnati al dispositivo.
+`(*)` Il **principio** di protezione terminale è ratificato dall'[ADR-0004](../adr/0004-m2-4-audio-renderer-safety-proposal.md); algoritmo, ceiling e ordine rispetto a resampling/gain rimangono oggetto dello [studio tecnico](M2_4_Audio_Safety_Design.md) e non sono feature implementate. Qualsiasi amplificazione o conversione **dopo** il limiter può invalidare il suo ceiling; la validazione riguarda i campioni effettivamente consegnati al dispositivo.
 
 I ruoli Pulso/Corpo/Trama/Vettore rimangono concetti di composizione e telemetria. Per il micro-ducking già previsto è razionale iniziare dagli onset di Music Intent, mentre un sidechain dal PCM è utile quando serve seguire l'energia effettiva del segnale. Nessuna obbligatorietà di plugin o MIDI viene introdotta in M2.4.
 
@@ -99,11 +99,11 @@ Non adottare tutte le librerie indicate nel rapporto per principio. Un modulo pr
 - **Inc-2:** implementare soltanto i DSP necessari ai 4 ruoli e misurare prestazioni. Nessun host plugin obbligatorio.
 - **Inc-3:** Music Planner e determinismo non cambiano in base alla fonte dei filtri/oscillatori.
 - **Inc-4:** fixture A–B–A' (96 battute, 8.777.142 frame); benchmark callback e misure CACP ON/OFF; eventuali prime misure EBU come analisi esplorativa.
-- **Inc-5 / M2.5:** correlazione intent↔PCM, analisi di sample peak e true peak e dossier tecnico/percettivo; includere prove di protezione aggiuntive **soltanto se ratificate** prima dell'implementazione.
+- **Inc-5 / M2.5:** correlazione intent↔PCM, analisi di sample peak e true peak e dossier tecnico/percettivo; includere la protezione terminale ratificata; nuovi gate numerici/di conformità **soltanto se ratificati** prima dell'implementazione.
 - **M3 e oltre:** quando si introdurranno SFX/UI, instradarli nello **stesso master finale**, o deliberare esplicitamente la soluzione equivalente; non affermare che il limiter protegga sorgenti esterne al mixer.
 - **Sessioni lunghe:** un audit rolling 30 min non è verificabile con la sola fixture di ~183 s; prevedere una prova di durata adeguata prima di dichiarare applicata la raccomandazione H.872.
 
-La sicurezza fisica dell'udito non è deducibile dal solo PCM. Nessuna soglia LUFS o dBTP consente di garantire la pressione sonora alle cuffie non calibrate. Per criteri e possibili ratifiche vedere [safety design](M2_4_Audio_Safety_Design.md) e [ADR-0004 proposta](../adr/0004-m2-4-audio-renderer-safety-proposal.md).
+La sicurezza fisica dell'udito non è deducibile dal solo PCM. Nessuna soglia LUFS o dBTP consente di garantire la pressione sonora alle cuffie non calibrate. Per criteri e possibili ratifiche vedere [safety design](M2_4_Audio_Safety_Design.md) e [ADR-0004 ratificato](../adr/0004-m2-4-audio-renderer-safety-proposal.md).
 
 ## 7. Findings e disposizioni
 

@@ -1,97 +1,106 @@
-# ADR-0004 (PROPOSTA) — Renderer DSP, protezione master e loudness per M2.4
+# ADR-0004 — Renderer nativo, protezione terminale e loudness (ratifica M2.4)
 
-- **Data:** 2026-10-15.
-- **Stato:** **PROPOSED — NON APPROVATO, NON NORMATIVO, NON IMPLEMENTATO**.
-- **Owner decisionale:** titolare CYMATICA; review indipendente richiesta per ogni emendamento a contratti ratificati.
-- **Baseline:** `090dc2a45cf3785a2055c492415f9151321ea18a`.
-- **Riferimenti:** [ADR-0003 D-M2-04/06/07](0003-m2-decisions-contracts.md); [ricerca revisionata](../research/M2_4_Audio_Renderer_Research_Review.md); [safe-listening design](../research/M2_4_Audio_Safety_Design.md); [piano](../research/M2_4_Implementation_Plan.md); [progress](../progress.md).
+- **Data di ratifica:** 2026-10-15.
+- **Stato:** **accepted for implementation — decisioni architetturali approvate; implementazione NON avviata né validata**.
+- **Owner decisionale:** titolare CYMATICA; approvazione esplicita dopo Grill-me e review indipendente del Decision Record del 2026-10-15.
+- **Baseline documentale verificata:** `32f93250f8d18c080ab165ddb12d2b88499eab42` (`main`, commit *Document M2.4 audio research and safety review*).
+- **Percorso:** il suffisso storico `-proposal.md` è conservato per non invalidare riferimenti già committati; lo **stato nel documento**, non il filename, è autoritativo.
+- **Gerarchia:** Specifica > DESIGN > AGENTS > ADR > piano operativo > ricerca. Questo ADR integra [ADR-0003](0003-m2-decisions-contracts.md) nei punti esplicitati al §6; non altera M1, M2.3, ABI pubbliche o roadmap.
+- **Evidenze:** [review renderer](../research/M2_4_Audio_Renderer_Research_Review.md), [studio safety](../research/M2_4_Audio_Safety_Design.md), [protocollo sperimentale](../research/M2_4_Evaluation_Protocol.md), [piano M2.4](../research/M2_4_Implementation_Plan.md) e Decision Record Grill-me approvato dal titolare. Sono evidenze **documentali**, non benchmark o misure PCM già effettuate.
 
-> **Vincolo sulla precedenza:** questo documento espone scelte da approvare. Non crea un secondo contratto operativo concorrente con ADR-0003. Fino a un'approvazione esplicita, D-M2-06 e D-M2-07 e i gate della specifica rimangono vigenti come scritti. Una ratifica deve indicare precisamente quali punti dell'ADR-0003 siano confermati/emendati e adeguare piano/protocollo di verifica prima del codice dipendente.
+## 1. Contesto e perimetro della ratifica
 
-## 1. Contesto
+La ricerca comparativa raccomanda un renderer nativo C++20 circoscritto, con eventuale riuso di singole primitive DSP a licenza compatibile e qualificate; **non** un host CLAP/VST3 obbligatorio in M2.4. Il Grill-me ha accettato questa scelta e il principio di protezione terminale sul mix controllato dal gioco, mantenendo differita la scelta dell'algoritmo limiter e dei target numerici. Il monitoring LUFS/true peak è approvato come **architettura progressiva a tre domini**, non come garanzia di conformità acustica.
 
-La Deep Research completa, integrata con le verifiche ITU/EBU e delle licenze, preferisce per M2.4 un piccolo renderer nativo C++20, con possibile riuso di algoritmi DSP open source auditati. Non trova elementi sufficienti per imporre un host CLAP o VST3, che aumenterebbe le responsabilità di lifecycle, distribuzione, latency, note identity e compatibilità senza eliminare mixer, telemetry e safe output.
+Il presente ADR **ratifica AUD-D-01, AUD-D-04, AUD-D-02 a livello di principio e AUD-D-03 a livello architetturale**. Le decisioni dichiarate differite ai §§3–5 sono gate locali del lavoro che ne dipende; non bloccano Inc-1 e non possono essere risolte implicitamente dall'implementatore.
 
-Il titolare ha inoltre espresso una esigenza distinta: limiter terminale digitale su **tutte** le sorgenti del gioco e monitoraggio continuo LUFS/peak. ADR-0003 D-M2-06 al momento prescrive un **soft-clipper bounded** con protezione dei valori campionati e analisi *offline* del true peak, ma non un limiter true-peak obbligatorio. È quindi necessario un atto deliberativo, evitando di spacciare la sicurezza proposta per una feature già accettata o realizzata.
+## 2. AUD-D-01 — Renderer nativo e ammissione selettiva di DSP esterno
 
-## 2. Decisione proposta AUD-D-01 — Renderer nativo con DSP selettivo
+**Decisione approvata.** In M2.4, generazione audio e voice lifecycle rimangono **nativi C++20**, basati su `VoiceSlot[8]`, due slot per Pulso/Corpo/Trama/Vettore, quattro bus stereo preallocati, `MusicIntentEvent`, clock logico a 48 kHz, SPSC e vincoli di determinismo/realtime di ADR-0003. La pipeline v1 non richiede host plugin, librerie DSP monolitiche, sample bank esterne o file audio da caricare a runtime.
 
-**Proposta:** confermare il renderer nativo C++20 a 8 slot e 4 bus di D-M2-04/D-M2-06, consentendo il riuso di *singole primitive* da sorgenti permissive dopo qualifica documentata. Nessun framework, plugin, sample bank o effetto esterno è dipendenza obbligatoria di M2.4.
+**Inc-1 è limitato al voice allocator/lifecycle nativo, senza codice DSP terzo.** In Inc-2 è **ammesso, ma non richiesto**, importare *singole primitive* open source compatibili (ad esempio oscillatori, filtri o effetti) soltanto dopo una qualifica esplicita, registrata **prima dell'uso**:
 
-**Prerequisiti per ammettere un modulo:** sorgente/revisione pin, licenza e notices, numerica finita e denormali, bound di memoria/CPU, nessun lock o heap in callback, stato RNG locale deterministico, smoothing, portabilità Windows/Android, profilo di test e benchmark su catena completa. Registrare in `docs/dependencies.md` all'adozione effettiva.
+1. Provenienza, revisione/tag/SHA, licenza effettiva del modulo e dei suoi asset, notices e modalità di incorporazione; registrazione in `docs/dependencies.md` soltanto al momento dell'adozione.
+2. Allocazioni, lock, I/O, logging, inizializzazione e lifecycle: nessuno di questi deve operare in modo non bounded o bloccante nella callback; memoria e stato preallocati.
+3. Assenza di RNG globale implicito; stato casuale locale riproducibile quando necessario; controlli su NaN/Inf, denormali, stabilità filtri e parametri limite.
+4. Build/toolchain Windows e fattibilità Android, benchmark **dell'intera callback** nel profilo D-M2-07 e prova PCM/ascolto a Music Intent costante.
 
-**Non implica:** scegliere DaisySP o Airwindows oggi, né integrare un'intera libreria per ragioni reputazionali. Surge XT/CLAP resta *strumento potenziale* di ascolto/A-B fuori dal runtime obbligatorio.
+Il progetto principale **DaisySP** è generalmente distribuito con licenza MIT; il repository distinto **DaisySP-LGPL** presenta condizioni proprie. Non attribuire automaticamente obblighi LGPL alla libreria MIT né ritenere qualsiasi modulo esente da audit. Airwindows è un possibile candidato MIT: nessun suo effetto viene approvato o adottato con questo ADR. Un DSP scritto internamente resta una scelta valida quando il riuso non offre un beneficio verificabile.
 
-**Conseguenze:** non cambia l'ABI `MusicIntentEvent` né il significato di MusicClock, seed/epoch, committed horizon e SPSC. L'implementazione di Inc-1 resta basata su voice allocator nativo.
+## 3. AUD-D-04 — Plugin hosting differito e unica autorità temporale
 
-## 3. Decisione proposta AUD-D-02 — Master protection terminale
+**Decisione approvata.** Nessun host CLAP/VST3, backend plugin obbligatorio o astrazione generica plugin/nativo fa parte degli incrementi **Inc-1..Inc-5** di M2.4. Non si afferma che ospitare plugin in realtime sia impossibile: la complessità non è giustificata dalle evidenze disponibili per questa milestone.
 
-**Proposta:** tutte le sorgenti sonore sotto controllo CYMATICA (musica e successivamente SFX/UI) devono attraversare, prima dell'uscita device, una protezione terminale digitale **sempre attiva e fail-closed**. Il limiter non deve dipendere dal consumo di CACP/AudioProbe per continuare a funzionare. Deve essere implementabile in maniera bounded e senza operazioni bloccanti nella callback.
+`MusicClock` (48 kHz logici), `SetTempoMap`, `MusicIntentEvent`, committed scheduling, semantica cross-epoch e regole `Pause`/`Resume`/`Stop` restano autoritativi e invariati. Nessun clock MIDI/software concorrente. CACP è **Control & Observation Plane** diagnostico e non partecipa alla generazione del transport realtime.
 
-### Requisiti da valutare prima della ratifica
+Se in futuro verrà autorizzato uno spike CLAP o VST3, sarà **separato dalla roadmap vincolante M2.4**, con host headless e adapter bounded che *proietta* il transport canonico, gestione esplicita di identità note 64→32 bit, versionamento stato/preset, latenza, lifecycle e test di affidabilità. Il confronto timbrico offline con Surge XT resta un'opzione, senza milestone futura assegnata automaticamente.
 
-1. Sede esatta nel grafo e rapporto con il resampling: nessuna amplificazione a valle che invalidi il ceiling; misurare l'uscita effettiva del dispositivo.
-2. Gestione di NaN/Inf, segnale fuori range, burst di voci, cambi rapidi di gain, pause/stop, underrun e device changes.
-3. Differenza fra simple sample-peak clamp e **limiter true-peak** (ricostruzione intersample, oversampling e possibile lookahead); il contratto finale non deve confonderli.
-4. Latency introdotta nota e contabilizzata nel rendering/compensazione, non correggendo `MusicClock`.
-5. Obbligo del target D-M2-07: **<=2.0 ms sulla callback intera** nel profilo Release di 512 frame/48 kHz; il limiter non ottiene budget aggiuntivo.
-6. Verifica tramite meter *indipendente*, PCM registrato dopo gli stadi finali, casistica patologica e ascolto umano per effetti collaterali (pumping/distorsione).
+## 4. AUD-D-02 — Protezione digitale terminale comune
 
-**Numeri da ratificare:** `−1 dBTP` è proposto come riferimento coerente con H.872 §9.3.1, ma non è ancora una costante normativa CYMATICA. Il limiter specifico (sample-peak oppure true-peak lookahead) e la sua latenza non sono stati selezionati né misurati. L'indicazione ambigua `−4` non viene recepita.
+**Principio architetturale approvato e vincolante.** Tutte le sorgenti sonore **sotto il controllo di CYMATICA** confluiscono in uno stadio terminale comune di protezione digitale **sempre attivo e fail-closed** prima della consegna del PCM al backend audio. In M2.4 il requisito riguarda le sorgenti musicali realmente presenti; futuri SFX/UI dovranno essere aggiunti allo stesso percorso quando saranno implementati. La protezione non dipende da CACP, AudioProbe o disponibilità dei loro worker.
 
-**Relazione con D-M2-06:** se AUD-D-02 viene approvata, *emendare formalmente il punto 4* (protezione master) e il relativo profilo di test; non aggiungere un secondo limiter incoerente in parallelo al soft-clipper esistente. L'ordine di priorità fra stadi resta un unico grafo audio.
+Invarianti approvati:
 
-## 4. Decisione proposta AUD-D-03 — Loudness e audit safe-listening
+- Finite-value guard contro `NaN`/`Inf`, input/stati invalidi e guadagni fuori specifica, con bonifica o silenziamento deterministico e telemetria bounded.
+- Gain staging conservativo a monte; il limiter **non** sostituisce la gestione della somma di bus e transienti.
+- Processamento bounded per campione e per blocco: nessun heap, lock bloccante, log o I/O nella callback; strutture/lookahead, se approvati, con memoria statica/preallocata e latency dichiarata.
+- Nessuno stadio di CYMATICA a valle della protezione può amplificare o trasformare il segnale **invalidando il ceiling effettivamente qualificato**. La collocazione rispetto a resampling, volume dell'utente, AudioProbe e formato consegnato al device deve essere specificata e verificata.
+- `Pause` conserva il **freeze logico immediato** di D-M2-04 e la de-click tail fisica separata; `Stop` ed `Emergency Mute` mantengono le loro garanzie. Il limiter non può riemettere code sonore oltre i boundary di silenzio prescritti.
+- La protezione, incluso ogni suo eventuale oversampling, deve rientrare nel **budget della callback completa** di D-M2-07 (target Release `≤2,0 ms` per 512 frame a 48 kHz): nessun budget aggiuntivo per il limiter.
 
-**Proposta:** monitoraggio diagnostico e validazione su **Momentary LUFS (400 ms), Short-term LUFS (3 s), Integrated LUFS gated dell'intervallo, rolling 30 min gated, sample peak dBFS, true peak dBTP e gain reduction** secondo gli standard pertinenti; distinguere misure durante la run da controlli offline e da eventuali future impostazioni accessibili al giocatore.
+**Gate pre-Inc-2 (decisione tecnica differita, non delega tacita):** prima di implementare il master occorre scegliere e registrare algoritmo (sample-peak, true-peak/lookahead o combinazione), ordine dei processori/pre-post SRC, latenza, comportamento su segnali avversari, ceiling di test e procedura di verifica indipendente. La scelta richiede almeno analisi tecnica, benchmark/prove mirate e approvazione del titolare quando introduce tradeoff normativi; non è necessario un ulteriore Grill-me generale.
 
-**Aspetti invarianti:** calcoli complessi di gating, export e aggregazioni estese NON nella callback audio. Gli acquisitori devono essere bounded; perdita di campioni o intervalli rende la metrica **inconclusiva**, non PASS. Limitazione digitale non equivale a misurazione della dose acustica.
+Il **soft-clipper** previsto originariamente da D-M2-06 può essere conservato come trattamento timbrico/intermedio **se** qualificato, ma **non** costituisce da solo la protezione terminale nuova. Un clamp sample-peak `[-1,+1]` non dimostra la limitazione dei picchi intersample. Il valore **`−1 dBTP` è un obiettivo di prova iniziale**, non un ceiling normativo già approvato. Non incorporare l'indicazione ambigua `−4`.
 
-**Riferimento non automaticamente ratificato:** ITU-T H.872 §9.3.1 per output scaling videogame, 30 min circa `−23 LUFS ±2 LU` e `≤−1 dBTP`, con eccezioni e funzioni di sicurezza ulteriori. Nessuna equivalenza con target di distribuzione musicale come `−14 LUFS`, né con SPL o dBA non misurati.
+**Limite della garanzia:** CYMATICA controlla il PCM nel proprio dominio; il guadagno OS, l'amplificatore, la sensibilità dei trasduttori e la dose acustica reale non sono controllabili tramite il solo limiter. È vietato dichiarare garantita l'assenza di danno uditivo/hardware.
 
-**Fasi proposte:** Inc-2 mette a punto protezione e campioni avversari; Inc-4/Inc-5 acquisiscono evidenze di run di ~183 s e misure EBU; test reali su 30 minuti, mix SFX/UI e profili di device quando tali feature vengono effettivamente sviluppate, prima di dichiarare conformità H.872 per la piattaforma target. Il gate M2.5 resta invariato finché la modifica normativa non sia approvata.
+## 5. AUD-D-03 — Monitoring progressivo e conformità da dimostrare
 
-## 5. Decisione proposta AUD-D-04 — Plugin hosting eventuale e clock
+**Architettura approvata:** tre domini separati, con comportamento misurabile e senza dipendenze critiche dalla diagnostica.
 
-Non introdurre oggi un host CLAP/VST3 come deliverable di M2.4. Un eventuale spike futuro deve essere separato e approvato, con MIDI note identity bounded, plugin/preset versioning, lifecycle e audio graph state.
+1. **Callback audio:** finite guard e contatori/peak detection a costo costante **per campione**, trasporto di dati/campioni tramite ring SPSC preallocata e non bloccante quando la diagnostica è attiva. Il lavoro complessivo è bounded rispetto al massimo di frame per callback: non eseguire lì K-weighting, gating LUFS esteso, file export o aggregazioni non bounded.
+2. **Worker diagnostico/CACP:** quando attivato, monitoraggio incrementale Momentary LUFS (400 ms) e Short-term LUFS (3 s), con canali e profili dichiarati. Se `AudioProbe` perde campioni o la cattura è incompleta, le metriche dipendenti da quei dati sono **INCONCLUSIVE**, mai dichiarate `PASS`.
+3. **Analisi offline:** Integrated LUFS **gated** sull'intervallo della run e stima **indipendente** del true peak (dBTP, con algoritmo/metodo e accuratezza documentati); LRA, storia della gain reduction e rolling Integrated gated su finestre effettive di 30 minuti quando richieste da una prova di durata adeguata. Un oversampling 4× fornisce una **stima**, non una misura matematicamente esatta dei picchi ricostruiti.
 
-Qualora venga autorizzato, il transport del plugin è una **proiezione** del `MusicClock` autoritativo 48 kHz: CLAP ammette eventi transport sample-offset, VST3 gestisce il tempo tramite `ProcessContext` per processing block (sub-block ai boundary se richiesto). Nessun nuovo MIDI Clock interno né modifica di `MusicIntentEvent`/`SetTempoMap` per ragioni di mera compatibilità plugin. Sidechain audio e onset simbolici restano canali distinti; CACP è Control & Observation Plane, non time master.
+**Profili iniziali sperimentali (non gate normativi):** valutare `−23 LUFS ±2 LU` sull'intera fixture A–B–A′ (~183 s) e `≤−1 dBTP` come punti di partenza, con risultati `MEASURED/INCONCLUSIVE`; **non** certificano il riferimento di ITU-T H.872, definito su **30 minuti**, né l'esposizione acustica in dBA. `−14 LUFS` non è un target di safe listening approvato. Il rapporto fra loudness e output del gioco sarà qualificato quando saranno disponibili mix completo e sessioni idonee, **senza assegnare ora una milestone numerica arbitraria**.
 
-## 6. Conseguenze sugli incrementi e sulle decisioni già ratificate
+**Gate di evidenza:** i controlli tecnici di M2/M2.5 e `AC-AO-02` già obbligatori restano invariati; introdurre nuovi gate obbligatori LUFS/true-peak o criteri di conformità H.872 richiede successiva ratifica esplicita nella milestone che implementerà le capacità necessarie. Il monitoring è diagnostico/progressivo; non è ancora una feature runtime continua e obbligatoria per il giocatore.
 
-| Ambito | Conseguenza proposta | Richiede ratifica? |
+## 6. Emendamenti e rapporto con ADR-0003
+
+| Elemento | Effetto della ratifica | Stato |
 |---|---|---|
-| M1/M2.3, `MusicClock`, `MusicIntentEvent` | Nessuna modifica | No |
-| D-M2-04, VoiceSlot[8] e lifecycle | Confermati | No |
-| D-M2-06, sintesi C++20 | Resta nativa; ammissione selettiva di algoritmi terzi con licenze idonee | **Sì**, se si emenda il perimetro della sintesi pura vigente |
-| D-M2-06, master | Protezione terminale oltre il solo soft-clipper; ceiling/profilo da fissare | **Sì** |
-| D-M2-07, test/profiling | Includere limiter/monitoring quando introdotti e qualificare il nuovo budget | **Sì** per nuovi gate mandatory |
-| `docs/dependencies.md` | Nessuna dipendenza attiva aggiunta da questo ADR | Solo con nuova adozione concreta |
-| Piano Inc-1..5 | Sequenza invariata; dipendenza decisionale su protezione prima di Inc-2 | **Sì** solo se modifica i criteri vincolanti |
-| CACP / AC-AO-02 | Verifica tecnica e percettiva separata; dati di safety in analisi | Per cambi di schema pubblico/gate sì |
-| SFX/UI e sessioni 30 min | Prove future al momento della feature reale | Decisione futura |
+| D-M2-02/03, `MusicClock`, scheduler e ABI | Nessun cambiamento | **Preservati** |
+| D-M2-04, otto slot, steal tails, cross-epoch e matrice Pause/Stop | Nessun cambiamento; anche il limiter deve rispettarli | **Preservati** |
+| D-M2-06, punto 2 | Consentire **moduli DSP permissivi selettivi e auditati** incorporati nel renderer C++20; nessun sample asset esterno richiesto | **Emendato esplicitamente** |
+| D-M2-06, punto 4 | Sostituire il requisito che il solo soft-clipper sia la protezione terminale con **master protection comune, bounded e fail-closed**; tecnologia/ceiling prima di Inc-2 | **Emendato esplicitamente** |
+| D-M2-07, punto 1 e analisi master | Benchmark della **catena reale intera** con protezione e acquisizione bounded; stima true peak indipendente | **Precisato**, target `≤2,0 ms` invariato |
+| Inc-1 | Voice Allocator nativo, indipendente da modulo DSP terzo, limiter e LUFS | **Sbloccabile su autorizzazione** |
+| Inc-2 | Qualifica locale di DSP opzionali e **scelta tecnica del limiter prima del codice master** | **Gate tecnico futuro** |
+| Inc-4/Inc-5 | Evidence dossier e analisi esplorativa conformi al protocollo | **Nessun nuovo gate mandatory M2.5** |
+| `docs/dependencies.md` | Nessuna nuova dipendenza effettivamente adottata | **Invariato** |
 
-## 7. Alternative respinte per questa fase
+Il documento ADR-0003 deve incorporare gli emendamenti ai punti 2 e 4 di D-M2-06 e la precisazione a D-M2-07 in modo che **non rimangano due versioni concorrenti del contratto**. Se una decisione differita cambia ABI, tempi di silenzio, voice budget, profilo numerico o gate mandatory, avviare una revisione normativa circoscritta prima del codice interessato.
 
-- **Host Surge XT/CLAP/VST3 obbligatorio:** costi e incertezza sul vincolo realtime, voice budget effettivo, portabilità e distribuzione; nessun benchmark di vantaggio sufficiente.
-- **Intero DSP scritto necessariamente da zero:** costo di manutenzione aggiuntivo senza beneficio automatico; l'audit di moduli aperti può essere preferibile.
-- **Assenza di master limiter oltre al clipper:** economica ma non dimostra ceiling true-peak sul mix complessivo; la scelta è accettabile solo se il titolare decide esplicitamente di non ampliare il requisito, senza promessa di safe listening.
-- **`−14 LUFS` o `−4` imposti a priori:** definizioni e contesto inadeguati; non sono limiti di sicurezza derivati da H.872.
+## 7. Alternative considerate e respinte per M2.4
 
-## 8. Stato, follow-up e approvazioni
+- **Host plugin CLAP/VST3 primario:** tecnicamente possibile con componenti qualificati, ma non supportato da evidenze sufficienti a giustificarne ora lifecycle, distribuzione, gestione note, crash e portabilità. Nessuna pretesa di impossibilità tecnica universale.
+- **Riscrivere obbligatoriamente ogni oscillatore/filtro/effetto:** non dimostra vantaggio artistico; accettato riuso selettivo qualificato come opzione.
+- **Integrare intere librerie senza audit:** rifiutato per superficie di dipendenza/manutenzione non giustificata; non attribuire automaticamente GPL/LGPL a moduli MIT.
+- **Usare il solo soft-clipper come limiter terminale qualificato:** non sufficiente a dimostrare ceiling true-peak; possibile funzione artistica ma non prova di protezione digitale equivalente.
+- **Rendere `−14 LUFS`, `−4` o l'audit rolling di 30 minuti gate M2.4:** non giustificato né verificabile con la sola run di circa tre minuti.
 
-- **AUD-D-01:** ☐ Approvare renderer nativo con DSP esterno modulare selettivo e auditato (senza scegliere alcuna libreria ora).
-- **AUD-D-02:** ☐ Approvare il principio di limiter terminale obbligatorio, e incaricare Inc-2 di qualificare il tipo/ceiling prima di costruire il master definitivo.
-- **AUD-D-03:** ☐ Approvare monitoring LUFS/true peak progressivo, con vincoli mandatory e durata definiti in una successiva revisione normativa; registrare H.872 come riferimento di progettazione.
-- **AUD-D-04:** ☐ Confermare host plugin solo opzionale/sperimentale per M2.4 e preservare `MusicClock`/CACP.
+## 8. Stato operativo e tracciabilità
 
-**Nessuna casella è spuntata da questa review.** In seguito all'approvazione del titolare, produrre una versione ratificata che indichi data, motivazione, owner, contratti ADR-0003 emendati, nuovi criteri di accettazione e review indipendente coerente. Finché ciò non accade, **questo ADR-0004 non autorizza implementazione nuova né altera l'ambito di Inc-1**.
+- **Ratificati dal titolare (2026-10-15):** AUD-D-01, AUD-D-04, AUD-D-02 **come principio**, AUD-D-03 **come architettura e piano di evidenza**.
+- **Non ancora scelti/approvati:** identità di librerie/effetti terzi, algoritmo limiter e posizione nel grafo rispetto al SRC, latency/lookahead, ceiling numerico obbligatorio, durata/tolleranze di gate rolling, conformità H.872.
+- **Non implementati:** limiter nuovo, metriche LUFS, host/plugin e integrazione di DSP terzi. Questo ADR non certifica alcuna misura realtime o PCM.
+- **Sviluppo:** la ratifica **non costituisce autorizzazione all'avvio di Inc-1**, da richiedere separatamente.
 
-## 9. Fonti normative e tecniche
+## 9. Fonti tecniche e normative
 
-- [ITU-T H.872 (2024), §9](https://www.itu.int/rec/T-REC-H.872-202410-I/en).
-- [ITU-R BS.1770-5](https://www.itu.int/rec/R-REC-BS.1770-5-202311-I).
-- [EBU Tech 3341](https://tech.ebu.ch/publications/tech3341).
-- [CLAP event/transport API](https://github.com/free-audio/clap/blob/main/include/clap/events.h).
-- [VST3 ProcessContext](https://steinbergmedia.github.io/vst3_doc/vstinterfaces/structSteinberg_1_1Vst_1_1ProcessContext.html).
-- [Airwindows MIT](https://github.com/airwindows/airwindows/blob/master/LICENSE); [DaisySP MIT/LGPL](https://github.com/daisyaudio/DaisySP/releases); [Surge XT GPL](https://github.com/surge-synthesizer/surge).
+- [ITU-T H.872 (2024), Safe listening for video gameplay and esports, §9](https://www.itu.int/rec/T-REC-H.872-202410-I/en).
+- [ITU-R BS.1770-5 (2023)](https://www.itu.int/rec/R-REC-BS.1770-5-202311-I); [EBU Tech 3341](https://tech.ebu.ch/publications/tech3341).
+- [WHO/ITU, Global standard for safe listening video gameplay and esports](https://www.who.int/publications/i/item/9789240108028).
+- [CLAP `events.h`](https://github.com/free-audio/clap/blob/main/include/clap/events.h); [VST3 `ProcessContext`](https://steinbergmedia.github.io/vst3_doc/vstinterfaces/structSteinberg_1_1Vst_1_1ProcessContext.html).
+- [Airwindows](https://github.com/airwindows/airwindows); [DaisySP MIT](https://github.com/electro-smith/DaisySP); [DaisySP-LGPL](https://github.com/daisyaudio/DaisySP-LGPL); [Surge XT](https://github.com/surge-synthesizer/surge).

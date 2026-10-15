@@ -1,13 +1,13 @@
 # CYMATICA — Studio progettuale su protezione del master, loudness e safe listening
 
 - **Data:** 2026-10-15.
-- **Stato:** **proposta tecnica NON ratificata**; non descrive una funzionalità implementata.
+- **Stato:** **studio tecnico**; il principio di protezione finale e la separazione dei domini di monitoring sono **ratificati in ADR-0004 (2026-10-15)**, mentre algoritmo, topologia, ceiling e metriche di conformità sono ancora da qualificare. Nessuna feature è implementata.
 - **Baseline:** `090dc2a45cf3785a2055c492415f9151321ea18a`.
-- **Contesto:** [review audio](M2_4_Audio_Renderer_Research_Review.md), [ADR-0003 D-M2-06/07](../adr/0003-m2-decisions-contracts.md), [ADR-0004 proposto](../adr/0004-m2-4-audio-renderer-safety-proposal.md).
+- **Contesto:** [review audio](M2_4_Audio_Renderer_Research_Review.md), [ADR-0003 D-M2-06/07](../adr/0003-m2-decisions-contracts.md), [ADR-0004 ratificato](../adr/0004-m2-4-audio-renderer-safety-proposal.md).
 
 ## 1. Oggetto e limiti di garanzia
 
-Il titolare propone un **limiter digitale terminale sempre attivo** sulle sorgenti audio generate da CYMATICA e un **monitoring continuo** della loudness. Il requisito è motivato dalla gestione di musica adattiva con variazioni repentine di densità, timbro e simultaneità di SFX. È distinto dal contratto già accettato in D-M2-06, che richiede una protezione bounded dei valori campionati tramite soft clipping e clamp, ma **non** garantisce un ceiling true-peak.
+Il titolare ha **ratificato il principio** di uno stadio digitale terminale sempre attivo e fail-closed sulle sorgenti audio sotto controllo CYMATICA e l'architettura di monitoring progressivo a tre domini. La motivazione è la gestione di musica adattiva e, in futuro, la somma con SFX/UI. D-M2-06 è stato emendato coerentemente; **un algoritmo true-peak e un ceiling numerico non sono ancora stati ratificati o implementati**.
 
 La mitigazione software può contenere picchi e loudness digitali, ma **non certifica** l'esposizione acustica alle orecchie: volume OS/dispositivo, amplificazione, sensibilità delle cuffie, caratteristiche del trasduttore e durata di ascolto non sono misurate dal PCM. Non descrivere il sistema come in grado di impedire sempre danni uditivi o hardware.
 
@@ -43,12 +43,12 @@ ITU-T [H.872 (2024)](https://www.itu.int/rec/T-REC-H.872-202410-I/en) è il rife
 
 ## 3. Requisiti candidati dello stadio protettivo
 
-L'architettura proposta, da ratificare, dovrebbe imporre:
+I seguenti elementi vanno letti in conformità alla ratifica di ADR-0004: il **principio terminale** è obbligatorio, mentre la scelta dell'algoritmo, della topologia e dei parametri numerici costituisce un gate tecnico prima dell'implementazione del master in Inc-2:
 
 1. **Finite guard** prima del DSP terminale, per intercettare `NaN`, `Inf`, parametri fuori range e stati instabili, con contatore telemetrico bounded. In caso di anomalia severa prevedere una policy deterministicamente definita che azzeri o attenui il solo output non valido, evitando propagazione della contaminazione numerica.
 2. **Gain staging conservativo** sui quattro bus e sul master; il limiter è una protezione eccezionale, non un sostituto di un mix progettato male.
 3. **Limiter terminale bounded** senza heap, lock bloccanti, file I/O o logging nella callback. Studiare sample-peak limiter, lookahead brickwall, true-peak con oversampling e soft-clipper + limiter; la scelta concreta dipende dai costi misurati, non dalla sola etichetta commerciale.
-4. **Ceiling di prova −1 dBTP** come candidato H.872; dopo ratifica, misurare il true peak con un meter *indipendente* dalla logica del limiter e segnali difficili (impulsi, sinusoidi vicino a Nyquist, in-phase bus sum, cambiorate e transitori). Il clamp a ±1 non costituisce prova true peak.
+4. **Ceiling di prova −1 dBTP** come candidato H.872; alla qualifica, stimare il true peak con un meter *indipendente* dalla logica del limiter e segnali difficili (impulsi, sinusoidi vicino a Nyquist, in-phase bus sum, cambiorate e transitori). Il clamp a ±1 non costituisce prova true peak.
 5. **Comportamento in saturazione riproducibile**, comprensivo di Attack/Release, lookahead, gain reduction, latency deterministica, fade di Pause/Resume/Stop, stadi di resampling e continuità di input/output.
 6. **Deadline integra**: target D-M2-07 di <=2.0 ms per l'intera callback Release a 512 frame / 48 kHz; all'eventuale aggiunta di true-peak oversampling/latency, aggiornare gli scenari del benchmark, non creare un budget di 2 ms aggiuntivo per il limiter.
 7. **Nessuna dipendenza di sicurezza dai worker CACP/LUFS**: se il consumer è lento, il limiting realtime continua a funzionare. Capture/drop possono rendere **incompleta** l'evidenza, non disattivare la protezione e non produrre falsa attestazione `PASS`.
@@ -87,7 +87,7 @@ Le misure LUFS non sono una semplice media aritmetica del livello dB; Integrated
 | Fase | Valutazione tecnicamente giustificata | Stato normativo |
 |---|---|---|
 | **Prima di Inc-2** | Approvare se introdurre limiter terminale, target sperimentali e quali misure diventano mandatory. Budget, latenza e ordine SRC devono essere definiti. | Decisione del titolare **necessaria per nuovi contratti** |
-| **Inc-2** | Test DSP del limiter e finite guard con segnali avversari; budget callback a catena completa; verifiche di regressione sample-peak. | Solo se ratificato in ADR |
+| **Inc-2** | Gate pre-codice: scegliere algoritmo/topologia, poi test DSP limiter e finite guard con segnali avversari; budget callback completo e regressione sample-peak. | **Principio ratificato**; algoritmo e ceiling ancora da qualificare |
 | **Inc-4** | Fixture A–B–A' con measure stage/post process; metriche M/S/I, true peak, gain reduction, deadline misses. | Evidence addizionale proposta |
 | **Inc-5 / M2.5** | WAV completo e manifest CACP; confronto meter indipendente; ascolto umano e misure con limiter attivo. Durata della fixture ≈183 s, quindi **non** test rolling 30m a piena finestra. | Gate originali invariati finché non emendati formalmente |
 | **M5 o milestone di durata appropriata** | Sessioni con SFX/UI reali, dispositivi differenziati e 30 min effettivi, controlli volume e headphone safety; oltre al software valutazione acustica dove praticabile. | Decisioni future da calendarizzare, non claim M2.5 |
@@ -103,11 +103,11 @@ Le misure LUFS non sono una semplice media aritmetica del livello dB; Integrated
 
 **Criterio epistemico:** un limiter qualificato può rispettare un *ceiling digitale misurato* nel profilo testato; nessun test di questo elenco certifica la sicurezza delle cuffie dell'utente in assenza di dati acustici.
 
-## 7. Decisioni aperte da sottoporre al titolare
+## 7. Decisioni ratificate e dettagli ancora differiti
 
-- AUD-D-01: conferma modello di renderer nativo + DSP terzo selettivo (nessuna dipendenza nuova automaticamente approvata).
-- AUD-D-02: ratifica del limiter terminale comune e policy fail-safe, con specificazione di *dove* è verificato il true-peak post-SRC.
-- AUD-D-03: scelta se usare **−1 dBTP** e il riferimento **30-min −23 LUFS ±2 LU** come *target sperimentali* o *vincoli contrattuali* e in quale fase; chiarire anche la proposta `−4`.
+- AUD-D-01: **ratificato** renderer nativo + ammissione selettiva di DSP esterno auditato (nessuna dipendenza automaticamente adottata).
+- AUD-D-02: **ratificato il principio** di protezione terminale comune e policy fail-closed; algoritmo, posizionamento rispetto a SRC e verifica true-peak **differiti al gate pre-Inc-2**.
+- AUD-D-03: **ratificata la separazione callback/worker/offline**; `−1 dBTP` e `−23 LUFS ±2 LU` restano **target sperimentali**, non limiti mandatory; `−4` rimane privo di unità e quindi non utilizzabile.
 - AUD-D-04: livello di monitoring atteso in M2.4 vs milestone di sessione lunga; integrità dell'acquisizione e modello di gating/versioning.
 
 Non trasformare risposte non ancora ricevute in campi di configurazione predefiniti o nuovi mandatory gate. Il `MusicClock` e la semantica del transport restano invariati.
