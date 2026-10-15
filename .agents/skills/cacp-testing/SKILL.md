@@ -54,6 +54,12 @@ La pipeline GitHub Actions (`.github/workflows/windows-ci.yml`) esegue questo ru
 - I percorsi Windows contenenti backslash devono essere serializzati con escape nativo esplicito (`\\`).
 - La CI valida il file direttamente tramite `ConvertFrom-Json` in PowerShell e i test Catch2 con `nlohmann::json::parse()`.
 
+### Passo 2c: Verifica Quantitativa di Headroom e Assenza di Clipping
+Prima di considerare valido qualsiasi artefatto audio generato:
+- Verificare che il numero di campioni saturati a fondo scala ($\pm 32767$ in 16-bit PCM o $|x| \ge 1.0\text{f}$ in float) sia **esattamente pari a 0**.
+- Verificare che il picco massimo dell'ampiezza non superi **$-6\text{ dBFS}$** ($\approx 0.50\text{f}$), confermando il rispetto del gain staging nominale di progetto (ADR-0003 D-M2-06).
+- **Gestione Lock File Windows:** prima di sovrascrivere file WAV in rigenerazioni locali, verificare che non siano bloccati in lettura esclusiva da player esterni o app di messaggistica (`[Errno 13] Permission denied`).
+
 ### Passo 3: Ascolto Multimodale Diretto (AC-AO-01B)
 
 Verificare preliminarmente se il client/modello in uso dispone della capacità di ingestione multimodale audio (`audio/wav`).
@@ -90,12 +96,12 @@ In M2.4 Inc-1, l'allocazione delle voci, il ciclo di vita ADSR, il voice stealin
 ### Esecuzione del Runner Diagnostico
 
 ```powershell
-.\build\ninja-vcpkg-release\cymatica_game.exe --cacp-run voice_test
+.\build\x64-release\apps\cymatica_game\cymatica_game.exe --cacp-run voice_test
 ```
 
 Lo scenario diagnostico offline (circa 2.5 secondi a 48 kHz):
-1. **0.0s – 0.5s:** Attivazione simultanea di 2 voci sullo stesso ruolo (occupazione slot 0 e 1);
-2. **0.5s – 1.0s:** Attivazione di una terza voce sullo stesso ruolo: verifica del **voice stealing** deterministico dello slot più vecchio con rampa di de-click di 2 ms (96 campioni) su steal tail statica;
+1. **0.0s – 0.5s:** Attivazione simultanea di 2 voci sullo stesso ruolo (occupazione slot 0 e 1, 220 Hz + 330 Hz);
+2. **0.5s – 1.0s:** Attivazione di una terza voce sullo stesso ruolo (440 Hz): verifica del **voice stealing** deterministico dello slot più vecchio con rampa di de-click di 2 ms (96 campioni) su steal tail statica;
 3. **1.0s – 1.8s:** Transizione **Pause / Resume**: verifica della rampa fisica di de-click di 2 ms verso silenzio numerico assoluto (0.0f) e ripresa priva di discontinuità;
 4. **1.8s – 2.5s:** Comando **Stop**: verifica della de-click tail di 2 ms e reset a Idle di tutti gli 8 slot.
 
@@ -104,8 +110,14 @@ Artefatti esportati in `artifacts/cacp/`:
 - `artifacts/cacp/voice_probe_v1.wav` (traccia audio PCM stereo 48 kHz).
 
 ### Verifica Quantitativa e Multimodale
-- Manifest: `"verdict": "PASS"`, `"voice_steals": 1`, `"dropped_frames": 0`, `"discontinuities_detected": 0`.
-- Ispezione multimodale (`view_file` su `voice_probe_v1.wav`): assenza di click udibili ai punti di steal, pause e stop; decadimento fluido dell'ampiezza. Dichiarare esplicitamente lo stato di disponibilità dello strumento multimodale audio nelle evidenze.
+- **Manifest JSON:** `"verdict": "PASS"`, `"voice_steals_detected": 1`, `"dropped_frames": 0`, `"dsp_anomalies_passed": true`.
+- **Dinamica e Headroom:** 0 campioni saturati a fondo scala, picco massimo $\le -6\text{ dBFS}$ (tipicamente $\approx -9.37\text{ dBFS}$).
+- **Ispezione Multimodale Vincolante (`view_file` su `voice_probe_v1.wav`):** Invocare `view_file` per ascoltare direttamente l'audio nel contesto multimodale e formulare un giudizio percettivo esplicito:
+  - *Timbro:* purezza sinusoidale senza ronzii o asprezze da aliasing;
+  - *Accordi:* chiarezza dell'intervallo di quinta (220+330 Hz) e quarta (330+440 Hz) senza intermodulazione parassita;
+  - *Voice Stealing:* transizione fluida e continua tra 220 Hz e 440 Hz a 500 ms senza click percettibili;
+  - *Pause / Resume / Stop:* decadimento a zero lineare senza click, silenzio assoluto durante la pausa e al termine dello stop.
+  Dichiarare esplicitamente lo stato di disponibilità dello strumento multimodale audio nelle evidenze.
 
 ---
 
