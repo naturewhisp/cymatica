@@ -208,15 +208,52 @@ void VoiceAllocator::onResume() noexcept {
 }
 
 void VoiceAllocator::onStop() noexcept {
+    // 1. Capture each active voice into static steal tail for 2 ms physical de-click (ADR-0003 D-M2-03)
+    for (auto& slot : slots_) {
+        float curAmp = slot.currentVoiceOutput();
+        if (slot.stealTail.active) {
+            const float factor = static_cast<float>(slot.stealTail.remainingSamples) /
+                                 static_cast<float>(StealTail::kTailLength);
+            curAmp += slot.stealTail.startAmplitude[0] * factor;
+        }
+        if (!std::isfinite(curAmp)) {
+            curAmp = 0.0f;
+            ++dspAnomalyCount_;
+        }
+
+        const bool hasTail = (std::abs(curAmp) > 1e-6f);
+        const float tailAmp = curAmp;
+
+        // Reset slot synthesis state to Idle immediately (Spec §16, ADR-0003)
+        slot.state = VoiceState::Idle;
+        slot.eventId = 0;
+        slot.transportEpoch = 1;
+        ++slot.generationToken;
+        slot.startFrame = 0;
+        slot.durationFrames = 0;
+        slot.envelopeLevel = 0.0f;
+        slot.releaseStartLevel = 0.0f;
+        slot.stageFrame = 0;
+        slot.phase = 0.0f;
+        slot.phaseIncrement = 0.0f;
+
+        // Maintain physical tail in preallocated static steal tail
+        if (hasTail) {
+            slot.stealTail.startAmplitude[0] = tailAmp;
+            slot.stealTail.startAmplitude[1] = tailAmp;
+            slot.stealTail.remainingSamples = StealTail::kTailLength;
+            slot.stealTail.active = true;
+        } else {
+            slot.stealTail.reset();
+        }
+    }
+
+    // 2. Initiate physical de-click ramp towards silence
     transportRamp_ = TransportRamp::FadingOut;
     transportRampRemaining_ = kTransportDeclickFrames;
     transportRampStep_ = (transportRampLevel_ > 0.0f)
         ? (transportRampLevel_ / static_cast<float>(kTransportDeclickFrames))
         : 0.0f;
-
-    for (auto& slot : slots_) {
-        slot.reset();
-    }
 }
 
 std::uint32_t VoiceAllocator::activeVoiceCount() const noexcept {

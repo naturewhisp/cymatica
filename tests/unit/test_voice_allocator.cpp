@@ -344,6 +344,14 @@ TEST_CASE("VoiceAllocator provides physical 2ms transport de-click and frozen ti
     for (std::size_t i = 0; i < VoiceAllocator::kTotalSlots; ++i) {
         REQUIRE(allocator.slot(i).state == VoiceState::Idle);
     }
+
+    // Render 96 frames of physical de-click tail while stopped
+    allocator.renderBlock(buf, 96, 500, true);
+    // After 96 frames, output must be strictly silent (0.0f)
+    allocator.renderBlock(silentBuf, 500, 500, true);
+    maxSilent = 0.0f;
+    for (int i = 0; i < 500 * 2; ++i) maxSilent = (std::max)(maxSilent, std::abs(silentBuf[i]));
+    REQUIRE(maxSilent == 0.0f);
 }
 
 TEST_CASE("VoiceAllocator preserves active voices across epoch changes", "[voice_allocator][cross_epoch_preservation]") {
