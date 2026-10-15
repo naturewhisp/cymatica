@@ -38,6 +38,7 @@ struct AudioEngine::Impl {
     // Transport cursors and epoch (§7.5, §20.8, ADR-0002)
     std::uint64_t deviceFramesRendered{0};
     std::uint64_t transportEpoch{1};
+    std::uint64_t minValidEpoch_{1};                  // Earliest valid epoch after destructive stop/reset (D-M2-04)
     TransportState transportState{TransportState::Running};
     float activeVolume{0.0f};
     std::atomic<std::uint64_t> renderCursor{0};        // Synchronized authoritative 48 kHz timeline (DIF-M1-16)
@@ -193,6 +194,7 @@ struct AudioEngine::Impl {
                     triggerNoteOff();
                     transportState = TransportState::Stopped;
                     ++transportEpoch;
+                    minValidEpoch_ = transportEpoch;
                     lastEpochTransitionFrame_ = effectiveFrame;
                     // Reject any remaining staged future commands upon transport stop
                     for (std::size_t j = 0; j < pendingScheduledCount_; ++j) {
@@ -206,6 +208,13 @@ struct AudioEngine::Impl {
                         }
                     }
                     pendingScheduledCount_ = 0;
+
+                    // Invalidate and drain bounded staged scheduled events from the concluded run (D-M2-04, §20.7)
+                    ScheduledAudioEvent discardedEvt{};
+                    while (scheduledEventQueue.tryPop(discardedEvt)) {
+                        droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+                        totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+                    }
                 } else {
                     status = AudioCommandStatus::Rejected;
                 }
@@ -401,8 +410,8 @@ struct AudioEngine::Impl {
                         break;
                     }
 
-                    // 1. Drop stale events whose target frame has already passed
-                    if (schedEvt.sampleFrame < blockStartFrame) {
+                    // 1. Drop stale events whose target frame has already passed, or belonging to a concluded run (D-M2-04)
+                    if (schedEvt.sampleFrame < blockStartFrame || schedEvt.transportEpoch < minValidEpoch_) {
                         (void)scheduledEventQueue.tryPop(schedEvt);
                         droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
                         totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
@@ -508,7 +517,7 @@ struct AudioEngine::Impl {
                             totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
                             ++eventsExaminedInBlock;
 
-                            if (schedEvt.sampleFrame < blockStartFrame) {
+                            if (schedEvt.sampleFrame < blockStartFrame || schedEvt.transportEpoch < minValidEpoch_) {
                                 droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
                             } else if (schedEvt.transportEpoch > transportEpoch &&
                                        schedEvt.sampleFrame <= nowLogicalFrame &&

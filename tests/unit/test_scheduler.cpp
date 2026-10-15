@@ -839,3 +839,69 @@ TEST_CASE("AudioEngine enforces bounded event-processing budget per block under 
     CHECK(eventsPushed.load() > 0);
 }
 
+TEST_CASE("AudioEngine Stop invalidates scheduled events from concluded run across Stop to Start transition (D-M2-04)", "[scheduler][transport_stop_start]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+
+    // Pre-roll cursor to frame 500
+    std::vector<float> preRoll(500 * 2, 0.0f);
+    engine.processBlock(preRoll.data(), 500);
+    REQUIRE(engine.framesRendered() == 500);
+
+    // Schedule future NoteOn event targeting frame 1000 in epoch 1
+    ScheduledAudioEvent futureEvt{
+        .eventId = 42,
+        .sampleFrame = 1000,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Corpo,
+        .valueA = 440.0f,
+        .valueB = 0.8f,
+        .durationFrames = 1000
+    };
+    REQUIRE(engine.scheduleAudioEvent(futureEvt));
+
+    // Send Stop command before the note is played
+    AudioCommand stopCmd{
+        .commandId = 1,
+        .type = AudioCommandType::Stop,
+        .targetSampleFrame = 0
+    };
+    REQUIRE(engine.sendCommand(stopCmd));
+
+    // Process a block to execute Stop (100 frames)
+    std::vector<float> stopBlock(100 * 2, 0.0f);
+    engine.processBlock(stopBlock.data(), 100);
+    REQUIRE(engine.updateTelemetry());
+    REQUIRE(engine.transportState() == TransportState::Stopped);
+
+    AudioCommandAck stopAck;
+    REQUIRE(engine.pollAck(stopAck));
+    REQUIRE(stopAck.commandId == 1);
+    REQUIRE(stopAck.status == AudioCommandStatus::Applied);
+
+    // Send Start command to begin new run (explicitly valid transition Stopped -> Running)
+    AudioCommand startCmd{
+        .commandId = 2,
+        .type = AudioCommandType::Start,
+        .paramF32 = 0.25f,
+        .targetSampleFrame = 0
+    };
+    REQUIRE(engine.sendCommand(startCmd));
+
+    // Advance past frame 1000 (1000 frames covering from 600 to 1600)
+    std::vector<float> runBlock(1000 * 2, 0.0f);
+    engine.processBlock(runBlock.data(), 1000);
+    REQUIRE(engine.updateTelemetry());
+    REQUIRE(engine.transportState() == TransportState::Running);
+
+    AudioCommandAck startAck;
+    REQUIRE(engine.pollAck(startAck));
+    REQUIRE(startAck.commandId == 2);
+    REQUIRE(startAck.status == AudioCommandStatus::Applied);
+
+    // Event 42 must have been dropped, NOT synthesized in the new run!
+    REQUIRE(engine.telemetry().scheduledEventsDroppedTotal >= 1);
+    REQUIRE(engine.telemetry().activeVoiceCount == 0);
+}
+
