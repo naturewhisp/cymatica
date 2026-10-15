@@ -401,81 +401,27 @@ struct AudioEngine::Impl {
                         break;
                     }
 
-                    if (schedEvt.transportEpoch < transportEpoch) {
-                        // Event from earlier epoch: check if this is the legitimate NoteOff for active voice (DIF-M2-R4-01, ADR-0003)
-                        bool hasMatchingVoice = false;
-                        if (schedEvt.type == AudioEventType::NoteOff) {
-                            const std::size_t s0 = VoiceAllocator::roleFirstSlot(schedEvt.role);
-                            const std::size_t s1 = s0 + 1;
-                            const auto& slot0 = voiceAllocator.slot(s0);
-                            const auto& slot1 = voiceAllocator.slot(s1);
-                            if ((slot0.state != VoiceState::Idle && slot0.state != VoiceState::Release &&
-                                 (slot0.eventId == schedEvt.eventId || schedEvt.eventId == 0)) ||
-                                (slot1.state != VoiceState::Idle && slot1.state != VoiceState::Release &&
-                                 (slot1.eventId == schedEvt.eventId || schedEvt.eventId == 0))) {
-                                hasMatchingVoice = true;
-                            }
-                        }
-                        const bool isMatchingActiveNoteOff = hasMatchingVoice ||
-                                                             ((schedEvt.type == AudioEventType::NoteOff) &&
-                                                              activeNotePlaying_ &&
-                                                              (schedEvt.transportEpoch == activeNoteEpoch_));
-                        if (isMatchingActiveNoteOff) {
-                            // Voice preservation: keep event until its scheduled frame
-                            if (schedEvt.sampleFrame < blockEndFrame) {
-                                hasEvt = true;
-                                if (schedEvt.sampleFrame <= currentLogicalFrame) {
-                                    targetEvtDevOffset = currentDevOffset;
-                                } else {
-                                    const std::uint64_t devF = musicClock.internalToDeviceFrames(schedEvt.sampleFrame, sampleRate);
-                                    if (devF > deviceFramesRendered) {
-                                        const std::uint64_t off = devF - deviceFramesRendered;
-                                        targetEvtDevOffset = static_cast<std::uint32_t>(std::min<std::uint64_t>(off, frameCount));
-                                    } else {
-                                        targetEvtDevOffset = currentDevOffset;
-                                    }
-                                }
-                                if (targetEvtDevOffset < currentDevOffset) targetEvtDevOffset = currentDevOffset;
-                            } else {
-                                hasEvt = false;
-                            }
-                            break;
-                        } else {
-                            // Obsolete event from earlier epoch: drop without synthesizing DSP
-                            (void)scheduledEventQueue.tryPop(schedEvt);
-                            totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
-                            ++eventsExaminedInBlock;
-                            continue;
-                        }
+                    // 1. Drop stale events whose target frame has already passed
+                    if (schedEvt.sampleFrame < blockStartFrame) {
+                        (void)scheduledEventQueue.tryPop(schedEvt);
+                        droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+                        totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+                        ++eventsExaminedInBlock;
+                        continue;
                     }
 
-                    if (schedEvt.transportEpoch > transportEpoch) {
-                        // Future epoch event (DIF-M2-R3-05)
-                        if (schedEvt.sampleFrame < blockStartFrame ||
-                            (schedEvt.sampleFrame <= currentLogicalFrame && (!hasCmd || pendingScheduledCommands_[0].targetSampleFrame > schedEvt.sampleFrame))) {
-                            // Unmatchable: cursor passed or reached event time without epoch advancing
-                            (void)scheduledEventQueue.tryPop(schedEvt);
-                            droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
-                            ++eventsExaminedInBlock;
-                            continue;
-                        }
-                        if (schedEvt.sampleFrame < blockEndFrame) {
-                            hasEvt = true;
-                            const std::uint64_t devF = musicClock.internalToDeviceFrames(schedEvt.sampleFrame, sampleRate);
-                            if (devF > deviceFramesRendered) {
-                                const std::uint64_t off = devF - deviceFramesRendered;
-                                targetEvtDevOffset = static_cast<std::uint32_t>(std::min<std::uint64_t>(off, frameCount));
-                            } else {
-                                targetEvtDevOffset = currentDevOffset;
-                            }
-                            if (targetEvtDevOffset < currentDevOffset) targetEvtDevOffset = currentDevOffset;
-                        } else {
-                            hasEvt = false;
-                        }
-                        break;
+                    // 2. Future epoch event with target sampleFrame in past (unmatchable) (DIF-M2-R3-05)
+                    if (schedEvt.transportEpoch > transportEpoch &&
+                        schedEvt.sampleFrame <= currentLogicalFrame &&
+                        (!hasCmd || pendingScheduledCommands_[0].targetSampleFrame > schedEvt.sampleFrame)) {
+                        (void)scheduledEventQueue.tryPop(schedEvt);
+                        droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+                        totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+                        ++eventsExaminedInBlock;
+                        continue;
                     }
 
-                    // schedEvt.transportEpoch == transportEpoch
+                    // 3. Committed event (current epoch or preserved cross-epoch per D-M2-04):
                     if (schedEvt.sampleFrame < blockEndFrame) {
                         hasEvt = true;
                         if (schedEvt.sampleFrame <= currentLogicalFrame) {
@@ -504,8 +450,12 @@ struct AudioEngine::Impl {
                         currentDevOffset = targetCmdDevOffset;
                     }
 
+                    const std::uint64_t nowLogicalFrame = (sampleRate == musicClock.internalSampleRate())
+                        ? (blockStartFrame + currentDevOffset)
+                        : musicClock.deviceToInternalFrames(deviceFramesRendered + currentDevOffset, sampleRate);
+
                     // Execute ALL commands that mature at or before current offset (handles Pause + Resume in same tick!)
-                    while (pendingScheduledCount_ > 0 && pendingScheduledCommands_[0].targetSampleFrame <= currentLogicalFrame) {
+                    while (pendingScheduledCount_ > 0 && pendingScheduledCommands_[0].targetSampleFrame <= nowLogicalFrame) {
                         AudioCommand cmd = pendingScheduledCommands_[0];
                         for (std::size_t j = 0; j + 1 < pendingScheduledCount_; ++j) {
                             pendingScheduledCommands_[j] = pendingScheduledCommands_[j + 1];
@@ -534,7 +484,7 @@ struct AudioEngine::Impl {
                             for (std::size_t s = 0; s < static_cast<std::size_t>(rem) * channels; ++s) {
                                 dest[s] = 0.0f;
                             }
-                            voiceAllocator.renderBlock(dest, rem, currentLogicalFrame, true, true);
+                            voiceAllocator.renderBlock(dest, rem, nowLogicalFrame, true, true);
                         }
                         break;
                     }
@@ -546,56 +496,31 @@ struct AudioEngine::Impl {
                         currentDevOffset = targetEvtDevOffset;
                     }
 
+                    const std::uint64_t nowLogicalFrame = (sampleRate == musicClock.internalSampleRate())
+                        ? (blockStartFrame + currentDevOffset)
+                        : musicClock.deviceToInternalFrames(deviceFramesRendered + currentDevOffset, sampleRate);
+
                     if (scheduledEventQueue.peek(schedEvt)) {
                         if (eventsExaminedInBlock >= AudioEngine::kMaxScheduledEventsPerBlock) {
                             deferredScheduledEvents.fetch_add(1, std::memory_order_relaxed);
                         } else {
-                            if (schedEvt.transportEpoch < transportEpoch) {
-                                // Monophonic & polyphonic voice matching (DIF-M2-R4-01, ADR-0003 D-M2-03)
-                                bool hasMatchingVoice = false;
-                                if (schedEvt.type == AudioEventType::NoteOff) {
-                                    const std::size_t s0 = VoiceAllocator::roleFirstSlot(schedEvt.role);
-                                    const std::size_t s1 = s0 + 1;
-                                    const auto& slot0 = voiceAllocator.slot(s0);
-                                    const auto& slot1 = voiceAllocator.slot(s1);
-                                    if ((slot0.state != VoiceState::Idle && slot0.state != VoiceState::Release &&
-                                         (slot0.eventId == schedEvt.eventId || schedEvt.eventId == 0)) ||
-                                        (slot1.state != VoiceState::Idle && slot1.state != VoiceState::Release &&
-                                         (slot1.eventId == schedEvt.eventId || schedEvt.eventId == 0))) {
-                                        hasMatchingVoice = true;
-                                    }
-                                }
-                                const bool isMatchingActiveNoteOff = hasMatchingVoice ||
-                                                                     ((schedEvt.type == AudioEventType::NoteOff) &&
-                                                                      activeNotePlaying_ &&
-                                                                      (schedEvt.transportEpoch == activeNoteEpoch_));
-                                (void)scheduledEventQueue.tryPop(schedEvt);
-                                totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
-                                ++eventsExaminedInBlock;
-                                if (hasMatchingVoice) {
-                                    voiceAllocator.onNoteOff(schedEvt);
-                                }
-                                if (isMatchingActiveNoteOff) {
-                                    triggerNoteOff();
-                                }
-                            } else if (schedEvt.transportEpoch > transportEpoch) {
-                                // Reached event frame without epoch advancing: unmatchable! (DIF-M2-R3-05)
-                                (void)scheduledEventQueue.tryPop(schedEvt);
-                                droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
-                                ++eventsExaminedInBlock;
-                            } else {
-                                (void)scheduledEventQueue.tryPop(schedEvt);
-                                totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
-                                ++eventsExaminedInBlock;
+                            (void)scheduledEventQueue.tryPop(schedEvt);
+                            totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+                            ++eventsExaminedInBlock;
 
+                            if (schedEvt.sampleFrame < blockStartFrame) {
+                                droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+                            } else if (schedEvt.transportEpoch > transportEpoch &&
+                                       schedEvt.sampleFrame <= nowLogicalFrame &&
+                                       (!hasCmd || pendingScheduledCommands_[0].targetSampleFrame > schedEvt.sampleFrame)) {
+                                droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+                            } else {
                                 switch (schedEvt.type) {
                                     case AudioEventType::NoteOn:
                                         voiceAllocator.onNoteOn(schedEvt);
-                                        triggerNoteOn(schedEvt, activeVolume);
                                         break;
                                     case AudioEventType::NoteOff:
                                         voiceAllocator.onNoteOff(schedEvt);
-                                        triggerNoteOff();
                                         break;
                                     case AudioEventType::ParameterChange:
                                         if (schedEvt.valueA > 0.0f) {

@@ -404,64 +404,68 @@ TEST_CASE("AudioEngine future SetTempoMap does not cause head-of-line blocking o
     REQUIRE(engine.telemetry().transportState == TransportState::Running);
 }
 
-TEST_CASE("AudioEngine drops obsolete epoch scheduled events without DSP synthesis", "[scheduler][epoch_drop]") {
+TEST_CASE("AudioEngine preserves committed cross-epoch NoteOn events across SetTempoMap and drops stale events (D-M2-04)", "[scheduler][epoch_drop][cross_epoch_commitment]") {
     AudioEngine engine;
     REQUIRE(engine.initOffline({48000, 2, 220.0f}));
-    REQUIRE(engine.startTone(220.0f, 0.25f));
 
-    // Initial transportEpoch is 1.
-    // Stage an event with transportEpoch = 1 at frame 1000
-    ScheduledAudioEvent oldEvt{
-        .eventId = 42,
-        .sampleFrame = 1000,
+    // Part A: Fast-forward cursor to 23552 frames
+    std::vector<float> preRoll(23552 * 2, 0.0f);
+    engine.processBlock(preRoll.data(), 23552);
+    REQUIRE(engine.framesRendered() == 23552);
+
+    // Schedule stale event with target frame in the past (frame 10000 < 23552)
+    ScheduledAudioEvent staleEvt{
+        .eventId = 99,
+        .sampleFrame = 10000,
         .transportEpoch = 1,
         .type = AudioEventType::NoteOn,
-        .valueA = 880.0f, // high pitch
-        .valueB = 1.0f
+        .role = MusicRole::Pulso,
+        .valueA = 880.0f,
+        .valueB = 0.8f
     };
-    REQUIRE(engine.scheduleAudioEvent(oldEvt));
+    REQUIRE(engine.scheduleAudioEvent(staleEvt));
 
-    // Now bump the engine epoch to 2 and 3 via Pause and Resume
-    AudioCommand pauseCmd{.commandId = 10, .type = AudioCommandType::Pause};
-    REQUIRE(engine.sendCommand(pauseCmd));
-    AudioCommand resumeCmd{.commandId = 11, .type = AudioCommandType::Resume};
-    REQUIRE(engine.sendCommand(resumeCmd));
+    // Part B: Committed future NoteOn event (target frame 24500 > 24000) scheduled in epoch 1
+    ScheduledAudioEvent committedEvt{
+        .eventId = 42,
+        .sampleFrame = 24500,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Corpo,
+        .valueA = 440.0f,
+        .valueB = 0.8f,
+        .durationFrames = 1000
+    };
+    REQUIRE(engine.scheduleAudioEvent(committedEvt));
 
-    std::vector<float> out(500 * 2, 0.0f);
-    engine.processBlock(out.data(), 500); // Processes Pause & Resume, bumps epoch to 3!
+    // Send non-destructive SetTempoMap command targeting frame 24000 (valid beat 1 boundary), advancing transportEpoch to 2
+    TempoMap map;
+    map.bpm = RationalBpm{140, 1};
+    map.timeSignatureNum = 4;
+    map.timeSignatureDen = 4;
+    map.beatsPerBar = 4;
+    map.barsPerPhrase = 4;
+    map.subdivisionsPerBeat = 4;
 
-    AudioCommandAck ack;
-    REQUIRE(engine.pollAck(ack)); // Pause ack
-    REQUIRE(engine.pollAck(ack)); // Resume ack
+    const auto tempoCmd = AudioCommand::makeSetTempoMap(10, map, 24000);
+    REQUIRE(engine.sendCommand(tempoCmd));
+
+    // Process block 23552..25000 (1448 frames, covering frame 24000 and 24500)
+    std::vector<float> block2(1448 * 2, 0.0f);
+    engine.processBlock(block2.data(), 1448);
+
+    // Stale event 99 was dropped (scheduledEventsDroppedTotal incremented)
+    // Committed event 42 was preserved across epoch 2 and synthesized at frame 24500!
+    REQUIRE(engine.totalScheduledEventsProcessed() == 2);
     REQUIRE(engine.updateTelemetry());
-    REQUIRE(engine.telemetry().transportEpoch >= 3);
-
-    // Render block covering frame 1000 (from 500 to 1500)
-    std::vector<float> block(1000 * 2, 0.0f);
-    engine.processBlock(block.data(), 1000);
-
-    // Event 42 has epoch 1 < currentEpoch (3), so it must be dropped without synthesizing DSP
-    REQUIRE(engine.totalScheduledEventsProcessed() == 1); // Popped and counted
-    REQUIRE(engine.updateTelemetry());
-
-    // Verify rendered PCM directly (Section 4): pitch must remain at 220 Hz base tone, NOT 880 Hz!
-    // 220 Hz at 48000 Hz over 1000 frames produces ~9.16 zero crossings.
-    // If 880 Hz had been synthesized, zero crossings would be ~23!
-    std::size_t zc = 0;
-    for (std::size_t i = 1; i < 1000; ++i) {
-        if ((block[(i - 1) * 2] <= 0.0f && block[i * 2] > 0.0f) ||
-            (block[(i - 1) * 2] >= 0.0f && block[i * 2] < 0.0f)) {
-            ++zc;
-        }
-    }
-    CHECK(zc >= 7);
-    CHECK(zc <= 11);
+    REQUIRE(engine.telemetry().transportEpoch >= 2);
+    REQUIRE(engine.telemetry().scheduledEventsDroppedTotal >= 1); // Stale event dropped
+    REQUIRE(engine.telemetry().activeVoiceCount >= 1);            // Committed event 42 is active!
 }
 
 TEST_CASE("AudioEngine preserves intra-block temporal order between events and SetTempoMap (DIF-M2-R3-02)", "[scheduler][intra_block_order]") {
     AudioEngine engine;
     REQUIRE(engine.initOffline({48000, 2, 220.0f}));
-    REQUIRE(engine.startTone(220.0f, 0.25f));
 
     // Fast-forward engine to frame 23552:
     std::vector<float> preRoll(23552 * 2, 0.0f);

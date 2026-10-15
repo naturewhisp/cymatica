@@ -543,11 +543,15 @@ std::string VoiceProbeResult::toJson() const {
     ss << "  \"dropped_frames\": " << droppedFrames << ",\n";
     ss << "  \"voice_steals_detected\": " << voiceStealsDetected << ",\n";
     ss << "  \"active_voices_phase_1\": " << activeVoicesPhase1 << ",\n";
+    ss << "  \"peak_amplitude\": " << peakAmplitude << ",\n";
+    ss << "  \"clipped_samples\": " << clippedSamples << ",\n";
     ss << "  \"checks\": {\n";
     ss << "    \"steal_continuity_passed\": " << (stealContinuityPassed ? "true" : "false") << ",\n";
     ss << "    \"pause_silence_passed\": " << (pauseSilencePassed ? "true" : "false") << ",\n";
     ss << "    \"resume_passed\": " << (resumePassed ? "true" : "false") << ",\n";
     ss << "    \"stop_silence_passed\": " << (stopSilencePassed ? "true" : "false") << ",\n";
+    ss << "    \"headroom_passed\": " << (headroomPassed ? "true" : "false") << ",\n";
+    ss << "    \"zero_clipping_passed\": " << (clippedSamples == 0 ? "true" : "false") << ",\n";
     ss << "    \"dsp_anomalies_passed\": " << (dspAnomaliesPassed ? "true" : "false") << "\n";
     ss << "  },\n";
     ss << "  \"wav_write_success\": " << (wavWriteSuccess ? "true" : "false") << ",\n";
@@ -646,13 +650,16 @@ VoiceProbeResult runVoiceProbeV1Offline(const std::string& outputDir, bool write
         }
     }
 
+    engine.updateTelemetry();
+    const std::uint32_t finalVoiceSteals = engine.telemetry().voiceDropCount;
+
     engine.detachAudioProbe();
     engine.shutdown();
 
     result.totalCapturedFrames = recordedStereo.size() / 2;
     result.droppedFrames = probe.droppedFrames();
     result.activeVoicesPhase1 = activeVoicesAtTick30;
-    result.voiceStealsDetected = 1;
+    result.voiceStealsDetected = finalVoiceSteals;
 
     // 1. Check steal continuity around frame 24000
     result.stealContinuityPassed = true;
@@ -703,22 +710,43 @@ VoiceProbeResult runVoiceProbeV1Offline(const std::string& outputDir, bool write
         }
     }
 
+    // 6. Check headroom and digital clipping (ADR-0003 D-M2-06)
+    float maxAmp = 0.0f;
+    std::uint32_t clipCount = 0;
+    for (float s : recordedStereo) {
+        const float a = std::abs(s);
+        if (a > maxAmp) maxAmp = a;
+        if (a >= (32767.0f / 32768.0f)) {
+            ++clipCount;
+        }
+    }
+    result.peakAmplitude = maxAmp;
+    result.clippedSamples = clipCount;
+    // Headroom >= 6 dB (peak <= 0.5012f) and zero digital clipping
+    result.headroomPassed = (result.peakAmplitude <= 0.5012f) && (result.clippedSamples == 0);
+
     result.passed = (result.droppedFrames == 0) &&
                     (result.activeVoicesPhase1 == 2) &&
+                    (result.voiceStealsDetected == 1) &&
                     result.stealContinuityPassed &&
                     result.pauseSilencePassed &&
                     result.resumePassed &&
                     result.stopSilencePassed &&
+                    result.headroomPassed &&
+                    (result.clippedSamples == 0) &&
                     result.dspAnomaliesPassed;
 
     if (!result.passed) {
         std::ostringstream err;
         if (result.droppedFrames > 0) err << "dropped frames in probe; ";
         if (result.activeVoicesPhase1 != 2) err << "active voices phase 1 was " << result.activeVoicesPhase1 << " (expected 2); ";
+        if (result.voiceStealsDetected != 1) err << "expected 1 voice steal, got " << result.voiceStealsDetected << "; ";
         if (!result.stealContinuityPassed) err << "steal continuity jump detected; ";
         if (!result.pauseSilencePassed) err << "pause was not silent; ";
         if (!result.resumePassed) err << "resume did not produce audio; ";
         if (!result.stopSilencePassed) err << "stop was not silent; ";
+        if (!result.headroomPassed) err << "headroom violated (peak " << result.peakAmplitude << " > 0.5012); ";
+        if (result.clippedSamples > 0) err << "clipped samples: " << result.clippedSamples << "; ";
         if (!result.dspAnomaliesPassed) err << "non-finite samples detected; ";
         result.failureReason = err.str();
     }

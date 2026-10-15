@@ -251,3 +251,33 @@ TEST_CASE("ToneProbeResult: toJson produces valid JSON with escaped Windows back
     CHECK(j["failure_reason"] == "No \"failure\" occurred\\clean\nnewline\ttab");
 }
 
+TEST_CASE("VoiceProbeResult: toJson produces valid JSON with headroom, zero clipping and escaped backslashes", "[audio][probe][voice][json]") {
+    VoiceProbeResult res{};
+    res.buildId = "git_hash_test\\voice\"quotes";
+    res.passed = true;
+    res.voiceStealsDetected = 1;
+    res.activeVoicesPhase1 = 2;
+    res.stealContinuityPassed = true;
+    res.pauseSilencePassed = true;
+    res.resumePassed = true;
+    res.stopSilencePassed = true;
+    res.dspAnomaliesPassed = true;
+    res.peakAmplitude = 0.3401f;
+    res.clippedSamples = 0;
+    res.headroomPassed = true;
+    res.wavFilePath = "C:\\cymatica\\artifacts\\cacp\\voice_probe_v1.wav";
+    res.manifestFilePath = "C:\\cymatica\\artifacts\\cacp\\voice_probe_v1_manifest.json";
+
+    const std::string jsonStr = res.toJson();
+
+    nlohmann::json j;
+    REQUIRE_NOTHROW(j = nlohmann::json::parse(jsonStr));
+    CHECK(j["scenario_id"] == "voice_probe_v1");
+    CHECK(j["verdict"] == "PASS");
+    CHECK(j["voice_steals_detected"] == 1);
+    CHECK(j["clipped_samples"] == 0);
+    CHECK(j["checks"]["headroom_passed"] == true);
+    CHECK(j["checks"]["zero_clipping_passed"] == true);
+}
+
+

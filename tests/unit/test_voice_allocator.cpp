@@ -240,6 +240,17 @@ TEST_CASE("VoiceAllocator correlates NoteOff strictly by (role, eventId)", "[voi
     REQUIRE(allocator.onNoteOff(staleOff) == -1); // Safely rejected without muting slot 2!
     REQUIRE(allocator.slot(2).state != VoiceState::Release);
     REQUIRE(allocator.slot(2).state != VoiceState::Idle);
+
+    // Send NoteOff with eventId 0: must NOT act as a wildcard! (strict (role, eventId) matching)
+    ScheduledAudioEvent zeroOff{
+        .eventId = 0,
+        .sampleFrame = 4500,
+        .type = AudioEventType::NoteOff,
+        .role = MusicRole::Corpo
+    };
+    REQUIRE(allocator.onNoteOff(zeroOff) == -1); // Wildcard rejected!
+    REQUIRE(allocator.slot(2).state != VoiceState::Release);
+    REQUIRE(allocator.slot(2).state != VoiceState::Idle);
 }
 
 TEST_CASE("VoiceAllocator enforces open pad safety lease backstop", "[voice_allocator][open_pad_lease_backstop]") {

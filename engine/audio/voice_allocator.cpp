@@ -147,13 +147,6 @@ int VoiceAllocator::onNoteOff(const ScheduledAudioEvent& event) noexcept {
     } else if (slots_[s1].state != VoiceState::Idle && slots_[s1].state != VoiceState::Release &&
                slots_[s1].eventId == event.eventId) {
         matched = static_cast<int>(s1);
-    } else if (event.eventId == 0) {
-        // Fallback for un-identified notes
-        if (slots_[s0].state != VoiceState::Idle && slots_[s0].state != VoiceState::Release) {
-            matched = static_cast<int>(s0);
-        } else if (slots_[s1].state != VoiceState::Idle && slots_[s1].state != VoiceState::Release) {
-            matched = static_cast<int>(s1);
-        }
     }
 
     if (matched >= 0) {

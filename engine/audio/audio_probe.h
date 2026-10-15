@@ -146,6 +146,9 @@ struct VoiceProbeResult {
     bool resumePassed{false};
     bool stopSilencePassed{false};
     bool dspAnomaliesPassed{false};
+    std::uint32_t clippedSamples{0};
+    float peakAmplitude{0.0f};
+    bool headroomPassed{false};
     std::string buildId{CYMATICA_BUILD_ID};
     std::uint64_t simulationTicks{300};
     std::uint64_t requestedSampleFrames{120000};
