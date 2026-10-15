@@ -211,7 +211,7 @@ struct AudioEngine::Impl {
 
                     // Invalidate and drain bounded staged scheduled events from the concluded run (D-M2-04, §20.7)
                     ScheduledAudioEvent discardedEvt{};
-                    while (scheduledEventQueue.tryPop(discardedEvt)) {
+                    for (std::uint32_t i = 0; i < AudioEngine::kMaxScheduledEventsPerBlock && scheduledEventQueue.tryPop(discardedEvt); ++i) {
                         droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
                         totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
                     }
