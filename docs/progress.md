@@ -2,6 +2,9 @@
 
 Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa resta nella specifica (§32); questo file registra solo stato, decisioni ed evidenze.
 
+
+> **Ricerca audio M2.4 del 2026-10-15 (documentale, non implementativa):** sulla baseline `090dc2a45cf3785a2055c492415f9151321ea18a` è stata revisionata la [Deep Research sul renderer](research/M2_4_Audio_Renderer_Research_Review.md), con preferenza architetturale nativo C++20 + moduli DSP selettivi auditati, senza host plugin obbligatorio. La [nota loudness/safety](research/M2_4_Audio_Safety_Design.md) e l'[ADR-0004](adr/0004-m2-4-audio-renderer-safety-proposal.md) sono **PROPOSTE non approvate**: nessun limiter true-peak, target LUFS, modulo terzo o nuovo gate è validato/implementato da questa sola integrazione. D-M2-04..07 restano normativi come ratificati, M2.3 chiusa, Inc-1 non avviato; decisioni del titolare su ulteriori contratti richieste prima del codice che ne dipende.
+
 ## Stato corrente
 
 | Campo | Valore |

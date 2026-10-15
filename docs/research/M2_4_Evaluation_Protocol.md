@@ -4,6 +4,13 @@
 - **Riferimenti:** [rapporto revisionato](M2_4_Deep_Research_Reviewed.md), [review](M2_4_Research_Review.md), [piano M2.4](M2_4_Implementation_Plan.md).
 - **Principio:** confrontare opzioni con materiale comparabile, senza confondere qualità tecnica, correttezza compositiva, preferenza e originalità. Il giudizio umano non si sostituisce con un criterio FFT o una preferenza dichiarata da un agente.
 
+
+> **Integrazione sperimentale audio del 2026-10-15 (NON normativa):** la [review architetturale](M2_4_Audio_Renderer_Research_Review.md) e la [nota sul safe listening](M2_4_Audio_Safety_Design.md) propongono esperimenti controllati, non nuovi mandatory gate. Confrontare il renderer nativo C++20 puro con moduli DSP selettivamente auditati usando **stessi `MusicIntentEvent`, seed, tempo, voce, gain staging e loudness allineata**. Un eventuale Surge XT/CLAP rimane un terzo braccio **opzionale** autorizzabile solo tramite spike separato, non il renderer obbligatorio M2.4.
+>
+> **Profilo `AUD-METER-EXPLORATORY` (proposto):** confrontare sample peak (dBFS), true peak (dBTP, misurato indipendentemente), LUFS Momentary 400 ms, Short-term 3 s, Integrated gated (run), eventuale rolling gated 30 min, limiter gain reduction e drop/gap della cattura. Riferimenti: [ITU-R BS.1770-5](https://www.itu.int/rec/R-REC-BS.1770-5-202311-I), [EBU Tech 3341](https://tech.ebu.ch/publications/tech3341), [ITU-T H.872 §9.3.1](https://www.itu.int/rec/T-REC-H.872-202410-I/en). Non usare `−14 LUFS` o `−4` come limiti automatici; `−1 dBTP` e il riferimento 30 min `−23 LUFS ±2 LU` sono **candidati da ratificare**, non PASS già approvati. L'analisi rolling di 30 min non è attestabile dalla sola fixture A–B–A' di 182,857125 s.
+>
+> **Validazione di isolamento:** l'eventuale limiter terminale deve restare efficace con CACP/worker OFF e con consumer bloccato; nessuna analisi pesante o I/O nella callback. Missing PCM/overflow comporta metrica `inconclusive`, non PASS. I test master devono valutare anche l'eventuale resampling a valle e gli SFX quando esisteranno; non postulare la sicurezza fisica di cuffie/amplificatori dalla sola ampiezza digitale.
+
 ## 1. Ipotesi da testare
 
 | ID | Ipotesi | Contrasto controllato | Collocazione |

@@ -5,6 +5,11 @@
 - **Fonti:** [ricerca revisionata](M2_4_Deep_Research_Reviewed.md), [review metodologica](M2_4_Research_Review.md), [Spec §16/§32](../../CYMATICA_Specifica_Agentica_Sviluppo.md), [ADR-0003](../adr/0003-m2-decisions-contracts.md), [DESIGN §8/§16](../../DESIGN.md).
 - **Owner del piano:** Coordinatore sviluppo M2.4; scelta artistica finale del titolare. Non attribuire un'autorità normativa autonoma al documento.
 
+
+> **Review ricerca renderer e sicurezza, 2026-10-15:** [ricerca audio revisionata](M2_4_Audio_Renderer_Research_Review.md) e [proposta di protezione/master e loudness](M2_4_Audio_Safety_Design.md) (baseline `090dc2a45cf3785a2055c492415f9151321ea18a`). La preferenza di ricerca è il renderer **nativo C++20 con riuso selettivo di DSP auditato**, **non** un host plugin obbligatorio. Nessuna dipendenza terza è stata approvata o adottata per effetto della ricerca. [ADR-0004](../adr/0004-m2-4-audio-renderer-safety-proposal.md) è **proposto e non normativo**: limiter terminale comune, verifica true-peak e metering LUFS non sono attualmente requisiti ratificati in D-M2-06/D-M2-07. Prima del codice dipendente in Inc-2 occorre approvazione esplicita del titolare; **Inc-1..Inc-5 restano l'unico piano operativo**.
+>
+> **Raccordo operativo proposto (non nuovo gate):** Inc-1 mantiene il voice lifecycle nativo; Inc-2 valuta ammissione modulo-per-modulo delle primitive DSP e, se approvato, un limiter bounded; Inc-4 profila l'intera catena con metriche peak/loudness esplorative; Inc-5 raccoglie le evidenze CACP e confronta meter indipendenti. Una run di circa 183 s **non dimostra** conformità del profilo rolling 30 min di ITU-T H.872; prevedere tale evidenza in una fase di sessione lunga appropriata. Nessuna retroazione di CACP sul `MusicClock` realtime.
+
 ## 1. Principio e limiti di scope
 
 M2.4 deve consegnare **una prima composizione dotata di forma, ricorrenza e personalità timbrica**, non un software di produzione musicale generico. Restano obbligatori i deliverable M2 già definiti: quattro ruoli, Bjorklund, scala/modo, memoria minima, otto voci (2/ruolo), synth/mix, due sezioni e sincronismo deterministico. Il gate finale di M2 è M2.5, non questo piano.
