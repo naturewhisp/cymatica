@@ -86,7 +86,7 @@ Le misure LUFS non sono una semplice media aritmetica del livello dB; Integrated
 
 | Fase | Valutazione tecnicamente giustificata | Stato normativo |
 |---|---|---|
-| **Prima di Inc-2** | Approvare se introdurre limiter terminale, target sperimentali e quali misure diventano mandatory. Budget, latenza e ordine SRC devono essere definiti. | Decisione del titolare **necessaria per nuovi contratti** |
+| **Prima di Inc-2** | Qualificare algoritmo del limiter, posizione rispetto a SRC, compensazione latenza e ceiling di prova nel budget callback. | **Principio ratificato (ADR-0004)**; qualifica tecnica pre-master |
 | **Inc-2** | Gate pre-codice: scegliere algoritmo/topologia, poi test DSP limiter e finite guard con segnali avversari; budget callback completo e regressione sample-peak. | **Principio ratificato**; algoritmo e ceiling ancora da qualificare |
 | **Inc-4** | Fixture A–B–A' con measure stage/post process; metriche M/S/I, true peak, gain reduction, deadline misses. | Evidence addizionale proposta |
 | **Inc-5 / M2.5** | WAV completo e manifest CACP; confronto meter indipendente; ascolto umano e misure con limiter attivo. Durata della fixture ≈183 s, quindi **non** test rolling 30m a piena finestra. | Gate originali invariati finché non emendati formalmente |

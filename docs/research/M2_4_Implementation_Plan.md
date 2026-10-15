@@ -43,7 +43,7 @@ Core/deterministic planner (mai nella callback)
 
 La **sequenza operativa autoritativa e vincolante** di implementazione per M2.4 è definita unicamente dagli incrementi indipendenti **Inc-1..Inc-5** in `docs/progress.md`. Le unità di ricerca concettuale **M2.4-A..F** sotto riportate costituiscono stream consultivi di approfondimento e checkpoint di qualità artistica, mappati in modo univoco sull'avanzamento degli incrementi tecnici:
 - **Inc-1 (Voice Allocator & Lifecycle):** implementa i contratti normativi di M2.4-C (allocazione a 8 voci, pairing, steal tails statiche, freeze su Pause, Stop distruttivo).
-- **Inc-2 (Sintesi 4 Ruoli & 4 Bus):** implementa le firme timbriche e il routing di M2.4-D (primitive analitiche, bus dedicati, micro-ducking, soft-clipper master).
+- **Inc-2 (Sintesi 4 Ruoli & 4 Bus):** implementa le firme timbriche e il routing di M2.4-D (primitive analitiche, bus dedicati, micro-ducking, protezione terminale comune ratificata in ADR-0004; soft-clipper solo eventuale stadio intermedio).
 - **Inc-3 (Music Planner Gerarchico & Candidate Search):** implementa la generazione simbolica di M2.4-A e M2.4-B (motivo relativo, trasformazioni pure, scoring deterministico, fallback bounded).
 - **Inc-4 (Fixture A-B-A' 96 battute & Profiling Realtime):** implementa la forma tripartita a tre sezioni A-B-A' e la transizione di M2.4-E, unitamente al profiling Release $\le 2,0\text{ ms}$.
 - **Inc-5 (Integrazione CACP, Artefatti WAV & Handoff M2.5):** implementa l'esportazione degli artefatti, i test quantitativi e il dossier CACP di M2.4-F per il gate M2.5.
