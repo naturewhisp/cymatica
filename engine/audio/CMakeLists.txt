@@ -11,7 +11,12 @@ add_library(cymatica_audio STATIC
     music_clock.h
     music_intent.h
     music_position.h
+    master_limiter.cpp
+    master_limiter.h
     realtime_exchange.h
+    role_bus_processor.cpp
+    role_bus_processor.h
+    synth_dsp.h
     voice_allocator.cpp
     voice_allocator.h
 )

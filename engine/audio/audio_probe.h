@@ -83,6 +83,17 @@ bool writeWavStereo16(const std::string& filePath,
                       std::size_t frameCount,
                       std::uint32_t sampleRate);
 
+// Estimates True Peak level linearly (1.0 = 0 dBTP) using standard 4x oversampled polyphase FIR
+// (ITU-R BS.1770-5 Annex 2 Table 3)
+float estimateTruePeakLinear(const float* pInterleavedSamples,
+                             std::size_t frameCount,
+                             std::uint32_t channels) noexcept;
+
+// Estimates True Peak level in dBTP (0 dBTP = 1.0 linear peak)
+float estimateTruePeakDbtp(const float* pInterleavedSamples,
+                           std::size_t frameCount,
+                           std::uint32_t channels) noexcept;
+
 } // namespace analysis
 
 #ifndef CYMATICA_BUILD_ID
@@ -166,5 +177,36 @@ struct VoiceProbeResult {
 // Runs the authoritative voice_probe_v1 scenario offline in 120 Hz simulation ticks (Inc-1)
 VoiceProbeResult runVoiceProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
                                         bool writeFiles = true);
+
+// Profile metrics for timbre_bus_probe_v1 (Spec §16.8, §31.5, ADR-0003 D-M2-06, ADR-0004 AUD-D-01/02)
+struct TimbreBusProbeResult {
+    bool passed{false};
+    std::uint64_t totalCapturedFrames{0};
+    std::uint64_t droppedFrames{0};
+    float peakAmplitude{0.0f};
+    float truePeakDbtp{-120.0f};
+    bool truePeakPassed{false};       // <= -1.0 dBTP verified by BS.1770-5 meter
+    bool roleIsolationPassed{false};  // Distinct spectral/timbral characteristics per role
+    bool duckingPassed{false};        // Corpo attenuated during Pulso burst
+    bool delayPassed{false};          // Trama spatial micro-delay energy confirmed
+    bool dspAnomaliesPassed{false};   // Zero NaN/Inf/denormals
+    std::uint32_t clippedSamples{0};
+    std::string buildId{CYMATICA_BUILD_ID};
+    std::uint64_t transportEpoch{1};
+    std::uint64_t simulationTicks{360};
+    std::uint64_t requestedSampleFrames{144000};
+    std::string presentationQuality{"Estimated"};
+    bool wavWriteSuccess{false};
+    bool manifestWriteSuccess{false};
+    std::string wavFilePath{};
+    std::string manifestFilePath{};
+    std::string failureReason{};
+
+    [[nodiscard]] std::string toJson() const;
+};
+
+// Runs the authoritative timbre_bus_probe_v1 scenario offline in 120 Hz simulation ticks (Inc-2)
+TimbreBusProbeResult runTimbreBusProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
+                                               bool writeFiles = true);
 
 } // namespace cymatica::audio

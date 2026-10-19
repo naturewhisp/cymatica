@@ -554,9 +554,20 @@ struct AudioEngine::Impl {
         telem.beatPhase = pos.beatPhase;
         telem.beatConfidence = 1.0f;
 
-        telem.globalEnergy = (transportState == TransportState::Running) ? 0.5f : 0.0f;
-        telem.pulse.energy = (transportState == TransportState::Running) ? 0.5f : 0.0f;
-        telem.pulse.pitchHz = 220.0f;
+        const auto& allocTelem = voiceAllocator.latestTelemetry();
+        if (transportState == TransportState::Running) {
+            telem.globalEnergy = allocTelem.globalEnergy;
+            telem.pulse = allocTelem.pulse;
+            telem.body = allocTelem.body;
+            telem.texture = allocTelem.texture;
+            telem.vector = allocTelem.vector;
+        } else {
+            telem.globalEnergy = 0.0f;
+            telem.pulse.energy = 0.0f;
+            telem.body.energy = 0.0f;
+            telem.texture.energy = 0.0f;
+            telem.vector.energy = 0.0f;
+        }
         telem.scheduledEventsDeferred = static_cast<std::uint32_t>(deferredScheduledEvents.load(std::memory_order_relaxed));
         telem.scheduledEventsDroppedTotal = static_cast<std::uint32_t>(droppedScheduledEvents.load(std::memory_order_relaxed));
         telem.activeVoiceCount = voiceAllocator.activeVoiceCount();

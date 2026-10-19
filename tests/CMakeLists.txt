@@ -9,6 +9,7 @@ add_executable(cymatica_tests
     unit/test_audio_probe.cpp
     unit/test_scheduler.cpp
     unit/test_voice_allocator.cpp
+    unit/test_synth_dsp.cpp
 )
 
 target_link_libraries(cymatica_tests

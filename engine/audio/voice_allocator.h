@@ -1,6 +1,10 @@
 #pragma once
 
+#include "audio_telemetry.h"
+#include "master_limiter.h"
 #include "music_intent.h"
+#include "role_bus_processor.h"
+#include "synth_dsp.h"
 
 #include <array>
 #include <cmath>
@@ -68,12 +72,25 @@ struct VoiceSlot {
     float phase{0.0f};
     float phaseIncrement{0.0f};
 
+    // Inc-2 Synth DSP components (synth-palette-v1)
+    PolyBlepOscillator osc{};
+    TptSvfFilter filter{};
+    OnePoleSmoother pitchSmoother{};
+    float fmModPhase{0.0f};
+    float fmModPhaseIncrement{0.0f};
+    float vibratoPhase{0.0f};
+    float vibratoPhaseIncrement{0.0f};
+    float pitchSweepEnv{1.0f};
+    std::uint32_t noteFrameIndex{0};
+
+    float lastOutput[2]{0.0f, 0.0f};
+
     // Dedicated static steal tail (1 per slot, 8 total)
     StealTail stealTail{};
 
     [[nodiscard]] float currentVoiceOutput() const noexcept {
         if (state == VoiceState::Idle) return 0.0f;
-        return std::sin(phase) * velocity * envelopeLevel * 0.25f;
+        return lastOutput[0];
     }
 
     void reset(std::uint32_t declickFrames = StealTail::kDefaultTailLength) noexcept {
@@ -89,6 +106,17 @@ struct VoiceSlot {
         releaseSamples = (declickFrames > 0) ? declickFrames : StealTail::kDefaultTailLength;
         phase = 0.0f;
         phaseIncrement = 0.0f;
+        osc.reset();
+        filter.reset();
+        pitchSmoother.reset(pitchHz);
+        fmModPhase = 0.0f;
+        fmModPhaseIncrement = 0.0f;
+        vibratoPhase = 0.0f;
+        vibratoPhaseIncrement = 0.0f;
+        pitchSweepEnv = 1.0f;
+        noteFrameIndex = 0;
+        lastOutput[0] = 0.0f;
+        lastOutput[1] = 0.0f;
         stealTail.reset(releaseSamples);
     }
 };
@@ -141,6 +169,13 @@ public:
         return static_cast<std::size_t>(role) * kSlotsPerRole;
     }
 
+    // Role bus & master limiter accessors (Inc-2)
+    [[nodiscard]] const RoleBusProcessor& roleBusProcessor() const noexcept { return roleBusProcessor_; }
+    [[nodiscard]] RoleBusProcessor& roleBusProcessor() noexcept { return roleBusProcessor_; }
+    [[nodiscard]] const MasterLimiter& masterLimiter() const noexcept { return masterLimiter_; }
+    [[nodiscard]] MasterLimiter& masterLimiter() noexcept { return masterLimiter_; }
+    [[nodiscard]] const AudioTelemetryFrame& latestTelemetry() const noexcept { return latestTelemetry_; }
+
     // Diagnostics & telemetry counters
     [[nodiscard]] std::uint32_t declickFrames() const noexcept { return declickFrames_; }
     [[nodiscard]] std::uint32_t activeVoiceCount() const noexcept;
@@ -155,6 +190,15 @@ private:
     std::uint32_t voiceDropCount_{0};
     std::uint32_t orphanNoteRecoveredCount_{0};
     std::uint32_t dspAnomalyCount_{0};
+
+    // Inc-2 Role buses, Master Limiter, and Telemetry
+    RoleBusProcessor roleBusProcessor_{};
+    MasterLimiter masterLimiter_{};
+    AudioTelemetryFrame latestTelemetry_{};
+
+    // Preallocated block mixing buffer (max 1024 frames = 21.3 ms)
+    static constexpr std::size_t kMaxBlockFrames = 1024;
+    std::array<float, kMaxBlockFrames * 2> blockMixBuffer_{};
 
     // Physical transport fade-out / fade-in ramp
     enum class TransportRamp : std::uint8_t {

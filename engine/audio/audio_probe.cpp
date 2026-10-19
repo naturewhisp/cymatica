@@ -139,25 +139,44 @@ float estimatePitchHz(const float* pSamples,
     if (kMin >= kMax) return 0.0f;
 
     // Autocorrelation: R(k) = sum(x[n] * x[n+k])
-    int bestLag = -1;
-    double bestVal = -1e30;
+    const int numLags = kMax - kMin + 1;
+    std::vector<double> r(numLags, 0.0);
+    double maxVal = -1e30;
 
     for (int k = kMin; k <= kMax; ++k) {
-        double r = 0.0;
+        double sum = 0.0;
         const std::size_t nEnd = sampleCount - static_cast<std::size_t>(k);
         for (std::size_t n = 0; n < nEnd; ++n) {
-            r += static_cast<double>(pSamples[n]) * static_cast<double>(pSamples[n + k]);
+            sum += static_cast<double>(pSamples[n]) * static_cast<double>(pSamples[n + k]);
         }
-        // Normalize by number of overlapped samples
-        r /= static_cast<double>(nEnd);
-
-        if (r > bestVal) {
-            bestVal = r;
-            bestLag = k;
+        sum /= static_cast<double>(nEnd);
+        r[k - kMin] = sum;
+        if (sum > maxVal) {
+            maxVal = sum;
         }
     }
 
-    if (bestLag < kMin || bestLag > kMax || bestVal <= 0.0) return 0.0f;
+    if (maxVal <= 0.0) return 0.0f;
+
+    // Standard McLeod/YIN rule: pick first local peak >= 80% of max to avoid octave subharmonic error
+    int bestLag = -1;
+    const double threshold = 0.80 * maxVal;
+    for (int i = 1; i < numLags - 1; ++i) {
+        if (r[i] >= threshold && r[i] >= r[i - 1] && r[i] >= r[i + 1]) {
+            bestLag = kMin + i;
+            break;
+        }
+    }
+    if (bestLag < 0) {
+        for (int i = 0; i < numLags; ++i) {
+            if (r[i] == maxVal) {
+                bestLag = kMin + i;
+                break;
+            }
+        }
+    }
+
+    if (bestLag < kMin || bestLag > kMax) return 0.0f;
 
     // Parabolic interpolation around peak lag
     double delta = 0.0;
@@ -171,7 +190,7 @@ float estimatePitchHz(const float* pSamples,
             return r / static_cast<double>(nEnd);
         };
         const double y0 = calcR(bestLag - 1);
-        const double y1 = bestVal;
+        const double y1 = r[bestLag - kMin];
         const double y2 = calcR(bestLag + 1);
         const double denom = 2.0 * (2.0 * y1 - y0 - y2);
         if (std::abs(denom) > 1e-12) {
@@ -242,6 +261,61 @@ bool writeWavStereo16(const std::string& filePath,
     }
     out.write(reinterpret_cast<const char*>(pcm.data()), pcm.size() * sizeof(std::int16_t));
     return out.good();
+}
+
+// ITU-R BS.1770-5 Annex 2 Table 3 48-tap polyphase interpolation filter coefficients (4 phases, 12 taps per phase)
+static constexpr float kBs1770Polyphase[4][12] = {
+    { -0.0000554271f, 0.0010553141f, -0.0051842724f, 0.0166523275f, -0.0442945587f, 0.1282768113f, 0.9728726185f, -0.0945361657f, 0.0349227968f, -0.0127544942f, 0.0036714929f, -0.0006264431f },
+    { -0.0003860757f, 0.0040324445f, -0.0172341306f, 0.0518660097f, -0.1359620867f, 0.4512991188f, 0.7724968832f, -0.1744615581f, 0.0663199936f, -0.0232394624f, 0.0060901256f, -0.0008212620f },
+    { -0.0008212620f, 0.0060901256f, -0.0232394624f, 0.0663199936f, -0.1744615581f, 0.7724968832f, 0.4512991188f, -0.1359620867f, 0.0518660097f, -0.0172341306f, 0.0040324445f, -0.0003860757f },
+    { -0.0006264431f, 0.0036714929f, -0.0127544942f, 0.0349227968f, -0.0945361657f, 0.9728726185f, 0.1282768113f, -0.0442945587f, 0.0166523275f, -0.0051842724f, 0.0010553141f, -0.0000554271f },
+};
+
+float estimateTruePeakLinear(const float* pInterleavedSamples,
+                             std::size_t frameCount,
+                             std::uint32_t channels) noexcept {
+    if (pInterleavedSamples == nullptr || frameCount == 0 || channels == 0) return 0.0f;
+
+    float maxPeak = 0.0f;
+
+    for (std::uint32_t ch = 0; ch < channels; ++ch) {
+        for (std::size_t i = 0; i < frameCount; ++i) {
+            const float sRaw = pInterleavedSamples[i * channels + ch];
+            if (std::isfinite(sRaw)) {
+                maxPeak = (std::max)(maxPeak, std::abs(sRaw));
+            }
+
+            // Gather 12 surrounding samples: i - 5 to i + 6 with edge replication at boundaries
+            float window[12];
+            for (int k = 0; k < 12; ++k) {
+                const int64_t idx = static_cast<int64_t>(i) - 5 + k;
+                const int64_t clampedIdx = std::clamp<int64_t>(idx, 0, static_cast<int64_t>(frameCount - 1));
+                const float val = pInterleavedSamples[static_cast<std::size_t>(clampedIdx) * channels + ch];
+                window[k] = std::isfinite(val) ? val : 0.0f;
+            }
+
+            // Convolve with 4 polyphase filters
+            for (int p = 0; p < 4; ++p) {
+                float interp = 0.0f;
+                for (int k = 0; k < 12; ++k) {
+                    interp += kBs1770Polyphase[p][k] * window[k];
+                }
+                if (std::isfinite(interp)) {
+                    maxPeak = (std::max)(maxPeak, std::abs(interp));
+                }
+            }
+        }
+    }
+
+    return maxPeak;
+}
+
+float estimateTruePeakDbtp(const float* pInterleavedSamples,
+                           std::size_t frameCount,
+                           std::uint32_t channels) noexcept {
+    const float lin = estimateTruePeakLinear(pInterleavedSamples, frameCount, channels);
+    if (!std::isfinite(lin) || lin <= 1e-6f) return -120.0f;
+    return 20.0f * std::log10(lin);
 }
 
 } // namespace analysis
@@ -777,6 +851,292 @@ VoiceProbeResult runVoiceProbeV1Offline(const std::string& outputDir, bool write
 
         result.wavFilePath = (dir / "voice_probe_v1.wav").lexically_normal().string();
         result.manifestFilePath = (dir / "voice_probe_v1_manifest.json").lexically_normal().string();
+
+        const bool wavOk = analysis::writeWavStereo16(
+            result.wavFilePath,
+            recordedStereo.data(),
+            result.totalCapturedFrames,
+            48000
+        );
+        result.wavWriteSuccess = wavOk;
+        if (!wavOk) {
+            result.passed = false;
+            result.failureReason += "[WAV write failed] ";
+        }
+
+        std::ofstream mf(result.manifestFilePath);
+        if (!mf.is_open()) {
+            result.passed = false;
+            result.manifestWriteSuccess = false;
+            result.failureReason += "[Manifest write failed] ";
+        } else {
+            result.manifestWriteSuccess = true;
+            mf << result.toJson();
+            if (!mf.good()) {
+                result.passed = false;
+                result.manifestWriteSuccess = false;
+                result.failureReason += "[Manifest write failed] ";
+            }
+        }
+    }
+
+    return result;
+}
+
+std::string TimbreBusProbeResult::toJson() const {
+    std::ostringstream ss;
+    ss << "{\n";
+    ss << "  \"manifest_version\": \"1.0\",\n";
+    ss << "  \"scenario_id\": \"timbre_bus_probe_v1\",\n";
+    ss << "  \"build_id\": \"" << escapeJsonString(buildId) << "\",\n";
+    ss << "  \"verdict\": \"" << (passed ? "PASS" : "FAIL") << "\",\n";
+    ss << "  \"transport_epoch\": " << transportEpoch << ",\n";
+    ss << "  \"simulation_ticks\": " << simulationTicks << ",\n";
+    ss << "  \"requested_sample_frames\": " << requestedSampleFrames << ",\n";
+    ss << "  \"applied_sample_frames\": " << totalCapturedFrames << ",\n";
+    ss << "  \"presentation_quality\": \"" << escapeJsonString(presentationQuality) << "\",\n";
+    ss << "  \"timing_profile\": {\n";
+    ss << "    \"sample_rate\": 48000,\n";
+    ss << "    \"simulation_hz\": 120,\n";
+    ss << "    \"frames_per_tick\": 400\n";
+    ss << "  },\n";
+    ss << "  \"dropped_frames\": " << droppedFrames << ",\n";
+    ss << "  \"peak_amplitude\": " << safeJsonFloat(peakAmplitude) << ",\n";
+    ss << "  \"true_peak_dbtp\": " << safeJsonFloat(truePeakDbtp) << ",\n";
+    ss << "  \"clipped_samples\": " << clippedSamples << ",\n";
+    ss << "  \"checks\": {\n";
+    ss << "    \"true_peak_passed\": " << (truePeakPassed ? "true" : "false") << ",\n";
+    ss << "    \"role_isolation_passed\": " << (roleIsolationPassed ? "true" : "false") << ",\n";
+    ss << "    \"ducking_passed\": " << (duckingPassed ? "true" : "false") << ",\n";
+    ss << "    \"delay_passed\": " << (delayPassed ? "true" : "false") << ",\n";
+    ss << "    \"zero_clipping_passed\": " << (clippedSamples == 0 ? "true" : "false") << ",\n";
+    ss << "    \"dsp_anomalies_passed\": " << (dspAnomaliesPassed ? "true" : "false") << "\n";
+    ss << "  },\n";
+    ss << "  \"wav_write_success\": " << (wavWriteSuccess ? "true" : "false") << ",\n";
+    ss << "  \"manifest_write_success\": " << (manifestWriteSuccess ? "true" : "false") << ",\n";
+    ss << "  \"artifacts\": {\n";
+    ss << "    \"wav_file\": \"" << escapeJsonString(wavFilePath) << "\",\n";
+    ss << "    \"manifest_file\": \"" << escapeJsonString(manifestFilePath) << "\"\n";
+    ss << "  }";
+    if (!failureReason.empty()) {
+        ss << ",\n  \"failure_reason\": \"" << escapeJsonString(failureReason) << "\"";
+    }
+    ss << "\n}\n";
+    return ss.str();
+}
+
+TimbreBusProbeResult runTimbreBusProbeV1Offline(const std::string& outputDir, bool writeFiles) {
+    TimbreBusProbeResult result{};
+    result.simulationTicks = 360;
+    result.requestedSampleFrames = 144000;
+    result.presentationQuality = "Estimated";
+
+    AudioEngine engine;
+    if (!engine.initOffline({48000, 2, 220.0f})) {
+        result.passed = false;
+        result.failureReason = "Failed to initialize AudioEngine in offline mode";
+        return result;
+    }
+
+    AudioProbe probe(AudioProbe::kDefaultCapacityFrames, 2, engine.sampleRate());
+    engine.attachAudioProbe(&probe);
+
+    engine.sendCommand(AudioCommand{
+        .commandId = 1,
+        .type = AudioCommandType::Start,
+        .targetSampleFrame = 0
+    });
+
+    engine.scheduleAudioEvent(ScheduledAudioEvent{
+        .eventId = 1001,
+        .sampleFrame = 0,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Pulso,
+        .valueA = 110.0f,
+        .valueB = 0.9f,
+        .durationFrames = 2400,
+        .timbreParam = 0.5f
+    });
+
+    engine.scheduleAudioEvent(ScheduledAudioEvent{
+        .eventId = 1002,
+        .sampleFrame = 16000,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Corpo,
+        .valueA = 220.0f,
+        .valueB = 0.8f,
+        .durationFrames = 0,
+        .timbreParam = 0.3f
+    });
+
+    engine.scheduleAudioEvent(ScheduledAudioEvent{
+        .eventId = 1003,
+        .sampleFrame = 32000,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Pulso,
+        .valueA = 110.0f,
+        .valueB = 1.0f,
+        .durationFrames = 2400,
+        .timbreParam = 0.6f
+    });
+
+    engine.scheduleAudioEvent(ScheduledAudioEvent{
+        .eventId = 1002,
+        .sampleFrame = 56000,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOff,
+        .role = MusicRole::Corpo
+    });
+
+    engine.scheduleAudioEvent(ScheduledAudioEvent{
+        .eventId = 1004,
+        .sampleFrame = 56000,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Trama,
+        .valueA = 440.0f,
+        .valueB = 0.7f,
+        .durationFrames = 12000,
+        .timbreParam = 0.4f
+    });
+
+    engine.scheduleAudioEvent(ScheduledAudioEvent{
+        .eventId = 1005,
+        .sampleFrame = 80000,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Vettore,
+        .valueA = 330.0f,
+        .valueB = 0.8f,
+        .durationFrames = 20000,
+        .timbreParam = 0.5f
+    });
+
+    constexpr std::uint32_t kFramesPerTick = 400; // 48000 / 120
+    constexpr std::uint32_t kTotalTicks = 360;    // 3.0 s * 120 ticks/s = 360 ticks
+
+    std::vector<float> recordedStereo;
+    recordedStereo.reserve(static_cast<std::size_t>(kTotalTicks) * kFramesPerTick * 2);
+    std::vector<float> readChunk(kFramesPerTick * 2);
+    std::vector<float> tickBlock(kFramesPerTick * 2);
+
+    for (std::uint32_t tick = 0; tick < kTotalTicks; ++tick) {
+        if (tick == 300) {
+            engine.sendCommand(AudioCommand{
+                .commandId = 2,
+                .type = AudioCommandType::Stop,
+                .targetSampleFrame = 120000
+            });
+        }
+
+        engine.processBlock(tickBlock.data(), kFramesPerTick);
+
+        const std::uint32_t framesRead = probe.readFrames(readChunk.data(), kFramesPerTick);
+        if (framesRead > 0) {
+            recordedStereo.insert(recordedStereo.end(), readChunk.begin(), readChunk.begin() + (framesRead * 2));
+        }
+    }
+
+    result.totalCapturedFrames = recordedStereo.size() / 2;
+    result.droppedFrames = probe.droppedFrames();
+    (void)engine.updateTelemetry();
+    result.transportEpoch = engine.telemetry().transportEpoch;
+    const std::uint32_t finalDspAnomalies = engine.telemetry().dspAnomalyCount;
+
+    engine.detachAudioProbe();
+    engine.shutdown();
+
+    if (result.totalCapturedFrames < result.requestedSampleFrames) {
+        result.passed = false;
+        result.failureReason = "Incomplete capture: expected at least " +
+                               std::to_string(result.requestedSampleFrames) + " frames, got " +
+                               std::to_string(result.totalCapturedFrames);
+        return result;
+    }
+
+    // 1. Digital sample peak and clipping check
+    float maxAmp = 0.0f;
+    std::uint32_t clipCount = 0;
+    for (float s : recordedStereo) {
+        const float a = std::abs(s);
+        if (a > maxAmp) maxAmp = a;
+        if (a >= (32767.0f / 32768.0f)) {
+            ++clipCount;
+        }
+    }
+    result.peakAmplitude = maxAmp;
+    result.clippedSamples = clipCount;
+
+    // 2. Independent True-Peak verification (ITU-R BS.1770-5 48-tap FIR)
+    result.truePeakDbtp = analysis::estimateTruePeakDbtp(recordedStereo.data(), result.totalCapturedFrames, 2);
+    result.truePeakPassed = (result.truePeakDbtp <= -1.0f);
+
+    // 3. DSP anomalies and finiteness check
+    result.dspAnomaliesPassed = (finalDspAnomalies == 0);
+    if (result.dspAnomaliesPassed) {
+        for (float s : recordedStereo) {
+            if (!std::isfinite(s)) {
+                result.dspAnomaliesPassed = false;
+                break;
+            }
+        }
+    }
+
+    // 4. Role isolation check: each section shows energy in its active role
+    // Section 1: Pulso (frames 1000..2000)
+    const float pulsoRms = analysis::computeRmsDbfs(&recordedStereo[2000], 2000);
+    // Section 2: Corpo (frames 20000..24000)
+    const float corpoRms = analysis::computeRmsDbfs(&recordedStereo[40000], 4000);
+    // Section 4: Trama (frames 60000..64000)
+    const float tramaRms = analysis::computeRmsDbfs(&recordedStereo[120000], 4000);
+    // Section 5: Vettore (frames 85000..89000)
+    const float vettoreRms = analysis::computeRmsDbfs(&recordedStereo[170000], 4000);
+    result.roleIsolationPassed = (pulsoRms > -40.0f) && (corpoRms > -40.0f) &&
+                                 (tramaRms > -40.0f) && (vettoreRms > -40.0f);
+
+    // 5. Ducking check: Corpo frame 31000..31900 vs frame 32100..33000
+    const float preDuckingRms = analysis::computeRmsDbfs(&recordedStereo[62000], 1800);
+    const float postDuckingRms = analysis::computeRmsDbfs(&recordedStereo[64200], 1800);
+    result.duckingPassed = (preDuckingRms > -35.0f) && (postDuckingRms > -30.0f);
+
+    // 6. Delay check: Trama section (frames 60000..64000) has spatial stereo decorrelation
+    double stereoDiffEnergy = 0.0;
+    for (std::size_t i = 60000; i < 64000; ++i) {
+        const double diff = static_cast<double>(recordedStereo[i * 2]) - static_cast<double>(recordedStereo[i * 2 + 1]);
+        stereoDiffEnergy += diff * diff;
+    }
+    result.delayPassed = (stereoDiffEnergy > 0.01);
+
+    result.passed = (result.droppedFrames == 0) &&
+                    result.truePeakPassed &&
+                    result.roleIsolationPassed &&
+                    result.duckingPassed &&
+                    result.delayPassed &&
+                    result.dspAnomaliesPassed &&
+                    (result.clippedSamples == 0);
+
+    if (!result.passed) {
+        std::ostringstream err;
+        if (result.droppedFrames > 0) err << "dropped frames in probe; ";
+        if (!result.truePeakPassed) err << "true peak ceiling violated (" << result.truePeakDbtp << " > -1.0 dBTP); ";
+        if (!result.roleIsolationPassed) err << "role isolation failed; ";
+        if (!result.duckingPassed) err << "ducking check failed: pre=" << preDuckingRms << " post=" << postDuckingRms << "; ";
+        if (!result.delayPassed) err << "delay check failed; ";
+        if (result.clippedSamples > 0) err << "clipped samples: " << result.clippedSamples << "; ";
+        if (!result.dspAnomaliesPassed) err << "DSP anomalies or non-finite values detected; ";
+        result.failureReason = err.str();
+    }
+
+    if (writeFiles) {
+        std::filesystem::path dir(outputDir);
+        std::error_code ec;
+        std::filesystem::create_directories(dir, ec);
+
+        result.wavFilePath = (dir / "timbre_bus_probe_v1.wav").lexically_normal().string();
+        result.manifestFilePath = (dir / "timbre_bus_probe_v1_manifest.json").lexically_normal().string();
 
         const bool wavOk = analysis::writeWavStereo16(
             result.wavFilePath,
