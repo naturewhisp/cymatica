@@ -77,6 +77,10 @@ public:
     [[nodiscard]] const VoiceAllocator& voiceAllocator() const noexcept;
     [[nodiscard]] VoiceAllocator& voiceAllocator() noexcept;
 
+    // MasterLimiter API (ADR-0004 AUD-D-02, Inc-2 terminal master protection)
+    [[nodiscard]] const MasterLimiter& masterLimiter() const noexcept;
+    [[nodiscard]] MasterLimiter& masterLimiter() noexcept;
+
     // Direct block rendering (callable without audio device for deterministic testing & zero-alloc validation)
     void processBlock(float* pOutput, std::uint32_t frameCount) noexcept;
 

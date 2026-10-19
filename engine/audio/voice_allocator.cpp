@@ -314,6 +314,8 @@ void VoiceAllocator::checkLifetimes(std::uint64_t currentLogicalFrame) noexcept 
 }
 
 void VoiceAllocator::onStart() noexcept {
+    roleBusProcessor_.reset();
+    masterLimiter_.reset();
     transportRamp_ = TransportRamp::None;
     transportRampLevel_ = 1.0f;
     transportRampStep_ = 0.0f;
@@ -399,7 +401,10 @@ void VoiceAllocator::onStop() noexcept {
         }
     }
 
-    // 2. Restore transport ramp to unity so steal tails decay linearly (1 - k/N)
+    // 2. Extinguish circulating delay lines within 2 ms silence boundary without click (Inc-2)
+    roleBusProcessor_.onStop(declickFrames_);
+
+    // 3. Restore transport ramp to unity so steal tails decay linearly (1 - k/N)
     //    and subsequent Start + NoteOn is never muted.
     transportRamp_ = TransportRamp::None;
     transportRampLevel_ = 1.0f;

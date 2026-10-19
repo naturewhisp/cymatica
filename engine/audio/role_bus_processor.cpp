@@ -30,8 +30,38 @@ void RoleBusProcessor::reset() noexcept {
     delayWriteHead_ = 0;
     delayLineL_.fill(0.0f);
     delayLineR_.fill(0.0f);
+    delayTail_.reset(96);
     for (auto& buf : busBuffers_) {
         buf.fill(0.0f);
+    }
+}
+
+void RoleBusProcessor::onStop(std::uint32_t declickFrames) noexcept {
+    const std::size_t readIdxL = (delayWriteHead_ + kMaxDelayFrames - delayLengthL_) % kMaxDelayFrames;
+    const std::size_t readIdxR = (delayWriteHead_ + kMaxDelayFrames - delayLengthR_) % kMaxDelayFrames;
+    const float lastDelayedL = delayLineL_[readIdxL];
+    const float lastDelayedR = delayLineR_[readIdxR];
+
+    // Wipe circulating delay lines immediately to prevent echoes
+    delayLineL_.fill(0.0f);
+    delayLineR_.fill(0.0f);
+    delayWriteHead_ = 0;
+    duckingEnv_ = 0.0f;
+    lastDuckingGain_ = 1.0f;
+    for (auto& buf : busBuffers_) {
+        buf.fill(0.0f);
+    }
+
+    // Capture instantaneous delay output into anti-click tail
+    const bool hasTail = (std::abs(lastDelayedL) > 1e-6f || std::abs(lastDelayedR) > 1e-6f);
+    if (hasTail) {
+        delayTail_.startAmplitude[0] = lastDelayedL;
+        delayTail_.startAmplitude[1] = lastDelayedR;
+        delayTail_.totalSamples = (declickFrames > 0) ? declickFrames : 96;
+        delayTail_.remainingSamples = delayTail_.totalSamples;
+        delayTail_.active = true;
+    } else {
+        delayTail_.reset(declickFrames);
     }
 }
 
@@ -117,8 +147,19 @@ void RoleBusProcessor::processAndMix(float* pDestInterleaved,
         delayLineR_[delayWriteHead_] = flushSubnormal(rawR_trama + delayFeedback_ * delayedR);
         delayWriteHead_ = (delayWriteHead_ + 1) % kMaxDelayFrames;
 
-        const float outL_trama = (1.0f - tramaWet) * rawL_trama + tramaWet * delayedL;
-        const float outR_trama = (1.0f - tramaWet) * rawR_trama + tramaWet * delayedR;
+        float outL_trama = (1.0f - tramaWet) * rawL_trama + tramaWet * delayedL;
+        float outR_trama = (1.0f - tramaWet) * rawR_trama + tramaWet * delayedR;
+
+        // Apply decaying delay de-click tail if active during transport stop
+        if (delayTail_.active) {
+            const float factor = static_cast<float>(delayTail_.remainingSamples) /
+                                 static_cast<float>(delayTail_.totalSamples);
+            outL_trama += delayTail_.startAmplitude[0] * factor * tramaWet;
+            outR_trama += delayTail_.startAmplitude[1] * factor * tramaWet;
+            if (--delayTail_.remainingSamples == 0) {
+                delayTail_.active = false;
+            }
+        }
 
         // 4. Vettore
         const float inL_vettore = busBuffers_[static_cast<size_t>(MusicRole::Vettore)][f * 2];

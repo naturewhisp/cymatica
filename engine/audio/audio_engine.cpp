@@ -64,6 +64,9 @@ struct AudioEngine::Impl {
     // VoiceAllocator (ADR-0003 D-M2-03, Inc-1)
     VoiceAllocator voiceAllocator{};
 
+    // MasterLimiter terminal digital protection (ADR-0004 AUD-D-02, Inc-2)
+    MasterLimiter masterLimiter_{};
+
     void renderWaveformSlice(float* pOut, std::uint32_t offset, std::uint32_t count, std::uint64_t logicalFrame) noexcept {
         if (pOut == nullptr || count == 0) return;
         float* dest = pOut + (static_cast<std::size_t>(offset) * channels);
@@ -110,6 +113,7 @@ struct AudioEngine::Impl {
                     activeVolume = cmd.paramF32;
                     ma_waveform_set_amplitude(&waveform, activeVolume);
                     voiceAllocator.onStart();
+                    masterLimiter_.reset();
                     transportState = TransportState::Running;
                 } else {
                     status = AudioCommandStatus::Rejected;
@@ -140,6 +144,7 @@ struct AudioEngine::Impl {
             case AudioCommandType::Stop:
                 if (isValidTransportTransition(transportState, TransportState::Stopped)) {
                     voiceAllocator.onStop();
+                    masterLimiter_.reset();
                     triggerNoteOff();
                     transportState = TransportState::Stopped;
                     ++transportEpoch;
@@ -524,6 +529,13 @@ struct AudioEngine::Impl {
             renderCursor.store(musicClock.deviceToInternalFrames(deviceFramesRendered, sampleRate), std::memory_order_release);
         }
 
+        // 3a. Master Limiter: common terminal digital protection (ADR-0004 AUD-D-02, ADR-0003 D-M2-06).
+        // Zero-latency (L=0) master limiter applied to the combined sum of all voices and diagnostic tones
+        // before physical DAC playback and AudioProbe tap, strictly enforcing ceiling <= -1.0 dBFS / dBTP.
+        if (pOutput != nullptr && frameCount > 0) {
+            masterLimiter_.processBlock(pOutput, frameCount);
+        }
+
         // 3b. AudioProbe tap: lock-free, zero-alloc PCM capture with quiescence tracking (ADR-0003 D-AO-02, Spec §31.5, DIF-M2-01, DIF-M2-09)
         if (pOutput != nullptr && frameCount > 0) {
             probeActiveWriters_.fetch_add(1, std::memory_order_seq_cst);
@@ -622,6 +634,7 @@ bool AudioEngine::init(const AudioEngineConfig& config) {
     }
     impl->sampleRate = impl->device.sampleRate;
     impl->voiceAllocator.init(impl->sampleRate);
+    impl->masterLimiter_.init(impl->sampleRate);
 
     // Seed initial master control values (DIF-M1-17)
     impl->masterControl_.toneFrequencyHz = config.defaultToneFreqHz;
@@ -655,6 +668,7 @@ bool AudioEngine::initOffline(const AudioEngineConfig& config) {
         return false;
     }
     impl->voiceAllocator.init(config.sampleRate);
+    impl->masterLimiter_.init(config.sampleRate);
 
     impl->masterControl_.toneFrequencyHz = config.defaultToneFreqHz;
     impl->masterControl_.toneVolume = 0.0f;
@@ -846,6 +860,16 @@ const VoiceAllocator& AudioEngine::voiceAllocator() const noexcept {
 VoiceAllocator& AudioEngine::voiceAllocator() noexcept {
     static VoiceAllocator fallback{};
     return pImpl_ ? pImpl_->voiceAllocator : fallback;
+}
+
+const MasterLimiter& AudioEngine::masterLimiter() const noexcept {
+    static const MasterLimiter empty{};
+    return pImpl_ ? pImpl_->masterLimiter_ : empty;
+}
+
+MasterLimiter& AudioEngine::masterLimiter() noexcept {
+    static MasterLimiter fallback{};
+    return pImpl_ ? pImpl_->masterLimiter_ : fallback;
 }
 
 } // namespace cymatica::audio

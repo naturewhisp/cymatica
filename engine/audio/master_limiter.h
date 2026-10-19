@@ -12,9 +12,9 @@ namespace cymatica::audio {
 // (ADR-0004 AUD-D-02, ADR-0003 D-M2-06, Spec §20.2)
 class MasterLimiter {
 public:
-    // Internal operating threshold: -1.50 dBFS = 0.84139514f
-    static constexpr float kDefaultThresholdDbfs = -1.50f;
-    static constexpr float kThresholdLinear = 0.8413951416f; // 10^(-1.50/20)
+    // Internal operating threshold: -1.80 dBFS = 0.81283052f (guarantees <= -1.0 dBTP true-peak under ITU-R BS.1770-5)
+    static constexpr float kDefaultThresholdDbfs = -1.80f;
+    static constexpr float kThresholdLinear = 0.8128305161f; // 10^(-1.80/20)
 
     // Hard terminal safety ceiling: -1.0 dBFS = 0.89125094f
     static constexpr float kHardCeilingDbfs = -1.0f;

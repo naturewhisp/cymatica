@@ -3,22 +3,22 @@
 Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa resta nella specifica (§32); questo file registra solo stato, decisioni ed evidenze.
 
 
-> **Ratifica architettura audio M2.4 (2026-10-15), Chiusura Gate Tecnico Pre-Inc-2 e Validazione Inc-2 (2026-10-19):** dopo Deep Research, Grill-me e review indipendente, il titolare ha ratificato [ADR-0004](adr/0004-m2-4-audio-renderer-safety-proposal.md): **AUD-D-01** renderer nativo C++20 con qualifica DSP pura autocontenuta senza dipendenze esterne per Inc-2; **AUD-D-04** nessun host CLAP/VST3 obbligatorio; **AUD-D-02** protezione digitale terminale comune e fail-closed (`MasterLimiter` zero-latency $L = 0$ + verifica true-peak offline a 48 tap ITU-R BS.1770-5); **AUD-D-03** monitoraggio LUFS/true-peak progressivo separato fra callback, worker e offline. **M2.4 Inc-1 e Inc-2 sono completati, bonificati e validati** (98/98 CTest Release/Debug, zero warning `/W4`, zero allocazioni RT, CACP `timbre_bus_probe_v1` PASS, true-peak $\le -1.0\text{ dBTP}$). **Inc-3 è pronto per l'avvio**.
+> **Ratifica architettura audio M2.4 (2026-10-15), Chiusura Gate Tecnico Pre-Inc-2 e Validazione/Remediation Inc-2 (2026-10-19):** dopo Deep Research, Grill-me e review indipendente, il titolare ha ratificato [ADR-0004](adr/0004-m2-4-audio-renderer-safety-proposal.md): **AUD-D-01** renderer nativo C++20 con qualifica DSP pura autocontenuta senza dipendenze esterne per Inc-2; **AUD-D-04** nessun host CLAP/VST3 obbligatorio; **AUD-D-02** protezione digitale terminale comune e fail-closed (`MasterLimiter` zero-latency $L = 0$ su mix finale unificato + verifica true-peak offline a 48 tap ITU-R BS.1770-5); **AUD-D-03** monitoraggio LUFS/true-peak progressivo separato fra callback, worker e offline. **M2.4 Inc-1 e Inc-2 sono completati, bonificati e validati** (101/101 CTest Release/Debug, zero warning `/W4`, zero allocazioni RT, CACP `timbre_bus_probe_v1` PASS, true-peak ITU-R BS.1770-5 $\le -1.0\text{ dBTP}$). **Inc-3 è pronto per l'avvio**.
 
 ## Stato corrente
 
 | Campo | Valore |
 |---|---|
-| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse; **M2.4 Inc-1 e Inc-2 completati e validati** (98/98 CTest Release/Debug, zero warning `/W4`, zero allocazioni RT, CACP `voice_probe_v1` PASS, CACP `timbre_bus_probe_v1` PASS, true-peak ITU-R BS.1770-5 $\le -1.0\text{ dBTP}$); **Inc-3 pronto per l'avvio**; M2.5 gate d'integrazione finale. M2 complessiva non conclusa. |
+| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse; **M2.4 Inc-1 e Inc-2 completati e validati** (101/101 CTest Release/Debug, zero warning `/W4`, zero allocazioni RT, CACP `voice_probe_v1` PASS, CACP `timbre_bus_probe_v1` PASS, true-peak ITU-R BS.1770-5 $\le -1.0\text{ dBTP}$); **Inc-3 pronto per l'avvio**; M2.5 gate d'integrazione finale. M2 complessiva non conclusa. |
 | Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
 | Stato M1 | **Completata: review indipendente OK, zero difetti residui, gate round 3 passati** |
 | Specifica | Versione **0.8.3**, roadmap §32 invariata; ADR-0003 e ADR-0004 (aggiornati 2026-10-19) specificano i contratti DSP/master di M2.4 senza modificare i requisiti di milestone. |
 | Design | 0.3.1 (baseline identità 0.3 approvata il 2026-10-06; osservazione agentica documentata il 2026-10-07) |
 | Evidenza storica M1 | `b39bddb46449ee0b203c7234746185ba241d9a42`; Release 41/41, Debug 41/41, Headless 40/40, smoke exit 0, `/W4` zero warning; [evidenze](m1_review_round3.md). Questi risultati appartengono al gate M1. |
-| Ultima CI Headless verificata | Commit documentale [`02885b699402cbabc8ef1cd6877de24c9ff0a1a9`](https://github.com/naturewhisp/cymatica/commit/02885b699402cbabc8ef1cd6877de24c9ff0a1a9): [GitHub Actions run #38395937263](https://github.com/naturewhisp/cymatica/actions/runs/38395937263) PASS — Windows/MSVC Release 74/74, Debug 74/74, CACP `tone_test` PASS; suite locale corrente: **Release 98/98, Debug 98/98**, CACP `tone_test`, `voice_test` & `synth_test` PASS; non sostituisce collaudo hardware o giudizio artistico. |
+| Ultima CI Headless verificata | Commit documentale [`02885b699402cbabc8ef1cd6877de24c9ff0a1a9`](https://github.com/naturewhisp/cymatica/commit/02885b699402cbabc8ef1cd6877de24c9ff0a1a9): [GitHub Actions run #38395937263](https://github.com/naturewhisp/cymatica/actions/runs/38395937263) PASS — Windows/MSVC Release 74/74, Debug 74/74, CACP `tone_test` PASS; suite locale corrente: **Release 101/101, Debug 101/101**, CACP `tone_test`, `voice_test` & `synth_test` PASS; non sostituisce collaudo hardware o giudizio artistico. |
 | Integrazione documentale M2.4 | Contratti D-M2-04..07 ratificati (ADR-0003); decisioni AUD-D-01/02/03/04 e Gate pre-Inc-2 ratificati e chiusi (ADR-0004, 2026-10-19); Inc-1 e Inc-2 completati e validati. |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_core` (static lib), `cymatica_replay` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
-| Ultimo aggiornamento | 2026-10-19 (Validazione M2.4 Inc-2: Sintesi 4 Ruoli & 4 Bus, `MasterLimiter` zero-latency $L=0$ true-peak $\le -1.0\text{ dBTP}$, 98/98 CTest Release/Debug, CACP `timbre_bus_probe_v1` PASS con ascolto multimodale) |
+| Ultimo aggiornamento | 2026-10-19 (Validazione & Remediation M2.4 Inc-2: Protezione master unificata su `pOutput`, estinzione delay su `Stop` senza eco, coefficienti ITU-R BS.1770-5 Table 2 esatti, 101/101 CTest Release/Debug, CACP `timbre_bus_probe_v1` PASS con ascolto multimodale) |
 
 ## Decisioni d'ingresso M0
 
@@ -375,3 +375,19 @@ In conformità a Spec §16, §20, [ADR-0003](adr/0003-m2-decisions-contracts.md)
   - *Trama FM & Micro-delay (1.5–2.0s):* Spazialità stereo tridimensionale evidente (11 ms L / 17 ms R), timbro FM metallico brillante e puro entro il Carson bound.
   - *Vettore (2.0–2.5s):* Lead sintetico PolyBLEP con glide continuo e vibrato a 5.5 Hz naturale, privo di click di retriggering.
   - *Boundary Stop (2.5–3.0s):* Rampa di de-click di 2 ms impeccabile e silenzio numerico bit-exact fino alla fine della registrazione.
+
+### 4. Remediation Review Inc-2 (Rilievi 1, 2, 3 — 2026-10-19)
+A seguito della review critica post-commit `96fbeb412c`, sono stati identificati e risolti 3 rilievi concreti con aggiunta di test di regressione dedicati:
+1. **Rilievo 1 (Protezione Master Bypassabile — Risolto):**
+   - *Diagnosi:* `renderWaveformSlice` generava il tono diagnostico continuo (`ma_waveform`) direttamente nel buffer `dest` prima dell'accumulo del mix polifonico, lasciando `startTone(220, 1.0f)` fuori dalla protezione del limiter.
+   - *Intervento:* `MasterLimiter` integrato come stadio comune terminale unificato su `pOutput` in `AudioEngine::processBlock` (fase 3a), a valle di tutti i generatori e voci prima del DAC e dell'AudioProbe tap. Aggiunti getter `AudioEngine::masterLimiter()`.
+   - *Test regressione:* `[synth_dsp][diagnostic_tone_limiting]` verifica che `startTone(220, 1.0f)` sia limitato a peak $\le 0.89125\text{f}$ e true-peak $\le -1.0\text{ dBTP}$ su `pOutput`.
+2. **Rilievo 2 (Delay di Trama persistente dopo Stop — Risolto):**
+   - *Diagnosi:* `VoiceAllocator::onStop()` resettava le voci ma lasciava campioni attivi nella linea di ritardo stereo di `RoleBusProcessor`. A stato `Stopped`, gli echi potevano continuare a circolare e fuoriuscire post-coda o sanguinare in una nuova esecuzione `Start`.
+   - *Intervento:* Implementato `RoleBusProcessor::onStop(declickFrames)` che azzera immediatamente i buffer circolanti `delayLineL_` e `delayLineR_` ed estingue il segnale istantaneo residuo tramite `DelayTail` lineare da 2 ms (96 campioni). Garantito silenzio numerico assoluto ($0.0\text{f}$) a partire da $n_{\text{device, stop}} + N_{\text{tail}}$.
+   - *Test regressione:* `[synth_dsp][trama_delay_stop_extinction]` verifica Stop durante Trama attiva con delay, decadimento lineare 96 campioni, silenzio assoluto per 1024 campioni, e nuovo Start pulito senza echi residui a 440 Hz.
+3. **Rilievo 3 (Discrepanza Coefficienti True-Peak ITU-R BS.1770-5 — Risolto):**
+   - *Diagnosi:* `kBs1770Polyphase` in `audio_probe.cpp` conteneva un'approssimazione non conforme che sottostimava i picchi intersample di circa $0,17\text{ dB}$ rispetto ai coefficienti ufficiali pubblicati in ITU-R BS.1770-5 Annex 2 Table 2.
+   - *Intervento:* Sostituita la matrice con i coefficienti normativi esatti della Tabella 2 a 48 tap (4 fasi, 12 tap) verificando la perfetta simmetria analitica $h[i] == h[47-i]$. Calibrata la soglia operativa interna di `MasterLimiter` a $-1,80\text{ dBFS}$ ($0.8128305\text{f}$) garantendo margine di sicurezza tale che tutti i segnali avversari e transienti a gradino misurino strettamente $\le -1,0000\text{ dBTP}$.
+   - *Test regressione:* `[synth_dsp][itu_bs1770_normative]` verifica la simmetria del filtro normativo e la conformità $\le -1.0\text{ dBTP}$ su segnale avversario a 192 campioni.
+- **Verifica finale:** 101/101 test CTest PASS (Release & Debug), 0 compiler warning `/W4`, CACP `timbre_bus_probe_v1` PASS, CACP `voice_probe_v1` PASS, CACP `tone_test` PASS. Inc-2 formalmente completato e chiuso.

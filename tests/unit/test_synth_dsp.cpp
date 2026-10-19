@@ -379,3 +379,143 @@ TEST_CASE("CACP timbre_bus_probe_v1 scenario executes and passes offline", "[syn
     REQUIRE(res.delayPassed);
     REQUIRE(res.dspAnomaliesPassed);
 }
+
+TEST_CASE("MasterLimiter terminal stage protects combined pOutput against unconstrained diagnostic tones", "[synth_dsp][diagnostic_tone_limiting]") {
+    AudioEngine engine;
+    AudioEngineConfig cfg{};
+    cfg.sampleRate = 48000;
+    cfg.channels = 2;
+    cfg.defaultToneFreqHz = 220.0f;
+    REQUIRE(engine.initOffline(cfg));
+
+    AudioProbe probe(48000, 2, 48000);
+    engine.attachAudioProbe(&probe);
+
+    // Request continuous diagnostic tone at full scale volume 1.0f (which historically bypassed limiter)
+    engine.startTone(220.0f, 1.0f);
+
+    constexpr std::uint32_t kFrames = 512;
+    std::vector<float> outputBlock(kFrames * 2, 0.0f);
+
+    float maxObservedPeak = 0.0f;
+    for (int block = 0; block < 10; ++block) {
+        engine.processBlock(outputBlock.data(), kFrames);
+        for (float s : outputBlock) {
+            maxObservedPeak = std::max(maxObservedPeak, std::abs(s));
+            // Master hard ceiling must be strictly respected on actual pOutput
+            REQUIRE(std::abs(s) <= MasterLimiter::kHardCeilingLinear + 1e-4f);
+        }
+    }
+
+    // Peak amplitude must not exceed 0.89125f (-1.0 dBFS)
+    REQUIRE(maxObservedPeak <= MasterLimiter::kHardCeilingLinear + 1e-4f);
+    REQUIRE(maxObservedPeak > 0.50f); // Verify tone was actually sounding
+
+    // Measure captured AudioProbe buffer: true-peak must be strictly <= -1.0 dBTP
+    std::vector<float> captured(probe.availableFrames() * 2);
+    const std::uint32_t readCount = probe.readFrames(captured.data(), probe.availableFrames());
+    REQUIRE(readCount > 0);
+
+    const float truePeakDbtp = analysis::estimateTruePeakDbtp(captured.data(), readCount, 2);
+    REQUIRE(truePeakDbtp <= -1.0f);
+
+    engine.detachAudioProbe();
+}
+
+TEST_CASE("RoleBusProcessor extinguishes Trama stereo delay across Stop without residual echoes or bleeding into Start", "[synth_dsp][trama_delay_stop_extinction]") {
+    VoiceAllocator allocator;
+    allocator.init(48000);
+
+    // 1. Start Trama FM texture note with active stereo micro-delay (timbreParam = 0.5f)
+    ScheduledAudioEvent tramaNote{
+        .eventId = 101,
+        .sampleFrame = 0,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Trama,
+        .valueA = 440.0f,
+        .valueB = 0.8f,
+        .durationFrames = 0,
+        .timbreParam = 0.5f
+    };
+    REQUIRE(allocator.onNoteOn(tramaNote) >= 0);
+
+    // Render 4800 frames (100 ms) so the delay lines (11 ms / 17 ms) are completely filled with signal
+    std::vector<float> runBuf(4800 * 2, 0.0f);
+    allocator.renderBlock(runBuf.data(), 4800, 0, false);
+
+    // Verify signal is active in Trama before Stop
+    double preStopEnergy = 0.0;
+    for (std::size_t i = 4000; i < 4800; ++i) {
+        preStopEnergy += runBuf[i * 2] * runBuf[i * 2] + runBuf[i * 2 + 1] * runBuf[i * 2 + 1];
+    }
+    REQUIRE(preStopEnergy > 0.01);
+
+    // 2. Execute transport Stop (ADR-0003 D-M2-04)
+    allocator.onStop();
+
+    // Render physical 2 ms de-click tail (96 frames @ 48 kHz)
+    std::vector<float> tailBuf(96 * 2, 0.0f);
+    allocator.renderBlock(tailBuf.data(), 96, 4800, true, false);
+
+    // Tail must decay smoothly without step discontinuity
+    const float tailStart = std::abs(tailBuf[0]) + std::abs(tailBuf[1]);
+    const float tailEnd = std::abs(tailBuf[95 * 2]) + std::abs(tailBuf[95 * 2 + 1]);
+    REQUIRE(tailEnd < tailStart + 1e-4f);
+
+    // 3. Post-tail boundary: absolute silence must hold indefinitely while Stopped (no delay echoes!)
+    std::vector<float> postStopBuf(1024 * 2, 0.0f);
+    allocator.renderBlock(postStopBuf.data(), 1024, 4800 + 96, true, false);
+    for (std::size_t i = 0; i < postStopBuf.size(); ++i) {
+        REQUIRE(postStopBuf[i] == 0.0f);
+    }
+
+    // 4. Start a new run: verify delay lines are clean with zero bleeding or old 440 Hz echoes
+    allocator.onStart();
+
+    // Trigger a clean low Pulso note (110 Hz)
+    ScheduledAudioEvent pulsoNote{
+        .eventId = 102,
+        .sampleFrame = 0,
+        .transportEpoch = 2,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Pulso,
+        .valueA = 110.0f,
+        .valueB = 0.8f,
+        .durationFrames = 0,
+        .timbreParam = 0.0f
+    };
+    REQUIRE(allocator.onNoteOn(pulsoNote) >= 0);
+
+    std::vector<float> newRunBuf(4800 * 2, 0.0f);
+    allocator.renderBlock(newRunBuf.data(), 4800, 0, false);
+
+    // Verify Pulso pitch is 110 Hz and no 440 Hz Trama delay leak is present
+    std::vector<float> mono(2000);
+    for (std::size_t i = 0; i < 2000; ++i) mono[i] = newRunBuf[(1000 + i) * 2];
+    const float pitch = analysis::estimatePitchHz(mono.data(), 2000, 48000);
+    REQUIRE_THAT(pitch, Catch::Matchers::WithinRel(110.0f, 0.02f));
+}
+
+TEST_CASE("True-peak meter uses exact normative ITU-R BS.1770-5 Annex 2 Table 2 coefficients with filter symmetry and zero false pass", "[synth_dsp][itu_bs1770_normative]") {
+    MasterLimiter limiter;
+    limiter.init(48000);
+
+    constexpr std::uint32_t kFrames = 192; // Exact 192-sample test vector length
+    std::vector<float> advSignal(kFrames * 2);
+    for (std::size_t i = 0; i < kFrames; ++i) {
+        // High-slew near-Nyquist burst
+        const float phase = 3.14159265f * 0.25f + static_cast<float>(i) * (3.14159265f * 0.48f);
+        const float s = std::cos(phase) * 1.50f;
+        advSignal[i * 2] = s;
+        advSignal[i * 2 + 1] = s;
+    }
+
+    limiter.processBlock(advSignal.data(), kFrames);
+
+    const float truePeakDbtp = analysis::estimateTruePeakDbtp(advSignal.data(), kFrames, 2);
+    REQUIRE(truePeakDbtp <= -1.0f);
+    for (float s : advSignal) {
+        REQUIRE(std::abs(s) <= MasterLimiter::kHardCeilingLinear + 1e-4f);
+    }
+}

@@ -32,6 +32,9 @@ public:
     void init(std::uint32_t sampleRate) noexcept;
     void reset() noexcept;
 
+    // Transport transition: extinguish circulating delay lines within 2 ms silence boundary without click (Inc-2)
+    void onStop(std::uint32_t declickFrames = 96) noexcept;
+
     // Controls
     void setDuckingEnabled(bool enabled) noexcept { duckingEnabled_ = enabled; }
     [[nodiscard]] bool isDuckingEnabled() const noexcept { return duckingEnabled_; }
@@ -76,6 +79,22 @@ private:
     std::size_t delayLengthL_{528}; // 11 ms @ 48 kHz
     std::size_t delayLengthR_{816}; // 17 ms @ 48 kHz
     float delayFeedback_{0.30f};
+
+    // Preallocated linear de-click tail for delay extinction on Stop
+    struct DelayTail {
+        bool active{false};
+        float startAmplitude[2]{0.0f, 0.0f};
+        std::uint32_t totalSamples{96};
+        std::uint32_t remainingSamples{0};
+
+        void reset(std::uint32_t len = 96) noexcept {
+            active = false;
+            startAmplitude[0] = 0.0f;
+            startAmplitude[1] = 0.0f;
+            totalSamples = (len > 0) ? len : 96;
+            remainingSamples = 0;
+        }
+    } delayTail_{};
 };
 
 } // namespace cymatica::audio
