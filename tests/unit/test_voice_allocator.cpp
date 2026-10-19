@@ -618,3 +618,98 @@ TEST_CASE("VoiceAllocator adapts 2ms de-click frames to sample rate and saturate
     allocator48.checkLifetimes(2000);
     REQUIRE(allocator48.slot(4).state != VoiceState::Release);
 }
+
+TEST_CASE("VoiceAllocator guarantees independent Left and Right continuity at Stop and voice stealing for stereo voices", "[voice_allocator][stereo_stop_continuity]") {
+    VoiceAllocator allocator;
+    allocator.init(48000);
+
+    // 1. Start an asymmetric stereo voice on Trama (slot 4: Left = scaled, Right = scaled * 0.5f)
+    ScheduledAudioEvent tramaNote1{
+        .eventId = 101,
+        .sampleFrame = 0,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Trama,
+        .valueA = 440.0f,
+        .valueB = 0.8f,
+        .timbreParam = 0.5f
+    };
+    REQUIRE(allocator.onNoteOn(tramaNote1) == 4);
+
+    // Render 1500 frames so the voice reaches sustain
+    float buf[256 * 2]{};
+    for (int b = 0; b < 6; ++b) {
+        allocator.renderBlock(buf, 250, b * 250, false);
+    }
+
+    const float preStopL = allocator.slot(4).currentVoiceOutputL();
+    const float preStopR = allocator.slot(4).currentVoiceOutputR();
+
+    // Verify both channels are active and strictly asymmetric (L != R)
+    REQUIRE(std::abs(preStopL) > 0.005f);
+    REQUIRE(std::abs(preStopR) > 0.002f);
+    REQUIRE(std::abs(preStopL - preStopR) > 0.002f);
+
+    // Trigger onStop()
+    allocator.onStop();
+    REQUIRE(allocator.slot(4).stealTail.active);
+
+    // Verify tail amplitudes are matched independently to L and R without cross-bleeding
+    REQUIRE(std::abs(allocator.slot(4).stealTail.startAmplitude[0] - preStopL) < 1e-6f);
+    REQUIRE(std::abs(allocator.slot(4).stealTail.startAmplitude[1] - preStopR) < 1e-6f);
+
+    // 2. Test voice stealing on stereo voices preserves independent L and R in stealTail
+    allocator.onStart();
+    ScheduledAudioEvent tramaNote2{
+        .eventId = 201,
+        .sampleFrame = 1000,
+        .transportEpoch = 2,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Trama,
+        .valueA = 330.0f,
+        .valueB = 0.8f,
+        .timbreParam = 0.5f
+    };
+    REQUIRE(allocator.onNoteOn(tramaNote2) == 4);
+    for (int b = 0; b < 6; ++b) {
+        allocator.renderBlock(buf, 250, 1000 + b * 250, false);
+    }
+
+    ScheduledAudioEvent tramaNote3{
+        .eventId = 202,
+        .sampleFrame = 2500,
+        .transportEpoch = 2,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Trama,
+        .valueA = 550.0f,
+        .valueB = 0.8f,
+        .timbreParam = 0.5f
+    };
+    REQUIRE(allocator.onNoteOn(tramaNote3) == 5);
+    for (int b = 0; b < 6; ++b) {
+        allocator.renderBlock(buf, 250, 2500 + b * 250, false);
+    }
+
+    const float preStealL = allocator.slot(4).currentVoiceOutputL();
+    const float preStealR = allocator.slot(4).currentVoiceOutputR();
+    REQUIRE(std::abs(preStealL) > 0.005f);
+    REQUIRE(std::abs(preStealR) > 0.002f);
+    REQUIRE(std::abs(preStealL - preStealR) > 0.002f);
+
+    // Steal slot 4 with a third note on Trama
+    ScheduledAudioEvent tramaNote4{
+        .eventId = 203,
+        .sampleFrame = 4000,
+        .transportEpoch = 2,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Trama,
+        .valueA = 660.0f,
+        .valueB = 0.8f,
+        .timbreParam = 0.5f
+    };
+    REQUIRE(allocator.onNoteOn(tramaNote4) == 4);
+    REQUIRE(allocator.slot(4).stealTail.active);
+    REQUIRE(std::abs(allocator.slot(4).stealTail.startAmplitude[0] - preStealL) < 1e-6f);
+    REQUIRE(std::abs(allocator.slot(4).stealTail.startAmplitude[1] - preStealR) < 1e-6f);
+}
+

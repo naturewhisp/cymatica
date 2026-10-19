@@ -124,9 +124,14 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
         }
 
         // Capture current output into dedicated steal tail with 2 ms linear fade-out
-        float curAmp = slot.currentVoiceOutput();
-        if (!std::isfinite(curAmp)) {
-            curAmp = 0.0f;
+        float curAmpL = slot.currentVoiceOutputL();
+        float curAmpR = slot.currentVoiceOutputR();
+        if (!std::isfinite(curAmpL)) {
+            curAmpL = 0.0f;
+            ++dspAnomalyCount_;
+        }
+        if (!std::isfinite(curAmpR)) {
+            curAmpR = 0.0f;
             ++dspAnomalyCount_;
         }
 
@@ -148,13 +153,13 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
                 ++dspAnomalyCount_;
             }
 
-            slot.stealTail.startAmplitude[0] = tailL + curAmp;
-            slot.stealTail.startAmplitude[1] = tailR + curAmp;
+            slot.stealTail.startAmplitude[0] = tailL + curAmpL;
+            slot.stealTail.startAmplitude[1] = tailR + curAmpR;
             slot.stealTail.totalSamples = declickFrames_;
             slot.stealTail.remainingSamples = declickFrames_;
         } else {
-            slot.stealTail.startAmplitude[0] = curAmp;
-            slot.stealTail.startAmplitude[1] = curAmp;
+            slot.stealTail.startAmplitude[0] = curAmpL;
+            slot.stealTail.startAmplitude[1] = curAmpR;
             slot.stealTail.totalSamples = declickFrames_;
             slot.stealTail.remainingSamples = declickFrames_;
             slot.stealTail.active = true;
@@ -344,13 +349,18 @@ void VoiceAllocator::onStop() noexcept {
     const float effTransportGain = std::clamp(transportRampLevel_, 0.0f, 1.0f);
 
     for (auto& slot : slots_) {
-        float voiceOut = slot.currentVoiceOutput();
-        if (!std::isfinite(voiceOut)) {
-            voiceOut = 0.0f;
+        float voiceOutL = slot.currentVoiceOutputL();
+        float voiceOutR = slot.currentVoiceOutputR();
+        if (!std::isfinite(voiceOutL)) {
+            voiceOutL = 0.0f;
             ++dspAnomalyCount_;
         }
-        float curL = voiceOut;
-        float curR = voiceOut;
+        if (!std::isfinite(voiceOutR)) {
+            voiceOutR = 0.0f;
+            ++dspAnomalyCount_;
+        }
+        float curL = voiceOutL;
+        float curR = voiceOutR;
 
         if (slot.stealTail.active) {
             const std::uint32_t tailLen = (slot.stealTail.totalSamples > 0)

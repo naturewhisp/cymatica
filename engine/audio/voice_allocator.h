@@ -93,6 +93,16 @@ struct VoiceSlot {
         return lastOutput[0];
     }
 
+    [[nodiscard]] float currentVoiceOutputL() const noexcept {
+        if (state == VoiceState::Idle) return 0.0f;
+        return lastOutput[0];
+    }
+
+    [[nodiscard]] float currentVoiceOutputR() const noexcept {
+        if (state == VoiceState::Idle) return 0.0f;
+        return lastOutput[1];
+    }
+
     void reset(std::uint32_t declickFrames = StealTail::kDefaultTailLength) noexcept {
         state = VoiceState::Idle;
         eventId = 0;
