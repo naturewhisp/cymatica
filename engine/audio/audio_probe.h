@@ -150,8 +150,10 @@ struct VoiceProbeResult {
     float peakAmplitude{0.0f};
     bool headroomPassed{false};
     std::string buildId{CYMATICA_BUILD_ID};
+    std::uint64_t transportEpoch{1};
     std::uint64_t simulationTicks{300};
     std::uint64_t requestedSampleFrames{120000};
+    std::string presentationQuality{"Estimated"};
     bool wavWriteSuccess{false};
     bool manifestWriteSuccess{false};
     std::string wavFilePath{};

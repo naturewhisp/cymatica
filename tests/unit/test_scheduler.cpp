@@ -903,5 +903,74 @@ TEST_CASE("AudioEngine Stop invalidates scheduled events from concluded run acro
     // Event 42 must have been dropped, NOT synthesized in the new run!
     REQUIRE(engine.telemetry().scheduledEventsDroppedTotal >= 1);
     REQUIRE(engine.telemetry().activeVoiceCount == 0);
+
+    // Now schedule a new NoteOn in the new run (epoch 2) with activeVolume = 0.0f (pure polyphonic synthesis)
+    REQUIRE(engine.sendCommand(AudioCommand{
+        .commandId = 3,
+        .type = AudioCommandType::Start,
+        .paramF32 = 0.0f,
+        .targetSampleFrame = 0
+    }));
+    ScheduledAudioEvent newRunEvt{
+        .eventId = 99,
+        .sampleFrame = 1700,
+        .transportEpoch = engine.telemetry().transportEpoch,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Pulso,
+        .valueA = 220.0f,
+        .valueB = 0.8f,
+        .durationFrames = 4800
+    };
+    REQUIRE(engine.scheduleAudioEvent(newRunEvt));
+
+    std::vector<float> newRunBlock(500 * 2, 0.0f);
+    engine.processBlock(newRunBlock.data(), 500);
+    REQUIRE(engine.updateTelemetry());
+    REQUIRE(engine.telemetry().activeVoiceCount == 1);
+
+    float maxAmp = 0.0f;
+    for (float s : newRunBlock) {
+        maxAmp = (std::max)(maxAmp, std::abs(s));
+    }
+    REQUIRE(maxAmp > 0.05f);
+}
+
+TEST_CASE("AudioEngine: 44.1 kHz block-end multi-event dispatch does not drop second event (AUD-07)", "[audio][scheduler][44100]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({44100, 2, 220.0f}));
+
+    // For a 441-sample device block at 44.1 kHz, blockStartFrame = 0, blockEndFrame = 480.
+    // Two events at sampleFrame = 479 (< 480) map via ceil(479 * 44100 / 48000) to 441,
+    // which must be clamped to frameCount - 1 = 440 so both events fire in the block!
+    ScheduledAudioEvent e1{
+        .eventId = 1,
+        .sampleFrame = 479,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Pulso,
+        .valueA = 220.0f,
+        .valueB = 0.8f,
+        .durationFrames = 4800
+    };
+    ScheduledAudioEvent e2{
+        .eventId = 2,
+        .sampleFrame = 479,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Corpo,
+        .valueA = 330.0f,
+        .valueB = 0.8f,
+        .durationFrames = 4800
+    };
+    REQUIRE(engine.scheduleAudioEvent(e1));
+    REQUIRE(engine.scheduleAudioEvent(e2));
+
+    std::vector<float> block(441 * 2, 0.0f);
+    engine.processBlock(block.data(), 441);
+    REQUIRE(engine.updateTelemetry());
+
+    // Both events must have been dispatched without dropping the second one!
+    CHECK(engine.telemetry().scheduledEventsDroppedTotal == 0);
+    CHECK(engine.telemetry().activeVoiceCount == 2);
 }
 

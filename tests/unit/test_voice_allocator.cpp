@@ -5,6 +5,7 @@
 #include "voice_allocator.h"
 
 #include <cmath>
+#include <limits>
 #include <vector>
 
 using namespace cymatica::audio;
@@ -443,4 +444,177 @@ TEST_CASE("VoiceAllocator guarantees zero dynamic heap allocation in realtime sy
 
         REQUIRE(scope.count() == 0);
     }
+}
+
+TEST_CASE("VoiceAllocator Stop -> Start + NoteOn restores full output and linear stop tail (AUD-01, AUD-02)", "[voice_allocator][stop_start_recovery]") {
+    VoiceAllocator allocator;
+    allocator.init(48000);
+
+    ScheduledAudioEvent note1{
+        .eventId = 1,
+        .sampleFrame = 0,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Pulso,
+        .valueA = 440.0f,
+        .valueB = 1.0f
+    };
+    REQUIRE(allocator.onNoteOn(note1) == 0);
+
+    // Advance into sustain and stop at a non-zero phase
+    float buf[256 * 2]{};
+    allocator.renderBlock(buf, 113, 0, false);
+    const float preStopOut = allocator.slot(0).currentVoiceOutput();
+    REQUIRE(std::abs(preStopOut) > 0.01f);
+
+    allocator.onStop();
+    REQUIRE(allocator.slot(0).stealTail.active);
+    const float tailStart = allocator.slot(0).stealTail.startAmplitude[0];
+    REQUIRE(std::abs(tailStart - preStopOut) < 1e-6f);
+
+    // Render 96 frames of stop tail: verify strictly linear decay (not quadratic!)
+    allocator.renderBlock(buf, 96, 113, true);
+    // At mid-point f = 48 (remainingSamples = 96 - 48 = 48), linear factor is 48/96 = 0.5f (quadratic would be 0.25f)
+    const float midExpected = tailStart * (48.0f / 96.0f);
+    REQUIRE(std::abs(buf[48 * 2] - midExpected) < 1e-5f);
+
+    // Render 100 more frames after tail completion: strictly 0.0f
+    allocator.renderBlock(buf, 100, 113, true);
+    for (int i = 0; i < 100 * 2; ++i) {
+        REQUIRE(buf[i] == 0.0f);
+    }
+
+    // Start new run and trigger NoteOn: must produce full-amplitude signal (not muted at 0.0f!)
+    allocator.onStart();
+    ScheduledAudioEvent note2{
+        .eventId = 2,
+        .sampleFrame = 1000,
+        .transportEpoch = 2,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Corpo,
+        .valueA = 220.0f,
+        .valueB = 0.8f
+    };
+    REQUIRE(allocator.onNoteOn(note2) == 2);
+    allocator.renderBlock(buf, 200, 1000, false);
+    float maxNewRun = 0.0f;
+    for (int i = 0; i < 200 * 2; ++i) {
+        maxNewRun = (std::max)(maxNewRun, std::abs(buf[i]));
+    }
+    REQUIRE(maxNewRun > 0.10f);
+
+    // Also verify Pause -> wait until silent -> Stop does NOT re-emit a phantom tail (AUD-02)
+    allocator.onPause();
+    allocator.renderBlock(buf, 120, 1200, true); // Fully faded out to 0.0f
+    allocator.onStop();
+    REQUIRE_FALSE(allocator.slot(2).stealTail.active);
+    allocator.renderBlock(buf, 96, 1200, true);
+    for (int i = 0; i < 96 * 2; ++i) {
+        REQUIRE(buf[i] == 0.0f);
+    }
+}
+
+TEST_CASE("VoiceAllocator sanitizes out-of-range roles, NaN/Inf inputs, and non-finite envelopes (AUD-03, AUD-04)", "[voice_allocator][sanitization]") {
+    VoiceAllocator allocator;
+    allocator.init(48000);
+
+    const float nanVal = std::numeric_limits<float>::quiet_NaN();
+    const float infVal = std::numeric_limits<float>::infinity();
+
+    // 1. Out-of-range MusicRole must be rejected safely (-1) without out-of-bounds array access
+    ScheduledAudioEvent badRoleOn{
+        .eventId = 1,
+        .sampleFrame = 0,
+        .type = AudioEventType::NoteOn,
+        .role = static_cast<MusicRole>(99),
+        .valueA = 440.0f,
+        .valueB = 0.8f
+    };
+    REQUIRE(allocator.onNoteOn(badRoleOn) == -1);
+    badRoleOn.type = AudioEventType::NoteOff;
+    REQUIRE(allocator.onNoteOff(badRoleOn) == -1);
+
+    // 2. Non-finite pitch (+Inf), velocity (NaN), timbreParam (-Inf) sanitized and counted in dspAnomalyCount
+    ScheduledAudioEvent badParams{
+        .eventId = 2,
+        .sampleFrame = 100,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Pulso,
+        .valueA = infVal,
+        .valueB = nanVal,
+        .timbreParam = -infVal
+    };
+    REQUIRE(allocator.onNoteOn(badParams) == 0);
+    REQUIRE(allocator.dspAnomalyCount() >= 3);
+    REQUIRE(std::isfinite(allocator.slot(0).pitchHz));
+    REQUIRE(std::isfinite(allocator.slot(0).velocity));
+    REQUIRE(std::isfinite(allocator.slot(0).timbreParam));
+
+    float buf[128 * 2]{};
+    allocator.renderBlock(buf, 128, 100, false);
+    for (float s : buf) {
+        REQUIRE(std::isfinite(s));
+    }
+
+    // 3. Non-finite envelopeLevel in Release comparator sanitized to 0.0f and counted (ADR-0003 D-M2-04 §5)
+    ScheduledAudioEvent secondPulso{
+        .eventId = 3,
+        .sampleFrame = 300,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Pulso,
+        .valueA = 330.0f,
+        .valueB = 0.8f
+    };
+    REQUIRE(allocator.onNoteOn(secondPulso) == 1);
+    allocator.renderBlock(buf, 64, 300, false);
+
+    ScheduledAudioEvent off0{.eventId = 2, .sampleFrame = 400, .type = AudioEventType::NoteOff, .role = MusicRole::Pulso};
+    ScheduledAudioEvent off1{.eventId = 3, .sampleFrame = 400, .type = AudioEventType::NoteOff, .role = MusicRole::Pulso};
+    REQUIRE(allocator.onNoteOff(off0) == 0);
+    REQUIRE(allocator.onNoteOff(off1) == 1);
+
+    // Inject NaN into slot 1's envelopeLevel while both are in Release
+    allocator.slot(0).envelopeLevel = 0.5f;
+    allocator.slot(1).envelopeLevel = nanVal;
+    const std::uint32_t anomaliesBefore = allocator.dspAnomalyCount();
+
+    ScheduledAudioEvent thirdPulso{
+        .eventId = 4,
+        .sampleFrame = 450,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Pulso,
+        .valueA = 440.0f,
+        .valueB = 0.8f
+    };
+    // Slot 1 had NaN -> sanitized to 0.0f < 0.5f -> Slot 1 must be selected and dspAnomalyCount incremented!
+    REQUIRE(allocator.onNoteOn(thirdPulso) == 1);
+    REQUIRE(allocator.dspAnomalyCount() == anomaliesBefore + 1);
+}
+
+TEST_CASE("VoiceAllocator adapts 2ms de-click frames to sample rate and saturates uint64_t lifetimes (AUD-05, AUD-06)", "[voice_allocator][sample_rate_saturation]") {
+    VoiceAllocator allocator44;
+    allocator44.init(44100);
+    // floor(0.002 * 44100) = 88 frames
+    REQUIRE(allocator44.declickFrames() == 88);
+    REQUIRE(allocator44.slot(0).releaseSamples == 88);
+
+    VoiceAllocator allocator48;
+    allocator48.init(48000);
+    REQUIRE(allocator48.declickFrames() == 96);
+    REQUIRE(allocator48.slot(0).releaseSamples == 96);
+
+    // Test uint64_t saturation in checkLifetimes near UINT64_MAX
+    ScheduledAudioEvent nearMaxNote{
+        .eventId = 77,
+        .sampleFrame = std::numeric_limits<std::uint64_t>::max() - 10,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Trama,
+        .valueA = 440.0f,
+        .valueB = 0.8f,
+        .durationFrames = 1000 // Raw addition would overflow to 989!
+    };
+    REQUIRE(allocator48.onNoteOn(nearMaxNote) == 4);
+    // At frame 2000 (which would be >= 989 if wrapped!), saturatingAdd keeps expireFrame at UINT64_MAX
+    allocator48.checkLifetimes(2000);
+    REQUIRE(allocator48.slot(4).state != VoiceState::Release);
 }

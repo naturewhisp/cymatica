@@ -1,13 +1,13 @@
 # CYMATICA — Studio progettuale su protezione del master, loudness e safe listening
 
-- **Data:** 2026-10-15.
-- **Stato:** **studio tecnico**; il principio di protezione finale e la separazione dei domini di monitoring sono **ratificati in ADR-0004 (2026-10-15)**, mentre algoritmo, topologia, ceiling e metriche di conformità sono ancora da qualificare. Nessuna feature è implementata.
-- **Baseline:** `090dc2a45cf3785a2055c492415f9151321ea18a`.
+- **Data:** 2026-10-15 (aggiornato 2026-10-19 con chiusura formale del Gate pre-Inc-2).
+- **Stato:** **studio tecnico e specifica di qualifica pre-Inc-2**; il principio di protezione finale, la separazione dei domini di monitoring e le specifiche del **Gate tecnico pre-Inc-2 (`AUD-D-02`)** (topologia della catena master, algoritmo `MasterLimiter` zero-latency $L = 0$, ceiling operativi e meter true-peak offline indipendente a 48 tap ITU-R BS.1770-5) sono **ratificati e chiusi in [ADR-0004](../adr/0004-m2-4-audio-renderer-safety-proposal.md)** per l'implementazione in Inc-2.
+- **Baseline:** `main` (Inc-1 completato e verificato: 91/91 test Release/Debug, 90/90 Headless).
 - **Contesto:** [review audio](M2_4_Audio_Renderer_Research_Review.md), [ADR-0003 D-M2-06/07](../adr/0003-m2-decisions-contracts.md), [ADR-0004 ratificato](../adr/0004-m2-4-audio-renderer-safety-proposal.md).
 
 ## 1. Oggetto e limiti di garanzia
 
-Il titolare ha **ratificato il principio** di uno stadio digitale terminale sempre attivo e fail-closed sulle sorgenti audio sotto controllo CYMATICA e l'architettura di monitoring progressivo a tre domini. La motivazione è la gestione di musica adattiva e, in futuro, la somma con SFX/UI. D-M2-06 è stato emendato coerentemente; **un algoritmo true-peak e un ceiling numerico non sono ancora stati ratificati o implementati**.
+Il titolare ha **ratificato il principio** di uno stadio digitale terminale sempre attivo e fail-closed sulle sorgenti audio sotto controllo CYMATICA e l'architettura di monitoring progressivo a tre domini. La motivazione è la gestione di musica adattiva e, in futuro, la somma con SFX/UI. Con la chiusura del **Gate pre-Inc-2 (2026-10-19)** sono stati formalmente qualificati in [ADR-0004](../adr/0004-m2-4-audio-renderer-safety-proposal.md) la topologia esatta della catena master, l'algoritmo `MasterLimiter` zero-latency ($L = 0$) con soglia interna $C_{\text{lim}} = -1,50\text{ dBFS}$ ($0,8414\text{f}$) e hard safety ceiling $C_{\text{max}} = -1,0\text{ dBFS}$ ($0,89125\text{f}$), e il meter true-peak offline indipendente a 48 tap ITU-R BS.1770-5, pronti per l'implementazione C++20 in Inc-2.
 
 La mitigazione software può contenere picchi e loudness digitali, ma **non certifica** l'esposizione acustica alle orecchie: volume OS/dispositivo, amplificazione, sensibilità delle cuffie, caratteristiche del trasduttore e durata di ascolto non sono misurate dal PCM. Non descrivere il sistema come in grado di impedire sempre danni uditivi o hardware.
 
@@ -15,45 +15,51 @@ ITU-T [H.872 (2024)](https://www.itu.int/rec/T-REC-H.872-202410-I/en) è il rife
 
 **I valori `−14 LUFS` e `−4` ricevuti informalmente non sono contratti CYMATICA.** `−4` non specifica LUFS, dBFS o dBTP: mantenerlo come domanda aperta, senza codificarlo. Non chiamare `−14 LUFS` una soglia di protezione acustica.
 
-## 2. Pipeline di riferimento
+## 2. Pipeline di riferimento e Topologia Qualificata Pre-Inc-2 (`AUD-D-02`)
 
 ```text
-  Pulso/Corpo/Trama/Vettore -> FX di ruolo -> quattro bus -> MUSIC MIX
-                                                        |
-  SFX futuri --------------------------------------------+---> GAME MASTER
-  UI audio futuri ---------------------------------------+        |
-                                                        finite guard
-                                                             |
-                                                  gain staging / mix policy
-                                                             |
-                                                   terminal limiter (*)
-                                                             |
-                                                  output gain <= 1
-                                                             |
-                                              conversione finale dispositivo
-                                                             |
-                                              output digitale / AudioProbe
-                                                             |
-                                                    dispositivo audio
+  [1] 8 VoiceSlot (kNominalVoiceScale = 0.25f) + StealTails (declickFrames_)
+       |
+  [2] 4 Role Buses (Pulso -6 dB, Corpo -8 dB, Trama -10 dB, Vettore -6 dB)
+      + FX bounded per ruolo + Micro-ducking di Corpo da Pulso (-3 dB, att 2 ms, rel 80 ms)
+       |---> [3] ChannelFrame Telemetry Extraction (pre-master, indipendente da volume utente)
+       v
+  [4] Music Mix Sum + Soft-Clipper Timbrico Opzionale (bypass di default)
+       + (Futuri SFX / UI Audio in M3+)
+       v
+  [5] Master Finite Guard: !std::isfinite(L/R) -> 0.0f + ++dspAnomalyCount
+       v
+  [6] Terminal MasterLimiter Zero-Latency (L = 0 campioni, sempre attivo, fail-closed):
+      Detector ibrido causale (FIR polifase 4x12 tap + bound di curvatura Nyquist 1°/2° ordine),
+      Soglia interna C_lim = -1.50 dBFS (0.8414f), attacco 0 ms, hold 2 ms, release 50 ms
+       v
+  [7] Rampa Fisica di De-Click del Trasporto (Pause/Resume/Stop, declickFrames_ = sampleRate / 500)
+      & Gate di Silenzio Fisico (0.0f esatto oltre n_device,pause + N_tail)
+       v
+  [8] Attenuazione Utente Finale (<= 1.0f) & Hard Safety Clamp [-0.89125f, +0.89125f] (-1.0 dBFS)
+       v
+  [9] Scrittura nel Buffer Device (pOutput) & Tap AudioProbe (osservazione 1:1 dell'uscita device)
 ```
 
-`(*)` La topologia definitiva deve identificare **se il resampling è prima o dopo la protezione**: un SRC a valle può produrre nuovi true peak. Il ceiling true-peak e la misura devono riferirsi alla **rappresentazione PCM effettivamente inviata al device**, verificando anche la ricostruzione intersample. Dopo lo stadio di protezione non sono ammissibili processori o guadagni **amplificanti** che possano invalidare il ceiling; attenuazioni a unità o inferiori sono consentite. Se il dispositivo applica guadagno hardware o post-elaborazione OS, questo rimane fuori dal controllo CYMATICA.
+- **Assenza di SRC post-limiter nel motore:** `VoiceAllocator` e l'intera catena master operano direttamente alla frequenza di campionamento effettiva del device (`impl->sampleRate = impl->device.sampleRate` in modalità online, es. 48 kHz o 44.1 kHz, oppure `config.sampleRate` in modalità offline), mentre la riconciliazione con la timeline canonica a 48 kHz avviene a monte tramite `deviceToInternalFrames` / `internalToDeviceFrames`. Non esiste alcuno stadio di sample-rate conversion software tra il `MasterLimiter` e il buffer consegnato a `miniaudio`.
+- **Ordinamento Limiter $\to$ Rampa Fisica di Trasporto:** posizionando il `MasterLimiter` (stadio `[6]`) a monte della rampa fisica di trasporto (stadio `[7]`) e scegliendo una topologia zero-latency ($L = 0$ campioni), il limiter non possiede alcuna linea di ritardo che possa riemettere energia sonora dopo la chiusura del gate di pausa, preservando l'invariante di silenzio numerico assoluto ($0,0\text{f}$) al frame $n_{\text{device, pause}} + N_{\text{tail}}$ e l'onset sample-accurate al campione 0 di tutti i test esistenti.
+- Dopo lo stadio di protezione non sono ammissibili processori o guadagni **amplificanti** che possano invalidare il ceiling; attenuazioni a unità o inferiori sono consentite. Se il dispositivo applica guadagno hardware o post-elaborazione OS, questo rimane fuori dal controllo CYMATICA.
+- **Tutte le sorgenti sonore controllate dal gioco devono attraversare una protezione terminale comune.** In M2.4 esiste solo la porzione pertinente alla musica; i futuri SFX/UI dovranno essere collegati al master protetto quando verranno introdotti. Non richiedere il completamento anticipato degli SFX in M2.4.
 
-**Tutte le sorgenti sonore controllate dal gioco devono attraversare una protezione terminale comune.** In M2.4 esiste solo la porzione pertinente alla musica; i futuri SFX/UI dovranno essere collegati al master protetto quando verranno introdotti. Non richiedere il completamento anticipato degli SFX in M2.4.
+## 3. Specifiche Qualificate dello Stadio Protettivo (Gate Pre-Inc-2 Chiuso)
 
-## 3. Requisiti candidati dello stadio protettivo
+Con la chiusura del Gate pre-Inc-2 in [ADR-0004](../adr/0004-m2-4-audio-renderer-safety-proposal.md), lo stadio protettivo da implementare in Inc-2 risponde alle seguenti specifiche:
 
-I seguenti elementi vanno letti in conformità alla ratifica di ADR-0004: il **principio terminale** è obbligatorio, mentre la scelta dell'algoritmo, della topologia e dei parametri numerici costituisce un gate tecnico prima dell'implementazione del master in Inc-2:
-
-1. **Finite guard** prima del DSP terminale, per intercettare `NaN`, `Inf`, parametri fuori range e stati instabili, con contatore telemetrico bounded. In caso di anomalia severa prevedere una policy deterministicamente definita che azzeri o attenui il solo output non valido, evitando propagazione della contaminazione numerica.
-2. **Gain staging conservativo** sui quattro bus e sul master; il limiter è una protezione eccezionale, non un sostituto di un mix progettato male.
-3. **Limiter terminale bounded** senza heap, lock bloccanti, file I/O o logging nella callback. Studiare sample-peak limiter, lookahead brickwall, true-peak con oversampling e soft-clipper + limiter; la scelta concreta dipende dai costi misurati, non dalla sola etichetta commerciale.
-4. **Ceiling di prova −1 dBTP** come candidato H.872; alla qualifica, stimare il true peak con un meter *indipendente* dalla logica del limiter e segnali difficili (impulsi, sinusoidi vicino a Nyquist, in-phase bus sum, cambiorate e transitori). Il clamp a ±1 non costituisce prova true peak.
-5. **Comportamento in saturazione riproducibile**, comprensivo di Attack/Release, lookahead, gain reduction, latency deterministica, fade di Pause/Resume/Stop, stadi di resampling e continuità di input/output.
-6. **Deadline integra**: target D-M2-07 di <=2.0 ms per l'intera callback Release a 512 frame / 48 kHz; all'eventuale aggiunta di true-peak oversampling/latency, aggiornare gli scenari del benchmark, non creare un budget di 2 ms aggiuntivo per il limiter.
+1. **Finite guard** prima del DSP terminale, per intercettare `NaN`, `Inf`, parametri fuori range e stati instabili, con contatore telemetrico bounded (`dspAnomalyCount`). In caso di anomalia non finita sul campione master, il valore viene immediatamente sostituito con `0.0f` prima di entrare nel detector del limiter, evitando qualsiasi contaminazione numerica dello stato di rilascio.
+2. **Gain staging conservativo** sui quattro bus (`Pulso` $-6\text{ dB}$, `Corpo` $-8\text{ dB}$, `Trama` $-10\text{ dB}$, `Vettore` $-6\text{ dB}$) con `kNominalVoiceScale = 0.25f`; la somma massima teorica in fase di tutte le 8 voci contemporanee a `velocity = 1.0` è $\approx 1,314\text{f}$ ($+2,37\text{ dBFS}$), lasciando al limiter una riduzione massima nel caso pessimo degenerato di soli $\approx 3,87\text{ dB}$.
+3. **Limiter terminale bounded zero-latency ($L = 0$)** senza heap, lock bloccanti, file I/O o logging nella callback (`engine/audio/master_limiter.h/.cpp`):
+   - **Detector di picco ibrido causale:** combina (a) l'interpolazione polifase causale $4\times$ a 12 tap per sotto-fase sul buffer circolare locale degli ultimi 12 frame stereo `float historyL_[12], historyR_[12]` e (b) il bound analitico di curvatura alle alte frequenze basato sulle differenze finite prime e seconde ($\Delta x[n] = x[n] - x[n-1]$, $\Delta^2 x[n] = x[n] - 2x[n-1] + x[n-2]$):
+     $$\hat{p}_{\text{curv}, c}[n] = \sqrt{x_c[n]^2 + 0,55\,(\Delta x_c[n])^2 + 0,30\,(\Delta^2 x_c[n])^2}, \qquad \hat{p}[n] = \max_{c \in \{L, R\}} \max\!\left(|x_c[n]|,\, \hat{p}_{\text{FIR4x}, c}[n],\, \hat{p}_{\text{curv}, c}[n]\right)$$
+   - **Legge di guadagno stereo-linked:** soglia interna conservativa $C_{\text{lim}} = 0,8414\text{f}$ ($-1,50\text{ dBFS}$), attacco istantaneo $0\text{ ms}$, hold $N_{\text{hold}} = \lfloor 0,002 \times f_s \rfloor$ ($2\text{ ms}$), release esponenziale $\tau_{\text{rel}} = 50\text{ ms}$ ($\alpha_{\text{rel}} = \exp(-1 / (0,050 \cdot f_s))$), seguita da hard safety clamp a $C_{\text{max}} = 0,89125\text{f}$ ($-1,0\text{ dBFS}$).
+4. **Meter True-Peak Offline Indipendente (`analysis::estimateTruePeakDbtp`):** implementato in `AudioProbe` secondo **ITU-R BS.1770-5 Annex 2 Table 3** (filtro FIR polifase standard a 48 tap, $4 \times 12$ coefficienti a fase lineare non correlato al bound di curvatura causale del limiter), verificato sulla suite di segnali avversari (`T-ADV-01..06`).
+5. **Comportamento in saturazione riproducibile**, comprensivo di Attack/Hold/Release, gain reduction tracciata (`maxGainReductionDb`), fade di `Pause`/`Resume`/`Stop` sample-rate adaptive e continuità cross-epoch.
+6. **Deadline integra**: target D-M2-07 di $\le 2,0\text{ ms}$ per l'intera callback Release a 512 frame / 48 kHz; il costo del `MasterLimiter` zero-latency è $\approx 60$ MAC/frame stereo ($\approx 0,64\text{ }\mu\text{s}$ per blocco da 512 frame, $< 0,04\%$ del budget).
 7. **Nessuna dipendenza di sicurezza dai worker CACP/LUFS**: se il consumer è lento, il limiting realtime continua a funzionare. Capture/drop possono rendere **incompleta** l'evidenza, non disattivare la protezione e non produrre falsa attestazione `PASS`.
-
-Scegliere parametri numerici di attack/release/lookahead e oversampling soltanto dopo prova sotto carico; non sono congelati in questo documento. I picchi da software non qualificato o plugin terzi richiederebbero anche adeguata limitazione/finite guard prima dell'host graph.
 
 ## 4. Metriche: definizioni e domini
 
@@ -86,29 +92,29 @@ Le misure LUFS non sono una semplice media aritmetica del livello dB; Integrated
 
 | Fase | Valutazione tecnicamente giustificata | Stato normativo |
 |---|---|---|
-| **Prima di Inc-2** | Qualificare algoritmo del limiter, posizione rispetto a SRC, compensazione latenza e ceiling di prova nel budget callback. | **Principio ratificato (ADR-0004)**; qualifica tecnica pre-master |
-| **Inc-2** | Gate pre-codice: scegliere algoritmo/topologia, poi test DSP limiter e finite guard con segnali avversari; budget callback completo e regressione sample-peak. | **Principio ratificato**; algoritmo e ceiling ancora da qualificare |
+| **Prima di Inc-2** | Qualificare algoritmo del limiter (`MasterLimiter` zero-latency), posizione rispetto a SRC/de-click tail, e meter true-peak BS.1770-5 nel budget callback. | **CHIUSO E ACCETTATO PER IMPLEMENTAZIONE (ADR-0004, 2026-10-19)** |
+| **Inc-2** | Implementazione C++20 di 4 ruoli DSP, 4 bus, `MasterLimiter` e finite guard; test `test_synth_dsp.cpp` con segnali avversari (`T-ADV-01..06`); scenario CACP `synth_test` (`timbre_bus_probe_v1`). | **Pronto per l'implementazione in Inc-2** |
 | **Inc-4** | Fixture A–B–A' con measure stage/post process; metriche M/S/I, true peak, gain reduction, deadline misses. | Evidence addizionale proposta |
 | **Inc-5 / M2.5** | WAV completo e manifest CACP; confronto meter indipendente; ascolto umano e misure con limiter attivo. Durata della fixture ≈183 s, quindi **non** test rolling 30m a piena finestra. | Gate originali invariati finché non emendati formalmente |
 | **M5 o milestone di durata appropriata** | Sessioni con SFX/UI reali, dispositivi differenziati e 30 min effettivi, controlli volume e headphone safety; oltre al software valutazione acustica dove praticabile. | Decisioni future da calendarizzare, non claim M2.5 |
 
-### Dataset minimo per limiter e metering
+### Dataset minimo per limiter e metering (`T-ADV-01..06` per Inc-2)
 
-1. Silenzio, DC e passaggi graduali; segnali in fase sommati sui quattro bus.
-2. Impulsi isolati, click/transient Pulso e salto improvviso di `timbreParam`.
-3. Oscillazioni prossime a Nyquist, intersample peak con sample peak basso, cambi di frequenza e canali stereo sfasati.
-4. Eccesso di gain, segnali fuori range, `NaN`, `Inf`, subnormali e feedback patologico.
-5. Pause/Resume/Stop e tail cross-epoch; OS/device sample rate conversion e sequenze di buffer brevi/variabili.
-6. A/B a parità di loudness per verificare pump/distorsione, senza scambiare maggiore livello con maggiore qualità.
+1. `T-ADV-01` — Silenzio, DC e somma in fase sui quattro bus di tutte le 8 voci contemporanee ($\approx +2,37\text{ dBFS}$ pre-limiter).
+2. `T-ADV-02` — Cosinusoide a $f_s / 4$ sfasata di $\pi / 4$ con ampiezza campionaria $0,75\text{f}$ e intersample peak teorico $+3,01\text{ dB}$ ($1,06066\text{f}$).
+3. `T-ADV-03` — Tono prossimo a Nyquist ($0,45 f_s$) e salto improvviso di `timbreParam` / impulso isolato di `Pulso`.
+4. `T-ADV-04` — Iniezione diretta di `NaN`, `+Inf`, `-Inf` e subnormali (`1e-38f`) per verifica del Finite Guard e recupero immediato in $< 100\text{ ms}$.
+5. `T-ADV-05` — Sequenze `Pause`/`Resume`/`Stop` durante limitazione attiva a $+6\text{ dBFS}$ (verifica assenza di code post-gate oltre $n_{\text{device, pause}} + N_{\text{tail}}$ a 48 kHz e 44.1 kHz).
+6. `T-ADV-06` — A/B a parità di loudness per verificare assenza di pumping o distorsione sui 4 ruoli in regime nominale ($G[n] = 1,0\text{f}$).
 
 **Criterio epistemico:** un limiter qualificato può rispettare un *ceiling digitale misurato* nel profilo testato; nessun test di questo elenco certifica la sicurezza delle cuffie dell'utente in assenza di dati acustici.
 
-## 7. Decisioni ratificate e dettagli ancora differiti
+## 7. Decisioni ratificate e dettagli differiti a fasi successive
 
-- AUD-D-01: **ratificato** renderer nativo + ammissione selettiva di DSP esterno auditato (nessuna dipendenza automaticamente adottata).
-- AUD-D-02: **ratificato il principio** di protezione terminale comune e policy fail-closed; algoritmo, posizionamento rispetto a SRC e verifica true-peak **differiti al gate pre-Inc-2**.
+- AUD-D-01: **ratificato e chiuso per Inc-2** — renderer C++20 nativo puro autocontenuto per i 4 ruoli di Inc-2 con **zero dipendenze esterne** (`docs/dependencies.md` invariato).
+- AUD-D-02: **ratificato e chiuso per Inc-2** — protezione terminale comune fail-closed con `MasterLimiter` zero-latency ($L = 0$), soglia interna $-1,50\text{ dBFS}$, hard ceiling $-1,0\text{ dBFS}$, posto a monte della rampa fisica di de-click e verificato offline tramite filtro FIR a 48 tap ITU-R BS.1770-5.
 - AUD-D-03: **ratificata la separazione callback/worker/offline**; `−1 dBTP` e `−23 LUFS ±2 LU` restano **target sperimentali**, non limiti mandatory; `−4` rimane privo di unità e quindi non utilizzabile.
-- AUD-D-04: livello di monitoring atteso in M2.4 vs milestone di sessione lunga; integrità dell'acquisizione e modello di gating/versioning.
+- AUD-D-04: livello di monitoring esteso per le run di 3 minuti (Inc-4/Inc-5) vs milestone di sessione lunga (M5+ per la finestra rolling 30 min).
 
 Non trasformare risposte non ancora ricevute in campi di configurazione predefiniti o nuovi mandatory gate. Il `MusicClock` e la semantica del transport restano invariati.
 

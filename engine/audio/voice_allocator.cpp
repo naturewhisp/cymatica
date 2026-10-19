@@ -1,4 +1,5 @@
 #include "voice_allocator.h"
+#include "../core/unsigned_math.h"
 
 #include <algorithm>
 #include <cmath>
@@ -18,12 +19,18 @@ VoiceAllocator::VoiceAllocator() noexcept {
 
 void VoiceAllocator::init(std::uint32_t sampleRate) noexcept {
     sampleRate_ = (sampleRate > 0) ? sampleRate : 48000;
+    // 2 ms physical de-click ramp: floor(0.002 * fs_device) -> 96 @ 48 kHz, 88 @ 44.1 kHz
+    declickFrames_ = std::max<std::uint32_t>(1u, sampleRate_ / 500u);
     reset();
 }
 
 void VoiceAllocator::reset() noexcept {
+    const std::uint32_t attackFrames = std::max<std::uint32_t>(1u, sampleRate_ / 1000u); // 1 ms
+    const std::uint32_t decayFrames = std::max<std::uint32_t>(1u, sampleRate_ / 100u);   // 10 ms
     for (auto& slot : slots_) {
-        slot.reset();
+        slot.attackSamples = attackFrames;
+        slot.decaySamples = decayFrames;
+        slot.reset(declickFrames_);
     }
     transportRamp_ = TransportRamp::None;
     transportRampLevel_ = 1.0f;
@@ -32,6 +39,9 @@ void VoiceAllocator::reset() noexcept {
 }
 
 int VoiceAllocator::selectSlotForRole(MusicRole role) noexcept {
+    if (static_cast<std::size_t>(role) >= kRoleCount) {
+        return -1;
+    }
     const std::size_t s0 = roleFirstSlot(role);
     const std::size_t s1 = s0 + 1;
 
@@ -54,11 +64,21 @@ int VoiceAllocator::selectSlotForRole(MusicRole role) noexcept {
         return static_cast<int>(s1);
     }
     if (s0InRelease && s1InRelease) {
-        // Both in Release: compare envelope level, then startFrame, then slot index
-        if (slots_[s0].envelopeLevel < slots_[s1].envelopeLevel) {
+        // Sanitize non-finite envelope levels before comparison (ADR-0003 D-M2-04 §5)
+        if (!std::isfinite(slots_[s0].envelopeLevel)) {
+            slots_[s0].envelopeLevel = 0.0f;
+            ++dspAnomalyCount_;
+        }
+        if (!std::isfinite(slots_[s1].envelopeLevel)) {
+            slots_[s1].envelopeLevel = 0.0f;
+            ++dspAnomalyCount_;
+        }
+        const float env0 = std::abs(slots_[s0].envelopeLevel);
+        const float env1 = std::abs(slots_[s1].envelopeLevel);
+        if (env0 < env1) {
             return static_cast<int>(s0);
         }
-        if (slots_[s1].envelopeLevel < slots_[s0].envelopeLevel) {
+        if (env1 < env0) {
             return static_cast<int>(s1);
         }
         if (slots_[s0].startFrame <= slots_[s1].startFrame) {
@@ -98,34 +118,69 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
         }
 
         if (slot.stealTail.active) {
-            // Rapid successive steals (< 96 samples): snapshot composite sum without pre-master clamp
+            // Rapid successive steals (< 2 ms): snapshot composite sum without pre-master clamp
+            const std::uint32_t tailLen = (slot.stealTail.totalSamples > 0)
+                ? slot.stealTail.totalSamples
+                : declickFrames_;
             const float factor = static_cast<float>(slot.stealTail.remainingSamples) /
-                                 static_cast<float>(StealTail::kTailLength);
-            const float tailL = slot.stealTail.startAmplitude[0] * factor;
-            const float tailR = slot.stealTail.startAmplitude[1] * factor;
+                                 static_cast<float>(tailLen);
+            float tailL = slot.stealTail.startAmplitude[0] * factor;
+            float tailR = slot.stealTail.startAmplitude[1] * factor;
+            if (!std::isfinite(tailL)) {
+                tailL = 0.0f;
+                ++dspAnomalyCount_;
+            }
+            if (!std::isfinite(tailR)) {
+                tailR = 0.0f;
+                ++dspAnomalyCount_;
+            }
 
             slot.stealTail.startAmplitude[0] = tailL + curAmp;
             slot.stealTail.startAmplitude[1] = tailR + curAmp;
-            slot.stealTail.remainingSamples = StealTail::kTailLength;
+            slot.stealTail.totalSamples = declickFrames_;
+            slot.stealTail.remainingSamples = declickFrames_;
         } else {
             slot.stealTail.startAmplitude[0] = curAmp;
             slot.stealTail.startAmplitude[1] = curAmp;
-            slot.stealTail.remainingSamples = StealTail::kTailLength;
+            slot.stealTail.totalSamples = declickFrames_;
+            slot.stealTail.remainingSamples = declickFrames_;
             slot.stealTail.active = true;
         }
     }
 
-    // Initialize slot for new note
+    // Initialize slot for new note with defensive input sanitization
     ++slot.generationToken;
     slot.role = event.role;
     slot.eventId = event.eventId;
     slot.transportEpoch = event.transportEpoch;
     slot.startFrame = event.sampleFrame;
     slot.durationFrames = event.durationFrames;
-    slot.pitchHz = (event.valueA > 0.0f) ? event.valueA : 220.0f;
-    slot.velocity = (event.valueB >= 0.0f) ? event.valueB : 1.0f;
-    slot.timbreParam = event.timbreParam;
 
+    float pitch = 220.0f;
+    if (!std::isfinite(event.valueA)) {
+        ++dspAnomalyCount_;
+    } else if (event.valueA > 0.0f) {
+        const float maxPitch = std::max(1.0f, 0.45f * static_cast<float>(sampleRate_));
+        pitch = std::clamp(event.valueA, 1.0f, maxPitch);
+    }
+    slot.pitchHz = pitch;
+
+    float vel = 1.0f;
+    if (!std::isfinite(event.valueB)) {
+        ++dspAnomalyCount_;
+    } else if (event.valueB >= 0.0f) {
+        vel = std::min(event.valueB, 1.0f);
+    }
+    slot.velocity = vel;
+
+    if (!std::isfinite(event.timbreParam)) {
+        slot.timbreParam = 0.0f;
+        ++dspAnomalyCount_;
+    } else {
+        slot.timbreParam = std::clamp(event.timbreParam, 0.0f, 1.0f);
+    }
+
+    slot.releaseSamples = declickFrames_;
     slot.phase = 0.0f;
     slot.phaseIncrement = (kTwoPi * slot.pitchHz) / static_cast<float>(sampleRate_);
     slot.state = VoiceState::Attack;
@@ -137,6 +192,9 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
 }
 
 int VoiceAllocator::onNoteOff(const ScheduledAudioEvent& event) noexcept {
+    if (static_cast<std::size_t>(event.role) >= kRoleCount) {
+        return -1;
+    }
     const std::size_t s0 = roleFirstSlot(event.role);
     const std::size_t s1 = s0 + 1;
 
@@ -168,15 +226,19 @@ void VoiceAllocator::checkLifetimes(std::uint64_t currentLogicalFrame) noexcept 
         }
 
         if (slot.durationFrames > 0) {
-            // Note with explicit duration: failsafe timeout triggers release
-            if (currentLogicalFrame >= slot.startFrame + slot.durationFrames) {
+            // Note with explicit duration: failsafe timeout triggers release (saturating against overflow)
+            const std::uint64_t expireFrame =
+                core::saturatingAdd(slot.startFrame, static_cast<std::uint64_t>(slot.durationFrames));
+            if (currentLogicalFrame >= expireFrame) {
                 slot.state = VoiceState::Release;
                 slot.stageFrame = 0;
                 slot.releaseStartLevel = slot.envelopeLevel;
             }
         } else {
             // Open pad (durationFrames == 0): conservative safety backstop
-            if (currentLogicalFrame >= slot.startFrame + kMaxLeaseDurationFrames) {
+            const std::uint64_t leaseExpireFrame =
+                core::saturatingAdd(slot.startFrame, static_cast<std::uint64_t>(kMaxLeaseDurationFrames));
+            if (currentLogicalFrame >= leaseExpireFrame) {
                 slot.state = VoiceState::Release;
                 slot.stageFrame = 0;
                 slot.releaseStartLevel = slot.envelopeLevel;
@@ -186,36 +248,65 @@ void VoiceAllocator::checkLifetimes(std::uint64_t currentLogicalFrame) noexcept 
     }
 }
 
+void VoiceAllocator::onStart() noexcept {
+    transportRamp_ = TransportRamp::None;
+    transportRampLevel_ = 1.0f;
+    transportRampStep_ = 0.0f;
+    transportRampRemaining_ = 0;
+}
+
 void VoiceAllocator::onPause() noexcept {
     transportRamp_ = TransportRamp::FadingOut;
-    transportRampRemaining_ = kTransportDeclickFrames;
-    transportRampStep_ = (transportRampLevel_ > 0.0f)
-        ? (transportRampLevel_ / static_cast<float>(kTransportDeclickFrames))
+    transportRampRemaining_ = declickFrames_;
+    transportRampStep_ = (transportRampLevel_ > 0.0f && declickFrames_ > 0)
+        ? (transportRampLevel_ / static_cast<float>(declickFrames_))
         : 0.0f;
 }
 
 void VoiceAllocator::onResume() noexcept {
     transportRamp_ = TransportRamp::FadingIn;
-    transportRampRemaining_ = kTransportDeclickFrames;
-    transportRampStep_ = (1.0f - transportRampLevel_) / static_cast<float>(kTransportDeclickFrames);
+    transportRampRemaining_ = declickFrames_;
+    transportRampStep_ = (declickFrames_ > 0)
+        ? ((1.0f - transportRampLevel_) / static_cast<float>(declickFrames_))
+        : 1.0f;
 }
 
 void VoiceAllocator::onStop() noexcept {
-    // 1. Capture each active voice into static steal tail for 2 ms physical de-click (ADR-0003 D-M2-03)
+    // 1. Capture each active voice + steal tail (scaled by current transportRampLevel_)
+    //    into static steal tail for a single linear 2 ms physical de-click (ADR-0003 D-M2-03/04)
+    const float effTransportGain = std::clamp(transportRampLevel_, 0.0f, 1.0f);
+
     for (auto& slot : slots_) {
-        float curAmp = slot.currentVoiceOutput();
-        if (slot.stealTail.active) {
-            const float factor = static_cast<float>(slot.stealTail.remainingSamples) /
-                                 static_cast<float>(StealTail::kTailLength);
-            curAmp += slot.stealTail.startAmplitude[0] * factor;
+        float voiceOut = slot.currentVoiceOutput();
+        if (!std::isfinite(voiceOut)) {
+            voiceOut = 0.0f;
+            ++dspAnomalyCount_;
         }
-        if (!std::isfinite(curAmp)) {
-            curAmp = 0.0f;
+        float curL = voiceOut;
+        float curR = voiceOut;
+
+        if (slot.stealTail.active) {
+            const std::uint32_t tailLen = (slot.stealTail.totalSamples > 0)
+                ? slot.stealTail.totalSamples
+                : declickFrames_;
+            const float factor = static_cast<float>(slot.stealTail.remainingSamples) /
+                                 static_cast<float>(tailLen);
+            curL += slot.stealTail.startAmplitude[0] * factor;
+            curR += slot.stealTail.startAmplitude[1] * factor;
+        }
+        curL *= effTransportGain;
+        curR *= effTransportGain;
+
+        if (!std::isfinite(curL)) {
+            curL = 0.0f;
+            ++dspAnomalyCount_;
+        }
+        if (!std::isfinite(curR)) {
+            curR = 0.0f;
             ++dspAnomalyCount_;
         }
 
-        const bool hasTail = (std::abs(curAmp) > 1e-6f);
-        const float tailAmp = curAmp;
+        const bool hasTail = (std::abs(curL) > 1e-6f || std::abs(curR) > 1e-6f);
 
         // Reset slot synthesis state to Idle immediately (Spec §16, ADR-0003)
         slot.state = VoiceState::Idle;
@@ -227,26 +318,28 @@ void VoiceAllocator::onStop() noexcept {
         slot.envelopeLevel = 0.0f;
         slot.releaseStartLevel = 0.0f;
         slot.stageFrame = 0;
+        slot.releaseSamples = declickFrames_;
         slot.phase = 0.0f;
         slot.phaseIncrement = 0.0f;
 
         // Maintain physical tail in preallocated static steal tail
         if (hasTail) {
-            slot.stealTail.startAmplitude[0] = tailAmp;
-            slot.stealTail.startAmplitude[1] = tailAmp;
-            slot.stealTail.remainingSamples = StealTail::kTailLength;
+            slot.stealTail.startAmplitude[0] = curL;
+            slot.stealTail.startAmplitude[1] = curR;
+            slot.stealTail.totalSamples = declickFrames_;
+            slot.stealTail.remainingSamples = declickFrames_;
             slot.stealTail.active = true;
         } else {
-            slot.stealTail.reset();
+            slot.stealTail.reset(declickFrames_);
         }
     }
 
-    // 2. Initiate physical de-click ramp towards silence
-    transportRamp_ = TransportRamp::FadingOut;
-    transportRampRemaining_ = kTransportDeclickFrames;
-    transportRampStep_ = (transportRampLevel_ > 0.0f)
-        ? (transportRampLevel_ / static_cast<float>(kTransportDeclickFrames))
-        : 0.0f;
+    // 2. Restore transport ramp to unity so steal tails decay linearly (1 - k/N)
+    //    and subsequent Start + NoteOn is never muted.
+    transportRamp_ = TransportRamp::None;
+    transportRampLevel_ = 1.0f;
+    transportRampStep_ = 0.0f;
+    transportRampRemaining_ = 0;
 }
 
 std::uint32_t VoiceAllocator::activeVoiceCount() const noexcept {
@@ -270,7 +363,14 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
     }
 
     for (std::uint32_t f = 0; f < frameCount; ++f) {
-        const std::uint64_t sampleLogicalFrame = isTransportPaused ? currentLogicalFrame : (currentLogicalFrame + f);
+        std::uint64_t logicalOffset = f;
+        if (sampleRate_ != 48000 && sampleRate_ > 0) {
+            logicalOffset = core::multiplyDivide(
+                static_cast<std::uint64_t>(f), 48000ULL, static_cast<std::uint64_t>(sampleRate_)).value;
+        }
+        const std::uint64_t sampleLogicalFrame = isTransportPaused
+            ? currentLogicalFrame
+            : core::saturatingAdd(currentLogicalFrame, logicalOffset);
 
         // Check failsafe lifetimes at sample boundary
         if (!isTransportPaused) {
@@ -341,8 +441,11 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
 
             // 2. Steal tail decay (physical tail continues even during pause)
             if (slot.stealTail.active) {
+                const std::uint32_t tailLen = (slot.stealTail.totalSamples > 0)
+                    ? slot.stealTail.totalSamples
+                    : declickFrames_;
                 const float factor = static_cast<float>(slot.stealTail.remainingSamples) /
-                                     static_cast<float>(StealTail::kTailLength);
+                                     static_cast<float>(tailLen);
                 left += slot.stealTail.startAmplitude[0] * factor;
                 right += slot.stealTail.startAmplitude[1] * factor;
 

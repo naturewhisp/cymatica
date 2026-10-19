@@ -135,9 +135,9 @@ La simulazione numerica del segnale con gain staging $0,25\text{f}$ e disaccoppi
 
 ---
 
-## 6. Conclusioni e Azioni
+## 6. Conclusioni e Azioni (Eseguite e Verificate)
 
-L'evidenza scientifica ha confermato l'origine del difetto e validato la soluzione. Il piano di remediation prevede:
-1. Applicazione di `kNominalVoiceScale = 0.25f` in `VoiceAllocator`.
-2. Disaccoppiamento di `ma_waveform` in `AudioEngine`.
-3. Rigenerazione di `artifacts/cacp/voice_probe_v1.wav` e validazione multimodale in prima persona dell'agente.
+L'evidenza scientifica ha confermato l'origine del difetto e validato la soluzione. Tutte le azioni di remediation (unitamente alla bonifica tecnico-scientifica post-Inc-1 `AUD-01..12`) sono state implementate e verificate:
+1. Applicato `kNominalVoiceScale = 0.25f` in `VoiceAllocator`, con rampe di de-click sample-rate adaptive (`declickFrames_ = sampleRate_ / 500u`), singola rampa lineare su `onStop()`, ripristino su `onStart()` e sanitizzazione `NaN`/`Inf` (`dspAnomalyCount`).
+2. Disaccoppiato `ma_waveform` in `AudioEngine` (attivo unicamente con `activeVolume > 1e-6f`) e rimossi tutti i residui monofonici legacy di M2.3.
+3. Rigenerato `artifacts/cacp/voice_probe_v1.wav` tramite `cymatica_game.exe --cacp-run voice_test` (`PASS`, `peak_amplitude = 0.340088`, `clipped_samples = 0`, `voice_steals_detected = 1`, `transport_epoch = 4`), con validazione multimodale in prima persona e 91/91 test CTest verdi in Release/Debug (90/90 Headless).

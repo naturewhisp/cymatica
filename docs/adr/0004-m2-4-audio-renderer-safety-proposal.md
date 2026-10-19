@@ -1,31 +1,41 @@
-# ADR-0004 — Renderer nativo, protezione terminale e loudness (ratifica M2.4)
+# ADR-0004 — Renderer nativo, protezione terminale e loudness (ratifica M2.4 e chiusura Gate pre-Inc-2)
 
-- **Data di ratifica:** 2026-10-15.
-- **Stato:** **accepted for implementation — decisioni architetturali approvate; implementazione NON avviata né validata**.
-- **Owner decisionale:** titolare CYMATICA; approvazione esplicita dopo Grill-me e review indipendente del Decision Record del 2026-10-15.
-- **Baseline documentale verificata:** `32f93250f8d18c080ab165ddb12d2b88499eab42` (`main`, commit *Document M2.4 audio research and safety review*).
+- **Data di ratifica iniziale:** 2026-10-15; **Aggiornamento e chiusura Gate pre-Inc-2:** 2026-10-19.
+- **Stato:** **accepted for implementation — Inc-1 completato e verificato; Gate tecnico pre-Inc-2 chiuso (AUD-D-01, AUD-D-02); Inc-2..Inc-5 da implementare**.
+- **Owner decisionale:** titolare CYMATICA; approvazione esplicita dopo Grill-me, review indipendente del Decision Record del 2026-10-15 e revisione tecnico-scientifica post-Inc-1 del 2026-10-19.
+- **Baseline documentale verificata:** `32f93250f8d18c080ab165ddb12d2b88499eab42` (`main`, commit *Document M2.4 audio research and safety review*); **Remediation Inc-1 e Gate pre-Inc-2:** 2026-10-19 (91/91 test CTest Release/Debug, 90/90 Headless).
 - **Percorso:** il suffisso storico `-proposal.md` è conservato per non invalidare riferimenti già committati; lo **stato nel documento**, non il filename, è autoritativo.
 - **Gerarchia:** Specifica > DESIGN > AGENTS > ADR > piano operativo > ricerca. Questo ADR integra [ADR-0003](0003-m2-decisions-contracts.md) nei punti esplicitati al §6; non altera M1, M2.3, ABI pubbliche o roadmap.
-- **Evidenze:** [review renderer](../research/M2_4_Audio_Renderer_Research_Review.md), [studio safety](../research/M2_4_Audio_Safety_Design.md), [protocollo sperimentale](../research/M2_4_Evaluation_Protocol.md), [piano M2.4](../research/M2_4_Implementation_Plan.md) e Decision Record Grill-me approvato dal titolare. Sono evidenze **documentali**, non benchmark o misure PCM già effettuate.
+- **Evidenze:** [review renderer](../research/M2_4_Audio_Renderer_Research_Review.md), [studio safety](../research/M2_4_Audio_Safety_Design.md), [protocollo sperimentale](../research/M2_4_Evaluation_Protocol.md), [piano M2.4](../research/M2_4_Implementation_Plan.md), [evidenza distorsione/aliasing Inc-1](../research/M2_4_Voice_Distortion_Aliasing_Evidence.md) e Decision Record Grill-me approvato dal titolare. Le evidenze PCM/CACP di Inc-1 (`voice_probe_v1`) sono verificate; l'implementazione di Inc-2..Inc-5 seguirà i contratti qui chiusi.
 
 ## 1. Contesto e perimetro della ratifica
 
-La ricerca comparativa raccomanda un renderer nativo C++20 circoscritto, con eventuale riuso di singole primitive DSP a licenza compatibile e qualificate; **non** un host CLAP/VST3 obbligatorio in M2.4. Il Grill-me ha accettato questa scelta e il principio di protezione terminale sul mix controllato dal gioco, mantenendo differita la scelta dell'algoritmo limiter e dei target numerici. Il monitoring LUFS/true peak è approvato come **architettura progressiva a tre domini**, non come garanzia di conformità acustica.
+La ricerca comparativa raccomanda un renderer nativo C++20 circoscritto, con eventuale riuso di singole primitive DSP a licenza compatibile e qualificate; **non** un host CLAP/VST3 obbligatorio in M2.4. Il Grill-me ha accettato questa scelta e il principio di protezione terminale sul mix controllato dal gioco. Con la revisione tecnico-scientifica del 2026-10-19 (a **Inc-1 concluso**), il **Gate tecnico pre-Inc-2** viene formalmente chiuso specificando la qualifica DSP nativa pura per Inc-2 (§2) e l'algoritmo/topologia del limiter terminale zero-latency (§4). Il monitoring LUFS/true peak resta approvato come **architettura progressiva a tre domini**, non come garanzia di conformità acustica.
 
-Il presente ADR **ratifica AUD-D-01, AUD-D-04, AUD-D-02 a livello di principio e AUD-D-03 a livello architetturale**. Le decisioni dichiarate differite ai §§3–5 sono gate locali del lavoro che ne dipende; non bloccano Inc-1 e non possono essere risolte implicitamente dall'implementatore.
+Il presente ADR **ratifica AUD-D-01, AUD-D-04, AUD-D-02 (inclusa la specifica tecnica pre-Inc-2) e AUD-D-03 a livello architetturale**.
 
-## 2. AUD-D-01 — Renderer nativo e ammissione selettiva di DSP esterno
+## 2. AUD-D-01 — Renderer nativo e qualifica DSP per Inc-2 (Gate pre-Inc-2 CHIUSO)
 
 **Decisione approvata.** In M2.4, generazione audio e voice lifecycle rimangono **nativi C++20**, basati su `VoiceSlot[8]`, due slot per Pulso/Corpo/Trama/Vettore, quattro bus stereo preallocati, `MusicIntentEvent`, clock logico a 48 kHz, SPSC e vincoli di determinismo/realtime di ADR-0003. La pipeline v1 non richiede host plugin, librerie DSP monolitiche, sample bank esterne o file audio da caricare a runtime.
 
-**Inc-1 è limitato al voice allocator/lifecycle nativo, senza codice DSP terzo.** In Inc-2 è **ammesso, ma non richiesto**, importare *singole primitive* open source compatibili (ad esempio oscillatori, filtri o effetti) soltanto dopo una qualifica esplicita, registrata **prima dell'uso**:
+**Inc-1 è completato e verificato** (`VoiceAllocator`, 8 slot statici, voice stealing deterministico Rules 0/1/2, steal tails statiche lineari di $2\text{ ms} = \lfloor 0.002 f_{s,\text{device}} \rfloor$, `voice_probe_v1`).
 
-1. Provenienza, revisione/tag/SHA, licenza effettiva del modulo e dei suoi asset, notices e modalità di incorporazione; registrazione in `docs/dependencies.md` soltanto al momento dell'adozione.
-2. Allocazioni, lock, I/O, logging, inizializzazione e lifecycle: nessuno di questi deve operare in modo non bounded o bloccante nella callback; memoria e stato preallocati.
-3. Assenza di RNG globale implicito; stato casuale locale riproducibile quando necessario; controlli su NaN/Inf, denormali, stabilità filtri e parametri limite.
-4. Build/toolchain Windows e fattibilità Android, benchmark **dell'intera callback** nel profilo D-M2-07 e prova PCM/ascolto a Music Intent costante.
+**Qualifica tecnica DSP per Inc-2 (CHIUSO — 2026-10-19):** Per **Inc-2 ("Sintesi 4 Ruoli & 4 Bus")** è deliberata l'**implementazione C++20 nativa pura autocontenuta** in `engine/audio/` con **zero dipendenze esterne** (`docs/dependencies.md` invariato). Nessun file sorgente esterno da DaisySP o Airwindows viene importato in Inc-2, garantendo determinismo floating-point bit-exact su MSVC `/W4 /fp:precise`, zero overhead di licenza e controllo diretto delle guardie numeriche:
 
-Il progetto principale **DaisySP** è generalmente distribuito con licenza MIT; il repository distinto **DaisySP-LGPL** presenta condizioni proprie. Non attribuire automaticamente obblighi LGPL alla libreria MIT né ritenere qualsiasi modulo esente da audit. Airwindows è un possibile candidato MIT: nessun suo effetto viene approvato o adottato con questo ADR. Un DSP scritto internamente resta una scelta valida quando il riuso non offre un beneficio verificabile.
+1. **Pulso (Sub-kick percussivo + click transiente):**
+   - Oscillatore sinusoidale con sweep esponenziale di frequenza $f_{\text{inst}}[k] = f_{\text{base}} + (f_{\text{start}} - f_{\text{base}}) e^{-k / (\tau_p f_s)}$ ($f_{\text{start}} = \min(3.0 f_{\text{base}}, 180\text{ Hz})$, $\tau_p = 8\text{ ms}$).
+   - Click transiente deterministico ($15\text{ ms}$) generato tramite hash puro stateless `core::staffordMix13(eventId ^ (k * 0x9E3779B97F4A7C15ULL) ^ slotIndex)` filtrato con TPT SVF passa-banda/passa-alto ($f_c \in [1200, 3500]\text{ Hz}$). Nessun accesso a `SeedBank` o stato RNG globale.
+2. **Corpo (Pad / Basso armonico sottrattivo):**
+   - Oscillatore sawtooth/pulse band-limited con **2-point PolyBLEP** analitico alle discontinuità di fase ($dt = f_0 / f_s < 0.45$, attenuazione dell'aliasing $> 40\text{ dB}$).
+   - Filtro **Zavalishin/Simper Trapezoidal Topology-Preserving Transform (TPT) SVF** a 2 poli: pre-warping $g = \tan(\pi f_c / f_s)$ con clamp obbligatorio $f_c \in [20\text{ Hz}, 0.45 f_s]$ ($g \in [0.0013, 6.314]$) e smorzamento $R = 1/(2Q) \in [0.05, 1.0]$ ($Q \in [0.5, 10.0]$), garantendo poli discreti strettamente interni al cerchio unitario ($|z_p| < 1$, incondizionatamente BIBO stabile anche sotto modulazione rapida di cutoff).
+3. **Trama (Arpeggio / Texture FM a 2 operatori + Micro-delay stereo):**
+   - Sintesi FM a 2 operatori con **bound anti-aliasing di Carson**: indice di modulazione $I$ limitato dinamicamente a $I_{\max}(f_c, f_m) = \max\!\left(0.0\text{f}, \frac{0.42 f_s - f_c}{f_m} - 1.0\text{f}\right)$ con cap assoluto $I \le 4.0\text{f}$, prevenendo il ripiegamento (foldback aliasing) oltre Nyquist.
+   - Micro-delay stereo preallocato in `RoleBusProcessor` (`std::array<float, 24000>` per canale, $500\text{ ms}$ max @ 48 kHz; taps nominali $L = 11\text{ ms}$, $R = 17\text{ ms}$; feedback $|g_{\text{fb}}| \le 0.45\text{f}$ per decadimento $RT_{60}$ finito e incondizionatamente stabile).
+4. **Vettore (Lead melodico espressivo):**
+   - Oscillatore 2-point PolyBLEP con portamento esponenziale one-pole ($\tau_{\text{glide}} = 15\text{ ms}$), LFO di vibrato sinusoidale ($5.5\text{ Hz}$, profondità $\pm 0.5\%$ di $f_0$ scalata da `timbreParam`) e filtro TPT SVF low-pass.
+5. **Smoothing e guardie numeriche:**
+   - Smoothing esponenziale one-pole ($\tau_{\text{smooth}} = 5\text{ ms}$) sui parametri continui (`timbreParam`, guadagni di bus) per prevenire zipper noise.
+   - Flush portatile dei subnormali (`std::abs(v) < 1e-20f ? 0.0f : v`) sugli stati integratori del filtro TPT SVF, dell'inviluppo e delle linee di delay per azzerare i picchi di CPU da denormali IEEE 754.
 
 ## 3. AUD-D-04 — Plugin hosting differito e unica autorità temporale
 
@@ -35,22 +45,31 @@ Il progetto principale **DaisySP** è generalmente distribuito con licenza MIT; 
 
 Se in futuro verrà autorizzato uno spike CLAP o VST3, sarà **separato dalla roadmap vincolante M2.4**, con host headless e adapter bounded che *proietta* il transport canonico, gestione esplicita di identità note 64→32 bit, versionamento stato/preset, latenza, lifecycle e test di affidabilità. Il confronto timbrico offline con Surge XT resta un'opzione, senza milestone futura assegnata automaticamente.
 
-## 4. AUD-D-02 — Protezione digitale terminale comune
+## 4. AUD-D-02 — Protezione digitale terminale comune (Gate pre-Inc-2 CHIUSO)
 
-**Principio architetturale approvato e vincolante.** Tutte le sorgenti sonore **sotto il controllo di CYMATICA** confluiscono in uno stadio terminale comune di protezione digitale **sempre attivo e fail-closed** prima della consegna del PCM al backend audio. In M2.4 il requisito riguarda le sorgenti musicali realmente presenti; futuri SFX/UI dovranno essere aggiunti allo stesso percorso quando saranno implementati. La protezione non dipende da CACP, AudioProbe o disponibilità dei loro worker.
+**Principio architetturale e specifica tecnica pre-Inc-2 approvati e vincolanti.** Tutte le sorgenti sonore **sotto il controllo di CYMATICA** confluiscono in uno stadio terminale comune di protezione digitale **sempre attivo, zero-latency ($L = 0$) e fail-closed** prima della consegna del PCM al backend audio. In M2.4 il requisito riguarda le sorgenti musicali realmente presenti; futuri SFX/UI dovranno essere aggiunti allo stesso percorso quando saranno implementati. La protezione non dipende da CACP, AudioProbe o disponibilità dei loro worker.
 
-Invarianti approvati:
+### 4.1 Topologia esatta della catena master (a `impl->sampleRate`, zero SRC post-limiter)
 
-- Finite-value guard contro `NaN`/`Inf`, input/stati invalidi e guadagni fuori specifica, con bonifica o silenziamento deterministico e telemetria bounded.
-- Gain staging conservativo a monte; il limiter **non** sostituisce la gestione della somma di bus e transienti.
-- Processamento bounded per campione e per blocco: nessun heap, lock bloccante, log o I/O nella callback; strutture/lookahead, se approvati, con memoria statica/preallocata e latency dichiarata.
-- Nessuno stadio di CYMATICA a valle della protezione può amplificare o trasformare il segnale **invalidando il ceiling effettivamente qualificato**. La collocazione rispetto a resampling, volume dell'utente, AudioProbe e formato consegnato al device deve essere specificata e verificata.
-- `Pause` conserva il **freeze logico immediato** di D-M2-04 e la de-click tail fisica separata; `Stop` ed `Emergency Mute` mantengono le loro garanzie. Il limiter non può riemettere code sonore oltre i boundary di silenzio prescritti.
-- La protezione, incluso ogni suo eventuale oversampling, deve rientrare nel **budget della callback completa** di D-M2-07 (target Release `≤2,0 ms` per 512 frame a 48 kHz): nessun budget aggiuntivo per il limiter.
+Poiché `AudioEngine::init` inizializza `ma_device` e `VoiceAllocator` direttamente a `impl->sampleRate = impl->device.sampleRate` (es. 48 kHz o 44.1 kHz), **non esiste alcuno stadio di sample-rate conversion (SRC) software a valle di `processBlock`**. L'ordine dei blocchi per ciascun frame nella callback `processBlock` è fissato come segue:
 
-**Gate pre-Inc-2 (decisione tecnica differita, non delega tacita):** prima di implementare il master occorre scegliere e registrare algoritmo (sample-peak, true-peak/lookahead o combinazione), ordine dei processori/pre-post SRC, latenza, comportamento su segnali avversari, ceiling di test e procedura di verifica indipendente. La scelta richiede almeno analisi tecnica, benchmark/prove mirate e approvazione del titolare quando introduce tradeoff normativi; non è necessario un ulteriore Grill-me generale.
+1. **8 Voice Slots** (`VoiceSlot[0..7]`, scala nominale $k_{\text{scale}} = 0.25\text{f}$ per voce, `stealTail` lineari di $\lfloor 0.002 f_s \rfloor$ campioni).
+2. **4 Stereo Role Buses** (`Pulso` $-6.0\text{ dB}$, `Corpo` $-8.0\text{ dB}$ con micro-ducking $-3.0\text{ dB}$ pilotato dall'inviluppo di `Pulso` con $\tau_a = 2\text{ ms}, \tau_r = 120\text{ ms}$, `Trama` $-10.0\text{ dB}$ + micro-delay stereo, `Vettore` $-6.0\text{ dB}$) + estrazione telemetria per-bus (`ChannelFrame`: `energy`, `rms`, `transient`, `pitchHz`, `spectralCentroid`).
+3. **Somma Music Bus + Soft-Clipper opzionale** ($\tanh$, in **bypass di default** in `SynthProfile_v1` per preservare la purezza spettrale).
+4. **Master Finite Guard:** verifica `std::isfinite(L)` e `std::isfinite(R)`; in caso di `NaN`/`Inf`, azzera immediatamente il campione (`0.0f`), pulisce lo stato del limiter e incrementa `dspAnomalyCount`.
+5. **Terminal `MasterLimiter` Zero-Latency ($L = 0$) con rilevamento ibrido True-Peak:**
+   - **Motivazione matematica di $L = 0$ (Zero Latency):** Qualsiasi linea di ritardo lookahead ($L > 0$ campioni) sposterebbe tutti gli onset `NoteOn` sample-accurate di $+L$ campioni (violando i test di precisione al singolo campione di `test_scheduler.cpp`) e farebbe uscire campioni non nulli dal buffer di lookahead dopo il confine tassativo di silenzio $n_{\text{pause}} + N_{\text{tail}}$ (violando ADR-0003 D-M2-04.7 e il requisito che il limiter non riemetta code sonore oltre i boundary di silenzio). Pertanto il percorso diretto del segnale ha latenza **esattamente zero** ($y_{\text{lim}}[n] = g[n] \cdot x[n]$).
+   - **Stima causale di picco intersample (Sidechain):** Combina un banco polifase FIR causale $4\times$ a 12 tap per fase ($p_{\text{FIR}}[n]$) con uno stimatore analitico di curvatura del primo e secondo ordine di Nyquist:
+     $$\widehat{p}_{\text{curv}}[n] = \sqrt{x[n]^2 + 0.55\,(x[n] - x[n-1])^2 + 0.30\,(x[n] - 2x[n-1] + x[n-2])^2}$$
+     $$p_{\text{est}}[n] = \max\!\left(|x_L[n]|, |x_R[n]|, p_{\text{FIR},L}[n], p_{\text{FIR},R}[n], \widehat{p}_{\text{curv},L}[n], \widehat{p}_{\text{curv},R}[n]\right)$$
+     Questo garantisce che anche sul primo campione di uno step improvviso o di una sinusoide a $f_s / 4$ sfasata di $\pi/4$ (che presenta $+3.01\text{ dB}$ di picco intersample e $\widehat{p}_{\text{curv}} \approx 1.304\,|x|$), la riduzione di guadagno scatti istantaneamente al campione $0$ senza lookahead.
+   - **Soglie e balistica:** Soglia interna del limiter $C_{\text{lim}} = -1.50\text{ dBFS}$ ($0.8414\text{f}$), attacco istantaneo ($0\text{ ms}$, $g_{\text{target}}[n] = \min(1.0\text{f}, C_{\text{lim}} / \max(p_{\text{est}}[n], 10^{-12}\text{f}))$), hold di $2\text{ ms}$ ($N_{\text{hold}} = \lfloor 0.002 f_s \rfloor$), rilascio esponenziale one-pole di $50\text{ ms}$ ($\alpha_{\text{rel}} = \exp(-1 / (0.050 f_s))$), seguito da hard safety ceiling $C_{\text{max}} = -1.0\text{ dBFS}$ ($0.89125\text{f}$). Il margine di $0.50\text{ dB}$ tra $C_{\text{lim}}$ e $C_{\text{max}}$ assorbe qualsiasi residuo di ricostruzione D/A mantenendo il True Peak offline $\le -1.0\text{ dBTP}$.
+6. **Physical Transport De-Click Ramp & Silence Gate (`Pause`/`Resume`/`Stop`):** Posizionato **a valle** del `MasterLimiter` ($\lfloor 0.002 f_s \rfloor$ frame: 96 @ 48 kHz, 88 @ 44.1 kHz). Poiché è moltiplicativo in $[0.0, 1.0]$ e monotono, non può mai innalzare il ceiling e garantisce matematicamente silenzio numerico esatto (`0.0f`) a partire dal frame $n_{\text{device, pause}} + N_{\text{tail}}$ senza che il rilascio del limiter possa mai riemettere code sonore.
+7. **User Master Volume ($\alpha_{\text{user}} \in [0.0, 1.0]$, sola attenuazione) & Clamp Finale $[-0.89125\text{f}, +0.89125\text{f}]$:** Consegna finale a `pOutput` e tap `AudioProbe` (che osserva così l'esatto segnale PCM consegnato al device).
 
-Il **soft-clipper** previsto originariamente da D-M2-06 può essere conservato come trattamento timbrico/intermedio **se** qualificato, ma **non** costituisce da solo la protezione terminale nuova. Un clamp sample-peak `[-1,+1]` non dimostra la limitazione dei picchi intersample. Il valore **`−1 dBTP` è un obiettivo di prova iniziale**, non un ceiling normativo già approvato. Non incorporare l'indicazione ambigua `−4`.
+### 4.2 Verifica indipendente offline del True Peak (dBTP) e segnali avversari
+
+In `engine/audio/audio_probe.h/.cpp` viene qualificata per Inc-2 la funzione indipendente `analysis::estimateTruePeakDbtp`, basata sul filtro FIR polifase standard a 48 tap ($4 \times 12$) definito in **ITU-R BS.1770-5 Annex 2, Table 3** (distinto dallo stimatore ibrido causale runtime del limiter), accompagnata da una suite di 6 segnali avversari (`T-ADV-01..06` in `test_synth_dsp.cpp`: coseno 0 dBFS a fase $\pi/2$, tono $f_s/4$ a fase $\pi/4$ con picco intersample $+3.01\text{ dBTP}$, burst multi-ruolo $+12\text{ dBFS}$, iniezione `NaN`/`Inf`, boundary di silenzio `Pause`/`Stop` e stabilità su 10.000 blocchi).
 
 **Limite della garanzia:** CYMATICA controlla il PCM nel proprio dominio; il guadagno OS, l'amplificatore, la sensibilità dei trasduttori e la dose acustica reale non sono controllabili tramite il solo limiter. È vietato dichiarare garantita l'assenza di danno uditivo/hardware.
 
@@ -60,7 +79,7 @@ Il **soft-clipper** previsto originariamente da D-M2-06 può essere conservato c
 
 1. **Callback audio:** finite guard e contatori/peak detection a costo costante **per campione**, trasporto di dati/campioni tramite ring SPSC preallocata e non bloccante quando la diagnostica è attiva. Il lavoro complessivo è bounded rispetto al massimo di frame per callback: non eseguire lì K-weighting, gating LUFS esteso, file export o aggregazioni non bounded.
 2. **Worker diagnostico/CACP:** quando attivato, monitoraggio incrementale Momentary LUFS (400 ms) e Short-term LUFS (3 s), con canali e profili dichiarati. Se `AudioProbe` perde campioni o la cattura è incompleta, le metriche dipendenti da quei dati sono **INCONCLUSIVE**, mai dichiarate `PASS`.
-3. **Analisi offline:** Integrated LUFS **gated** sull'intervallo della run e stima **indipendente** del true peak (dBTP, con algoritmo/metodo e accuratezza documentati); LRA, storia della gain reduction e rolling Integrated gated su finestre effettive di 30 minuti quando richieste da una prova di durata adeguata. Un oversampling 4× fornisce una **stima**, non una misura matematicamente esatta dei picchi ricostruiti.
+3. **Analisi offline:** Integrated LUFS **gated** sull'intervallo della run e stima **indipendente** del true peak (dBTP, tramite FIR 48-tap ITU-R BS.1770-5 Annex 2); LRA, storia della gain reduction e rolling Integrated gated su finestre effettive di 30 minuti quando richieste da una prova di durata adeguata. Un oversampling 4× fornisce una **stima**, non una misura matematicamente esatta dei picchi ricostruiti.
 
 **Profili iniziali sperimentali (non gate normativi):** valutare `−23 LUFS ±2 LU` sull'intera fixture A–B–A′ (~183 s) e `≤−1 dBTP` come punti di partenza, con risultati `MEASURED/INCONCLUSIVE`; **non** certificano il riferimento di ITU-T H.872, definito su **30 minuti**, né l'esposizione acustica in dBA. `−14 LUFS` non è un target di safe listening approvato. Il rapporto fra loudness e output del gioco sarà qualificato quando saranno disponibili mix completo e sessioni idonee, **senza assegnare ora una milestone numerica arbitraria**.
 
@@ -71,36 +90,38 @@ Il **soft-clipper** previsto originariamente da D-M2-06 può essere conservato c
 | Elemento | Effetto della ratifica | Stato |
 |---|---|---|
 | D-M2-02/03, `MusicClock`, scheduler e ABI | Nessun cambiamento | **Preservati** |
-| D-M2-04, otto slot, steal tails, cross-epoch e matrice Pause/Stop | Nessun cambiamento; anche il limiter deve rispettarli | **Preservati** |
-| D-M2-06, punto 2 | Consentire **moduli DSP permissivi selettivi e auditati** incorporati nel renderer C++20; nessun sample asset esterno richiesto | **Emendato esplicitamente** |
-| D-M2-06, punto 4 | Sostituire il requisito che il solo soft-clipper sia la protezione terminale con **master protection comune, bounded e fail-closed**; tecnologia/ceiling prima di Inc-2 | **Emendato esplicitamente** |
-| D-M2-07, punto 1 e analisi master | Benchmark della **catena reale intera** con protezione e acquisizione bounded; stima true peak indipendente | **Precisato**, target `≤2,0 ms` invariato |
-| Inc-1 | Voice Allocator nativo, indipendente da modulo DSP terzo, limiter e LUFS | **Sbloccabile su autorizzazione** |
-| Inc-2 | Qualifica locale di DSP opzionali e **scelta tecnica del limiter prima del codice master** | **Gate tecnico futuro** |
+| D-M2-04, otto slot, steal tails, cross-epoch e matrice Pause/Stop | Nessun cambiamento; anche il limiter zero-latency li rispetta | **Preservati e implementati in Inc-1** |
+| D-M2-06, punto 2 | DSP C++20 nativo puro autocontenuto qualificato per Inc-2 (zero dipendenze esterne; moduli terzi non necessari in Inc-2) | **Emendato e qualificato pre-Inc-2** |
+| D-M2-06, punto 4 | Protezione terminale comune `MasterLimiter` zero-latency ($L=0$), soglia interna $-1.50\text{ dBFS}$, hard ceiling $-1.0\text{ dBFS}$, pre-de-click ramp | **Emendato e qualificato pre-Inc-2** |
+| D-M2-07, punto 1 e analisi master | Benchmark della **catena reale intera** con protezione e acquisizione bounded; stima true peak indipendente ITU-R BS.1770-5 Annex 2 | **Precisato**, target `≤2,0 ms` invariato |
+| Inc-1 | Voice Allocator nativo, 8 slot statici, steal tails 2 ms, `voice_probe_v1` | **COMPLETATO (2026-10-19)** |
+| Gate pre-Inc-2 | Qualifica DSP nativa pura (`AUD-D-01`) e topologia/algoritmo `MasterLimiter` zero-latency (`AUD-D-02`) | **CHIUSO (2026-10-19)** |
+| Inc-2 | Implementazione sintesi 4 ruoli, 4 bus, ducking, `MasterLimiter` e `timbre_bus_probe_v1` | **Pronto per avvio** |
 | Inc-4/Inc-5 | Evidence dossier e analisi esplorativa conformi al protocollo | **Nessun nuovo gate mandatory M2.5** |
-| `docs/dependencies.md` | Nessuna nuova dipendenza effettivamente adottata | **Invariato** |
+| `docs/dependencies.md` | Nessuna nuova dipendenza esterna adottata (DSP Inc-2 100% nativo C++20) | **Invariato** |
 
-Il documento ADR-0003 deve incorporare gli emendamenti ai punti 2 e 4 di D-M2-06 e la precisazione a D-M2-07 in modo che **non rimangano due versioni concorrenti del contratto**. Se una decisione differita cambia ABI, tempi di silenzio, voice budget, profilo numerico o gate mandatory, avviare una revisione normativa circoscritta prima del codice interessato.
+Il documento ADR-0003 incorpora gli emendamenti ai punti 2 e 4 di D-M2-06 e la precisazione a D-M2-07 in modo che **non rimangano due versioni concorrenti del contratto**.
 
 ## 7. Alternative considerate e respinte per M2.4
 
 - **Host plugin CLAP/VST3 primario:** tecnicamente possibile con componenti qualificati, ma non supportato da evidenze sufficienti a giustificarne ora lifecycle, distribuzione, gestione note, crash e portabilità. Nessuna pretesa di impossibilità tecnica universale.
-- **Riscrivere obbligatoriamente ogni oscillatore/filtro/effetto:** non dimostra vantaggio artistico; accettato riuso selettivo qualificato come opzione.
-- **Integrare intere librerie senza audit:** rifiutato per superficie di dipendenza/manutenzione non giustificata; non attribuire automaticamente GPL/LGPL a moduli MIT.
-- **Usare il solo soft-clipper come limiter terminale qualificato:** non sufficiente a dimostrare ceiling true-peak; possibile funzione artistica ma non prova di protezione digitale equivalente.
+- **Limiter con linea di ritardo lookahead ($L > 0$):** respinto per il master realtime di CYMATICA poiché introdurrebbe uno shift di $+L$ campioni sugli onset sample-accurate e violerebbe il boundary di silenzio $n_{\text{pause}} + N_{\text{tail}}$ svuotando il buffer di lookahead durante la pausa; adottato invece `MasterLimiter` zero-latency ($L = 0$) con rilevatore ibrido FIR polifase causale + curvatura di Nyquist e rampa di de-click fisica a valle.
+- **Integrare intere librerie senza audit:** rifiutato per superficie di dipendenza/manutenzione non giustificata; per Inc-2 il DSP C++20 nativo puro autocontenuto soddisfa tutti i requisiti con zero dipendenze esterne.
+- **Usare il solo soft-clipper come limiter terminale qualificato:** non sufficiente a dimostrare ceiling true-peak; mantenuto solo come stadio timbrico opzionale pre-limiter (in bypass di default).
 - **Rendere `−14 LUFS`, `−4` o l'audit rolling di 30 minuti gate M2.4:** non giustificato né verificabile con la sola run di circa tre minuti.
 
 ## 8. Stato operativo e tracciabilità
 
-- **Ratificati dal titolare (2026-10-15):** AUD-D-01, AUD-D-04, AUD-D-02 **come principio**, AUD-D-03 **come architettura e piano di evidenza**.
-- **Non ancora scelti/approvati:** identità di librerie/effetti terzi, algoritmo limiter e posizione nel grafo rispetto al SRC, latency/lookahead, ceiling numerico obbligatorio, durata/tolleranze di gate rolling, conformità H.872.
-- **Non implementati:** limiter nuovo, metriche LUFS, host/plugin e integrazione di DSP terzi. Questo ADR non certifica alcuna misura realtime o PCM.
-- **Sviluppo:** la ratifica **non costituisce autorizzazione all'avvio di Inc-1**, da richiedere separatamente.
+- **Ratificati dal titolare (2026-10-15) e qualificati pre-Inc-2 (2026-10-19):** AUD-D-01 (DSP C++20 nativo puro per Inc-2), AUD-D-04, AUD-D-02 (topologia e algoritmo `MasterLimiter` zero-latency $L=0$ + verifica true-peak ITU-R BS.1770-5 Annex 2 offline), AUD-D-03 (architettura a tre domini e piano di evidenza).
+- **Completati e verificati in codice (2026-10-19):** **Inc-1** (`VoiceAllocator`, 8 slot statici, voice stealing deterministico, steal tails 2 ms adattive al sample rate, `voice_probe_v1`, 91/91 test Release/Debug, 90/90 Headless).
+- **Pronti per implementazione:** **Inc-2** (Sintesi 4 ruoli, 4 bus, micro-ducking, `MasterLimiter`, `timbre_bus_probe_v1`), seguito da Inc-3..Inc-5.
+- **Differiti a milestone successive (M5+):** durata/tolleranze di gate rolling di 30 minuti e certificazione H.872.
 
 ## 9. Fonti tecniche e normative
 
 - [ITU-T H.872 (2024), Safe listening for video gameplay and esports, §9](https://www.itu.int/rec/T-REC-H.872-202410-I/en).
 - [ITU-R BS.1770-5 (2023)](https://www.itu.int/rec/R-REC-BS.1770-5-202311-I); [EBU Tech 3341](https://tech.ebu.ch/publications/tech3341).
 - [WHO/ITU, Global standard for safe listening video gameplay and esports](https://www.who.int/publications/i/item/9789240108028).
+- [Zavalishin, V. (2018), The Art of VA Filter Design (rev. 2.1.0)](https://www.native-instruments.com/fileadmin/ni_media/downloads/pdf/VAFilterDesign_2.1.0.pdf); [Välimäki, V. & Huovilainen, A. (2007), Antialiasing Oscillators in Subtractive Synthesis, IEEE SPM](https://doi.org/10.1109/MSP.2007.323276).
 - [CLAP `events.h`](https://github.com/free-audio/clap/blob/main/include/clap/events.h); [VST3 `ProcessContext`](https://steinbergmedia.github.io/vst3_doc/vstinterfaces/structSteinberg_1_1Vst_1_1ProcessContext.html).
 - [Airwindows](https://github.com/airwindows/airwindows); [DaisySP MIT](https://github.com/electro-smith/DaisySP); [DaisySP-LGPL](https://github.com/daisyaudio/DaisySP-LGPL); [Surge XT](https://github.com/surge-synthesizer/surge).

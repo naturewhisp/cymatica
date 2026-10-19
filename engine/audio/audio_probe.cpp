@@ -116,10 +116,12 @@ float computeRmsDbfs(const float* pSamples, std::size_t sampleCount) noexcept {
     double sumSq = 0.0;
     for (std::size_t i = 0; i < sampleCount; ++i) {
         const double s = pSamples[i];
-        sumSq += s * s;
+        if (std::isfinite(s)) {
+            sumSq += s * s;
+        }
     }
     const double rms = std::sqrt(sumSq / static_cast<double>(sampleCount));
-    if (rms <= 1e-6) return -120.0f;
+    if (!std::isfinite(rms) || rms <= 1e-6) return -120.0f;
     return static_cast<float>(20.0 * std::log10(rms));
 }
 
@@ -234,7 +236,8 @@ bool writeWavStereo16(const std::string& filePath,
     const std::size_t totalSamples = frameCount * numChannels;
     std::vector<std::int16_t> pcm(totalSamples);
     for (std::size_t i = 0; i < totalSamples; ++i) {
-        const float s = std::clamp(pInterleavedSamples[i], -1.0f, 1.0f);
+        const float raw = pInterleavedSamples[i];
+        const float s = std::isfinite(raw) ? std::clamp(raw, -1.0f, 1.0f) : 0.0f;
         pcm[i] = static_cast<std::int16_t>(std::round(s * 32767.0f));
     }
     out.write(reinterpret_cast<const char*>(pcm.data()), pcm.size() * sizeof(std::int16_t));
@@ -244,6 +247,10 @@ bool writeWavStereo16(const std::string& filePath,
 } // namespace analysis
 
 namespace {
+
+float safeJsonFloat(float v) noexcept {
+    return std::isfinite(v) ? v : 0.0f;
+}
 
 std::string escapeJsonString(std::string_view s) {
     std::string out;
@@ -300,9 +307,9 @@ std::string ToneProbeResult::toJson() const {
     ss << "    \"start_ms\": " << phase1Baseline.startMs << ",\n";
     ss << "    \"start_sample_frame\": " << phase1Baseline.startSampleFrame << ",\n";
     ss << "    \"duration_ms\": " << phase1Baseline.durationMs << ",\n";
-    ss << "    \"target_freq_hz\": " << phase1Baseline.targetFreqHz << ",\n";
-    ss << "    \"estimated_freq_hz\": " << phase1Baseline.estimatedFreqHz << ",\n";
-    ss << "    \"rms_dbfs\": " << phase1Baseline.rmsDbfs << ",\n";
+    ss << "    \"target_freq_hz\": " << safeJsonFloat(phase1Baseline.targetFreqHz) << ",\n";
+    ss << "    \"estimated_freq_hz\": " << safeJsonFloat(phase1Baseline.estimatedFreqHz) << ",\n";
+    ss << "    \"rms_dbfs\": " << safeJsonFloat(phase1Baseline.rmsDbfs) << ",\n";
     ss << "    \"freq_passed\": " << (phase1Baseline.freqPassed ? "true" : "false") << ",\n";
     ss << "    \"rms_passed\": " << (phase1Baseline.rmsPassed ? "true" : "false") << ",\n";
     ss << "    \"passed\": " << (phase1Baseline.passed ? "true" : "false") << "\n";
@@ -311,9 +318,9 @@ std::string ToneProbeResult::toJson() const {
     ss << "    \"start_ms\": " << phase2Hold.startMs << ",\n";
     ss << "    \"start_sample_frame\": " << phase2Hold.startSampleFrame << ",\n";
     ss << "    \"duration_ms\": " << phase2Hold.durationMs << ",\n";
-    ss << "    \"target_freq_hz\": " << phase2Hold.targetFreqHz << ",\n";
-    ss << "    \"estimated_freq_hz\": " << phase2Hold.estimatedFreqHz << ",\n";
-    ss << "    \"rms_dbfs\": " << phase2Hold.rmsDbfs << ",\n";
+    ss << "    \"target_freq_hz\": " << safeJsonFloat(phase2Hold.targetFreqHz) << ",\n";
+    ss << "    \"estimated_freq_hz\": " << safeJsonFloat(phase2Hold.estimatedFreqHz) << ",\n";
+    ss << "    \"rms_dbfs\": " << safeJsonFloat(phase2Hold.rmsDbfs) << ",\n";
     ss << "    \"freq_passed\": " << (phase2Hold.freqPassed ? "true" : "false") << ",\n";
     ss << "    \"rms_passed\": " << (phase2Hold.rmsPassed ? "true" : "false") << ",\n";
     ss << "    \"passed\": " << (phase2Hold.passed ? "true" : "false") << "\n";
@@ -322,9 +329,9 @@ std::string ToneProbeResult::toJson() const {
     ss << "    \"start_ms\": " << phase3Release.startMs << ",\n";
     ss << "    \"start_sample_frame\": " << phase3Release.startSampleFrame << ",\n";
     ss << "    \"duration_ms\": " << phase3Release.durationMs << ",\n";
-    ss << "    \"target_freq_hz\": " << phase3Release.targetFreqHz << ",\n";
-    ss << "    \"estimated_freq_hz\": " << phase3Release.estimatedFreqHz << ",\n";
-    ss << "    \"rms_dbfs\": " << phase3Release.rmsDbfs << ",\n";
+    ss << "    \"target_freq_hz\": " << safeJsonFloat(phase3Release.targetFreqHz) << ",\n";
+    ss << "    \"estimated_freq_hz\": " << safeJsonFloat(phase3Release.estimatedFreqHz) << ",\n";
+    ss << "    \"rms_dbfs\": " << safeJsonFloat(phase3Release.rmsDbfs) << ",\n";
     ss << "    \"freq_passed\": " << (phase3Release.freqPassed ? "true" : "false") << ",\n";
     ss << "    \"rms_passed\": " << (phase3Release.rmsPassed ? "true" : "false") << ",\n";
     ss << "    \"passed\": " << (phase3Release.passed ? "true" : "false") << "\n";
@@ -537,13 +544,20 @@ std::string VoiceProbeResult::toJson() const {
     ss << "  \"scenario_id\": \"voice_probe_v1\",\n";
     ss << "  \"build_id\": \"" << escapeJsonString(buildId) << "\",\n";
     ss << "  \"verdict\": \"" << (passed ? "PASS" : "FAIL") << "\",\n";
+    ss << "  \"transport_epoch\": " << transportEpoch << ",\n";
     ss << "  \"simulation_ticks\": " << simulationTicks << ",\n";
     ss << "  \"requested_sample_frames\": " << requestedSampleFrames << ",\n";
     ss << "  \"applied_sample_frames\": " << totalCapturedFrames << ",\n";
+    ss << "  \"presentation_quality\": \"" << escapeJsonString(presentationQuality) << "\",\n";
+    ss << "  \"timing_profile\": {\n";
+    ss << "    \"sample_rate\": 48000,\n";
+    ss << "    \"simulation_hz\": 120,\n";
+    ss << "    \"frames_per_tick\": 400\n";
+    ss << "  },\n";
     ss << "  \"dropped_frames\": " << droppedFrames << ",\n";
     ss << "  \"voice_steals_detected\": " << voiceStealsDetected << ",\n";
     ss << "  \"active_voices_phase_1\": " << activeVoicesPhase1 << ",\n";
-    ss << "  \"peak_amplitude\": " << peakAmplitude << ",\n";
+    ss << "  \"peak_amplitude\": " << safeJsonFloat(peakAmplitude) << ",\n";
     ss << "  \"clipped_samples\": " << clippedSamples << ",\n";
     ss << "  \"checks\": {\n";
     ss << "    \"steal_continuity_passed\": " << (stealContinuityPassed ? "true" : "false") << ",\n";
@@ -652,6 +666,9 @@ VoiceProbeResult runVoiceProbeV1Offline(const std::string& outputDir, bool write
 
     engine.updateTelemetry();
     const std::uint32_t finalVoiceSteals = engine.telemetry().voiceDropCount;
+    const std::uint32_t finalDspAnomalies = engine.telemetry().dspAnomalyCount;
+    result.transportEpoch = engine.telemetry().transportEpoch;
+    result.presentationQuality = "Estimated";
 
     engine.detachAudioProbe();
     engine.shutdown();
@@ -701,12 +718,14 @@ VoiceProbeResult runVoiceProbeV1Offline(const std::string& outputDir, bool write
         }
     }
 
-    // 5. Check DSP anomalies (NaN / Inf)
-    result.dspAnomaliesPassed = true;
-    for (float s : recordedStereo) {
-        if (!std::isfinite(s)) {
-            result.dspAnomaliesPassed = false;
-            break;
+    // 5. Check DSP anomalies (NaN / Inf in output or sanitized in VoiceAllocator)
+    result.dspAnomaliesPassed = (finalDspAnomalies == 0);
+    if (result.dspAnomaliesPassed) {
+        for (float s : recordedStereo) {
+            if (!std::isfinite(s)) {
+                result.dspAnomaliesPassed = false;
+                break;
+            }
         }
     }
 
@@ -747,7 +766,7 @@ VoiceProbeResult runVoiceProbeV1Offline(const std::string& outputDir, bool write
         if (!result.stopSilencePassed) err << "stop was not silent; ";
         if (!result.headroomPassed) err << "headroom violated (peak " << result.peakAmplitude << " > 0.5012); ";
         if (result.clippedSamples > 0) err << "clipped samples: " << result.clippedSamples << "; ";
-        if (!result.dspAnomaliesPassed) err << "non-finite samples detected; ";
+        if (!result.dspAnomaliesPassed) err << "non-finite samples or DSP anomalies detected; ";
         result.failureReason = err.str();
     }
 

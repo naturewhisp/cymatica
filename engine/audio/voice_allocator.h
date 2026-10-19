@@ -19,16 +19,19 @@ enum class VoiceState : std::uint8_t {
 
 // Static steal tail preallocated per slot (ADR-0003, ADR-0004)
 struct StealTail {
-    static constexpr std::uint32_t kTailLength = 96; // 2 ms @ 48 kHz (linear fade-out)
+    static constexpr std::uint32_t kDefaultTailLength = 96; // 2 ms @ 48 kHz (linear fade-out)
+    static constexpr std::uint32_t kTailLength = kDefaultTailLength;
 
     bool active{false};
     float startAmplitude[2]{0.0f, 0.0f}; // L, R
+    std::uint32_t totalSamples{kDefaultTailLength};
     std::uint32_t remainingSamples{0};
 
-    void reset() noexcept {
+    void reset(std::uint32_t tailLen = kDefaultTailLength) noexcept {
         active = false;
         startAmplitude[0] = 0.0f;
         startAmplitude[1] = 0.0f;
+        totalSamples = (tailLen > 0) ? tailLen : kDefaultTailLength;
         remainingSamples = 0;
     }
 };
@@ -73,7 +76,7 @@ struct VoiceSlot {
         return std::sin(phase) * velocity * envelopeLevel * 0.25f;
     }
 
-    void reset() noexcept {
+    void reset(std::uint32_t declickFrames = StealTail::kDefaultTailLength) noexcept {
         state = VoiceState::Idle;
         eventId = 0;
         transportEpoch = 1;
@@ -83,14 +86,15 @@ struct VoiceSlot {
         envelopeLevel = 0.0f;
         releaseStartLevel = 0.0f;
         stageFrame = 0;
+        releaseSamples = (declickFrames > 0) ? declickFrames : StealTail::kDefaultTailLength;
         phase = 0.0f;
         phaseIncrement = 0.0f;
-        stealTail.reset();
+        stealTail.reset(releaseSamples);
     }
 };
 
 // Static 8-voice allocator with deterministic selection order and static steal tails
-// (ADR-0003 D-M2-03, ADR-0004 AUD-D-01)
+// (ADR-0003 D-M2-03, D-M2-04, ADR-0004 AUD-D-01)
 class VoiceAllocator {
 public:
     static constexpr std::size_t kTotalSlots = 8;
@@ -100,12 +104,13 @@ public:
     static constexpr float kNominalVoiceScale = 0.25f;
     // Conservative lease backstop for open pads: 36 bars @ 120 BPM 4/4 (72s = 3,456,000 frames @ 48kHz)
     static constexpr std::uint32_t kMaxLeaseDurationFrames = 3456000;
-    static constexpr std::uint32_t kTransportDeclickFrames = 96; // 2 ms @ 48 kHz
+    static constexpr std::uint32_t kDefaultTransportDeclickFrames = 96; // 2 ms @ 48 kHz
+    static constexpr std::uint32_t kTransportDeclickFrames = kDefaultTransportDeclickFrames;
 
     VoiceAllocator() noexcept;
 
     void init(std::uint32_t sampleRate) noexcept;
-    void reset() noexcept; // Stop: destructive reset of all 8 slots to Idle, bump generationTokens
+    void reset() noexcept; // Destructive reset of all 8 slots to Idle, bump generationTokens
 
     // Event handling (sample-accurate dispatch from AudioScheduler/AudioEngine)
     // Returns slot index allocated/stolen (0..7), or -1 if rejected
@@ -118,9 +123,10 @@ public:
     void checkLifetimes(std::uint64_t currentLogicalFrame) noexcept;
 
     // Transport transitions
+    void onStart() noexcept;   // Restores full physical transport gain for a new run
     void onPause() noexcept;   // Freezes logical timeline; triggers 2 ms physical de-click fade-out
     void onResume() noexcept;  // Smooth 2 ms physical fade-in from frozen logical state
-    void onStop() noexcept;    // Resets all voices to Idle; triggers 2 ms physical fade-out
+    void onStop() noexcept;    // Resets all voices to Idle; captures 2 ms physical fade-out in steal tails
 
     // Renders slice of length `frameCount` into `pOut` (interleaved stereo).
     // If `accumulate` is true, adds to existing buffer; otherwise overwrites.
@@ -136,6 +142,7 @@ public:
     }
 
     // Diagnostics & telemetry counters
+    [[nodiscard]] std::uint32_t declickFrames() const noexcept { return declickFrames_; }
     [[nodiscard]] std::uint32_t activeVoiceCount() const noexcept;
     [[nodiscard]] std::uint32_t voiceDropCount() const noexcept { return voiceDropCount_; }
     [[nodiscard]] std::uint32_t orphanNoteRecoveredCount() const noexcept { return orphanNoteRecoveredCount_; }
@@ -144,6 +151,7 @@ public:
 private:
     std::array<VoiceSlot, kTotalSlots> slots_{};
     std::uint32_t sampleRate_{48000};
+    std::uint32_t declickFrames_{kDefaultTransportDeclickFrames};
     std::uint32_t voiceDropCount_{0};
     std::uint32_t orphanNoteRecoveredCount_{0};
     std::uint32_t dspAnomalyCount_{0};

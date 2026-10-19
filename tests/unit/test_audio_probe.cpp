@@ -9,6 +9,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <vector>
 
 using namespace cymatica::audio;
@@ -274,10 +275,31 @@ TEST_CASE("VoiceProbeResult: toJson produces valid JSON with headroom, zero clip
     REQUIRE_NOTHROW(j = nlohmann::json::parse(jsonStr));
     CHECK(j["scenario_id"] == "voice_probe_v1");
     CHECK(j["verdict"] == "PASS");
+    CHECK(j["transport_epoch"] == 1);
+    CHECK(j["presentation_quality"] == "Estimated");
+    CHECK(j["timing_profile"]["sample_rate"] == 48000);
     CHECK(j["voice_steals_detected"] == 1);
     CHECK(j["clipped_samples"] == 0);
     CHECK(j["checks"]["headroom_passed"] == true);
     CHECK(j["checks"]["zero_clipping_passed"] == true);
+}
+
+TEST_CASE("ToneProbeResult and VoiceProbeResult sanitize non-finite floats to valid RFC 8259 JSON (AUD-08)", "[audio][probe][json][nan]") {
+    ToneProbeResult toneRes{};
+    toneRes.phase1Baseline.estimatedFreqHz = std::numeric_limits<float>::quiet_NaN();
+    toneRes.phase2Hold.rmsDbfs = -std::numeric_limits<float>::infinity();
+
+    nlohmann::json jTone;
+    REQUIRE_NOTHROW(jTone = nlohmann::json::parse(toneRes.toJson()));
+    CHECK(jTone["phase_1_baseline"]["estimated_freq_hz"] == 0.0f);
+    CHECK(jTone["phase_2_hold"]["rms_dbfs"] == 0.0f);
+
+    VoiceProbeResult voiceRes{};
+    voiceRes.peakAmplitude = std::numeric_limits<float>::infinity();
+
+    nlohmann::json jVoice;
+    REQUIRE_NOTHROW(jVoice = nlohmann::json::parse(voiceRes.toJson()));
+    CHECK(jVoice["peak_amplitude"] == 0.0f);
 }
 
 

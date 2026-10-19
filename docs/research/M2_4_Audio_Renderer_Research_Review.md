@@ -1,10 +1,10 @@
 # CYMATICA M2.4 — Review indipendente della Deep Research sull'architettura audio
 
-- **Data:** 2026-10-15.
-- **Stato:** ricerca tecnica revisionata, **non normativa**; nessuna modifica al runtime attestata.
-- **Baseline verificata:** `main` a `090dc2a45cf3785a2055c492415f9151321ea18a` (2026-10-14).
+- **Data:** 2026-10-15 (nota di stato aggiornata 2026-10-19).
+- **Stato:** ricerca tecnica revisionata, **non normativa**; le decisioni architetturali derivate sono state ratificate in [ADR-0004](../adr/0004-m2-4-audio-renderer-safety-proposal.md), **Inc-1 è completato** e il **Gate tecnico pre-Inc-2 (`AUD-D-01`, `AUD-D-02`) è chiuso**.
+- **Baseline verificata all'epoca della review:** `main` a `090dc2a45cf3785a2055c492415f9151321ea18a` (2026-10-14).
 - **Input:** rapporto fornito dal titolare, *CYMATICA — Deep Research conclusiva sull'architettura audio M2.4*; addendum antecedente su transport/sidechain, entrambi revisionati criticamente. I marcatori `turn...search...` o `filecite` della sessione originale **non sono citazioni trasferibili al repository**; qui sono sostituiti da collegamenti pubblici e durevoli.
-- **Autorità:** [Specifica](../../CYMATICA_Specifica_Agentica_Sviluppo.md) > [DESIGN](../../DESIGN.md) > [AGENTS](../../AGENTS.md) > [ADR-0003](../adr/0003-m2-decisions-contracts.md) e [ADR-0004 ratificato](../adr/0004-m2-4-audio-renderer-safety-proposal.md) > [piano operativo](../progress.md) > ricerca. La review qui conserva lo stato storico delle **evidenze**, non annulla la ratifica architetturale del 2026-10-15.
+- **Autorità:** [Specifica](../../CYMATICA_Specifica_Agentica_Sviluppo.md) > [DESIGN](../../DESIGN.md) > [AGENTS](../../AGENTS.md) > [ADR-0003](../adr/0003-m2-decisions-contracts.md) e [ADR-0004 ratificato](../adr/0004-m2-4-audio-renderer-safety-proposal.md) > [piano operativo](../progress.md) > ricerca. La review qui conserva lo stato storico delle **evidenze**, non annulla la ratifica architetturale del 2026-10-15 né la chiusura del Gate pre-Inc-2 del 2026-10-19.
 
 ## 1. Esito della review
 
@@ -12,7 +12,7 @@
 
 Un host CLAP/VST3 **non è necessario come dipendenza del runtime M2.4**. L'eventuale valutazione di Surge XT come riferimento artistico e di un piccolo host CLAP offline può rimanere esperimento successivo e indipendente, previa autorizzazione. Il valore proprietario di CYMATICA risiede nel motore di composizione e nella sua relazione con gameplay, geometria e tempo, non nell'obbligo di riscrivere ogni oscillatore o filtro.
 
-**Decisione ancora richiesta al titolare:** se accettare formalmente (a) la preferenza per riuso DSP selettivo, (b) una protezione terminale digitale più forte del soft-clipper corrente e (c) la roadmap del monitoraggio LUFS/true peak. La ricerca non modifica automaticamente D-M2-06/D-M2-07 o i gate di M2.5.
+**Stato della decisione del titolare (aggiornamento 2026-10-19):** il titolare ha ratificato in [ADR-0004](../adr/0004-m2-4-audio-renderer-safety-proposal.md) (a) il renderer nativo C++20 con qualifica DSP pura autocontenuta senza dipendenze esterne per Inc-2 (`AUD-D-01`), (b) la protezione digitale terminale comune fail-closed con `MasterLimiter` zero-latency ($L = 0$) e verifica true-peak offline ITU-R BS.1770-5 a 48 tap (`AUD-D-02`), e (c) la separazione in tre domini del monitoraggio LUFS/true peak (`AUD-D-03`).
 
 ## 2. Verifiche indipendenti delle principali affermazioni
 

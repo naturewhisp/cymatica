@@ -64,42 +64,13 @@ struct AudioEngine::Impl {
     // VoiceAllocator (ADR-0003 D-M2-03, Inc-1)
     VoiceAllocator voiceAllocator{};
 
-    // Voice lifecycle & micro-fadeout (DIF-M2-R4-01, ADR-0003 D-M2-03)
-    bool activeNotePlaying_{false};
-    std::uint64_t activeNoteEpoch_{0};
-    std::uint64_t lastEpochTransitionFrame_{0};
-    static constexpr std::uint32_t kVoiceFadeFrames = 96; // 2 ms micro-fadeout at 48 kHz
-    std::uint32_t voiceFadeRemaining_{0};
-    float voiceFadeAmp_{0.0f};
-
     void renderWaveformSlice(float* pOut, std::uint32_t offset, std::uint32_t count, std::uint64_t logicalFrame) noexcept {
         if (pOut == nullptr || count == 0) return;
         float* dest = pOut + (static_cast<std::size_t>(offset) * channels);
 
-        if (activeVolume > 1e-6f || activeNotePlaying_) {
+        if (activeVolume > 1e-6f) {
             ma_waveform_read_pcm_frames(&waveform, dest, count, nullptr);
-            if (voiceFadeRemaining_ > 0) {
-                const std::uint32_t rampFrames = (std::min)(count, voiceFadeRemaining_);
-                for (std::uint32_t i = 0; i < rampFrames; ++i) {
-                    const float factor = static_cast<float>(voiceFadeRemaining_ - i) / static_cast<float>(kVoiceFadeFrames);
-                    for (std::uint32_t c = 0; c < channels; ++c) {
-                        dest[static_cast<std::size_t>(i) * channels + c] *= factor;
-                    }
-                }
-                voiceFadeRemaining_ -= rampFrames;
-                if (voiceFadeRemaining_ == 0) {
-                    ma_waveform_set_amplitude(&waveform, 0.0f);
-                    voiceFadeAmp_ = 0.0f;
-                }
-                if (rampFrames < count) {
-                    const std::size_t zeroStart = static_cast<std::size_t>(rampFrames) * channels;
-                    const std::size_t zeroCount = static_cast<std::size_t>(count - rampFrames) * channels;
-                    for (std::size_t s = 0; s < zeroCount; ++s) {
-                        dest[zeroStart + s] = 0.0f;
-                    }
-                }
-            }
-            // Mix polyphonic voices from VoiceAllocator on top of test tone
+            // Mix polyphonic voices from VoiceAllocator on top of continuous diagnostic tone
             voiceAllocator.renderBlock(dest, count, logicalFrame, (transportState == TransportState::Paused), true);
         } else {
             // Pure polyphonic synthesis without background test tone (zero-out destination then render)
@@ -108,28 +79,7 @@ struct AudioEngine::Impl {
     }
 
     void triggerNoteOff() noexcept {
-        if (activeNotePlaying_ || voiceFadeAmp_ > 0.0f) {
-            activeNotePlaying_ = false;
-            activeNoteEpoch_ = 0;
-            voiceFadeRemaining_ = kVoiceFadeFrames;
-        } else {
-            ma_waveform_set_amplitude(&waveform, 0.0f);
-            voiceFadeRemaining_ = 0;
-            voiceFadeAmp_ = 0.0f;
-        }
-    }
-
-    void triggerNoteOn(const ScheduledAudioEvent& evt, float masterVol) noexcept {
-        if (masterVol <= 1e-6f) {
-            // No continuous diagnostic tone active: ScheduledAudioEvent is handled exclusively by VoiceAllocator.
-            return;
-        }
-        voiceFadeRemaining_ = 0;
-        voiceFadeAmp_ = evt.valueB * masterVol;
-        activeNotePlaying_ = true;
-        activeNoteEpoch_ = evt.transportEpoch;
-        ma_waveform_set_frequency(&waveform, evt.valueA);
-        ma_waveform_set_amplitude(&waveform, voiceFadeAmp_);
+        ma_waveform_set_amplitude(&waveform, 0.0f);
     }
 
     bool stagePendingCommand(const AudioCommand& cmd) noexcept {
@@ -159,6 +109,7 @@ struct AudioEngine::Impl {
                     isValidTransportTransition(transportState, TransportState::Running)) {
                     activeVolume = cmd.paramF32;
                     ma_waveform_set_amplitude(&waveform, activeVolume);
+                    voiceAllocator.onStart();
                     transportState = TransportState::Running;
                 } else {
                     status = AudioCommandStatus::Rejected;
@@ -171,7 +122,6 @@ struct AudioEngine::Impl {
                     triggerNoteOff();
                     transportState = TransportState::Paused;
                     ++transportEpoch;
-                    lastEpochTransitionFrame_ = effectiveFrame;
                 } else {
                     status = AudioCommandStatus::Rejected;
                 }
@@ -183,7 +133,6 @@ struct AudioEngine::Impl {
                     ma_waveform_set_amplitude(&waveform, activeVolume);
                     transportState = TransportState::Running;
                     ++transportEpoch;
-                    lastEpochTransitionFrame_ = effectiveFrame;
                 } else {
                     status = AudioCommandStatus::Rejected;
                 }
@@ -195,7 +144,6 @@ struct AudioEngine::Impl {
                     transportState = TransportState::Stopped;
                     ++transportEpoch;
                     minValidEpoch_ = transportEpoch;
-                    lastEpochTransitionFrame_ = effectiveFrame;
                     // Reject any remaining staged future commands upon transport stop
                     for (std::size_t j = 0; j < pendingScheduledCount_; ++j) {
                         if (!ackQueue.tryPush(AudioCommandAck{
@@ -228,7 +176,6 @@ struct AudioEngine::Impl {
                     effectiveFrame = cmd.targetSampleFrame;
                     if (musicClock.setTempoMap(newMap, effectiveFrame)) {
                         ++transportEpoch;
-                        lastEpochTransitionFrame_ = effectiveFrame;
                         status = AudioCommandStatus::Applied;
                     } else {
                         status = AudioCommandStatus::Rejected;
@@ -346,6 +293,14 @@ struct AudioEngine::Impl {
         }
 
         if (transportState == TransportState::Paused || transportState == TransportState::Stopped) {
+            if (transportState == TransportState::Stopped) {
+                // Bounded drain of any residual or newly arrived events while Stopped (ADR-0003 D-M2-04)
+                ScheduledAudioEvent discardedEvt{};
+                for (std::uint32_t i = 0; i < AudioEngine::kMaxScheduledEventsPerBlock && scheduledEventQueue.tryPop(discardedEvt); ++i) {
+                    droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+                    totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+                }
+            }
             if (pOutput != nullptr && frameCount > 0) {
                 for (std::size_t i = 0; i < static_cast<std::size_t>(frameCount) * channels; ++i) {
                     pOutput[i] = 0.0f;
@@ -359,34 +314,37 @@ struct AudioEngine::Impl {
             // (Spec §7.5, ADR-0003 D-M2-03, DIF-M2-R3-02, DIF-M2-R3-05, DIF-M2-R4-01, DIF-M2-R4-02)
             std::uint32_t currentDevOffset = 0;
             std::uint32_t eventsExaminedInBlock = 0;
+            const std::uint32_t maxInBlockDevOffset = (frameCount > 0) ? (frameCount - 1) : 0;
+
+            auto logicalFrameEndAtDevOffset = [&](std::uint32_t devOffset, std::uint64_t baseLogicalFrame) noexcept -> std::uint64_t {
+                if (sampleRate == musicClock.internalSampleRate()) {
+                    return baseLogicalFrame;
+                }
+                const std::uint64_t nextDevLogical =
+                    musicClock.deviceToInternalFrames(deviceFramesRendered + devOffset + 1, sampleRate);
+                return (nextDevLogical > baseLogicalFrame + 1) ? (nextDevLogical - 1) : baseLogicalFrame;
+            };
 
             while (currentDevOffset < frameCount) {
                 const std::uint64_t currentLogicalFrame = (sampleRate == musicClock.internalSampleRate())
                     ? (blockStartFrame + currentDevOffset)
                     : musicClock.deviceToInternalFrames(deviceFramesRendered + currentDevOffset, sampleRate);
-
-                // Monophonic test-tone safeguard (DIF-M2-R4-01): auto-release orphaned voice from past epoch
-                // if no NoteOff arrived within 1s.
-                // NOTE [M2.4 / M2.5 Handoff]: To be superseded in M2.4 by the 8-voice polyphonic synthesizer
-                // (ADR-0003 D-M2-03), where sustained notes (e.g. Corpo pads) maintain their ADSR sustain
-                // stage across epochs, and orphan detection is governed by per-voice envelope lifetimes.
-                if (activeNotePlaying_ && activeNoteEpoch_ < transportEpoch &&
-                    currentLogicalFrame > lastEpochTransitionFrame_ + 48000) {
-                    triggerNoteOff();
-                }
+                const std::uint64_t currentLogicalFrameEnd =
+                    logicalFrameEndAtDevOffset(currentDevOffset, currentLogicalFrame);
 
                 // Check next matured command in this block
                 bool hasCmd = (pendingScheduledCount_ > 0 && pendingScheduledCommands_[0].targetSampleFrame < blockEndFrame);
                 std::uint32_t targetCmdDevOffset = frameCount;
                 if (hasCmd) {
                     const std::uint64_t cmdFrame = pendingScheduledCommands_[0].targetSampleFrame;
-                    if (cmdFrame <= currentLogicalFrame) {
+                    if (cmdFrame <= currentLogicalFrameEnd) {
                         targetCmdDevOffset = currentDevOffset;
                     } else {
                         const std::uint64_t devF = musicClock.internalToDeviceFrames(cmdFrame, sampleRate);
                         if (devF > deviceFramesRendered) {
                             const std::uint64_t off = devF - deviceFramesRendered;
-                            targetCmdDevOffset = static_cast<std::uint32_t>(std::min<std::uint64_t>(off, frameCount));
+                            targetCmdDevOffset = static_cast<std::uint32_t>(
+                                std::min<std::uint64_t>(off, maxInBlockDevOffset));
                         } else {
                             targetCmdDevOffset = currentDevOffset;
                         }
@@ -421,7 +379,7 @@ struct AudioEngine::Impl {
 
                     // 2. Future epoch event with target sampleFrame in past (unmatchable) (DIF-M2-R3-05)
                     if (schedEvt.transportEpoch > transportEpoch &&
-                        schedEvt.sampleFrame <= currentLogicalFrame &&
+                        schedEvt.sampleFrame <= currentLogicalFrameEnd &&
                         (!hasCmd || pendingScheduledCommands_[0].targetSampleFrame > schedEvt.sampleFrame)) {
                         (void)scheduledEventQueue.tryPop(schedEvt);
                         droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
@@ -433,13 +391,14 @@ struct AudioEngine::Impl {
                     // 3. Committed event (current epoch or preserved cross-epoch per D-M2-04):
                     if (schedEvt.sampleFrame < blockEndFrame) {
                         hasEvt = true;
-                        if (schedEvt.sampleFrame <= currentLogicalFrame) {
+                        if (schedEvt.sampleFrame <= currentLogicalFrameEnd) {
                             targetEvtDevOffset = currentDevOffset;
                         } else {
                             const std::uint64_t devF = musicClock.internalToDeviceFrames(schedEvt.sampleFrame, sampleRate);
                             if (devF > deviceFramesRendered) {
                                 const std::uint64_t off = devF - deviceFramesRendered;
-                                targetEvtDevOffset = static_cast<std::uint32_t>(std::min<std::uint64_t>(off, frameCount));
+                                targetEvtDevOffset = static_cast<std::uint32_t>(
+                                    std::min<std::uint64_t>(off, maxInBlockDevOffset));
                             } else {
                                 targetEvtDevOffset = currentDevOffset;
                             }
@@ -462,9 +421,11 @@ struct AudioEngine::Impl {
                     const std::uint64_t nowLogicalFrame = (sampleRate == musicClock.internalSampleRate())
                         ? (blockStartFrame + currentDevOffset)
                         : musicClock.deviceToInternalFrames(deviceFramesRendered + currentDevOffset, sampleRate);
+                    const std::uint64_t nowLogicalFrameEnd =
+                        logicalFrameEndAtDevOffset(currentDevOffset, nowLogicalFrame);
 
                     // Execute ALL commands that mature at or before current offset (handles Pause + Resume in same tick!)
-                    while (pendingScheduledCount_ > 0 && pendingScheduledCommands_[0].targetSampleFrame <= nowLogicalFrame) {
+                    while (pendingScheduledCount_ > 0 && pendingScheduledCommands_[0].targetSampleFrame <= nowLogicalFrameEnd) {
                         AudioCommand cmd = pendingScheduledCommands_[0];
                         for (std::size_t j = 0; j + 1 < pendingScheduledCount_; ++j) {
                             pendingScheduledCommands_[j] = pendingScheduledCommands_[j + 1];
@@ -508,6 +469,8 @@ struct AudioEngine::Impl {
                     const std::uint64_t nowLogicalFrame = (sampleRate == musicClock.internalSampleRate())
                         ? (blockStartFrame + currentDevOffset)
                         : musicClock.deviceToInternalFrames(deviceFramesRendered + currentDevOffset, sampleRate);
+                    const std::uint64_t nowLogicalFrameEnd =
+                        logicalFrameEndAtDevOffset(currentDevOffset, nowLogicalFrame);
 
                     if (scheduledEventQueue.peek(schedEvt)) {
                         if (eventsExaminedInBlock >= AudioEngine::kMaxScheduledEventsPerBlock) {
@@ -520,7 +483,7 @@ struct AudioEngine::Impl {
                             if (schedEvt.sampleFrame < blockStartFrame || schedEvt.transportEpoch < minValidEpoch_) {
                                 droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
                             } else if (schedEvt.transportEpoch > transportEpoch &&
-                                       schedEvt.sampleFrame <= nowLogicalFrame &&
+                                       schedEvt.sampleFrame <= nowLogicalFrameEnd &&
                                        (!hasCmd || pendingScheduledCommands_[0].targetSampleFrame > schedEvt.sampleFrame)) {
                                 droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
                             } else {
@@ -535,9 +498,8 @@ struct AudioEngine::Impl {
                                         if (schedEvt.valueA > 0.0f) {
                                             ma_waveform_set_frequency(&waveform, schedEvt.valueA);
                                         }
-                                        if (schedEvt.valueB >= 0.0f) {
-                                            voiceFadeAmp_ = schedEvt.valueB * (activeVolume > 0.0f ? activeVolume : 0.25f);
-                                            ma_waveform_set_amplitude(&waveform, voiceFadeAmp_);
+                                        if (schedEvt.valueB >= 0.0f && activeVolume > 1e-6f) {
+                                            ma_waveform_set_amplitude(&waveform, schedEvt.valueB * activeVolume);
                                         }
                                         break;
                                 }

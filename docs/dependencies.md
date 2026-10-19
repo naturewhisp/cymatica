@@ -1,7 +1,7 @@
 # CYMATICA — Inventario dipendenze
 
 Documento normativo richiesto da `CYMATICA_Specifica_Agentica_Sviluppo.md` §28.5 e `AGENTS.md` §2.
-Ultimo aggiornamento: 2026-10-06 (Milestone 1).
+Ultimo aggiornamento: 2026-10-19 (Milestone 2 — M2.4 Inc-1 completato e Gate pre-Inc-2 chiuso: zero nuove dipendenze esterne).
 
 ## Riepilogo dipendenze attive
 
@@ -66,8 +66,9 @@ Ultimo aggiornamento: 2026-10-06 (Milestone 1).
 
 ---
 
-## Dipendenze future esplicitamente escluse in M1
-Come da `AGENTS.md` §2 e Spec §19.4:
+## Dipendenze future esplicitamente escluse in M1 e M2.4
+Come da `AGENTS.md` §2, Spec §19.4 e `ADR-0004` (`AUD-D-01`, `AUD-D-04`):
 - Nessun runtime ONNX, FFmpeg o modelli ML.
 - Nessun motore fisico esterno.
-- Nessun parser JSON artigianale (scelta deliberata in M1: nlohmann/json).
+- Nessun parser JSON artigianale (scelta deliberata in M1: `nlohmann/json`).
+- Nessun host plugin audio obbligatorio (CLAP/VST3/Surge XT) e nessuna libreria DSP esterna (DaisySP/Airwindows) per Inc-1 e Inc-2: la sintesi dei 4 ruoli e il `MasterLimiter` zero-latency in Inc-2 utilizzano C++20 nativo puro autocontenuto in `engine/audio/`.

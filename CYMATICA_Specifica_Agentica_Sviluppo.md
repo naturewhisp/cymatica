@@ -1705,7 +1705,7 @@ Strudel e Tidal sono utili per studiare pattern ciclici, mini-notation, trasform
 
 ### 16.12 Approfondimento compositivo M2.4 (guida di ricerca; contratti invariati)
 
-La ricerca specialistica del 2026-10-13 approfondisce la baseline di §16 e `DESIGN.md` §8/16, senza sostituirla. Documenti di riferimento: [studio revisionato](docs/research/M2_4_Deep_Research_Reviewed.md), [revisione critica](docs/research/M2_4_Research_Review.md), [piano M2.4](docs/research/M2_4_Implementation_Plan.md) e [protocollo sperimentale](docs/research/M2_4_Evaluation_Protocol.md). Questi documenti hanno stato **consultivo/proposto**: i contratti vigenti restano nella presente specifica, in `DESIGN.md` e in [ADR-0003](docs/adr/0003-m2-decisions-contracts.md).
+La ricerca specialistica del 2026-10-13..15 approfondisce la baseline di §16 e `DESIGN.md` §8/16, senza sostituirla. Documenti di riferimento: [studio revisionato](docs/research/M2_4_Deep_Research_Reviewed.md), [revisione critica](docs/research/M2_4_Research_Review.md), [review renderer audio](docs/research/M2_4_Audio_Renderer_Research_Review.md), [studio safe listening](docs/research/M2_4_Audio_Safety_Design.md), [piano M2.4](docs/research/M2_4_Implementation_Plan.md) e [protocollo sperimentale](docs/research/M2_4_Evaluation_Protocol.md). Questi documenti di ricerca hanno stato **consultivo/proposto**: i contratti vigenti restano nella presente specifica, in `DESIGN.md`, in [ADR-0003](docs/adr/0003-m2-decisions-contracts.md) e in [ADR-0004](docs/adr/0004-m2-4-audio-renderer-safety-proposal.md).
 
 Per l'implementazione della musica procedurale v1, valutare in ordine crescente di complessità:
 
@@ -3631,9 +3631,9 @@ Nessuna scelta definitiva prima di M9–M10.
 Le seguenti decisioni non bloccano M0, ma vanno risolte prima della milestone indicata.
 
 1. ~~Quale test framework C++ adottare? — M0.~~ Risolta: Catch2 v3, ADR-0001.
-2. Quale parser/schema JSON adottare? — M0/M1.
-3. Confermare il profilo 120 Hz iniziale e i criteri di compatibilità per eventuali profili 60 Hz. — M1; rivalidazione M5.
-4. Quale algoritmo stable random interno usare? — M1.
+2. ~~Quale parser/schema JSON adottare? — M0/M1.~~ Risolta: `nlohmann/json` v3.11.3, ADR-0002 (D-M0-05 / D-M1-04).
+3. Confermare il profilo 120 Hz iniziale e i criteri di compatibilità per eventuali profili 60 Hz. — M1 (120 Hz validato in ADR-0002 D-M1-01); rivalidazione M5.
+4. ~~Quale algoritmo stable random interno usare? — M1.~~ Risolta: Stafford Mix 13 (SplitMix64 finalizer, `rng_version=1`), ADR-0002 (D-M1-02).
 5. Quanto deve durare il commit horizon per BPM estremi? — M3/M4.
 6. Quale discretizzazione reachability offre il miglior compromesso? — M4.
 7. Congelare regola del dash, disponibilità e obbligatorietà per preset. — prima della giocabilità M3 e della validazione M4; tuning M5.
