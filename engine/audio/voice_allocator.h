@@ -1,7 +1,6 @@
 #pragma once
 
 #include "audio_telemetry.h"
-#include "master_limiter.h"
 #include "music_intent.h"
 #include "role_bus_processor.h"
 #include "synth_dsp.h"
@@ -27,12 +26,16 @@ struct StealTail {
     static constexpr std::uint32_t kTailLength = kDefaultTailLength;
 
     bool active{false};
-    float startAmplitude[2]{0.0f, 0.0f}; // L, R
+    // Tail samples are fed into the role bus input (pre bus gain, ducking, Trama dry/wet), so the start level
+    // matches the voice's actual post-bus contribution. Transport-stop tails never feed the Trama echo line.
+    bool feedsDelay{true};
+    float startAmplitude[2]{0.0f, 0.0f}; // L, R (pre-bus voice output)
     std::uint32_t totalSamples{kDefaultTailLength};
     std::uint32_t remainingSamples{0};
 
     void reset(std::uint32_t tailLen = kDefaultTailLength) noexcept {
         active = false;
+        feedsDelay = true;
         startAmplitude[0] = 0.0f;
         startAmplitude[1] = 0.0f;
         totalSamples = (tailLen > 0) ? tailLen : kDefaultTailLength;
@@ -83,7 +86,7 @@ struct VoiceSlot {
     float pitchSweepEnv{1.0f};
     std::uint32_t noteFrameIndex{0};
 
-    float lastOutput[2]{0.0f, 0.0f};
+    float lastOutput[2]{0.0f, 0.0f}; // Last pre-bus voice output (bus input domain), L/R
 
     // Dedicated static steal tail (1 per slot, 8 total)
     StealTail stealTail{};
@@ -166,8 +169,11 @@ public:
     void onResume() noexcept;  // Smooth 2 ms physical fade-in from frozen logical state
     void onStop() noexcept;    // Resets all voices to Idle; captures 2 ms physical fade-out in steal tails
 
-    // Renders slice of length `frameCount` into `pOut` (interleaved stereo).
+    // Renders slice of length `frameCount` into `pOut` (interleaved stereo), upstream of the single terminal
+    // MasterLimiter owned by AudioEngine (no limiting happens here).
     // If `accumulate` is true, adds to existing buffer; otherwise overwrites.
+    // While paused, once the 2 ms de-click ramp has finished and no steal/delay tail is active, the slice is
+    // silent and no DSP state (oscillators, filters, delay, ducking, smoothers) is touched.
     void renderBlock(float* pOut, std::uint32_t frameCount, std::uint64_t currentLogicalFrame,
                      bool isTransportPaused, bool accumulate = false) noexcept;
 
@@ -179,12 +185,16 @@ public:
         return static_cast<std::size_t>(role) * kSlotsPerRole;
     }
 
-    // Role bus & master limiter accessors (Inc-2)
+    // Role bus accessors (Inc-2)
     [[nodiscard]] const RoleBusProcessor& roleBusProcessor() const noexcept { return roleBusProcessor_; }
     [[nodiscard]] RoleBusProcessor& roleBusProcessor() noexcept { return roleBusProcessor_; }
-    [[nodiscard]] const MasterLimiter& masterLimiter() const noexcept { return masterLimiter_; }
-    [[nodiscard]] MasterLimiter& masterLimiter() noexcept { return masterLimiter_; }
     [[nodiscard]] const AudioTelemetryFrame& latestTelemetry() const noexcept { return latestTelemetry_; }
+
+    // Per-callback telemetry window: AudioEngine opens one window per processBlock so the role telemetry
+    // accumulates across every slice rendered in that callback. Without an open window each renderBlock call
+    // is its own window (standalone use).
+    void beginTelemetryWindow() noexcept;
+    void endTelemetryWindow() noexcept { telemetryWindowExternal_ = false; }
 
     // Diagnostics & telemetry counters
     [[nodiscard]] std::uint32_t declickFrames() const noexcept { return declickFrames_; }
@@ -201,10 +211,16 @@ private:
     std::uint32_t orphanNoteRecoveredCount_{0};
     std::uint32_t dspAnomalyCount_{0};
 
-    // Inc-2 Role buses, Master Limiter, and Telemetry
+    // Inc-2 Role buses and Telemetry
     RoleBusProcessor roleBusProcessor_{};
-    MasterLimiter masterLimiter_{};
     AudioTelemetryFrame latestTelemetry_{};
+    bool telemetryWindowExternal_{false};
+
+    // Role synthesis constants derived from the sample rate (ADR-0004 §2.1, §2.4)
+    float pulsoSweepMul_{1.0f};          // exp(-1 / (tau_p * fs)), tau_p = 8 ms
+    std::uint32_t pulsoClickFrames_{720}; // floor(0.015 * fs)
+    float vettoreVibratoInc_{0.0f};      // 2*pi*5.5 / fs
+    float lastVettorePitchHz_{0.0f};     // Previous Vettore pitch of the run (0 = first note: no glide)
 
     // Preallocated block mixing buffer (max 1024 frames = 21.3 ms)
     static constexpr std::size_t kMaxBlockFrames = 1024;
@@ -223,6 +239,7 @@ private:
 
     // Voice selection rules (0, 1, 2)
     [[nodiscard]] int selectSlotForRole(MusicRole role) noexcept;
+    [[nodiscard]] bool anyStealTailActive() const noexcept;
 };
 
 } // namespace cymatica::audio

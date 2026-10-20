@@ -2,6 +2,7 @@
 
 #include "audio_control.h"
 #include "audio_telemetry.h"
+#include "master_limiter.h"
 #include "music_intent.h"
 #include "realtime_exchange.h"
 #include "voice_allocator.h"
@@ -69,7 +70,8 @@ public:
     [[nodiscard]] std::uint64_t deferredScheduledEvents() const noexcept;
 
     // AudioProbe tap API (Spec §31.5, ADR-0003 D-AO-02)
-    void attachAudioProbe(AudioProbe* probe) noexcept;
+    // Returns false (probe not attached) when the probe channel count differs from the engine (stereo).
+    bool attachAudioProbe(AudioProbe* probe) noexcept;
     void detachAudioProbe() noexcept;
     [[nodiscard]] AudioProbe* audioProbe() const noexcept;
 

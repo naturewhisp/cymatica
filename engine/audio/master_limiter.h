@@ -7,12 +7,18 @@
 
 namespace cymatica::audio {
 
-// Common terminal digital protection stage: always active, fail-closed,
-// zero latency (L = 0) at device sample rate, verified by independent ITU-R BS.1770-5 true-peak meter.
-// (ADR-0004 AUD-D-02, ADR-0003 D-M2-06, Spec §20.2)
+// Common terminal digital protection stage: always active, fail-closed, zero latency (L = 0) at device
+// sample rate. Exactly one instance exists, owned by AudioEngine and applied to the final pOutput sum
+// (voices + diagnostic tone) before the AudioProbe tap. (ADR-0004 AUD-D-02, ADR-0003 D-M2-06, Spec §20.2)
+//
+// Guarantee scope: the final hard clamp bounds every *sample* peak to <= kHardCeilingLinear (-1.0 dBFS).
+// The inter-sample (true-peak) margin produced by the causal hybrid detector is an empirical property,
+// verified by the independent ITU-R BS.1770-5 meter (analysis::estimateTruePeakDbtp) only on the tested
+// vectors (T-ADV-01..06 and the CACP probes); it is not a guarantee for arbitrary input.
 class MasterLimiter {
 public:
-    // Internal operating threshold: -1.80 dBFS = 0.81283052f (guarantees <= -1.0 dBTP true-peak under ITU-R BS.1770-5)
+    // Internal operating threshold: -1.80 dBFS = 0.81283052f (margin below the -1.0 dBFS ceiling; the resulting
+    // <= -1.0 dBTP behaviour is measured on the tested vectors, not guaranteed for arbitrary input)
     static constexpr float kDefaultThresholdDbfs = -1.80f;
     static constexpr float kThresholdLinear = 0.8128305161f; // 10^(-1.80/20)
 
@@ -40,11 +46,17 @@ public:
     [[nodiscard]] float thresholdLinear() const noexcept { return thresholdLinear_; }
 
     [[nodiscard]] float currentGain() const noexcept { return currentGain_; }
-    [[nodiscard]] float maxGainReductionDb() const noexcept { return maxGainReductionDb_; }
+    // Maximum gain reduction since the last reset, converted lazily from the minimum tracked gain
+    // (no per-sample log10 on the realtime path).
+    [[nodiscard]] float maxGainReductionDb() const noexcept {
+        return (minGain_ < 0.999f) ? -20.0f * std::log10((std::max)(minGain_, 1e-6f)) : 0.0f;
+    }
+    // Monotonic count of non-finite input samples sanitised; preserved across reset() so the engine can
+    // publish it as part of AudioTelemetryFrame::dspAnomalyCount. Cleared only by resetTelemetry().
     [[nodiscard]] std::uint32_t anomalyCount() const noexcept { return anomalyCount_; }
 
     void resetTelemetry() noexcept {
-        maxGainReductionDb_ = 0.0f;
+        minGain_ = 1.0f;
         anomalyCount_ = 0;
     }
 
@@ -58,7 +70,7 @@ private:
     float releaseAlpha_{0.000416f}; // 50 ms exponential release
 
     float currentGain_{1.0f};
-    float maxGainReductionDb_{0.0f};
+    float minGain_{1.0f};
     std::uint32_t anomalyCount_{0};
 
     // Causal circular history buffer for 12-sample polyphase & curvature detection

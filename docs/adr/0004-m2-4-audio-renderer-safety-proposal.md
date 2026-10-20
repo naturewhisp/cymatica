@@ -1,7 +1,7 @@
 # ADR-0004 — Renderer nativo, protezione terminale e loudness (ratifica M2.4 e chiusura Gate pre-Inc-2)
 
 - **Data di ratifica iniziale:** 2026-10-15; **Aggiornamento e chiusura Gate pre-Inc-2:** 2026-10-19.
-- **Stato:** **accepted for implementation — Inc-1 completato e verificato; Gate tecnico pre-Inc-2 chiuso (AUD-D-01, AUD-D-02); Inc-2..Inc-5 da implementare**.
+- **Stato:** **accepted for implementation** — Inc-1, Inc-2 e Inc-3 implementati; emendamento del 2026-10-20 (§4.3) che allinea topologia, soglia e detector del limiter al codice dopo la revisione post-Inc-3. Lo stato operativo corrente è registrato solo in [progress.md](../progress.md).
 - **Owner decisionale:** titolare CYMATICA; approvazione esplicita dopo Grill-me, review indipendente del Decision Record del 2026-10-15 e revisione tecnico-scientifica post-Inc-1 del 2026-10-19.
 - **Baseline documentale verificata:** `32f93250f8d18c080ab165ddb12d2b88499eab42` (`main`, commit *Document M2.4 audio research and safety review*); **Remediation Inc-1 e Gate pre-Inc-2:** 2026-10-19 (91/91 test CTest Release/Debug, 90/90 Headless).
 - **Percorso:** il suffisso storico `-proposal.md` è conservato per non invalidare riferimenti già committati; lo **stato nel documento**, non il filename, è autoritativo.
@@ -55,21 +55,48 @@ Poiché `AudioEngine::init` inizializza `ma_device` e `VoiceAllocator` direttame
 
 1. **8 Voice Slots** (`VoiceSlot[0..7]`, scala nominale $k_{\text{scale}} = 0.25\text{f}$ per voce, `stealTail` lineari di $\lfloor 0.002 f_s \rfloor$ campioni).
 2. **4 Stereo Role Buses** (`Pulso` $-6.0\text{ dB}$, `Corpo` $-8.0\text{ dB}$ con micro-ducking $-3.0\text{ dB}$ pilotato dall'inviluppo di `Pulso` con $\tau_a = 2\text{ ms}, \tau_r = 120\text{ ms}$, `Trama` $-10.0\text{ dB}$ + micro-delay stereo, `Vettore` $-6.0\text{ dB}$) + estrazione telemetria per-bus (`ChannelFrame`: `energy`, `rms`, `transient`, `pitchHz`, `spectralCentroid`).
-3. **Somma Music Bus + Soft-Clipper opzionale** ($\tanh$, in **bypass di default** in `SynthProfile_v1` per preservare la purezza spettrale).
-4. **Master Finite Guard:** verifica `std::isfinite(L)` e `std::isfinite(R)`; in caso di `NaN`/`Inf`, azzera immediatamente il campione (`0.0f`), pulisce lo stato del limiter e incrementa `dspAnomalyCount`.
+3. **Somma Music Bus.** Un soft-clipper opzionale è previsto solo come stadio timbrico futuro: non è implementato in M2.4 e non fa parte della protezione.
+4. **Master Finite Guard:** verifica `std::isfinite(L)` e `std::isfinite(R)`; in caso di `NaN`/`Inf`, azzera immediatamente il campione (`0.0f`) e incrementa il contatore anomalie del limiter, sommato in `dspAnomalyCount` della telemetria (remediation 2026-10-20).
 5. **Terminal `MasterLimiter` Zero-Latency ($L = 0$) con rilevamento ibrido True-Peak:**
    - **Motivazione matematica di $L = 0$ (Zero Latency):** Qualsiasi linea di ritardo lookahead ($L > 0$ campioni) sposterebbe tutti gli onset `NoteOn` sample-accurate di $+L$ campioni (violando i test di precisione al singolo campione di `test_scheduler.cpp`) e farebbe uscire campioni non nulli dal buffer di lookahead dopo il confine tassativo di silenzio $n_{\text{pause}} + N_{\text{tail}}$ (violando ADR-0003 D-M2-04.7 e il requisito che il limiter non riemetta code sonore oltre i boundary di silenzio). Pertanto il percorso diretto del segnale ha latenza **esattamente zero** ($y_{\text{lim}}[n] = g[n] \cdot x[n]$).
-   - **Stima causale di picco intersample (Sidechain):** Combina un banco polifase FIR causale $4\times$ a 12 tap per fase ($p_{\text{FIR}}[n]$) con uno stimatore analitico di curvatura del primo e secondo ordine di Nyquist:
-     $$\widehat{p}_{\text{curv}}[n] = \sqrt{x[n]^2 + 0.55\,(x[n] - x[n-1])^2 + 0.30\,(x[n] - 2x[n-1] + x[n-2])^2}$$
+   - **Stima causale di picco intersample (Sidechain):** combina il picco campione, tre interpolatori frazionari causali a 3 coefficienti (posizioni −0,25, −0,50, −0,75 campioni, su $x[n], x[n-1], x[n-2]$) e uno stimatore di curvatura del primo e secondo ordine (pesi emendati il 2026-10-20 ai valori del codice):
+     $$\widehat{p}_{\text{curv}}[n] = \sqrt{x[n]^2 + 0.65\,(x[n] - x[n-1])^2 + 0.35\,(x[n] - 2x[n-1] + x[n-2])^2}$$
+     Il detector è un'euristica conservativa, non un interpolatore BS.1770: la sua efficacia è dimostrata solo empiricamente sui vettori di prova (§4.2).
      $$p_{\text{est}}[n] = \max\!\left(|x_L[n]|, |x_R[n]|, p_{\text{FIR},L}[n], p_{\text{FIR},R}[n], \widehat{p}_{\text{curv},L}[n], \widehat{p}_{\text{curv},R}[n]\right)$$
      Questo garantisce che anche sul primo campione di uno step improvviso o di una sinusoide a $f_s / 4$ sfasata di $\pi/4$ (che presenta $+3.01\text{ dB}$ di picco intersample e $\widehat{p}_{\text{curv}} \approx 1.304\,|x|$), la riduzione di guadagno scatti istantaneamente al campione $0$ senza lookahead.
-   - **Soglie e balistica:** Soglia interna del limiter $C_{\text{lim}} = -1.50\text{ dBFS}$ ($0.8414\text{f}$), attacco istantaneo ($0\text{ ms}$, $g_{\text{target}}[n] = \min(1.0\text{f}, C_{\text{lim}} / \max(p_{\text{est}}[n], 10^{-12}\text{f}))$), hold di $2\text{ ms}$ ($N_{\text{hold}} = \lfloor 0.002 f_s \rfloor$), rilascio esponenziale one-pole di $50\text{ ms}$ ($\alpha_{\text{rel}} = \exp(-1 / (0.050 f_s))$), seguito da hard safety ceiling $C_{\text{max}} = -1.0\text{ dBFS}$ ($0.89125\text{f}$). Il margine di $0.50\text{ dB}$ tra $C_{\text{lim}}$ e $C_{\text{max}}$ assorbe qualsiasi residuo di ricostruzione D/A mantenendo il True Peak offline $\le -1.0\text{ dBTP}$.
-6. **Physical Transport De-Click Ramp & Silence Gate (`Pause`/`Resume`/`Stop`):** Posizionato **a valle** del `MasterLimiter` ($\lfloor 0.002 f_s \rfloor$ frame: 96 @ 48 kHz, 88 @ 44.1 kHz). Poiché è moltiplicativo in $[0.0, 1.0]$ e monotono, non può mai innalzare il ceiling e garantisce matematicamente silenzio numerico esatto (`0.0f`) a partire dal frame $n_{\text{device, pause}} + N_{\text{tail}}$ senza che il rilascio del limiter possa mai riemettere code sonore.
-7. **User Master Volume ($\alpha_{\text{user}} \in [0.0, 1.0]$, sola attenuazione) & Clamp Finale $[-0.89125\text{f}, +0.89125\text{f}]$:** Consegna finale a `pOutput` e tap `AudioProbe` (che osserva così l'esatto segnale PCM consegnato al device).
+   - **Soglie e balistica:** soglia interna $C_{\text{lim}} = -1{,}80\text{ dBFS}$ ($0{,}8128305\text{f}$; emendata da −1,50 dBFS il 2026-10-19 nella remediation Inc-2, quando i coefficienti del meter offline sono stati corretti), attacco istantaneo ($g_{\text{target}}[n] = \min(1, C_{\text{lim}} / \max(p_{\text{est}}[n], 10^{-12}))$), hold di 2 ms ($N_{\text{hold}} = \lfloor 0{,}002 f_s \rfloor$), rilascio one-pole di 50 ms ($g \leftarrow g + \alpha(1-g)$ con $\alpha = 1 - e^{-1/(0{,}050 f_s)}$), guardia anti-slew e hard ceiling $C_{\text{max}} = -1{,}0\text{ dBFS}$ ($0{,}89125\text{f}$). Il margine di 0,80 dB è **tarato empiricamente** sui vettori di §4.2: il clamp finale limita i picchi campione, non i picchi intersample, e nessun limiter a latenza zero garantisce $\le -1\text{ dBTP}$ per segnali arbitrari.
+6. **Rampa fisica di de-click di trasporto e gate di silenzio (`Pause`/`Resume`/`Stop`):** nel codice è applicata dal `VoiceAllocator` **a monte** del limiter terminale (emendamento §4.3), su $\lfloor 0{,}002 f_s \rfloor$ frame (96 a 48 kHz, 88 a 44,1 kHz). Il silenzio numerico esatto da $n_{\text{device, pause}} + N_{\text{tail}}$ resta garantito perché il limiter non ha ritardo ($y = g\,x$ con $L = 0$) e il clamp mappa 0 in 0: nessuna coda può essere riemessa.
+7. **Clamp finale $[-0{,}89125, +0{,}89125]$** (parte del limiter) e consegna a `pOutput` e al tap `AudioProbe`, che osserva così l'esatto PCM consegnato al device. Un volume utente di sola attenuazione non è ancora implementato; quando lo sarà, si applicherà prima del clamp.
 
 ### 4.2 Verifica indipendente offline del True Peak (dBTP) e segnali avversari
 
-In `engine/audio/audio_probe.h/.cpp` viene qualificata per Inc-2 la funzione indipendente `analysis::estimateTruePeakDbtp`, basata sul filtro FIR polifase standard a 48 tap ($4 \times 12$) definito in **ITU-R BS.1770-5 Annex 2, Table 3** (distinto dallo stimatore ibrido causale runtime del limiter), accompagnata da una suite di 6 segnali avversari (`T-ADV-01..06` in `test_synth_dsp.cpp`: coseno 0 dBFS a fase $\pi/2$, tono $f_s/4$ a fase $\pi/4$ con picco intersample $+3.01\text{ dBTP}$, burst multi-ruolo $+12\text{ dBFS}$, iniezione `NaN`/`Inf`, boundary di silenzio `Pause`/`Stop` e stabilità su 10.000 blocchi).
+In `engine/audio/audio_probe.h/.cpp` la funzione indipendente `analysis::estimateTruePeakDbtp` usa il filtro FIR polifase di sovracampionamento 4× a 48 tap (4 fasi × 12) riportato nell'Annex 2 di ITU-R BS.1770-4/-5 (coefficienti verificati, simmetria $h[i] = h[47-i]$). È distinta dallo stimatore causale del limiter. Fuori dalla cattura il segnale è trattato come silenzio digitale (**zero padding**, emendamento 2026-10-20): l'estensione per replica dei bordi usata in precedenza nascondeva l'overshoot di ricostruzione di un gradino verso il silenzio.
+
+La suite `T-ADV-01..06` è definita **solo** in `tests/unit/test_synth_dsp.cpp`: tono $f_s/4$ a fase $\pi/4$ sovrapilotato di +3,5 dB; DC a 2,0 (+6 dB); gradino alternato ±1,5; ingressi non finiti; burst a 22 kHz ×1,8; onset a latenza zero. Ogni vettore termina con la rampa di 2 ms che il motore applica a ogni fine flusso. I risultati sono **stime** del picco ricostruito sui vettori testati, non una garanzia per segnali arbitrari; l'oversampling 4× è esso stesso una stima (§5).
+
+### 4.3 Emendamento post-Inc-3 (2026-10-20)
+
+La revisione indipendente post-Inc-3 ha rilevato divergenze fra questo ADR e il codice. Decisioni registrate:
+
+| Elemento | Prima | Ora (autoritativo) | Motivo |
+|---|---|---|---|
+| Soglia interna | −1,50 dBFS | −1,80 dBFS | Valore effettivo dalla remediation Inc-2, tarato sui vettori §4.2 dopo la correzione dei coefficienti del meter |
+| Pesi di curvatura | 0,55 / 0,30 | 0,65 / 0,35 | Valori effettivi nel codice |
+| Detector | «FIR polifase 4×12» | picco campione + 3 interpolatori a 3 coefficienti + curvatura | Descrizione dell'implementazione reale |
+| Istanze di limiter | una nel `VoiceAllocator` e una in `AudioEngine` | **una sola**, terminale in `AudioEngine` | Doppia protezione non prevista, costo doppio, anomalie non contate |
+| Rampa di trasporto | a valle del limiter | a monte (nel `VoiceAllocator`) | Equivalente per il silenzio grazie a $L = 0$; evita di spostare la gestione di trasporto nel motore |
+| Meter offline | replica dei bordi | zero padding | La replica sopprimeva l'overshoot reale di un gradino verso il silenzio |
+| Formulazione | «garantisce ≤ −1 dBTP» | «stima ≤ −1 dBTP sui vettori testati» | Il clamp limita solo i picchi campione |
+| Steal tail | sommate dopo lo stadio di bus | iniettate nell'ingresso del bus di ruolo (guadagno, ducking, dry/wet di Trama); le code di Stop non alimentano il delay | Nessun salto di livello al furto |
+| Guadagni di bus e wet di Trama | commutazione istantanea | smoothing one-pole 5 ms (§2.5), mantenuti quando il ruolo è inattivo | Click a ruolo inattivo con delay ancora attivo |
+| Guadagno unitario per `timbreParam == 0` | implicito | mantenuto come profilo legacy Inc-1 (sonde e test storici), con smoothing | Compatibilità delle evidenze Inc-1 |
+| Normalizzazione del ducking | piena profondità a picco 0,25 | piena profondità al picco nominale del bus Pulso a velocità piena (≈ 0,125) | Con il valore precedente il ducking massimo era ≈ 1,2 dB |
+| Pausa | DSP completo su voci congelate | dopo la rampa e senza code attive l'uscita è silenzio senza aggiornare lo stato DSP; durante la rampa le fasi degli oscillatori avanzano | Stato DSP corrotto e gradino DC alla ripresa |
+| Pulso | sweep da 2,5 f0, τ 15 ms, click di 16 campioni non filtrato | conforme a §2.1, con $f_{\text{start}} = \max(f_0, \min(3 f_0, 180\text{ Hz}))$ | Divergenza normativa; il `max` evita uno sweep verso l'alto per $f_0 > 180$ Hz |
+| Reset del limiter | anche su `Stop` | solo su `Start` da fermo | Le code di Stop di 2 ms passano ancora nel limiter |
+| Hook diagnostico | — | `RoleBusProcessor::setDelayBypassed` solo per le sonde CACP | Verifica differenziale del delay |
+
+Gli invarianti di AUD-D-02 (protezione terminale comune, sempre attiva, fail-closed, $L = 0$) sono invariati.
 
 **Limite della garanzia:** CYMATICA controlla il PCM nel proprio dominio; il guadagno OS, l'amplificatore, la sensibilità dei trasduttori e la dose acustica reale non sono controllabili tramite il solo limiter. È vietato dichiarare garantita l'assenza di danno uditivo/hardware.
 
@@ -92,11 +119,11 @@ In `engine/audio/audio_probe.h/.cpp` viene qualificata per Inc-2 la funzione ind
 | D-M2-02/03, `MusicClock`, scheduler e ABI | Nessun cambiamento | **Preservati** |
 | D-M2-04, otto slot, steal tails, cross-epoch e matrice Pause/Stop | Nessun cambiamento; anche il limiter zero-latency li rispetta | **Preservati e implementati in Inc-1** |
 | D-M2-06, punto 2 | DSP C++20 nativo puro autocontenuto qualificato per Inc-2 (zero dipendenze esterne; moduli terzi non necessari in Inc-2) | **Emendato e qualificato pre-Inc-2** |
-| D-M2-06, punto 4 | Protezione terminale comune `MasterLimiter` zero-latency ($L=0$), soglia interna $-1.50\text{ dBFS}$, hard ceiling $-1.0\text{ dBFS}$, pre-de-click ramp | **Emendato e qualificato pre-Inc-2** |
+| D-M2-06, punto 4 | Protezione terminale comune `MasterLimiter` zero-latency ($L=0$), soglia interna $-1{,}80\text{ dBFS}$ (§4.3), hard ceiling $-1{,}0\text{ dBFS}$, rampa di de-click a monte | **Emendato e qualificato pre-Inc-2** |
 | D-M2-07, punto 1 e analisi master | Benchmark della **catena reale intera** con protezione e acquisizione bounded; stima true peak indipendente ITU-R BS.1770-5 Annex 2 | **Precisato**, target `≤2,0 ms` invariato |
 | Inc-1 | Voice Allocator nativo, 8 slot statici, steal tails 2 ms, `voice_probe_v1` | **COMPLETATO (2026-10-19)** |
 | Gate pre-Inc-2 | Qualifica DSP nativa pura (`AUD-D-01`) e topologia/algoritmo `MasterLimiter` zero-latency (`AUD-D-02`) | **CHIUSO (2026-10-19)** |
-| Inc-2 | Implementazione sintesi 4 ruoli, 4 bus, ducking, `MasterLimiter` e `timbre_bus_probe_v1` | **Pronto per avvio** |
+| Inc-2 | Implementazione sintesi 4 ruoli, 4 bus, ducking, `MasterLimiter` e `timbre_bus_probe_v1` | **Implementato** (remediation 2026-10-20; stato in progress.md) |
 | Inc-4/Inc-5 | Evidence dossier e analisi esplorativa conformi al protocollo | **Nessun nuovo gate mandatory M2.5** |
 | `docs/dependencies.md` | Nessuna nuova dipendenza esterna adottata (DSP Inc-2 100% nativo C++20) | **Invariato** |
 
@@ -114,7 +141,7 @@ Il documento ADR-0003 incorpora gli emendamenti ai punti 2 e 4 di D-M2-06 e la p
 
 - **Ratificati dal titolare (2026-10-15) e qualificati pre-Inc-2 (2026-10-19):** AUD-D-01 (DSP C++20 nativo puro per Inc-2), AUD-D-04, AUD-D-02 (topologia e algoritmo `MasterLimiter` zero-latency $L=0$ + verifica true-peak ITU-R BS.1770-5 Annex 2 offline), AUD-D-03 (architettura a tre domini e piano di evidenza).
 - **Completati e verificati in codice (2026-10-19):** **Inc-1** (`VoiceAllocator`, 8 slot statici, voice stealing deterministico, steal tails 2 ms adattive al sample rate, `voice_probe_v1`, 91/91 test Release/Debug, 90/90 Headless).
-- **Pronti per implementazione:** **Inc-2** (Sintesi 4 ruoli, 4 bus, micro-ducking, `MasterLimiter`, `timbre_bus_probe_v1`), seguito da Inc-3..Inc-5.
+- **Implementati:** Inc-2 (sintesi 4 ruoli, 4 bus, micro-ducking, `MasterLimiter`, `timbre_bus_probe_v1`) e Inc-3 (planner). Decisioni d'ingresso di Inc-4 in [ADR-0005](0005-m2-4-inc4-entry-decisions.md); stato corrente ed evidenze in [progress.md](../progress.md).
 - **Differiti a milestone successive (M5+):** durata/tolleranze di gate rolling di 30 minuti e certificazione H.872.
 
 ## 9. Fonti tecniche e normative

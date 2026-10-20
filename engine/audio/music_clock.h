@@ -40,6 +40,13 @@ public:
     // Absolute frame at beat boundary
     [[nodiscard]] std::uint64_t frameAtBeat(std::uint64_t totalBeats) const noexcept;
 
+    // Absolute frame at a sub-beat grid point: beat `totalBeats` plus `stepIndex / stepsPerBeat` beats.
+    // Uses the same per-segment floor-rational anchor as frameAtBeat(), so it coincides exactly with
+    // frameAtBeat() whenever stepIndex is a multiple of stepsPerBeat (no float, zero drift).
+    [[nodiscard]] std::uint64_t frameAtBeatStep(std::uint64_t totalBeats,
+                                                std::uint64_t stepIndex,
+                                                std::uint32_t stepsPerBeat) const noexcept;
+
     // Absolute frame at bar boundary
     [[nodiscard]] std::uint64_t frameAtBar(std::uint64_t totalBars) const noexcept;
 

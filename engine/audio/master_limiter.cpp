@@ -18,8 +18,7 @@ void MasterLimiter::init(std::uint32_t sampleRate) noexcept {
 void MasterLimiter::reset() noexcept {
     currentGain_ = 1.0f;
     holdRemaining_ = 0;
-    maxGainReductionDb_ = 0.0f;
-    anomalyCount_ = 0;
+    minGain_ = 1.0f;
     historyHead_ = 0;
     historyL_.fill(0.0f);
     historyR_.fill(0.0f);
@@ -34,8 +33,8 @@ float MasterLimiter::estimatePeakCausal(float inL, float inR) noexcept {
     const float samplePeak = std::max(std::abs(inL), std::abs(inR));
 
     // Finite differences across recent causal history
-    const std::size_t idx1 = (historyHead_ + kHistoryLength - 1) % kHistoryLength;
-    const std::size_t idx2 = (historyHead_ + kHistoryLength - 2) % kHistoryLength;
+    const std::size_t idx1 = (historyHead_ >= 1) ? (historyHead_ - 1) : (historyHead_ + kHistoryLength - 1);
+    const std::size_t idx2 = (historyHead_ >= 2) ? (historyHead_ - 2) : (historyHead_ + kHistoryLength - 2);
 
     const float prevL = historyL_[idx1];
     const float prevR = historyR_[idx1];
@@ -104,12 +103,9 @@ void MasterLimiter::processFrame(float& ioL, float& ioR) noexcept {
     }
     currentGain_ = flushSubnormal(currentGain_);
 
-    // Track gain reduction in dB
-    if (currentGain_ < 0.999f) {
-        const float grDb = -20.0f * std::log10(std::max(currentGain_, 1e-6f));
-        if (grDb > maxGainReductionDb_) {
-            maxGainReductionDb_ = grDb;
-        }
+    // Track the minimum gain; maxGainReductionDb() converts it to dB lazily
+    if (currentGain_ < minGain_) {
+        minGain_ = currentGain_;
     }
 
     // 5. Apply Gain
@@ -132,7 +128,9 @@ void MasterLimiter::processFrame(float& ioL, float& ioR) noexcept {
 
     prevOutL_ = outL;
     prevOutR_ = outR;
-    historyHead_ = (historyHead_ + 1) % kHistoryLength;
+    if (++historyHead_ >= kHistoryLength) {
+        historyHead_ = 0;
+    }
 
     ioL = outL;
     ioR = outR;

@@ -702,6 +702,36 @@ TEST_CASE("AudioEngine processBlock performs zero heap allocations post-init", "
         REQUIRE(scope.count() == 0);
     }
 
+    // Inc-2 role synthesis (timbreParam > 0 on all four roles: delay, ducking, glide, click, steals) through the
+    // full callback path including the terminal limiter and per-callback telemetry window
+    {
+        AllocationScope scope;
+        for (int b = 0; b < 60; ++b) {
+            for (std::uint32_t r = 0; r < 4; ++r) {
+                (void)engine.scheduleAudioEvent(ScheduledAudioEvent{
+                    .eventId = static_cast<std::uint64_t>(5000 + b * 4 + static_cast<int>(r)),
+                    .sampleFrame = engine.framesRendered() + 37 * r + 11,
+                    .type = AudioEventType::NoteOn,
+                    .role = static_cast<MusicRole>(r),
+                    .valueA = 110.0f * static_cast<float>(r + 1) + static_cast<float>(b),
+                    .valueB = 0.9f,
+                    .durationFrames = (b % 2 == 0) ? 0u : 700u,
+                    .timbreParam = 0.2f + 0.01f * static_cast<float>(b)
+                });
+            }
+            if (b == 40) {
+                (void)engine.sendCommand(AudioCommand{.commandId = 900, .type = AudioCommandType::Pause});
+            } else if (b == 45) {
+                (void)engine.sendCommand(AudioCommand{.commandId = 901, .type = AudioCommandType::Resume});
+            }
+            engine.processBlock(buffer.data(), 512);
+            AudioCommandAck ack;
+            while (engine.pollAck(ack)) {}
+            (void)engine.updateTelemetry();
+        }
+        REQUIRE(scope.count() == 0);
+    }
+
     // AudioProbe zero-allocation realtime verification (ADR-0003 D-AO-02, Spec §31.5)
     // Verifies 0 heap allocations with probe attached, both with buffer available and under consumer stall
     {

@@ -84,7 +84,7 @@ bool writeWavStereo16(const std::string& filePath,
                       std::uint32_t sampleRate);
 
 // Estimates True Peak level linearly (1.0 = 0 dBTP) using standard 4x oversampled polyphase FIR
-// (ITU-R BS.1770-5 Annex 2 Table 3)
+// (ITU-R BS.1770-4/-5 Annex 2, 48-tap 4x polyphase FIR; estimate, not an exact reconstruction)
 float estimateTruePeakLinear(const float* pInterleavedSamples,
                              std::size_t frameCount,
                              std::uint32_t channels) noexcept;
@@ -186,11 +186,20 @@ struct TimbreBusProbeResult {
     float peakAmplitude{0.0f};
     float truePeakDbtp{-120.0f};
     bool truePeakPassed{false};       // <= -1.0 dBTP verified by BS.1770-5 meter
-    bool roleIsolationPassed{false};  // Distinct spectral/timbral characteristics per role
-    bool duckingPassed{false};        // Corpo attenuated during Pulso burst
-    bool delayPassed{false};          // Trama spatial micro-delay energy confirmed
-    bool dspAnomaliesPassed{false};   // Zero NaN/Inf/denormals
+    bool roleIsolationPassed{false};  // Per-role bus energy only inside the role's solo window (>= 60 dB isolation)
+    bool duckingPassed{false};        // Corpo bus attenuated 1.5..3.0 dB during Pulso hit vs no-hit reference
+    bool delayPassed{false};          // Trama echo isolated by difference arrives at 11/17 ms and decays
+    bool dspAnomaliesPassed{false};   // Zero NaN/Inf/denormals (voices, buses and terminal limiter)
     std::uint32_t clippedSamples{0};
+    // Measurements behind the checks (manifest "measurements" block)
+    float roleIsolationWorstLeakDb{0.0f};       // Worst other-role / active-role energy ratio in solo windows
+    float roleIsolationWeakestActiveDbfs{-240.0f};
+    float duckingAttenuationDb{0.0f};           // Peak Corpo bus attenuation during the Pulso hit
+    float duckingPreHitDeviationDb{0.0f};       // Corpo bus deviation before the hit (must be ~0)
+    std::int64_t delayLagLFrames{-1};           // First echo sample after Trama onset (expected 528 + 1)
+    std::int64_t delayLagRFrames{-1};           // (expected 816 + 1)
+    float delayEchoRmsDbfs{-240.0f};            // Echo-path RMS while the Trama note sounds
+    float delayLateEchoRmsDbfs{-240.0f};        // Echo-path RMS 5000..6000 frames after the note end
     std::string buildId{CYMATICA_BUILD_ID};
     std::uint64_t transportEpoch{1};
     std::uint64_t simulationTicks{360};
@@ -209,28 +218,53 @@ struct TimbreBusProbeResult {
 TimbreBusProbeResult runTimbreBusProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
                                                bool writeFiles = true);
 
-// Profile metrics for planner_probe_v1 (Spec §11.7, §16, ADR-0003 D-M2-02/06, Inc-3)
+// Profile metrics for planner_probe_v1 (Spec §11.7, §16, ADR-0003 D-M2-02/04/05/06, Inc-3)
 struct PlannerProbeResult {
     bool passed{false};
     std::uint64_t totalCapturedFrames{0};
     std::uint64_t droppedFrames{0};
-    std::uint32_t generatedEvents{0};
-    std::uint32_t committedEvents{0};
-    bool determinismPassed{false};      // Identical audio output & event list on repeated identical seed run
-    bool streamIsolationPassed{false};  // Seed stream isolation verified (Gameplay seed mutation does not affect music)
-    bool motifInvariancePassed{false};  // Permutation & contour invariants verified
-    bool triadBudgetPassed{false};      // Max 2 simultaneous voices on Corpo respected without illegal voice stealing
-    bool fallbackPassed{false};         // Fail-closed recovery validated
-    bool nonSilentAudioPassed{false};   // RMS energy per active role > -40 dBFS (music actually produced)
+    std::uint32_t generatedEvents{0};          // MusicIntentEvents (NoteOns) emitted by the planner
+    std::uint32_t plannerNoteOffs{0};          // Explicit open-pad NoteOffs scheduled by the planner
+    std::uint32_t expectedScheduledEvents{0};  // NoteOn + NoteOff SPSC events expected (2 x generatedEvents)
+    std::uint32_t committedEvents{0};          // Events dispatched by the AudioScheduler into the engine SPSC
+    std::uint64_t engineProcessedEvents{0};    // Scheduled events consumed by the audio callback
+    std::uint64_t droppedScheduledEvents{0};
+    std::uint64_t deferredScheduledEvents{0};
+    std::uint64_t schedulerBackpressure{0};
+    std::uint32_t orphanNoteRecoveredCount{0};
+    bool schedulingAccountingPassed{false};    // every planned event committed and consumed, none dropped/deferred/orphaned
+    bool noteOffPairingPassed{false};          // every NoteOn matched by exactly one NoteOff after its onset
+    bool determinismPassed{false};      // Canonical equality of all intents, NoteOffs and decision traces of two independent runs
+    bool streamIsolationPassed{false};  // Metamorphic seed isolation + StreamId domain separation of the tie-break key
+    bool motifInvariancePassed{false};  // Winning transform invariants re-verified from the decision trace + realized Vettore notes
+    bool triadBudgetPassed{false};      // Overlapping Corpo notes in the emitted intents never > 2 at any frame
+    std::uint32_t maxCorpoOverlap{0};
+    bool fallbackPassed{false};         // L1 / L2 / L3 fallback levels reached under constructed conditions
+    bool tempoAckPassed{false};         // SetTempoMap ack Applied at frameAtBar(4) with transport epoch 2
+    std::uint32_t tempoAckStatus{0};    // AudioCommandStatus of the SetTempoMap ack (0 = none received)
+    std::uint64_t tempoAckFrame{0};
+    std::uint64_t tempoAckEpoch{0};
+    std::uint64_t tempoChangeFrame{0};  // Requested frame = clock.frameAtBar(4)
+    std::uint32_t stopAckStatus{0};
+    std::uint64_t stopAckFrame{0};
+    std::uint64_t contentEndFrame{0};   // clock.frameAtBar(8): last planner NoteOff
+    std::uint64_t stopFrame{0};         // Stop target frame (after content end + release margin)
+    bool nonSilentAudioPassed{false};   // RMS energy in section A bar 1 and section B bar 1 > -40 dBFS
+    float sectionARmsDbfs{-120.0f};
+    float sectionBRmsDbfs{-120.0f};
+    std::uint64_t winningCandidateIdA{0};
+    std::uint64_t winningCandidateIdB{0};
+    std::int32_t winningScoreA{0};
+    std::int32_t winningScoreB{0};
     float peakAmplitude{0.0f};
     float truePeakDbtp{-120.0f};
     bool truePeakPassed{false};         // <= -1.0 dBTP verified by BS.1770-5 meter
     std::uint32_t clippedSamples{0};
     bool dspAnomaliesPassed{false};
     std::string buildId{CYMATICA_BUILD_ID};
-    std::uint64_t transportEpoch{2};
-    std::uint64_t simulationTicks{1800};
-    std::uint64_t requestedSampleFrames{720000};
+    std::uint64_t transportEpoch{0};    // Final telemetry transport epoch (after Stop)
+    std::uint64_t simulationTicks{0};
+    std::uint64_t requestedSampleFrames{0};
     std::string presentationQuality{"Estimated"};
     bool wavWriteSuccess{false};
     bool manifestWriteSuccess{false};

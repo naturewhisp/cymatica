@@ -110,7 +110,7 @@ Artefatti esportati in `artifacts/cacp/`:
 ### Verifica Quantitativa e Multimodale
 - **Manifest JSON:** `"verdict": "PASS"`, `"voice_steals_detected": 1`, `"dropped_frames": 0`, `"dsp_anomalies_passed": true`.
 - **Dinamica e Headroom:** 0 campioni saturati a fondo scala, picco massimo $\le -6\text{ dBFS}$ (tipicamente $\approx -9.37\text{ dBFS}$).
-- **Ispezione Multimodale Vincolante (`view_file` su `voice_probe_v1.wav`):** Invocare `view_file` per ascoltare direttamente l'audio nel contesto multimodale e formulare un giudizio percettivo esplicito:
+- **Ispezione multimodale supplementare (capability-dependent; `view_file` su `voice_probe_v1.wav`):** Invocare `view_file` per ascoltare direttamente l'audio nel contesto multimodale e formulare un giudizio percettivo esplicito:
   - *Timbro:* purezza sinusoidale senza ronzii o asprezze da aliasing;
   - *Accordi:* chiarezza dell'intervallo di quinta (220+330 Hz) e quarta (330+440 Hz) senza intermodulazione parassita;
   - *Voice Stealing:* transizione fluida e continua tra 220 Hz e 440 Hz a 500 ms senza click percettibili;
@@ -129,28 +129,25 @@ In M2.4 Inc-3, la generazione musicale gerarchica FormPlan $\to$ SectionPlan $\t
 .\build\x64-release\apps\cymatica_game\cymatica_game.exe --cacp-run planner_test
 ```
 
-Lo scenario diagnostico offline (8 battute a 48 kHz / 120 Hz ticks, circa 15.0 secondi = 720.000 campioni):
-1. **Battute 0..3 (Sezione A, 120 BPM, Re Dorico):** Pianificazione frase iniziale con progressione armonica modale, accordi aperti su Corpo con voice leading conservativo, pattern euclideo su Pulso e Trama, e variazione motivica melodica su Vettore.
-2. **Battute 4..7 (Sezione B, 140 BPM, Sol Eolico):** Transizione di tempo e scala modale, estinzione lease open-pad cross-frase tramite `scheduleNoteOff`, nuova frase musicale a 140 BPM, mantenimento del limite fisico $\le 2$ voci per ruolo e voice leading senza interruzioni.
-3. **Decadimento e Stop:** Comando `Stop` a tick 1750 (frame 700.000), verifica del silenzio numerico pulito post de-click tail.
+Lo scenario diagnostico offline (remediation 2026-10-20): contenuto di 8 battute = 713.142 frame (14,857 s: 384.000 frame a 120 BPM + 329.142 a 140 BPM), finestra renderizzata 741.200 frame (1.853 tick) con margine di rilascio; lookahead nominale 7.200 frame:
+1. **Battute 0..3 (Sezione A, 120 BPM, Re dorico):** Corpo realizza un accordo per battuta (i–IV–v–i) con note di una battuta; griglia di onset da `MusicClock::frameAtBeatStep`.
+2. **Battute 4..7 (Sezione B, 140 BPM, Sol eolio):** `SetTempoMap` con ack `Applied` al frame 384.000 ed epoch 2. La frase è a pad aperto: Corpo sostiene la tonica i ed è chiuso dal `NoteOff` del planner a fine frase, mentre la progressione i–VI–VII–i è seguita solo dai toni di colore di Trama.
+3. **Stop:** inviato dopo l'ultimo `NoteOff` (frame 737.200); silenzio numerico dopo la coda di de-click.
 
 Artefatti esportati in `artifacts/cacp/`:
-- `artifacts/cacp/planner_probe_v1_manifest.json` (metriche di generazione, scoring deterministico, invarianti motivici, budget triadi e telemetria);
-- `artifacts/cacp/planner_probe_v1.wav` (traccia musicale PCM stereo 48 kHz completa).
+- `artifacts/cacp/planner_probe_v1_manifest.json` (trace delle decisioni, ack, contabilità dello scheduler, check);
+- `artifacts/cacp/planner_probe_v1.wav` (PCM stereo 48 kHz).
 
 ### Verifica Quantitativa e Multimodale
-- **Manifest JSON:**
-  - `"verdict": "PASS"`
-  - `"determinism_passed": true` (bit-exactness degli eventi musicali pianificati a parità di seed)
-  - `"stream_isolation_passed": true` (isolamento seed garantito: mutazioni nel canale Gameplay non alterano la forma musicale)
-  - `"motif_invariance_passed": true` (rispetto delle note ancora e dei gradi modali)
-  - `"triad_budget_passed": true` (massimo 2 voci simultanee su Corpo senza furti illegali)
-  - `"fallback_passed": true` (gestione deterministica fail-closed con SilentRecovery su orizzonte temporale esausto)
-  - `"non_silent_audio_passed": true` (energia RMS percepita $> -40\text{ dBFS}$ in entrambe le sezioni)
-  - `"true_peak_passed": true` ($\le -1.0\text{ dBTP}$ verificato dal meter BS.1770-5)
-  - `"zero_clipping_passed": true` (zero campioni saturati)
-  - `"dsp_anomalies_passed": true` (zero NaN/Inf/denormals)
-- **Ispezione Multimodale Vincolante (`read_file` su `planner_probe_v1.wav`):** Invocare `read_file` per verificare la composizione musicale generata:
+- **Manifest JSON** — `"verdict": "PASS"` richiede tutti i check:
+  - `determinism_passed`: confronto completo di intent, `NoteOff` del planner e trace di due esecuzioni indipendenti;
+  - `stream_isolation_passed`: test metamorfico (cambiando seed cambiano solo le decisioni a pari punteggio) e assenza di collisioni della chiave di tie-break con altri stream;
+  - `motif_invariance_passed`: invarianti delle trasformazioni rieseguiti dal trace e note di Vettore verificate su frame di griglia e altezza MIDI;
+  - `triad_budget_passed`: sovrapposizione di Corpo ≤ 2 voci su tutta la timeline degli intent;
+  - `tempo_ack_passed`, `note_off_pairing_passed`, `scheduling_accounting_passed`: ack al frame esatto; ogni `NoteOn` accoppiato; zero drop, deferred e note orfane;
+  - `fallback_passed`, `non_silent_audio_passed` (battuta 1 di ciascuna sezione), `zero_clipping_passed`, `dsp_anomalies_passed`;
+  - `true_peak_passed`: stima 4× BS.1770 Annex 2 ≤ −1,0 dBTP. È un check ingegneristico della probe, non un gate M2.5 (ADR-0004 §5).
+- **Ispezione multimodale supplementare (capability-dependent; strumento di lettura audio su `planner_probe_v1.wav`):** Se il client supporta l'ingestione audio, ascoltare il WAV e registrare modello, capacità, hash SHA-256 del WAV e timestamp; altrimenti registrare `unsupported` o `not_run`. Il giudizio non sostituisce l'ascolto umano. Aspetti da valutare:
   - *Struttura e Coerenza Armonica:* riconoscibilità dei centri tonali (Re Dorico $\to$ Sol Eolico) e fluidità degli accordi di sottofondo;
   - *Interlocking Ritmico:* alternanza e complementarietà tra i pattern euclidei di Pulso e i riff arpeggiati di Trama;
   - *Espressività Melodica:* presenza della melodia di Vettore con variazioni motiviche organiche;
@@ -187,7 +184,7 @@ Il CACP si sviluppa in parallelo continuo e proporzionato con il codice: ogni in
   - **Inc-1:** `voice_probe_v1` (`--cacp-run voice_test` / `voice_probe_v1`) — 8 voice slot, voice stealing, steal tails 2 ms, de-click Pause/Resume/Stop.
   - **Inc-2:** `timbre_bus_probe_v1` (`--cacp-run timbre_test` / `synth_test` / `timbre_bus_probe_v1`) — palette timbrica 4 ruoli, 4 bus, ducking, protezione terminale zero-latency.
   - **Inc-3:** `planner_probe_v1` (`--cacp-run planner_test` / `planner_probe_v1`) — generazione simbolica, invarianti motivici, trace diagnostico.
-  - **Inc-4:** `fixture_probe_v1` (`--cacp-run fixture_test` / `profile_test` / `fixture_probe_v1`) — forma tripartita A-B-A' 96 battute, transizioni cross-epoch, profiling $\le 2,0$ ms.
+  - **Inc-4 (pianificato, non ancora implementato):** `fixture_probe_v1` (alias `fixture_test`) per contenuto e segnale della fixture A-B-A' di 96 battute, e `profile_probe_v1` (alias `profile_test`) per il profiling D-M2-10; verdetti separati ([ADR-0005](../../../docs/adr/0005-m2-4-inc4-entry-decisions.md) D-M2-11).
   - **Inc-5:** Suite diagnostica consolidata, artefatti WAV definitivi e dossier CACP per il gate M2.5.
 - **Milestone 3:** `VisualProbe` (cattura sequenziale di frame grafici, verifica telegraph, maschere di collisione e hazard visuali).
 - **Milestone 4:** Scenari deterministici `.cymtest`, clip pre/post evento, replay comparativo e structured evaluation results.

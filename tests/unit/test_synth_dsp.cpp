@@ -20,8 +20,15 @@ TEST_CASE("ITU-R BS.1770-5 polyphase true-peak meter evaluates known vectors acc
     std::vector<float> silence(9600, 0.0f);
     REQUIRE(analysis::estimateTruePeakDbtp(silence.data(), 4800, 2) <= -100.0f);
 
-    // 2. DC constant signal (1.0f) evaluates to 1.0f linear (0 dBTP)
+    // 2. DC constant signal (1.0f) evaluates to ~1.0f linear (0 dBTP). The meter zero-pads outside the
+    // capture (digital silence before/after the stream), so the DC is faded in/out over 480 frames to keep
+    // the Gibbs overshoot of an abrupt step out of this passband check.
     std::vector<float> dc(9600, 1.0f);
+    for (std::size_t i = 0; i < 480; ++i) {
+        const float g = 0.5f - 0.5f * std::cos(3.14159265f * static_cast<float>(i) / 480.0f);
+        dc[i * 2] = dc[i * 2 + 1] = g;
+        dc[(4799 - i) * 2] = dc[(4799 - i) * 2 + 1] = g;
+    }
     const float dcLinear = analysis::estimateTruePeakLinear(dc.data(), 4800, 2);
     REQUIRE_THAT(dcLinear, Catch::Matchers::WithinRel(1.0f, 0.01f));
     const float dcDbtp = analysis::estimateTruePeakDbtp(dc.data(), 4800, 2);
@@ -161,9 +168,24 @@ TEST_CASE("RoleBusProcessor executes micro-ducking, stereo delay, and populates 
     REQUIRE(telem.globalEnergy > 0.10f);
 }
 
-TEST_CASE("MasterLimiter guarantees true-peak ceiling under adversarial stress vectors (T-ADV-01..06)", "[synth_dsp][adversarial_limiter]") {
+TEST_CASE("MasterLimiter keeps the estimated true peak under the ceiling on the adversarial vectors (T-ADV-01..06)", "[synth_dsp][adversarial_limiter]") {
     MasterLimiter limiter;
     limiter.init(48000);
+
+    // The meter zero-pads after the capture. In the engine every stream end passes through the 2 ms
+    // transport de-click ramp (Stop/Pause), so the vectors end the same way instead of with an abrupt step
+    // to silence, which would add a reconstruction overshoot no running engine produces. The engine ramps
+    // before the limiter; fading the limiter output here is a close approximation: during a falling ramp the
+    // limiter cannot attack further, and its 50 ms release barely moves the gain within 96 frames.
+    const auto applyTransportFadeOut = [](std::vector<float>& buf, std::size_t frames) {
+        constexpr std::size_t kTail = 96; // floor(0.002 * 48000)
+        for (std::size_t k = 0; k < kTail && k < frames; ++k) {
+            const std::size_t f = frames - kTail + k;
+            const float g = 1.0f - static_cast<float>(k + 1) / static_cast<float>(kTail);
+            buf[f * 2] *= g;
+            buf[f * 2 + 1] *= g;
+        }
+    };
 
     // T-ADV-01: Full-scale Nyquist tone fs/4 phase-shifted by pi/4
     // Unclipped, this signal has intersample peak reaching 1.0f (0 dBTP).
@@ -178,6 +200,7 @@ TEST_CASE("MasterLimiter guarantees true-peak ceiling under adversarial stress v
     }
 
     limiter.processBlock(adv1.data(), kFrames);
+    applyTransportFadeOut(adv1, kFrames);
 
     const float truePeakAdv1 = analysis::estimateTruePeakDbtp(adv1.data(), kFrames, 2);
     REQUIRE(truePeakAdv1 <= -1.0f);
@@ -189,6 +212,7 @@ TEST_CASE("MasterLimiter guarantees true-peak ceiling under adversarial stress v
     limiter.reset();
     std::vector<float> adv2(kFrames * 2, 2.0f); // DC / maximum square jump
     limiter.processBlock(adv2.data(), kFrames);
+    applyTransportFadeOut(adv2, kFrames);
     const float truePeakAdv2 = analysis::estimateTruePeakDbtp(adv2.data(), kFrames, 2);
     REQUIRE(truePeakAdv2 <= -1.0f);
 
@@ -201,6 +225,7 @@ TEST_CASE("MasterLimiter guarantees true-peak ceiling under adversarial stress v
         adv3[i * 2 + 1] = s;
     }
     limiter.processBlock(adv3.data(), kFrames);
+    applyTransportFadeOut(adv3, kFrames);
     const float truePeakAdv3 = analysis::estimateTruePeakDbtp(adv3.data(), kFrames, 2);
     REQUIRE(truePeakAdv3 <= -1.0f);
 
@@ -225,6 +250,7 @@ TEST_CASE("MasterLimiter guarantees true-peak ceiling under adversarial stress v
         adv5[i * 2 + 1] = s;
     }
     limiter.processBlock(adv5.data(), kFrames);
+    applyTransportFadeOut(adv5, kFrames);
     const float truePeakAdv5 = analysis::estimateTruePeakDbtp(adv5.data(), kFrames, 2);
     REQUIRE(truePeakAdv5 <= -1.0f);
 
@@ -378,6 +404,19 @@ TEST_CASE("CACP timbre_bus_probe_v1 scenario executes and passes offline", "[syn
     REQUIRE(res.duckingPassed);
     REQUIRE(res.delayPassed);
     REQUIRE(res.dspAnomaliesPassed);
+
+    // The checks are backed by measurements, not by static configuration
+    REQUIRE(res.duckingAttenuationDb >= 1.5f);
+    REQUIRE(res.duckingAttenuationDb <= 3.1f);
+    REQUIRE(res.duckingPreHitDeviationDb <= 0.05f);
+    REQUIRE(res.delayLagLFrames == 529); // 11 ms tap + first non-zero attack sample
+    REQUIRE(res.delayLagRFrames == 817); // 17 ms tap + first non-zero attack sample
+    REQUIRE(res.delayEchoRmsDbfs > -50.0f);
+    REQUIRE(res.roleIsolationWorstLeakDb <= -60.0f);
+    REQUIRE(res.roleIsolationWeakestActiveDbfs > -40.0f);
+    const std::string json = res.toJson();
+    REQUIRE(json.find("\"ducking_attenuation_db\"") != std::string::npos);
+    REQUIRE(json.find("\"delay_lag_l_frames\": 529") != std::string::npos);
 }
 
 TEST_CASE("MasterLimiter terminal stage protects combined pOutput against unconstrained diagnostic tones", "[synth_dsp][diagnostic_tone_limiting]") {
@@ -497,7 +536,7 @@ TEST_CASE("RoleBusProcessor extinguishes Trama stereo delay across Stop without 
     REQUIRE_THAT(pitch, Catch::Matchers::WithinRel(110.0f, 0.02f));
 }
 
-TEST_CASE("True-peak meter uses exact normative ITU-R BS.1770-5 Annex 2 Table 2 coefficients with filter symmetry and zero false pass", "[synth_dsp][itu_bs1770_normative]") {
+TEST_CASE("True-peak meter uses exact normative ITU-R BS.1770-5 Annex 2 table coefficients with filter symmetry and zero false pass", "[synth_dsp][itu_bs1770_normative]") {
     MasterLimiter limiter;
     limiter.init(48000);
 
@@ -518,4 +557,483 @@ TEST_CASE("True-peak meter uses exact normative ITU-R BS.1770-5 Annex 2 Table 2 
     for (float s : advSignal) {
         REQUIRE(std::abs(s) <= MasterLimiter::kHardCeilingLinear + 1e-4f);
     }
+}
+
+namespace {
+
+ScheduledAudioEvent makeNoteOn(std::uint64_t id, MusicRole role, float pitchHz, float velocity, float timbre,
+                               std::uint64_t frame = 0, std::uint32_t durationFrames = 0) {
+    return ScheduledAudioEvent{
+        .eventId = id,
+        .sampleFrame = frame,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = role,
+        .valueA = pitchHz,
+        .valueB = velocity,
+        .durationFrames = durationFrames,
+        .timbreParam = timbre
+    };
+}
+
+// Instantaneous frequency from interpolated upward zero crossings of channel `ch`, one value per period,
+// reported at the period midpoint (in frames).
+struct FreqPoint {
+    double timeFrames;
+    double freqHz;
+};
+
+std::vector<FreqPoint> zeroCrossingFrequencies(const std::vector<float>& stereo, std::size_t ch,
+                                               std::size_t begin, std::size_t end, double minPeriodFrames) {
+    std::vector<FreqPoint> points;
+    double lastCrossing = -1.0;
+    for (std::size_t n = begin + 1; n < end; ++n) {
+        const double a = stereo[(n - 1) * 2 + ch];
+        const double b = stereo[n * 2 + ch];
+        if (a < 0.0 && b >= 0.0) {
+            const double crossing = static_cast<double>(n - 1) + (-a / (b - a));
+            if (lastCrossing >= 0.0) {
+                const double period = crossing - lastCrossing;
+                if (period < minPeriodFrames) continue; // ignore spurious crossings
+                points.push_back({0.5 * (crossing + lastCrossing), 48000.0 / period});
+            }
+            lastCrossing = crossing;
+        }
+    }
+    return points;
+}
+
+float maxAbsStep(const std::vector<float>& stereo, std::size_t ch, std::size_t begin, std::size_t end) {
+    float m = 0.0f;
+    for (std::size_t n = std::max<std::size_t>(begin, 1); n < end; ++n) {
+        m = (std::max)(m, std::abs(stereo[n * 2 + ch] - stereo[(n - 1) * 2 + ch]));
+    }
+    return m;
+}
+
+void appendRender(VoiceAllocator& allocator, std::vector<float>& out, std::uint32_t frames,
+                  std::uint64_t logicalFrame, bool paused = false) {
+    std::vector<float> block(static_cast<std::size_t>(frames) * 2, 0.0f);
+    allocator.renderBlock(block.data(), frames, logicalFrame, paused);
+    out.insert(out.end(), block.begin(), block.end());
+}
+
+} // namespace
+
+TEST_CASE("Terminal MasterLimiter is the single limiter: allocator output is unlimited, pOutput is clamped", "[synth_dsp][single_terminal_limiter]") {
+    // 8 legacy voices at full velocity sum to ~2.0 peak: the allocator itself must not limit any more
+    VoiceAllocator allocator;
+    allocator.init(48000);
+    for (std::uint64_t i = 0; i < 8; ++i) {
+        REQUIRE(allocator.onNoteOn(makeNoteOn(i + 1, static_cast<MusicRole>(i / 2), 110.0f, 1.0f, 0.0f)) >= 0);
+    }
+    std::vector<float> raw(4800 * 2, 0.0f);
+    allocator.renderBlock(raw.data(), 4800, 0, false);
+    float rawPeak = 0.0f;
+    for (float s : raw) rawPeak = (std::max)(rawPeak, std::abs(s));
+    REQUIRE(rawPeak > 1.2f);
+
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    for (std::uint64_t i = 0; i < 8; ++i) {
+        REQUIRE(engine.scheduleAudioEvent(makeNoteOn(i + 1, static_cast<MusicRole>(i / 2), 110.0f, 1.0f, 0.0f)));
+    }
+    std::vector<float> block(480 * 2, 0.0f);
+    float enginePeak = 0.0f;
+    for (int b = 0; b < 10; ++b) {
+        engine.processBlock(block.data(), 480);
+        for (float s : block) enginePeak = (std::max)(enginePeak, std::abs(s));
+    }
+    REQUIRE(enginePeak <= MasterLimiter::kHardCeilingLinear);
+    REQUIRE(engine.masterLimiter().maxGainReductionDb() > 3.0f);
+}
+
+TEST_CASE("Terminal limiter keeps exact digital silence after n_pause + N_tail on pOutput", "[synth_dsp][terminal_limiter_silence_boundary]") {
+    for (const bool useStop : {false, true}) {
+        AudioEngine engine;
+        REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+        // Hot material on all roles (bus effects active) so that the terminal limiter is in gain reduction
+        REQUIRE(engine.scheduleAudioEvent(makeNoteOn(1, MusicRole::Pulso, 55.0f, 1.0f, 0.8f)));
+        REQUIRE(engine.scheduleAudioEvent(makeNoteOn(2, MusicRole::Corpo, 110.0f, 1.0f, 0.6f)));
+        REQUIRE(engine.scheduleAudioEvent(makeNoteOn(3, MusicRole::Trama, 440.0f, 1.0f, 0.6f)));
+        REQUIRE(engine.scheduleAudioEvent(makeNoteOn(4, MusicRole::Vettore, 330.0f, 1.0f, 0.6f)));
+        REQUIRE(engine.startTone(220.0f, 1.0f)); // full-scale diagnostic tone into the same terminal stage
+
+        std::vector<float> block(400 * 2, 0.0f);
+        for (int b = 0; b < 6; ++b) engine.processBlock(block.data(), 400);
+        REQUIRE(engine.masterLimiter().maxGainReductionDb() > 0.5f);
+
+        // Command matures at the start of the next block: n_pause = block start, N_tail = 96 frames
+        REQUIRE(engine.sendCommand(AudioCommand{
+            .commandId = 9,
+            .type = useStop ? AudioCommandType::Stop : AudioCommandType::Pause}));
+        engine.processBlock(block.data(), 400);
+        bool tailNonZero = false;
+        for (std::size_t i = 0; i < 96 * 2; ++i) tailNonZero = tailNonZero || (block[i] != 0.0f);
+        REQUIRE(tailNonZero);
+        for (std::size_t i = 96 * 2; i < block.size(); ++i) {
+            REQUIRE(block[i] == 0.0f);
+        }
+        for (int b = 0; b < 20; ++b) {
+            engine.processBlock(block.data(), 400);
+            for (float s : block) {
+                REQUIRE(s == 0.0f);
+            }
+        }
+    }
+}
+
+TEST_CASE("Terminal limiter non-finite guard is published in AudioTelemetryFrame::dspAnomalyCount", "[synth_dsp][limiter_anomaly_telemetry]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    REQUIRE(engine.startTone(220.0f, 0.25f));
+    std::vector<float> block(256 * 2, 0.0f);
+    engine.processBlock(block.data(), 256);
+    REQUIRE(engine.updateTelemetry());
+    REQUIRE(engine.telemetry().dspAnomalyCount == 0);
+
+    // A non-finite diagnostic tone frequency produces NaN samples that only the terminal limiter sees
+    REQUIRE(engine.sendCommand(AudioCommand{
+        .commandId = 1,
+        .type = AudioCommandType::SetTone,
+        .paramF32 = std::numeric_limits<float>::quiet_NaN()}));
+    engine.processBlock(block.data(), 256);
+    for (float s : block) {
+        REQUIRE(std::isfinite(s));
+    }
+    REQUIRE(engine.voiceAllocator().dspAnomalyCount() == 0);
+    REQUIRE(engine.masterLimiter().anomalyCount() > 0);
+    REQUIRE(engine.updateTelemetry());
+    REQUIRE(engine.telemetry().dspAnomalyCount == engine.masterLimiter().anomalyCount());
+}
+
+TEST_CASE("Vettore vibrato modulates the measured instantaneous frequency by +/-0.5% * timbreParam at 5.5 Hz", "[synth_dsp][vettore_vibrato]") {
+    for (const float timbre : {1.0f, 0.5f}) {
+        VoiceAllocator allocator;
+        allocator.init(48000);
+        REQUIRE(allocator.onNoteOn(makeNoteOn(1, MusicRole::Vettore, 440.0f, 0.8f, timbre)) == 6);
+        std::vector<float> out(48000 * 2, 0.0f);
+        allocator.renderBlock(out.data(), 48000, 0, false);
+
+        // 100..700 ms (600 ms >= 3 vibrato cycles of 181.8 ms)
+        const auto pts = zeroCrossingFrequencies(out, 0, 4800, 33600, 0.5 * 48000.0 / 440.0);
+        REQUIRE(pts.size() > 200);
+        double fMin = 1e9;
+        double fMax = 0.0;
+        double fSum = 0.0;
+        for (const auto& p : pts) {
+            fMin = (std::min)(fMin, p.freqHz);
+            fMax = (std::max)(fMax, p.freqHz);
+            fSum += p.freqHz;
+        }
+        const double mean = fSum / static_cast<double>(pts.size());
+        const double depth = 0.5 * (fMax - fMin) / 440.0;
+        INFO("timbre " << timbre << " depth " << depth << " mean " << mean);
+        REQUIRE(std::abs(mean - 440.0) < 0.5);
+        REQUIRE(std::abs(depth - 0.005 * timbre) < 0.0010 * timbre + 0.0002);
+
+        // Vibrato rate: upward crossings of the mean with +/- depth/2 hysteresis -> ~5.5 Hz
+        std::size_t upCrossings = 0;
+        const double hyst = 0.25 * (fMax - fMin);
+        bool below = pts.front().freqHz < mean;
+        for (const auto& p : pts) {
+            if (below && p.freqHz > mean + hyst) {
+                ++upCrossings;
+                below = false;
+            } else if (!below && p.freqHz < mean - hyst) {
+                below = true;
+            }
+        }
+        const double durationSec = (pts.back().timeFrames - pts.front().timeFrames) / 48000.0;
+        const double rateHz = static_cast<double>(upCrossings) / durationSec;
+        REQUIRE(std::abs(rateHz - 5.5) < 1.0);
+    }
+}
+
+TEST_CASE("Vettore glides exponentially from the previous Vettore pitch with tau ~= 15 ms; first note does not glide", "[synth_dsp][vettore_glide]") {
+    VoiceAllocator allocator;
+    allocator.init(48000);
+    std::vector<float> out;
+
+    // First note of the run: starts on pitch (no glide)
+    REQUIRE(allocator.onNoteOn(makeNoteOn(1, MusicRole::Vettore, 440.0f, 0.8f, 0.01f)) == 6);
+    appendRender(allocator, out, 4800, 0);
+    {
+        const auto pts = zeroCrossingFrequencies(out, 0, 96, 1440, 50.0);
+        REQUIRE(pts.size() >= 8);
+        for (const auto& p : pts) {
+            REQUIRE(std::abs(p.freqHz - 440.0) < 440.0 * 0.01);
+        }
+    }
+
+    ScheduledAudioEvent off{.eventId = 1, .sampleFrame = 4800, .type = AudioEventType::NoteOff, .role = MusicRole::Vettore};
+    REQUIRE(allocator.onNoteOff(off) == 6);
+    appendRender(allocator, out, 200, 4800); // 2 ms release completes, slot idle
+    REQUIRE(allocator.slot(6).state == VoiceState::Idle);
+
+    const std::size_t onset = out.size() / 2;
+    REQUIRE(allocator.onNoteOn(makeNoteOn(2, MusicRole::Vettore, 660.0f, 0.8f, 0.01f, 5000)) >= 0);
+    appendRender(allocator, out, 9600, 5000);
+
+    const auto pts = zeroCrossingFrequencies(out, 0, onset + 96, onset + 4800, 40.0);
+    REQUIRE(pts.size() > 20);
+    // Starts near the previous pitch, moves monotonically towards the target
+    REQUIRE(pts.front().freqHz < 500.0);
+    REQUIRE(std::abs(pts.back().freqHz - 660.0) < 660.0 * 0.01);
+
+    double tauSum = 0.0;
+    int tauCount = 0;
+    for (const auto& p : pts) {
+        const double remaining = 660.0 - p.freqHz;
+        if (remaining > 25.0 && remaining < 180.0) {
+            const double tSec = (p.timeFrames - static_cast<double>(onset)) / 48000.0;
+            tauSum += -tSec / std::log(remaining / 220.0);
+            ++tauCount;
+        }
+    }
+    REQUIRE(tauCount >= 5);
+    const double tauMs = 1000.0 * tauSum / tauCount;
+    INFO("estimated glide tau " << tauMs << " ms");
+    REQUIRE(tauMs > 12.0);
+    REQUIRE(tauMs < 18.0);
+}
+
+TEST_CASE("Pulso follows ADR-0004 sweep (f_start = min(3 f0, 180 Hz), tau_p = 8 ms) and a 15 ms deterministic click", "[synth_dsp][pulso_profile]") {
+    for (const float f0 : {40.0f, 110.0f}) {
+        VoiceAllocator allocator;
+        allocator.init(48000);
+        REQUIRE(allocator.onNoteOn(makeNoteOn(7, MusicRole::Pulso, f0, 1.0f, 0.5f)) == 0);
+        std::vector<float> out(384 * 2, 0.0f);
+        allocator.renderBlock(out.data(), 384, 0, false); // k = 384 = tau_p * fs
+        const float fStart = (std::min)(3.0f * f0, 180.0f);
+        // The last rendered sample (k = 383) used the sweep envelope exp(-383 / (tau_p fs))
+        const float expected = f0 + (fStart - f0) * std::exp(-383.0f / 384.0f);
+        const float instFreq = allocator.slot(0).phaseIncrement * 48000.0f / kTwoPi;
+        REQUIRE_THAT(instFreq, Catch::Matchers::WithinRel(expected, 0.002f));
+    }
+
+    // Click: high-frequency energy (first difference) only inside the 15 ms burst; bit-exact determinism
+    std::vector<float> a(4800 * 2, 0.0f);
+    std::vector<float> b(4800 * 2, 0.0f);
+    for (auto* buf : {&a, &b}) {
+        VoiceAllocator allocator;
+        allocator.init(48000);
+        REQUIRE(allocator.onNoteOn(makeNoteOn(42, MusicRole::Pulso, 55.0f, 1.0f, 0.7f)) == 0);
+        allocator.renderBlock(buf->data(), 4800, 0, false);
+    }
+    REQUIRE(a == b);
+    // Second difference suppresses the 55..165 Hz body and keeps the 1.2..3.5 kHz click band
+    const auto hfEnergy = [&](std::size_t begin, std::size_t end) {
+        double e = 0.0;
+        for (std::size_t n = begin + 2; n < end; ++n) {
+            const double d = a[n * 2] - 2.0 * a[(n - 1) * 2] + a[(n - 2) * 2];
+            e += d * d;
+        }
+        return e / static_cast<double>(end - begin);
+    };
+    const double inBurst = hfEnergy(48, 700);
+    const double afterBurst = hfEnergy(760, 1400);
+    REQUIRE(inBurst > 100.0 * afterBurst);
+}
+
+TEST_CASE("Pause beyond the de-click ramp freezes DSP state: Resume continues exactly without DC bump", "[synth_dsp][pause_frozen_dsp]") {
+    const auto startNotes = [](VoiceAllocator& alloc) {
+        REQUIRE(alloc.onNoteOn(makeNoteOn(1, MusicRole::Corpo, 220.0f, 0.8f, 0.3f)) == 2);
+        REQUIRE(alloc.onNoteOn(makeNoteOn(2, MusicRole::Trama, 440.0f, 0.8f, 0.5f)) == 4);
+        REQUIRE(alloc.onNoteOn(makeNoteOn(3, MusicRole::Vettore, 330.0f, 0.8f, 0.5f)) == 6);
+    };
+
+    VoiceAllocator paused;
+    paused.init(48000);
+    startNotes(paused);
+    std::vector<float> pre;
+    appendRender(paused, pre, 9600, 0); // all voices in sustain
+
+    paused.onPause();
+    std::vector<float> ramp;
+    appendRender(paused, ramp, 96, 9600, true);
+    std::vector<float> silent;
+    appendRender(paused, silent, 4800, 9600, true); // 100 ms frozen (> 50 ms)
+    for (float s : silent) {
+        REQUIRE(s == 0.0f);
+    }
+    paused.onResume();
+    std::vector<float> resumed;
+    appendRender(paused, resumed, 4800, 9600);
+
+    // Reference: same notes rendered without interruption
+    VoiceAllocator reference;
+    reference.init(48000);
+    startNotes(reference);
+    std::vector<float> ref;
+    appendRender(reference, ref, 9600 + 96 + 4800, 0);
+
+    // After the 2 ms fade-in the resumed stream equals the uninterrupted one shifted by the 96-frame ramp:
+    // no DC was accumulated in the delay and no filter drifted while paused.
+    float maxDiff = 0.0f;
+    double dcResumed = 0.0;
+    double dcRef = 0.0;
+    for (std::size_t n = 96; n < 4800 - 96; ++n) {
+        for (std::size_t ch = 0; ch < 2; ++ch) {
+            const float x = resumed[n * 2 + ch];
+            const float y = ref[(9600 + 96 + n) * 2 + ch];
+            maxDiff = (std::max)(maxDiff, std::abs(x - y));
+            dcResumed += x;
+            dcRef += y;
+        }
+    }
+    REQUIRE(maxDiff < 1e-5f);
+    REQUIRE(std::abs(dcResumed - dcRef) / 9216.0 < 1e-5);
+}
+
+TEST_CASE("Steal tails start at the voice's actual post-bus level (Trama dry factor, Corpo ducking)", "[synth_dsp][steal_tail_post_bus]") {
+    // Smooth sine voices (timbreParam = 0) make the expected per-sample step small, so a tail that bypasses the
+    // Trama dry factor (x 1/0.8) or the Corpo duck (x 1/0.708) shows up as a step several times larger.
+    SECTION("Trama steal") {
+        VoiceAllocator allocator;
+        allocator.init(48000);
+        REQUIRE(allocator.onNoteOn(makeNoteOn(1, MusicRole::Trama, 440.0f, 1.0f, 0.0f)) == 4);
+        REQUIRE(allocator.onNoteOn(makeNoteOn(2, MusicRole::Trama, 550.0f, 1.0f, 0.0f, 1)) == 5);
+        std::vector<float> out;
+        appendRender(allocator, out, 9627, 0); // ~quarter period after a 440 Hz zero crossing: large voice value
+        const std::size_t steal = out.size() / 2;
+        REQUIRE(allocator.onNoteOn(makeNoteOn(3, MusicRole::Trama, 660.0f, 1.0f, 0.0f, 9627)) == 4);
+        REQUIRE(std::abs(allocator.slot(4).stealTail.startAmplitude[0]) > 0.1f);
+        appendRender(allocator, out, 1200, 9627);
+        for (std::size_t ch = 0; ch < 2; ++ch) {
+            const float reference = maxAbsStep(out, ch, steal - 960, steal - 4);
+            const float atSteal = maxAbsStep(out, ch, steal - 1, steal + 4);
+            INFO("ch " << ch << " ref " << reference << " at steal " << atSteal);
+            REQUIRE(reference > 1e-4f);
+            REQUIRE(atSteal <= 1.25f * reference);
+        }
+    }
+    SECTION("Corpo steal while ducked by Pulso") {
+        VoiceAllocator allocator;
+        allocator.init(48000);
+        REQUIRE(allocator.onNoteOn(makeNoteOn(1, MusicRole::Corpo, 110.0f, 1.0f, 0.0f)) == 2);
+        REQUIRE(allocator.onNoteOn(makeNoteOn(2, MusicRole::Corpo, 165.0f, 1.0f, 0.0f, 1)) == 3);
+        std::vector<float> out;
+        appendRender(allocator, out, 9600, 0);
+        REQUIRE(allocator.onNoteOn(makeNoteOn(3, MusicRole::Pulso, 55.0f, 1.0f, 0.0f, 9600)) == 0);
+        appendRender(allocator, out, 960, 9600); // 20 ms into the Pulso hit
+        REQUIRE(allocator.roleBusProcessor().lastDuckingGain() < 0.85f);
+        const std::size_t steal = out.size() / 2;
+        REQUIRE(allocator.onNoteOn(makeNoteOn(4, MusicRole::Corpo, 220.0f, 1.0f, 0.0f, 10560)) == 2);
+        REQUIRE(std::abs(allocator.slot(2).stealTail.startAmplitude[0]) > 0.1f);
+        appendRender(allocator, out, 1200, 10560);
+        for (std::size_t ch = 0; ch < 2; ++ch) {
+            const float reference = maxAbsStep(out, ch, steal - 480, steal - 4);
+            const float atSteal = maxAbsStep(out, ch, steal - 1, steal + 4);
+            INFO("ch " << ch << " ref " << reference << " at steal " << atSteal);
+            REQUIRE(reference > 1e-4f);
+            REQUIRE(atSteal <= 1.25f * reference);
+        }
+    }
+}
+
+TEST_CASE("Bus gains and Trama wet are smoothed and held when the role goes idle while the delay rings", "[synth_dsp][bus_gain_smoothing]") {
+    VoiceAllocator allocator;
+    allocator.init(48000);
+    constexpr std::uint32_t kDuration = 9600;
+    REQUIRE(allocator.onNoteOn(makeNoteOn(1, MusicRole::Trama, 440.0f, 1.0f, 0.6f, 0, kDuration)) == 4);
+    std::vector<float> out;
+    appendRender(allocator, out, kDuration + 2400, 0);
+    REQUIRE(allocator.slot(4).state == VoiceState::Idle);
+
+    // The role went idle at kDuration + 96 while the echo still rings: wet and bus gain keep their values
+    REQUIRE_THAT(allocator.roleBusProcessor().currentTramaWet(), Catch::Matchers::WithinAbs(0.20f + 0.25f * 0.6f, 1e-4f));
+    REQUIRE_THAT(allocator.roleBusProcessor().currentBusGain(MusicRole::Trama), Catch::Matchers::WithinAbs(RoleBusProcessor::kTramaGain, 1e-4f));
+
+    const std::size_t idle = kDuration + 96;
+    for (std::size_t ch = 0; ch < 2; ++ch) {
+        const float reference = maxAbsStep(out, ch, idle - 1500, idle - 200);
+        const float atIdle = maxAbsStep(out, ch, idle - 2, idle + 12);
+        INFO("ch " << ch << " ref " << reference << " at idle " << atIdle);
+        REQUIRE(atIdle <= 1.25f * reference);
+    }
+
+    // Legacy -> timbred target change on a sounding bus is smoothed with tau = 5 ms (240 frames)
+    VoiceAllocator smoothing;
+    smoothing.init(48000);
+    REQUIRE(smoothing.onNoteOn(makeNoteOn(8, MusicRole::Corpo, 220.0f, 1.0f, 0.0f)) == 2);
+    std::vector<float> warm(480 * 2, 0.0f);
+    smoothing.renderBlock(warm.data(), 480, 0, false);
+    REQUIRE(smoothing.roleBusProcessor().currentBusGain(MusicRole::Corpo) == 1.0f);
+    REQUIRE(smoothing.onNoteOn(makeNoteOn(9, MusicRole::Corpo, 330.0f, 1.0f, 0.4f, 480)) == 3);
+    std::vector<float> tauBlock(240 * 2, 0.0f);
+    smoothing.renderBlock(tauBlock.data(), 240, 480, false);
+    const float expectedGain = RoleBusProcessor::kCorpoGain + (1.0f - RoleBusProcessor::kCorpoGain) * std::exp(-1.0f);
+    REQUIRE_THAT(smoothing.roleBusProcessor().currentBusGain(MusicRole::Corpo), Catch::Matchers::WithinAbs(expectedGain, 0.01f));
+
+    // A role's first note snaps its bus gain (input was silent): no 5 ms overshoot at onset
+    VoiceAllocator fresh;
+    fresh.init(48000);
+    REQUIRE(fresh.onNoteOn(makeNoteOn(5, MusicRole::Corpo, 220.0f, 1.0f, 0.4f)) == 2);
+    std::vector<float> one(2 * 2, 0.0f);
+    fresh.renderBlock(one.data(), 2, 0, false);
+    REQUIRE(fresh.roleBusProcessor().currentBusGain(MusicRole::Corpo) == RoleBusProcessor::kCorpoGain);
+}
+
+TEST_CASE("Role telemetry accumulates across all slices of one callback block", "[synth_dsp][telemetry_window]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    // Corpo note in the middle of the first block splits the callback into two slices
+    REQUIRE(engine.scheduleAudioEvent(makeNoteOn(1, MusicRole::Corpo, 220.0f, 1.0f, 0.4f, 200)));
+    std::vector<float> block(400 * 2, 0.0f);
+    engine.processBlock(block.data(), 400);
+    REQUIRE(engine.updateTelemetry());
+
+    double sumSq = 0.0;
+    for (float s : block) sumSq += static_cast<double>(s) * s;
+    const double blockRms = std::sqrt(sumSq / static_cast<double>(block.size()));
+    REQUIRE(blockRms > 1e-4);
+    REQUIRE(engine.masterLimiter().maxGainReductionDb() == 0.0f); // output == Corpo bus (unity limiter)
+    REQUIRE_THAT(engine.telemetry().body.energy, Catch::Matchers::WithinRel(static_cast<float>(blockRms), 1e-3f));
+    REQUIRE_THAT(engine.telemetry().globalEnergy, Catch::Matchers::WithinRel(static_cast<float>(blockRms), 1e-3f));
+}
+
+TEST_CASE("Start while Running keeps the running buses and terminal limiter untouched", "[synth_dsp][start_while_running]") {
+    const auto render = [](bool sendStart) {
+        AudioEngine engine;
+        REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+        REQUIRE(engine.scheduleAudioEvent(makeNoteOn(1, MusicRole::Trama, 440.0f, 1.0f, 0.6f, 0, 4000)));
+        std::vector<float> all;
+        std::vector<float> block(400 * 2, 0.0f);
+        for (int b = 0; b < 20; ++b) {
+            if (sendStart && b == 11) { // note ended at 4096, echo still ringing
+                REQUIRE(engine.sendCommand(AudioCommand{.commandId = 5, .type = AudioCommandType::Start}));
+            }
+            engine.processBlock(block.data(), 400);
+            all.insert(all.end(), block.begin(), block.end());
+        }
+        return all;
+    };
+    const auto withStart = render(true);
+    const auto withoutStart = render(false);
+    REQUIRE(withStart == withoutStart);
+    float echoPeak = 0.0f;
+    for (std::size_t i = 4400 * 2; i < 4800 * 2; ++i) echoPeak = (std::max)(echoPeak, std::abs(withStart[i]));
+    REQUIRE(echoPeak > 1e-4f);
+}
+
+TEST_CASE("AudioEngine rejects non-stereo configurations and mismatched probes", "[synth_dsp][stereo_only]") {
+    {
+        AudioEngine engine;
+        REQUIRE_FALSE(engine.initOffline({48000, 1, 220.0f}));
+        REQUIRE_FALSE(engine.initOffline({48000, 6, 220.0f}));
+    }
+    {
+        AudioEngine engine;
+        REQUIRE_FALSE(engine.init({48000, 1, 220.0f}));
+    }
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    AudioProbe mono(1024, 1, 48000);
+    REQUIRE_FALSE(engine.attachAudioProbe(&mono));
+    REQUIRE(engine.audioProbe() == nullptr);
+    AudioProbe stereo(1024, 2, 48000);
+    REQUIRE(engine.attachAudioProbe(&stereo));
+    REQUIRE(engine.audioProbe() == &stereo);
+    engine.detachAudioProbe();
 }

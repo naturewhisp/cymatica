@@ -112,8 +112,12 @@ struct AudioEngine::Impl {
                     isValidTransportTransition(transportState, TransportState::Running)) {
                     activeVolume = cmd.paramF32;
                     ma_waveform_set_amplitude(&waveform, activeVolume);
-                    voiceAllocator.onStart();
-                    masterLimiter_.reset();
+                    // A Start while already Running only updates the tone volume: resetting the role buses
+                    // (delay lines) or the terminal limiter mid-stream would produce a discontinuity.
+                    if (transportState != TransportState::Running) {
+                        voiceAllocator.onStart();
+                        masterLimiter_.reset();
+                    }
                     transportState = TransportState::Running;
                 } else {
                     status = AudioCommandStatus::Rejected;
@@ -144,7 +148,8 @@ struct AudioEngine::Impl {
             case AudioCommandType::Stop:
                 if (isValidTransportTransition(transportState, TransportState::Stopped)) {
                     voiceAllocator.onStop();
-                    masterLimiter_.reset();
+                    // The terminal limiter is not reset here: the 2 ms stop tails still pass through it and a
+                    // reset during gain reduction would step their level. Its gain releases on its own.
                     triggerNoteOff();
                     transportState = TransportState::Stopped;
                     ++transportEpoch;
@@ -201,6 +206,9 @@ struct AudioEngine::Impl {
     void processBlock(float* pOutput, std::uint32_t frameCount) noexcept {
         const std::uint64_t blockStartFrame = renderCursor.load(std::memory_order_relaxed);
         const std::uint64_t blockEndFrame = musicClock.deviceToInternalFrames(deviceFramesRendered + frameCount, sampleRate);
+
+        // One role-telemetry window per callback: every slice rendered below accumulates into it
+        voiceAllocator.beginTelemetryWindow();
 
         // 1. Consume continuous control updates
         if (controlBuffer.update()) {
@@ -529,9 +537,13 @@ struct AudioEngine::Impl {
             renderCursor.store(musicClock.deviceToInternalFrames(deviceFramesRendered, sampleRate), std::memory_order_release);
         }
 
-        // 3a. Master Limiter: common terminal digital protection (ADR-0004 AUD-D-02, ADR-0003 D-M2-06).
-        // Zero-latency (L=0) master limiter applied to the combined sum of all voices and diagnostic tones
-        // before physical DAC playback and AudioProbe tap, strictly enforcing ceiling <= -1.0 dBFS / dBTP.
+        voiceAllocator.endTelemetryWindow();
+
+        // 3a. Master Limiter: the single common terminal digital protection stage (ADR-0004 AUD-D-02,
+        // ADR-0003 D-M2-06). Zero-latency (L=0) limiter applied to the final pOutput sum of all voices and the
+        // diagnostic tone, downstream of the transport de-click ramp and before the AudioProbe tap. Its hard
+        // clamp bounds every sample to <= -1.0 dBFS; being multiplicative with L = 0 it keeps 0.0f -> 0.0f, so
+        // the n_pause + N_tail silence boundary is preserved.
         if (pOutput != nullptr && frameCount > 0) {
             masterLimiter_.processBlock(pOutput, frameCount);
         }
@@ -585,7 +597,8 @@ struct AudioEngine::Impl {
         telem.activeVoiceCount = voiceAllocator.activeVoiceCount();
         telem.voiceDropCount = voiceAllocator.voiceDropCount();
         telem.orphanNoteRecoveredCount = voiceAllocator.orphanNoteRecoveredCount();
-        telem.dspAnomalyCount = voiceAllocator.dspAnomalyCount();
+        // Voice/bus sanitisations plus the terminal limiter's non-finite input guard
+        telem.dspAnomalyCount = voiceAllocator.dspAnomalyCount() + masterLimiter_.anomalyCount();
         telemetryBuffer.publish();
     }
 
@@ -603,6 +616,8 @@ AudioEngine::~AudioEngine() {
 
 bool AudioEngine::init(const AudioEngineConfig& config) {
     if (pImpl_) return true;
+    // The realtime chain (voice mix, role buses, limiter, probe tap) is interleaved stereo only
+    if (config.channels != 2) return false;
 
     auto impl = std::make_unique<Impl>();
     impl->sampleRate = config.sampleRate;
@@ -650,6 +665,8 @@ bool AudioEngine::init(const AudioEngineConfig& config) {
 
 bool AudioEngine::initOffline(const AudioEngineConfig& config) {
     if (pImpl_) return true;
+    // The realtime chain (voice mix, role buses, limiter, probe tap) is interleaved stereo only
+    if (config.channels != 2) return false;
 
     auto impl = std::make_unique<Impl>();
     impl->sampleRate = config.sampleRate;
@@ -824,10 +841,12 @@ std::uint64_t AudioEngine::deferredScheduledEvents() const noexcept {
     return pImpl_ ? pImpl_->deferredScheduledEvents.load(std::memory_order_relaxed) : 0;
 }
 
-void AudioEngine::attachAudioProbe(AudioProbe* probe) noexcept {
-    if (pImpl_) {
-        pImpl_->audioProbe.store(probe, std::memory_order_seq_cst);
-    }
+bool AudioEngine::attachAudioProbe(AudioProbe* probe) noexcept {
+    if (!pImpl_) return false;
+    // The tap copies frameCount * channels samples: a probe with a different channel layout is refused
+    if (probe != nullptr && probe->channels() != pImpl_->channels) return false;
+    pImpl_->audioProbe.store(probe, std::memory_order_seq_cst);
+    return true;
 }
 
 void AudioEngine::detachAudioProbe() noexcept {

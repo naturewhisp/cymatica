@@ -167,6 +167,35 @@ std::uint64_t MusicClock::frameAtBeat(std::uint64_t totalBeats) const noexcept {
     return core::saturatingAdd(seg.startFrame, deltaFrames);
 }
 
+std::uint64_t MusicClock::frameAtBeatStep(std::uint64_t totalBeats,
+                                          std::uint64_t stepIndex,
+                                          std::uint32_t stepsPerBeat) const noexcept {
+    if (stepsPerBeat == 0) return frameAtBeat(totalBeats);
+    if (segmentCount_ == 0 || sampleRate_ == 0) return 0;
+
+    const std::uint64_t wholeBeats = core::saturatingAdd(totalBeats, stepIndex / stepsPerBeat);
+    const std::uint64_t remSteps = stepIndex % stepsPerBeat;
+
+    std::size_t segIdx = 0;
+    for (std::size_t i = 1; i < segmentCount_; ++i) {
+        if (segments_[i].startBeat <= wholeBeats) {
+            segIdx = i;
+        } else {
+            break;
+        }
+    }
+
+    const auto& seg = segments_[segIdx];
+    const std::uint64_t deltaBeats = wholeBeats >= seg.startBeat ? (wholeBeats - seg.startBeat) : 0;
+    const std::uint64_t deltaSteps = core::saturatingAdd(core::saturatingMul(deltaBeats, stepsPerBeat), remSteps);
+    const std::uint64_t K_num = 60ULL * sampleRate_ * seg.tempoMap.bpm.denominator * 4ULL;
+    const std::uint64_t K_den = static_cast<std::uint64_t>(seg.tempoMap.bpm.numerator) *
+                                seg.tempoMap.timeSignatureDen * stepsPerBeat;
+
+    const std::uint64_t deltaFrames = core::multiplyDivide(deltaSteps, K_num, K_den).value;
+    return core::saturatingAdd(seg.startFrame, deltaFrames);
+}
+
 std::uint64_t MusicClock::frameAtBar(std::uint64_t totalBars) const noexcept {
     if (segmentCount_ == 0 || sampleRate_ == 0) return 0;
 

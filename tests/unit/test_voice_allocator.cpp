@@ -444,6 +444,39 @@ TEST_CASE("VoiceAllocator guarantees zero dynamic heap allocation in realtime sy
 
         REQUIRE(scope.count() == 0);
     }
+
+    // Inc-2 synthesis paths (timbreParam > 0): Pulso sweep + click band-pass, Corpo PolyBLEP/SVF, Trama FM with
+    // the stereo delay and Corpo ducking active, Vettore glide/vibrato, steal tails into the buses, frozen pause
+    allocator.reset();
+    {
+        AllocationScope scope;
+        for (std::uint64_t i = 0; i < 64; ++i) {
+            ScheduledAudioEvent onEvt{
+                .eventId = 1000 + i,
+                .sampleFrame = 7000 + i * 100,
+                .type = AudioEventType::NoteOn,
+                .role = static_cast<MusicRole>(i % 4),
+                .valueA = 110.0f + static_cast<float>(i * 7),
+                .valueB = 0.9f,
+                .durationFrames = (i % 3 == 0) ? 0u : 900u,
+                .timbreParam = 0.1f + 0.014f * static_cast<float>(i)
+            };
+            (void)allocator.onNoteOn(onEvt);
+            allocator.renderBlock(out.data(), 512, 7000 + i * 100, false);
+        }
+        REQUIRE(allocator.voiceDropCount() > 0);
+        allocator.onPause();
+        allocator.renderBlock(out.data(), 512, 13400, true);
+        allocator.renderBlock(out.data(), 512, 13400, true); // frozen early-out
+        allocator.onResume();
+        allocator.renderBlock(out.data(), 512, 13400, false);
+        allocator.onStop();
+        allocator.renderBlock(out.data(), 512, 13912, true);
+        allocator.onStart();
+
+        REQUIRE(scope.count() == 0);
+    }
+    REQUIRE(allocator.dspAnomalyCount() == 0);
 }
 
 TEST_CASE("VoiceAllocator Stop -> Start + NoteOn restores full output and linear stop tail (AUD-01, AUD-02)", "[voice_allocator][stop_start_recovery]") {

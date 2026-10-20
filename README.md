@@ -4,7 +4,7 @@ Musical bullet hell procedurale: **musica, geometria e minacce derivano da un in
 
 ## Stato reale
 
-Prototipo tecnico Windows sviluppato in C++20 con CMake/Ninja, raylib e miniaudio. M0 e M1 concluse; **M2 attiva**: secondo il [registro milestone](docs/progress.md), M2.1 (decisioni), M2.2 (input/AudioProbe) e M2.3 (transport/scheduler) sono concluse; in **M2.4 (musica procedurale v1)** è stato **completato, bonificato e validato Inc-1** (`VoiceAllocator` a 8 voci, 2/ruolo, steal tails sample-rate adaptive, matrice stati `Pause`/`Resume`/`Stop`/`Start`, CACP `voice_probe_v1` PASS, 91/91 CTest Release/Debug e 90/90 Headless) ed è stato **formalmente chiuso il Gate tecnico pre-Inc-2** (`AUD-D-01` e `AUD-D-02` in [ADR-0004](docs/adr/0004-m2-4-audio-renderer-safety-proposal.md)). Il prossimo passo attivo è **Inc-2 (Sintesi 4 Ruoli, 4 Bus & Protezione Terminale MasterLimiter)**, seguito da Inc-3..Inc-5 e dal gate finale M2.5. Non è ancora una release giocabile.
+Prototipo tecnico Windows sviluppato in C++20 con CMake/Ninja, raylib e miniaudio. M0 e M1 concluse; **M2 attiva**: M2.1–M2.3 concluse; in **M2.4 (musica procedurale v1)** sono implementati Inc-1 (voice allocator), Inc-2 (sintesi 4 ruoli, bus, limiter terminale) e Inc-3 (planner gerarchico), con la remediation della revisione tecnico-scientifica del 2026-10-20. Le decisioni d'ingresso di Inc-4 sono in [ADR-0005](docs/adr/0005-m2-4-inc4-entry-decisions.md). Stato dettagliato, conteggi dei test ed evidenze sono solo nel [registro milestone](docs/progress.md). Non è ancora una release giocabile.
 
 La [CI GitHub Actions Windows](.github/workflows/windows-ci.yml) verifica automaticamente build/test Headless Release e Debug e il profilo diagnostico CACP offline. Le prove hardware, l'ascolto percettivo, la validazione artistica e il gate indipendente di milestone richiedono evidenze separate; nessun PASS di CI li sostituisce.
 
@@ -15,7 +15,8 @@ La [CI GitHub Actions Windows](.github/workflows/windows-ci.yml) verifica automa
 | [Specifica tecnica](CYMATICA_Specifica_Agentica_Sviluppo.md) | Architettura, contratti, timing, fairness e roadmap normativa (§16, §32) |
 | [Design](DESIGN.md) | Identità artistica, gameplay, linguaggio audiovisivo, UX e accessibilità (§8, §16) |
 | [ADR-0003](docs/adr/0003-m2-decisions-contracts.md) | Contratti Music Intent, 8 voci 2/ruolo, scheduler e decisioni M2.4 (D-M2-04..07) |
-| [ADR-0004](docs/adr/0004-m2-4-audio-renderer-safety-proposal.md) | Renderer nativo C++20, protezione digitale terminale (`MasterLimiter`), domini di monitoring e chiusura Gate pre-Inc-2 |
+| [ADR-0004](docs/adr/0004-m2-4-audio-renderer-safety-proposal.md) | Renderer nativo C++20, protezione digitale terminale (`MasterLimiter`), domini di monitoring e chiusura Gate pre-Inc-2; emendamento post-Inc-3 §4.3 |
+| [ADR-0005](docs/adr/0005-m2-4-inc4-entry-decisions.md) | Decisioni d'ingresso M2.4 Inc-4: espansione fixture, orizzonte di pianificazione ed epoch, profiling realtime, scenari CACP |
 | [Controllo e osservazione agentica](docs/agent_control_observability.md) | Motivazioni, limiti, CACP, sequenze/streaming e verifiche |
 | [Regole degli agenti](AGENTS.md) | Istruzioni operative, controllo scope e milestone gate |
 | [Stato e prove milestone](docs/progress.md) | Esecuzione realmente verificata, decisioni d'ingresso, evidenze e blocchi |
@@ -33,7 +34,7 @@ La valutazione distingue qualità tecnica (underrun/tempo/RT), coerenza simbolic
 
 ## Prossimo lavoro
 
-Procedere con **M2.4 Inc-2 (Sintesi 4 Ruoli & 4 Bus + `MasterLimiter` zero-latency)** secondo le specifiche chiuse in [ADR-0004](docs/adr/0004-m2-4-audio-renderer-safety-proposal.md) e [ADR-0003](docs/adr/0003-m2-decisions-contracts.md), usando il [piano di implementazione](docs/research/M2_4_Implementation_Plan.md) e `docs/progress.md` come riferimento operativo. Successivamente completare Inc-3 (Music Planner gerarchico), Inc-4 (Fixture A-B-A' 96 battute & profiling $\le 2,0\text{ ms}$) e Inc-5 (integrazione CACP completa e handoff al gate M2.5). Il [protocollo sperimentale](docs/research/M2_4_Evaluation_Protocol.md) propone un confronto A/B compositivo e timbrico; **non sostituisce il gate M2.5**.
+Implementare **M2.4 Inc-4** (fixture A-B-A' di 96 battute, orizzonte di pianificazione, profiling realtime `≤ 2,0 ms`, scenari `fixture_probe_v1`/`profile_probe_v1`) secondo [ADR-0005](docs/adr/0005-m2-4-inc4-entry-decisions.md), poi Inc-5 (dossier CACP e handoff) e il gate M2.5. Il [protocollo sperimentale](docs/research/M2_4_Evaluation_Protocol.md) propone un confronto A/B compositivo e timbrico; **non sostituisce il gate M2.5**.
 
 Il contratto minimo del giocatore `PlayerProfile_v1` è **già congelato in M1** come `accepted for implementation` ([player contract M1](docs/player_contract_m1.md)). Prima di M3/M4 restano da implementare e verificare movimento, un pattern, telegraph e fallback; il profilo necessita ancora della validazione empirica prevista in M5/M7 e di regressioni del validator in caso di modifiche. Cimatica e adattamento rimangono modelli di design da verificare, non prove acquisite di accuratezza fisica o psicologica.
 

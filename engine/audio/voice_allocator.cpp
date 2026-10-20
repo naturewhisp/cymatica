@@ -7,16 +7,16 @@
 namespace cymatica::audio {
 
 namespace {
-constexpr float roleBusGain(MusicRole role, float timbreParam) noexcept {
-    if (timbreParam == 0.0f) return 1.0f;
-    switch (role) {
-        case MusicRole::Pulso:   return RoleBusProcessor::kPulsoGain;
-        case MusicRole::Corpo:   return RoleBusProcessor::kCorpoGain;
-        case MusicRole::Trama:   return RoleBusProcessor::kTramaGain;
-        case MusicRole::Vettore: return RoleBusProcessor::kVettoreGain;
-    }
-    return 1.0f;
-}
+// synth-palette-v1 role constants (ADR-0004 AUD-D-01 §2.1, §2.4)
+constexpr float kPulsoSweepTauSeconds = 0.008f;   // tau_p = 8 ms exponential pitch sweep
+constexpr float kPulsoSweepStartMaxHz = 180.0f;   // f_start = min(3 f_base, 180 Hz)
+constexpr float kPulsoClickSeconds = 0.015f;      // 15 ms deterministic click burst
+constexpr float kPulsoClickMinHz = 1200.0f;       // click band-pass centre, scaled by timbreParam
+constexpr float kPulsoClickMaxHz = 3500.0f;
+constexpr float kPulsoClickQ = 0.9f;
+constexpr float kVettoreGlideTauMs = 15.0f;       // one-pole portamento
+constexpr float kVettoreVibratoHz = 5.5f;
+constexpr float kVettoreVibratoDepth = 0.005f;    // +/- 0.5 % of f0, scaled by timbreParam
 }
 
 VoiceAllocator::VoiceAllocator() noexcept {
@@ -30,8 +30,11 @@ void VoiceAllocator::init(std::uint32_t sampleRate) noexcept {
     sampleRate_ = (sampleRate > 0) ? sampleRate : 48000;
     // 2 ms physical de-click ramp: floor(0.002 * fs_device) -> 96 @ 48 kHz, 88 @ 44.1 kHz
     declickFrames_ = std::max<std::uint32_t>(1u, sampleRate_ / 500u);
+    const float fs = static_cast<float>(sampleRate_);
+    pulsoSweepMul_ = std::exp(-1.0f / (kPulsoSweepTauSeconds * fs));
+    pulsoClickFrames_ = std::max<std::uint32_t>(1u, static_cast<std::uint32_t>(kPulsoClickSeconds * fs));
+    vettoreVibratoInc_ = (kTwoPi * kVettoreVibratoHz) / fs;
     roleBusProcessor_.init(sampleRate_);
-    masterLimiter_.init(sampleRate_);
     reset();
 }
 
@@ -44,11 +47,28 @@ void VoiceAllocator::reset() noexcept {
         slot.reset(declickFrames_);
     }
     roleBusProcessor_.reset();
-    masterLimiter_.reset();
     transportRamp_ = TransportRamp::None;
     transportRampLevel_ = 1.0f;
     transportRampStep_ = 0.0f;
     transportRampRemaining_ = 0;
+    lastVettorePitchHz_ = 0.0f;
+}
+
+void VoiceAllocator::beginTelemetryWindow() noexcept {
+    telemetryWindowExternal_ = true;
+    roleBusProcessor_.beginTelemetryWindow();
+    latestTelemetry_.pulse.energy = 0.0f;
+    latestTelemetry_.body.energy = 0.0f;
+    latestTelemetry_.texture.energy = 0.0f;
+    latestTelemetry_.vector.energy = 0.0f;
+    latestTelemetry_.globalEnergy = 0.0f;
+}
+
+bool VoiceAllocator::anyStealTailActive() const noexcept {
+    for (const auto& slot : slots_) {
+        if (slot.stealTail.active) return true;
+    }
+    return false;
 }
 
 int VoiceAllocator::selectSlotForRole(MusicRole role) noexcept {
@@ -163,6 +183,7 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
             slot.stealTail.totalSamples = declickFrames_;
             slot.stealTail.remainingSamples = declickFrames_;
             slot.stealTail.active = true;
+            slot.stealTail.feedsDelay = true;
         }
     }
 
@@ -224,6 +245,7 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
                 const float decaySec = 0.050f + 0.070f * slot.timbreParam;
                 slot.decaySamples = std::max<std::uint32_t>(1u, static_cast<std::uint32_t>(decaySec * fs));
                 slot.sustainLevel = 0.0f;
+                slot.filter.reset(); // click band-pass state
                 break;
             }
             case MusicRole::Corpo: {
@@ -250,12 +272,20 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
                 slot.sustainLevel = 0.85f;
                 slot.osc.reset();
                 slot.filter.reset();
-                slot.pitchSmoother.reset(slot.pitchHz);
-                slot.pitchSmoother.setTauMs(30.0f, fs);
+                // Exponential one-pole portamento (tau = 15 ms) from the previous Vettore pitch of this run;
+                // the first Vettore note of a run starts on pitch (no glide).
+                slot.pitchSmoother.setTauMs(kVettoreGlideTauMs, fs);
+                slot.pitchSmoother.reset((lastVettorePitchHz_ > 0.0f) ? lastVettorePitchHz_ : slot.pitchHz);
+                slot.pitchSmoother.setTarget(slot.pitchHz);
                 slot.vibratoPhase = 0.0f;
+                slot.vibratoPhaseIncrement = vettoreVibratoInc_;
                 break;
             }
         }
+    }
+
+    if (slot.role == MusicRole::Vettore) {
+        lastVettorePitchHz_ = slot.pitchHz;
     }
 
     return idx;
@@ -320,7 +350,7 @@ void VoiceAllocator::checkLifetimes(std::uint64_t currentLogicalFrame) noexcept 
 
 void VoiceAllocator::onStart() noexcept {
     roleBusProcessor_.reset();
-    masterLimiter_.reset();
+    lastVettorePitchHz_ = 0.0f;
     transportRamp_ = TransportRamp::None;
     transportRampLevel_ = 1.0f;
     transportRampStep_ = 0.0f;
@@ -399,13 +429,15 @@ void VoiceAllocator::onStop() noexcept {
         slot.phase = 0.0f;
         slot.phaseIncrement = 0.0f;
 
-        // Maintain physical tail in preallocated static steal tail
+        // Maintain physical tail in preallocated static steal tail. Stop tails flow through the role bus but
+        // never into the Trama echo line (wiped below), so no echo can follow the silence boundary.
         if (hasTail) {
             slot.stealTail.startAmplitude[0] = curL;
             slot.stealTail.startAmplitude[1] = curR;
             slot.stealTail.totalSamples = declickFrames_;
             slot.stealTail.remainingSamples = declickFrames_;
             slot.stealTail.active = true;
+            slot.stealTail.feedsDelay = false;
         } else {
             slot.stealTail.reset(declickFrames_);
         }
@@ -413,6 +445,7 @@ void VoiceAllocator::onStop() noexcept {
 
     // 2. Extinguish circulating delay lines within 2 ms silence boundary without click (Inc-2)
     roleBusProcessor_.onStop(declickFrames_);
+    lastVettorePitchHz_ = 0.0f;
 
     // 3. Restore transport ramp to unity so steal tails decay linearly (1 - k/N)
     //    and subsequent Start + NoteOn is never muted.
@@ -440,6 +473,19 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
         for (std::size_t i = 0; i < static_cast<std::size_t>(frameCount) * 2; ++i) {
             pOut[i] = 0.0f;
         }
+    }
+
+    if (!telemetryWindowExternal_) {
+        roleBusProcessor_.beginTelemetryWindow();
+    }
+
+    // Frozen pause / stop silence: once the 2 ms de-click ramp has finished (or every voice is Idle after Stop)
+    // and no steal/delay tail is still decaying, the output is exact digital silence and the DSP state is left
+    // untouched, so frozen voices cannot fill the delay with DC or drift the filters before Resume.
+    if (isTransportPaused && transportRamp_ == TransportRamp::None &&
+        (transportRampLevel_ <= 0.0f || activeVoiceCount() == 0) &&
+        !anyStealTailActive() && !roleBusProcessor_.hasActiveTail()) {
+        return;
     }
 
     const float fs = static_cast<float>(sampleRate_);
@@ -480,17 +526,31 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
                     } else {
                         switch (slot.role) {
                             case MusicRole::Pulso: {
-                                // Percussive kick + transient click
-                                const float tauP = 0.015f * fs;
-                                const float sweepFactor = std::exp(-static_cast<float>(slot.noteFrameIndex) / tauP);
-                                const float instFreq = slot.pitchHz * (1.0f + 1.5f * sweepFactor);
-                                const float dynInc = (kTwoPi * instFreq) / fs;
-                                slot.phaseIncrement = dynInc;
+                                // Sub-kick: f_inst = f_base + (f_start - f_base) * exp(-k / (tau_p fs)), with the
+                                // exponential carried by a precomputed per-sample multiplier (ADR-0004 §2.1)
+                                const float fBase = slot.pitchHz;
+                                // ADR-0004 §2.1 cap; never below f0, so the sweep is always downward
+                                const float fStart = std::max(fBase, std::min(3.0f * fBase, kPulsoSweepStartMaxHz));
+                                const float instFreq = fBase + (fStart - fBase) * slot.pitchSweepEnv;
+                                slot.phaseIncrement = (kTwoPi * std::max(instFreq, 1.0f)) / fs;
 
                                 const float body = std::sin(slot.phase);
                                 float click = 0.0f;
-                                if (slot.noteFrameIndex < 16) {
-                                    click = pulsoClickSample(slot.eventId, slot.noteFrameIndex, slot.slotIndex) * (0.15f + 0.15f * slot.timbreParam);
+                                if (slot.noteFrameIndex < pulsoClickFrames_) {
+                                    // 15 ms deterministic staffordMix13 noise burst through a TPT SVF band-pass,
+                                    // centre 1200..3500 Hz scaled by timbreParam, linear fade over the burst.
+                                    // While paused the band-pass only rings down (no frozen noise sample as DC).
+                                    const float noise = isTransportPaused
+                                        ? 0.0f
+                                        : pulsoClickSample(slot.eventId, slot.noteFrameIndex, slot.slotIndex);
+                                    const float fc = kPulsoClickMinHz + (kPulsoClickMaxHz - kPulsoClickMinHz) * slot.timbreParam;
+                                    const float bp = slot.filter.process(noise, fc, kPulsoClickQ, sampleRate_).bp;
+                                    const float clickEnv = 1.0f - static_cast<float>(slot.noteFrameIndex) /
+                                                                  static_cast<float>(pulsoClickFrames_);
+                                    click = bp * clickEnv * (0.6f + 0.6f * slot.timbreParam);
+                                }
+                                if (!isTransportPaused) {
+                                    slot.pitchSweepEnv = flushSubnormal(slot.pitchSweepEnv * pulsoSweepMul_);
                                 }
                                 s = body + click;
                                 sampleL = s * slot.velocity * slot.envelopeLevel * kNominalVoiceScale;
@@ -517,7 +577,7 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
                         }
                         case MusicRole::Trama: {
                             // 2-operator FM
-                            const float harmonicRatio = (slot.timbreParam == 0.0f) ? 2.0f : (1.0f + 1.76f * slot.timbreParam);
+                            const float harmonicRatio = 1.0f + 1.76f * slot.timbreParam;
                             const float modFreq = slot.pitchHz * harmonicRatio;
                             slot.fmModPhaseIncrement = (kTwoPi * modFreq) / fs;
                             const float maxIdx = carsonMaxModulationIndex(slot.pitchHz, modFreq, fs) *
@@ -533,18 +593,23 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
                                 sampleL = scaled * 0.5f;
                                 sampleR = scaled;
                             }
-                            if (!isTransportPaused) {
-                                slot.fmModPhase += slot.fmModPhaseIncrement;
-                                if (slot.fmModPhase >= kTwoPi) slot.fmModPhase -= kTwoPi;
-                            }
+                            // Oscillator phases are physical: they keep running through the pause ramp so the
+                            // 2 ms fade-out acts on a continuing waveform instead of a frozen DC value.
+                            slot.fmModPhase += slot.fmModPhaseIncrement;
+                            if (slot.fmModPhase >= kTwoPi) slot.fmModPhase -= kTwoPi;
                             break;
                         }
                         case MusicRole::Vettore: {
-                            // PolyBLEP saw with glide, vibrato, and TPT SVF
-                            const float smoothedFreq = slot.pitchSmoother.process(slot.pitchHz);
-                            const float vibDepth = 1.5f + 3.0f * slot.timbreParam;
-                            const float instFreq = std::clamp(smoothedFreq + std::sin(slot.vibratoPhase) * vibDepth, 20.0f, 0.45f * fs);
+                            // PolyBLEP saw with one-pole glide (tau 15 ms), 5.5 Hz vibrato of
+                            // +/- 0.5 % * timbreParam of f0, and TPT SVF low-pass (ADR-0004 §2.4).
+                            // The oscillator phase advances by 2*pi*f_inst/fs every sample.
+                            const float glidedFreq = isTransportPaused
+                                ? slot.pitchSmoother.current()
+                                : slot.pitchSmoother.process(slot.pitchHz);
+                            const float vibrato = std::sin(slot.vibratoPhase) * (kVettoreVibratoDepth * slot.timbreParam);
+                            const float instFreq = std::clamp(glidedFreq * (1.0f + vibrato), 20.0f, 0.45f * fs);
                             const float dynInc = (kTwoPi * instFreq) / fs;
+                            slot.phaseIncrement = dynInc;
                             const float saw = slot.osc.nextSample(slot.phase, dynInc);
                             const float cutoff = std::clamp(instFreq * 2.5f + slot.envelopeLevel * 1500.0f, 100.0f, 0.42f * fs);
                             s = slot.filter.processLowpass(saw, cutoff, 1.0f, fs);
@@ -556,20 +621,22 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
                                 sampleL = scaled * 0.9f;
                                 sampleR = scaled;
                             }
-                            if (!isTransportPaused) {
-                                slot.vibratoPhase += (kTwoPi * 5.5f) / fs;
-                                if (slot.vibratoPhase >= kTwoPi) slot.vibratoPhase -= kTwoPi;
-                            }
+                            // Vibrato LFO is physical like the oscillator; the glide stays frozen while paused
+                            slot.vibratoPhase += slot.vibratoPhaseIncrement;
+                            if (slot.vibratoPhase >= kTwoPi) slot.vibratoPhase -= kTwoPi;
                             break;
                         }
                     }
                 }
 
+                    // Oscillator phase is physical and keeps running through the pause de-click ramp;
+                    // envelope, note index and lifetimes stay frozen on the logical timeline.
+                    slot.phase += slot.phaseIncrement;
+                    if (slot.phase >= kTwoPi) {
+                        slot.phase -= kTwoPi;
+                    }
+
                     if (!isTransportPaused) {
-                        slot.phase += slot.phaseIncrement;
-                        if (slot.phase >= kTwoPi) {
-                            slot.phase -= kTwoPi;
-                        }
                         ++slot.noteFrameIndex;
 
                         // ADSR envelope step
@@ -621,12 +688,35 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
                 if (!std::isfinite(sampleL)) { sampleL = 0.0f; ++dspAnomalyCount_; }
                 if (!std::isfinite(sampleR)) { sampleR = 0.0f; ++dspAnomalyCount_; }
 
-                // Save post-bus output for physical steal tail continuity
-                const float busGain = roleBusGain(slot.role, slot.timbreParam);
-                slot.lastOutput[0] = sampleL * busGain;
-                slot.lastOutput[1] = sampleR * busGain;
+                // Save pre-bus output: steal/stop tails start from it and re-enter the same role bus
+                slot.lastOutput[0] = sampleL;
+                slot.lastOutput[1] = sampleR;
 
                 roleBusProcessor_.accumulateRoleSample(slot.role, f, sampleL, sampleR);
+
+                // Steal / stop tail: linear 2 ms decay fed into the role bus input (pre bus gain, ducking and
+                // Trama dry/wet), so its first sample equals the stolen voice's actual post-bus contribution.
+                if (slot.stealTail.active) {
+                    if (slot.stealTail.remainingSamples == 0) {
+                        slot.stealTail.active = false;
+                    } else {
+                        const std::uint32_t tailLen = (slot.stealTail.totalSamples > 0)
+                            ? slot.stealTail.totalSamples
+                            : declickFrames_;
+                        const float factor = static_cast<float>(slot.stealTail.remainingSamples) /
+                                             static_cast<float>(tailLen);
+                        float tailL = slot.stealTail.startAmplitude[0] * factor;
+                        float tailR = slot.stealTail.startAmplitude[1] * factor;
+                        if (!std::isfinite(tailL)) { tailL = 0.0f; ++dspAnomalyCount_; }
+                        if (!std::isfinite(tailR)) { tailR = 0.0f; ++dspAnomalyCount_; }
+
+                        roleBusProcessor_.accumulateRoleSample(slot.role, f, tailL, tailR, slot.stealTail.feedsDelay);
+
+                        if (--slot.stealTail.remainingSamples == 0) {
+                            slot.stealTail.active = false;
+                        }
+                    }
+                }
             }
         }
 
@@ -656,7 +746,7 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
             roleTimbres[r] = timbre;
         }
 
-        // Process role buses (ducking, delay, bus scaling) and mix to blockMixBuffer_
+        // Process role buses (ducking, delay, smoothed bus scaling) and mix to blockMixBuffer_
         roleBusProcessor_.processAndMix(
             blockMixBuffer_.data(),
             subFrames,
@@ -666,36 +756,8 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
             latestTelemetry_
         );
 
-        // Add active steal tails directly to mix buffer (post-bus physical anti-click decay)
-        for (auto& slot : slots_) {
-            if (slot.stealTail.active) {
-                for (std::uint32_t f = 0; f < subFrames; ++f) {
-                    if (slot.stealTail.remainingSamples == 0) {
-                        slot.stealTail.active = false;
-                        break;
-                    }
-                    const std::uint32_t tailLen = (slot.stealTail.totalSamples > 0)
-                        ? slot.stealTail.totalSamples
-                        : declickFrames_;
-                    const float factor = static_cast<float>(slot.stealTail.remainingSamples) /
-                                         static_cast<float>(tailLen);
-                    float tailL = slot.stealTail.startAmplitude[0] * factor;
-                    float tailR = slot.stealTail.startAmplitude[1] * factor;
-                    if (!std::isfinite(tailL)) { tailL = 0.0f; ++dspAnomalyCount_; }
-                    if (!std::isfinite(tailR)) { tailR = 0.0f; ++dspAnomalyCount_; }
-
-                    blockMixBuffer_[f * 2] += tailL;
-                    blockMixBuffer_[f * 2 + 1] += tailR;
-
-                    --slot.stealTail.remainingSamples;
-                }
-            }
-        }
-
-        // Common terminal protection: zero-latency MasterLimiter
-        masterLimiter_.processBlock(blockMixBuffer_.data(), subFrames);
-
-        // Transport de-click ramp & silence gate + write to pOut
+        // Transport de-click ramp & silence gate + write to pOut. Terminal protection (the single
+        // MasterLimiter) is applied by AudioEngine on the final pOutput sum, downstream of this ramp.
         for (std::uint32_t f = 0; f < subFrames; ++f) {
             if (transportRamp_ == TransportRamp::FadingOut) {
                 transportRampLevel_ -= transportRampStep_;

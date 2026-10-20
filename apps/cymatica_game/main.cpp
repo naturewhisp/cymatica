@@ -72,7 +72,15 @@ int main(int argc, char** argv) {
                 std::printf("[cacp] Verdict: %s\n", res.passed ? "PASS" : "FAIL");
                 std::printf("%s\n", res.toJson().c_str());
                 return res.passed ? 0 : 1;
+            } else {
+                std::fprintf(stderr, "[cacp] ERROR: unknown scenario '%s' (known: tone_test, voice_test, "
+                                     "synth_test, timbre_test, planner_test and their *_probe_v* aliases)\n",
+                             scenario);
+                return 2;
             }
+        } else if (std::strcmp(argv[i], "--cacp-run") == 0) {
+            std::fprintf(stderr, "[cacp] ERROR: --cacp-run requires a scenario name\n");
+            return 2;
         }
     }
 

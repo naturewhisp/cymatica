@@ -535,3 +535,35 @@ TEST_CASE("MusicClock nextBeatBoundary and nextBarBoundary quantize accurately (
     CHECK(clock.nextBarBoundary(96000) == 96000);
 }
 
+
+TEST_CASE("MusicClock frameAtBeatStep is exact on the A-B-A' fixture grid", "[clock][subdivision]") {
+    TempoMap map120;
+    map120.bpm = RationalBpm{120, 1};
+    TempoMap map140 = map120;
+    map140.bpm = RationalBpm{140, 1};
+
+    auto clockOpt = MusicClock::create(48000, map120);
+    REQUIRE(clockOpt.has_value());
+    auto clock = *clockOpt;
+    REQUIRE(clock.setTempoMap(map140, 3072000));        // bar 32 at 120 BPM
+    REQUIRE(clock.setTempoMap(map120, 5705142));        // bar 64 = 3,072,000 + floor(128 * 144000 / 7)
+    REQUIRE(clock.frameAtBar(96) == 8777142);
+
+    // Independent oracle at 140 BPM: one 16th note = 60 * 48000 / (140 * 4) = 36000 / 7 frames.
+    CHECK(clock.frameAtBeatStep(128, 0, 4) == 3072000);
+    CHECK(clock.frameAtBeatStep(128, 1, 4) == 3072000 + 5142);   // 5142.857...
+    CHECK(clock.frameAtBeatStep(128, 3, 4) == 3072000 + 15428);  // 15428.571...
+    CHECK(clock.frameAtBeatStep(128, 7, 4) == 3072000 + 36000);  // exact
+    CHECK(clock.frameAtBeatStep(128, 511, 4) == 3072000 + 2628000); // 511 * 36000 / 7 = 2,628,000 exact
+
+    // Steps that complete whole beats coincide with frameAtBeat across all three segments.
+    for (std::uint64_t beat = 0; beat <= 384; ++beat) {
+        REQUIRE(clock.frameAtBeatStep(beat, 0, 4) == clock.frameAtBeat(beat));
+        if (beat > 0) {
+            REQUIRE(clock.frameAtBeatStep(beat - 1, 4, 4) == clock.frameAtBeat(beat));
+        }
+    }
+
+    // stepsPerBeat == 0 degrades to the beat boundary.
+    CHECK(clock.frameAtBeatStep(10, 3, 0) == clock.frameAtBeat(10));
+}

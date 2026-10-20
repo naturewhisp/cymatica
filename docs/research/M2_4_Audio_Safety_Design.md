@@ -3,6 +3,7 @@
 - **Data:** 2026-10-15 (aggiornato 2026-10-19 con chiusura formale del Gate pre-Inc-2).
 - **Stato:** **studio tecnico e specifica di qualifica pre-Inc-2**; il principio di protezione finale, la separazione dei domini di monitoring e le specifiche del **Gate tecnico pre-Inc-2 (`AUD-D-02`)** (topologia della catena master, algoritmo `MasterLimiter` zero-latency $L = 0$, ceiling operativi e meter true-peak offline indipendente a 48 tap ITU-R BS.1770-5) sono **ratificati e chiusi in [ADR-0004](../adr/0004-m2-4-audio-renderer-safety-proposal.md)** per l'implementazione in Inc-2.
 - **Baseline:** `main` (Inc-1 completato e verificato: 91/91 test Release/Debug, 90/90 Headless).
+- **Nota 2026-10-20:** documento storico di ricerca. I valori normativi correnti del limiter (soglia −1,80 dBFS, pesi 0,65/0,35, detector a 3 interpolatori, limiter unico, rampa a monte) e del meter (zero padding) sono in [ADR-0004 §4.3](../adr/0004-m2-4-audio-renderer-safety-proposal.md); lo stato operativo è in [progress.md](../progress.md). I valori sotto restano come traccia della proposta originale.
 - **Contesto:** [review audio](M2_4_Audio_Renderer_Research_Review.md), [ADR-0003 D-M2-06/07](../adr/0003-m2-decisions-contracts.md), [ADR-0004 ratificato](../adr/0004-m2-4-audio-renderer-safety-proposal.md).
 
 ## 1. Oggetto e limiti di garanzia
@@ -31,7 +32,7 @@ ITU-T [H.872 (2024)](https://www.itu.int/rec/T-REC-H.872-202410-I/en) è il rife
        v
   [6] Terminal MasterLimiter Zero-Latency (L = 0 campioni, sempre attivo, fail-closed):
       Detector ibrido causale (FIR polifase 4x12 tap + bound di curvatura Nyquist 1°/2° ordine),
-      Soglia interna C_lim = -1.50 dBFS (0.8414f), attacco 0 ms, hold 2 ms, release 50 ms
+      Soglia interna C_lim = -1.50 dBFS (0.8414f) [proposta originale; ora -1.80 dBFS, ADR-0004 §4.3], attacco 0 ms, hold 2 ms, release 50 ms
        v
   [7] Rampa Fisica di De-Click del Trasporto (Pause/Resume/Stop, declickFrames_ = sampleRate / 500)
       & Gate di Silenzio Fisico (0.0f esatto oltre n_device,pause + N_tail)
@@ -56,7 +57,7 @@ Con la chiusura del Gate pre-Inc-2 in [ADR-0004](../adr/0004-m2-4-audio-renderer
    - **Detector di picco ibrido causale:** combina (a) l'interpolazione polifase causale $4\times$ a 12 tap per sotto-fase sul buffer circolare locale degli ultimi 12 frame stereo `float historyL_[12], historyR_[12]` e (b) il bound analitico di curvatura alle alte frequenze basato sulle differenze finite prime e seconde ($\Delta x[n] = x[n] - x[n-1]$, $\Delta^2 x[n] = x[n] - 2x[n-1] + x[n-2]$):
      $$\hat{p}_{\text{curv}, c}[n] = \sqrt{x_c[n]^2 + 0,55\,(\Delta x_c[n])^2 + 0,30\,(\Delta^2 x_c[n])^2}, \qquad \hat{p}[n] = \max_{c \in \{L, R\}} \max\!\left(|x_c[n]|,\, \hat{p}_{\text{FIR4x}, c}[n],\, \hat{p}_{\text{curv}, c}[n]\right)$$
    - **Legge di guadagno stereo-linked:** soglia interna conservativa $C_{\text{lim}} = 0,8414\text{f}$ ($-1,50\text{ dBFS}$), attacco istantaneo $0\text{ ms}$, hold $N_{\text{hold}} = \lfloor 0,002 \times f_s \rfloor$ ($2\text{ ms}$), release esponenziale $\tau_{\text{rel}} = 50\text{ ms}$ ($\alpha_{\text{rel}} = \exp(-1 / (0,050 \cdot f_s))$), seguita da hard safety clamp a $C_{\text{max}} = 0,89125\text{f}$ ($-1,0\text{ dBFS}$).
-4. **Meter True-Peak Offline Indipendente (`analysis::estimateTruePeakDbtp`):** implementato in `AudioProbe` secondo **ITU-R BS.1770-5 Annex 2 Table 3** (filtro FIR polifase standard a 48 tap, $4 \times 12$ coefficienti a fase lineare non correlato al bound di curvatura causale del limiter), verificato sulla suite di segnali avversari (`T-ADV-01..06`).
+4. **Meter True-Peak Offline Indipendente (`analysis::estimateTruePeakDbtp`):** implementato in `AudioProbe` secondo **ITU-R BS.1770-4/-5 Annex 2** (filtro FIR polifase standard a 48 tap, $4 \times 12$ coefficienti a fase lineare non correlato al bound di curvatura causale del limiter), verificato sulla suite di segnali avversari (`T-ADV-01..06`).
 5. **Comportamento in saturazione riproducibile**, comprensivo di Attack/Hold/Release, gain reduction tracciata (`maxGainReductionDb`), fade di `Pause`/`Resume`/`Stop` sample-rate adaptive e continuità cross-epoch.
 6. **Deadline integra**: target D-M2-07 di $\le 2,0\text{ ms}$ per l'intera callback Release a 512 frame / 48 kHz; il costo del `MasterLimiter` zero-latency è $\approx 60$ MAC/frame stereo ($\approx 0,64\text{ }\mu\text{s}$ per blocco da 512 frame, $< 0,04\%$ del budget).
 7. **Nessuna dipendenza di sicurezza dai worker CACP/LUFS**: se il consumer è lento, il limiting realtime continua a funzionare. Capture/drop possono rendere **incompleta** l'evidenza, non disattivare la protezione e non produrre falsa attestazione `PASS`.
