@@ -39,6 +39,8 @@ public:
     // Staging API (Coordinator thread only, outside realtime audio callback)
     void stageEvent(const ScheduledAudioEvent& event);
     void scheduleIntent(const MusicIntentEvent& intent, std::uint64_t transportEpoch = 0);
+    // Explicit NoteOff scheduling for open-pad leases (ADR-0003 D-M2-04 §4, INC3-R01)
+    void scheduleNoteOff(std::uint64_t eventId, MusicRole role, std::uint64_t sampleFrame, std::uint64_t transportEpoch = 0);
 
     // Transport epoch tracking
     void setTransportEpoch(std::uint64_t epoch) noexcept;

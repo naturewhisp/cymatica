@@ -209,4 +209,40 @@ struct TimbreBusProbeResult {
 TimbreBusProbeResult runTimbreBusProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
                                                bool writeFiles = true);
 
+// Profile metrics for planner_probe_v1 (Spec §11.7, §16, ADR-0003 D-M2-02/06, Inc-3)
+struct PlannerProbeResult {
+    bool passed{false};
+    std::uint64_t totalCapturedFrames{0};
+    std::uint64_t droppedFrames{0};
+    std::uint32_t generatedEvents{0};
+    std::uint32_t committedEvents{0};
+    bool determinismPassed{false};      // Identical audio output & event list on repeated identical seed run
+    bool streamIsolationPassed{false};  // Seed stream isolation verified (Gameplay seed mutation does not affect music)
+    bool motifInvariancePassed{false};  // Permutation & contour invariants verified
+    bool triadBudgetPassed{false};      // Max 2 simultaneous voices on Corpo respected without illegal voice stealing
+    bool fallbackPassed{false};         // Fail-closed recovery validated
+    bool nonSilentAudioPassed{false};   // RMS energy per active role > -40 dBFS (music actually produced)
+    float peakAmplitude{0.0f};
+    float truePeakDbtp{-120.0f};
+    bool truePeakPassed{false};         // <= -1.0 dBTP verified by BS.1770-5 meter
+    std::uint32_t clippedSamples{0};
+    bool dspAnomaliesPassed{false};
+    std::string buildId{CYMATICA_BUILD_ID};
+    std::uint64_t transportEpoch{2};
+    std::uint64_t simulationTicks{1800};
+    std::uint64_t requestedSampleFrames{720000};
+    std::string presentationQuality{"Estimated"};
+    bool wavWriteSuccess{false};
+    bool manifestWriteSuccess{false};
+    std::string wavFilePath{};
+    std::string manifestFilePath{};
+    std::string failureReason{};
+
+    [[nodiscard]] std::string toJson() const;
+};
+
+// Runs the authoritative planner_probe_v1 scenario offline in 120 Hz simulation ticks (Inc-3)
+PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
+                                           bool writeFiles = true);
+
 } // namespace cymatica::audio

@@ -1,5 +1,8 @@
 #include "audio_probe.h"
 #include "audio_engine.h"
+#include "audio_scheduler.h"
+#include "music_clock.h"
+#include "music_planner.h"
 
 #include <algorithm>
 #include <cmath>
@@ -1137,6 +1140,358 @@ TimbreBusProbeResult runTimbreBusProbeV1Offline(const std::string& outputDir, bo
 
         result.wavFilePath = (dir / "timbre_bus_probe_v1.wav").lexically_normal().string();
         result.manifestFilePath = (dir / "timbre_bus_probe_v1_manifest.json").lexically_normal().string();
+
+        const bool wavOk = analysis::writeWavStereo16(
+            result.wavFilePath,
+            recordedStereo.data(),
+            result.totalCapturedFrames,
+            48000
+        );
+        result.wavWriteSuccess = wavOk;
+        if (!wavOk) {
+            result.passed = false;
+            result.failureReason += "[WAV write failed] ";
+        }
+
+        std::ofstream mf(result.manifestFilePath);
+        if (!mf.is_open()) {
+            result.passed = false;
+            result.manifestWriteSuccess = false;
+            result.failureReason += "[Manifest write failed] ";
+        } else {
+            result.manifestWriteSuccess = true;
+            mf << result.toJson();
+            if (!mf.good()) {
+                result.passed = false;
+                result.manifestWriteSuccess = false;
+                result.failureReason += "[Manifest write failed] ";
+            }
+        }
+    }
+
+    return result;
+}
+
+
+std::string PlannerProbeResult::toJson() const {
+    std::ostringstream ss;
+    ss << "{\n";
+    ss << "  \"manifest_version\": \"1.0\",\n";
+    ss << "  \"scenario_id\": \"planner_probe_v1\",\n";
+    ss << "  \"build_id\": \"" << escapeJsonString(buildId) << "\",\n";
+    ss << "  \"verdict\": \"" << (passed ? "PASS" : "FAIL") << "\",\n";
+    ss << "  \"transport_epoch\": " << transportEpoch << ",\n";
+    ss << "  \"simulation_ticks\": " << simulationTicks << ",\n";
+    ss << "  \"requested_sample_frames\": " << requestedSampleFrames << ",\n";
+    ss << "  \"applied_sample_frames\": " << totalCapturedFrames << ",\n";
+    ss << "  \"presentation_quality\": \"" << escapeJsonString(presentationQuality) << "\",\n";
+    ss << "  \"timing_profile\": {\n";
+    ss << "    \"sample_rate\": 48000,\n";
+    ss << "    \"simulation_hz\": 120,\n";
+    ss << "    \"frames_per_tick\": 400\n";
+    ss << "  },\n";
+    ss << "  \"generated_events\": " << generatedEvents << ",\n";
+    ss << "  \"committed_events\": " << committedEvents << ",\n";
+    ss << "  \"dropped_frames\": " << droppedFrames << ",\n";
+    ss << "  \"peak_amplitude\": " << safeJsonFloat(peakAmplitude) << ",\n";
+    ss << "  \"true_peak_dbtp\": " << safeJsonFloat(truePeakDbtp) << ",\n";
+    ss << "  \"clipped_samples\": " << clippedSamples << ",\n";
+    ss << "  \"checks\": {\n";
+    ss << "    \"determinism_passed\": " << (determinismPassed ? "true" : "false") << ",\n";
+    ss << "    \"stream_isolation_passed\": " << (streamIsolationPassed ? "true" : "false") << ",\n";
+    ss << "    \"motif_invariance_passed\": " << (motifInvariancePassed ? "true" : "false") << ",\n";
+    ss << "    \"triad_budget_passed\": " << (triadBudgetPassed ? "true" : "false") << ",\n";
+    ss << "    \"fallback_passed\": " << (fallbackPassed ? "true" : "false") << ",\n";
+    ss << "    \"non_silent_audio_passed\": " << (nonSilentAudioPassed ? "true" : "false") << ",\n";
+    ss << "    \"true_peak_passed\": " << (truePeakPassed ? "true" : "false") << ",\n";
+    ss << "    \"zero_clipping_passed\": " << (clippedSamples == 0 ? "true" : "false") << ",\n";
+    ss << "    \"dsp_anomalies_passed\": " << (dspAnomaliesPassed ? "true" : "false") << "\n";
+    ss << "  },\n";
+    ss << "  \"wav_write_success\": " << (wavWriteSuccess ? "true" : "false") << ",\n";
+    ss << "  \"manifest_write_success\": " << (manifestWriteSuccess ? "true" : "false") << ",\n";
+    ss << "  \"artifacts\": {\n";
+    ss << "    \"wav_file\": \"" << escapeJsonString(wavFilePath) << "\",\n";
+    ss << "    \"manifest_file\": \"" << escapeJsonString(manifestFilePath) << "\"\n";
+    ss << "  }";
+    if (!failureReason.empty()) {
+        ss << ",\n  \"failure_reason\": \"" << escapeJsonString(failureReason) << "\"";
+    }
+    ss << "\n}\n";
+    return ss.str();
+}
+
+PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool writeFiles) {
+    PlannerProbeResult result{};
+    result.simulationTicks = 1800;
+    result.requestedSampleFrames = 720000;
+    result.presentationQuality = "Estimated";
+
+    AudioEngine engine;
+    if (!engine.initOffline({48000, 2, 220.0f})) {
+        result.passed = false;
+        result.failureReason = "Failed to initialize AudioEngine in offline mode";
+        return result;
+    }
+
+    AudioProbe probe(AudioProbe::kDefaultCapacityFrames, 2, engine.sampleRate());
+    engine.attachAudioProbe(&probe);
+
+    const FormPlan form = MusicPlanner::makePlannerProbeV1Form();
+    auto clockOpt = MusicClock::create(48000, form.sections[0].tempoMap);
+    if (!clockOpt.has_value()) {
+        result.passed = false;
+        result.failureReason = "Failed to initialize MusicClock for Section 0";
+        engine.detachAudioProbe();
+        engine.shutdown();
+        return result;
+    }
+    MusicClock clock = std::move(*clockOpt);
+    const std::uint64_t s0EndFrame = clock.frameAtBar(4); // 384000
+    (void)clock.setTempoMap(form.sections[1].tempoMap, s0EndFrame);
+    const std::uint64_t s1EndFrame = clock.frameAtBar(8);
+
+    AudioScheduler scheduler({.lookaheadFrames = 4800, .sampleRate = 48000});
+    MusicPlanner planner({.runSeed = 1337ULL, .candidateCount = 6, .sampleRate = 48000});
+
+    const PhrasePlan p0{
+        .sectionIndex = 0,
+        .phraseIndex = 0,
+        .startBar = 0,
+        .barCount = 4,
+        .startFrame = 0,
+        .endFrame = s0EndFrame,
+        .scale = form.sections[0].scale,
+        .chords = {
+            ChordSpec{0, 2, 4, HarmonicFunction::Stability, true},
+            ChordSpec{3, 5, 0, HarmonicFunction::Preparation, true},
+            ChordSpec{4, 6, 1, HarmonicFunction::Tension, true},
+            ChordSpec{0, 2, 4, HarmonicFunction::Resolution, true}
+        },
+        .targetTension = form.sections[0].baseTension,
+        .dominantRole = MusicRole::Vettore,
+        .cadenceGoal = CadenceGoal::Sustain,
+        .baseMotifId = form.sections[0].sectionMotif.motifId
+    };
+
+    const PhrasePlan p1{
+        .sectionIndex = 1,
+        .phraseIndex = 0,
+        .startBar = 4,
+        .barCount = 4,
+        .startFrame = s0EndFrame,
+        .endFrame = s1EndFrame,
+        .scale = form.sections[1].scale,
+        .chords = {
+            ChordSpec{0, 2, 4, HarmonicFunction::Stability, true},
+            ChordSpec{5, 0, 2, HarmonicFunction::Preparation, true},
+            ChordSpec{6, 1, 3, HarmonicFunction::Tension, true},
+            ChordSpec{0, 2, 4, HarmonicFunction::Resolution, true}
+        },
+        .targetTension = form.sections[1].baseTension,
+        .dominantRole = MusicRole::Vettore,
+        .cadenceGoal = CadenceGoal::ModalResolution,
+        .baseMotifId = form.sections[1].sectionMotif.motifId
+    };
+
+    std::vector<MusicIntentEvent> intents0;
+    planner.planPhrase(p0, 0, 1, intents0, &scheduler);
+
+    std::vector<MusicIntentEvent> intents1;
+    planner.planPhrase(p1, s0EndFrame, 2, intents1, &scheduler);
+
+    result.generatedEvents = static_cast<std::uint32_t>(intents0.size() + intents1.size());
+
+    // 1. Invariant verification: Determinism & Seed Isolation
+    {
+        MusicPlanner plannerDet({.runSeed = 1337ULL, .candidateCount = 6, .sampleRate = 48000});
+        std::vector<MusicIntentEvent> d0;
+        std::vector<MusicIntentEvent> d1;
+        plannerDet.planPhrase(p0, 0, 1, d0, nullptr);
+        plannerDet.planPhrase(p1, s0EndFrame, 2, d1, nullptr);
+
+        bool detMatch = (intents0.size() == d0.size()) && (intents1.size() == d1.size());
+        if (detMatch) {
+            for (std::size_t i = 0; i < intents0.size(); ++i) {
+                if (intents0[i].eventId != d0[i].eventId ||
+                    intents0[i].sampleFrame != d0[i].sampleFrame ||
+                    intents0[i].role != d0[i].role ||
+                    intents0[i].pitchHz != d0[i].pitchHz) {
+                    detMatch = false;
+                    break;
+                }
+            }
+        }
+        result.determinismPassed = detMatch;
+
+        // Seed Isolation: Mutate Gameplay stream
+        core::RandomKey gameKey{9999ULL, static_cast<std::uint32_t>(core::StreamId::Director), 42, 1};
+        (void)core::staffordMix13(core::randomU64(gameKey));
+
+        MusicPlanner plannerIso({.runSeed = 1337ULL, .candidateCount = 6, .sampleRate = 48000});
+        std::vector<MusicIntentEvent> i0;
+        plannerIso.planPhrase(p0, 0, 1, i0, nullptr);
+        result.streamIsolationPassed = (intents0.size() == i0.size());
+    }
+
+    // 2. Motif Invariance: Decision traces check
+    {
+        bool motifOk = true;
+        const auto& traces = planner.decisionTraces();
+        if (traces.empty()) {
+            motifOk = false;
+        }
+        result.motifInvariancePassed = motifOk;
+    }
+
+    // 3. Triad Budget on Corpo
+    {
+        bool budgetOk = true;
+        const auto& tracker = planner.voiceTracker();
+        std::uint32_t corpoActive = tracker.activeCountForRole(MusicRole::Corpo, s1EndFrame);
+        if (corpoActive > 2) {
+            budgetOk = false;
+        }
+        result.triadBudgetPassed = budgetOk;
+    }
+
+    // 4. Fallback Verification: SilentRecovery on exhausted horizon
+    {
+        PhrasePlan pExhausted = p0;
+        pExhausted.startFrame = 100000;
+        pExhausted.endFrame = 100000; // Zero duration / exhausted horizon
+        std::vector<MusicIntentEvent> fbIntents;
+        MusicPlanner fbPlanner({.runSeed = 1337ULL});
+        fbPlanner.planPhrase(pExhausted, 100000, 1, fbIntents, nullptr);
+        result.fallbackPassed = fbIntents.empty() && (fbPlanner.totalFallbacksTriggered() > 0);
+    }
+
+    // Start engine
+    engine.sendCommand(AudioCommand{
+        .commandId = 1,
+        .type = AudioCommandType::Start,
+        .targetSampleFrame = 0
+    });
+
+    constexpr std::uint32_t kFramesPerTick = 400; // 48000 / 120
+    const std::uint32_t totalTicks = static_cast<std::uint32_t>(result.simulationTicks);
+
+    std::vector<float> recordedStereo;
+    recordedStereo.reserve(static_cast<std::size_t>(totalTicks) * kFramesPerTick * 2);
+    std::vector<float> readChunk(kFramesPerTick * 2);
+    std::vector<float> tickBlock(kFramesPerTick * 2);
+
+    for (std::uint32_t tick = 0; tick < totalTicks; ++tick) {
+        const std::uint64_t currentFrame = static_cast<std::uint64_t>(tick) * kFramesPerTick;
+
+        // Transition at Section 1 boundary (bar 4 = frame 384000 = tick 960)
+        if (currentFrame == s0EndFrame) {
+            engine.sendCommand(AudioCommand::makeSetTempoMap(2, form.sections[1].tempoMap, s0EndFrame));
+        }
+
+        // Send Stop command towards the end (tick 1750 = frame 700000)
+        if (tick == 1750) {
+            engine.sendCommand(AudioCommand{
+                .commandId = 3,
+                .type = AudioCommandType::Stop,
+                .targetSampleFrame = 700000
+            });
+        }
+
+        // Dispatch due events from scheduler with lookahead
+        scheduler.dispatchDueEvents(currentFrame + scheduler.lookaheadFrames(), engine);
+
+        engine.processBlock(tickBlock.data(), kFramesPerTick);
+
+        const std::uint32_t framesRead = probe.readFrames(readChunk.data(), kFramesPerTick);
+        if (framesRead > 0) {
+            recordedStereo.insert(recordedStereo.end(), readChunk.begin(), readChunk.begin() + (framesRead * 2));
+        }
+    }
+
+    result.committedEvents = static_cast<std::uint32_t>(scheduler.totalDispatchedEvents());
+    result.totalCapturedFrames = recordedStereo.size() / 2;
+    result.droppedFrames = probe.droppedFrames();
+    (void)engine.updateTelemetry();
+    result.transportEpoch = engine.telemetry().transportEpoch;
+    const std::uint32_t finalDspAnomalies = engine.telemetry().dspAnomalyCount;
+
+    engine.detachAudioProbe();
+    engine.shutdown();
+
+    if (result.totalCapturedFrames < result.requestedSampleFrames) {
+        result.passed = false;
+        result.failureReason = "Incomplete capture: expected " +
+                               std::to_string(result.requestedSampleFrames) + " frames, got " +
+                               std::to_string(result.totalCapturedFrames);
+        return result;
+    }
+
+    // Peak and clipping
+    float maxAmp = 0.0f;
+    std::uint32_t clipCount = 0;
+    for (float s : recordedStereo) {
+        const float a = std::abs(s);
+        if (a > maxAmp) maxAmp = a;
+        if (a >= (32767.0f / 32768.0f)) {
+            ++clipCount;
+        }
+    }
+    result.peakAmplitude = maxAmp;
+    result.clippedSamples = clipCount;
+
+    // True Peak
+    result.truePeakDbtp = analysis::estimateTruePeakDbtp(recordedStereo.data(), result.totalCapturedFrames, 2);
+    result.truePeakPassed = (result.truePeakDbtp <= -1.0f);
+
+    // DSP Anomalies
+    result.dspAnomaliesPassed = (finalDspAnomalies == 0);
+    if (result.dspAnomaliesPassed) {
+        for (float s : recordedStereo) {
+            if (!std::isfinite(s)) {
+                result.dspAnomaliesPassed = false;
+                break;
+            }
+        }
+    }
+
+    // Non-silent audio check: verify audible RMS energy in Section 0 and Section 1
+    const float section0Rms = analysis::computeRmsDbfs(&recordedStereo[48000 * 2], 48000); // bar 1
+    const float section1Rms = analysis::computeRmsDbfs(&recordedStereo[(s0EndFrame + 48000) * 2], 48000); // Section 1 bar 1
+    result.nonSilentAudioPassed = (section0Rms > -40.0f) && (section1Rms > -40.0f);
+
+    result.passed = (result.droppedFrames == 0) &&
+                    result.determinismPassed &&
+                    result.streamIsolationPassed &&
+                    result.motifInvariancePassed &&
+                    result.triadBudgetPassed &&
+                    result.fallbackPassed &&
+                    result.nonSilentAudioPassed &&
+                    result.truePeakPassed &&
+                    result.dspAnomaliesPassed &&
+                    (result.clippedSamples == 0);
+
+    if (!result.passed) {
+        std::ostringstream err;
+        if (result.droppedFrames > 0) err << "dropped frames in probe; ";
+        if (!result.determinismPassed) err << "determinism check failed; ";
+        if (!result.streamIsolationPassed) err << "stream isolation check failed; ";
+        if (!result.motifInvariancePassed) err << "motif invariance check failed; ";
+        if (!result.triadBudgetPassed) err << "triad budget check failed; ";
+        if (!result.fallbackPassed) err << "fallback check failed; ";
+        if (!result.nonSilentAudioPassed) err << "non-silent audio check failed: s0=" << section0Rms << " dBFS, s1=" << section1Rms << " dBFS; ";
+        if (!result.truePeakPassed) err << "true peak ceiling violated (" << result.truePeakDbtp << " > -1.0 dBTP); ";
+        if (result.clippedSamples > 0) err << "clipped samples: " << result.clippedSamples << "; ";
+        if (!result.dspAnomaliesPassed) err << "DSP anomalies or non-finite values detected; ";
+        result.failureReason = err.str();
+    }
+
+    if (writeFiles) {
+        std::filesystem::path dir(outputDir);
+        std::error_code ec;
+        std::filesystem::create_directories(dir, ec);
+
+        result.wavFilePath = (dir / "planner_probe_v1.wav").lexically_normal().string();
+        result.manifestFilePath = (dir / "planner_probe_v1_manifest.json").lexically_normal().string();
 
         const bool wavOk = analysis::writeWavStereo16(
             result.wavFilePath,

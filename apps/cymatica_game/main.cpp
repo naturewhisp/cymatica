@@ -65,6 +65,13 @@ int main(int argc, char** argv) {
                 std::printf("[cacp] Verdict: %s\n", res.passed ? "PASS" : "FAIL");
                 std::printf("%s\n", res.toJson().c_str());
                 return res.passed ? 0 : 1;
+            } else if (std::strcmp(scenario, "planner_test") == 0 ||
+                       std::strcmp(scenario, "planner_probe_v1") == 0) {
+                std::printf("[cacp] Running scenario '%s' (M2.4 Inc-3 planner_probe_v1)...\n", scenario);
+                auto res = cymatica::audio::runPlannerProbeV1Offline("artifacts/cacp", true);
+                std::printf("[cacp] Verdict: %s\n", res.passed ? "PASS" : "FAIL");
+                std::printf("%s\n", res.toJson().c_str());
+                return res.passed ? 0 : 1;
             }
         }
     }

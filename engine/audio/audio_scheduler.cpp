@@ -66,6 +66,24 @@ void AudioScheduler::scheduleIntent(const MusicIntentEvent& intent, std::uint64_
     }
 }
 
+void AudioScheduler::scheduleNoteOff(std::uint64_t eventId, MusicRole role, std::uint64_t sampleFrame, std::uint64_t transportEpoch) {
+    const std::uint64_t effectiveEpoch = (transportEpoch != 0) ? transportEpoch : currentEpoch_;
+    ScheduledAudioEvent offEvt{
+        .eventId = eventId,
+        .sampleFrame = sampleFrame,
+        .transportEpoch = effectiveEpoch,
+        .type = AudioEventType::NoteOff,
+        .voice = 0,
+        .role = role,
+        .valueA = 0.0f,
+        .valueB = 0.0f,
+        .durationFrames = 0,
+        .timbreParam = 0.0f,
+        .flags = 0
+    };
+    stageEvent(offEvt);
+}
+
 std::size_t AudioScheduler::dispatchDueEvents(std::uint64_t currentRenderCursor, AudioEngine& audioEngine) {
     const std::uint64_t horizonFrame = core::saturatingAdd(currentRenderCursor, config_.lookaheadFrames);
     std::size_t dispatched = 0;

@@ -1,6 +1,7 @@
 add_library(cymatica_core STATIC
     fixed_step.cpp
     fixed_step.h
+    euclidean_rhythm.h
     input_action.h
     input_dispatcher.cpp
     input_dispatcher.h

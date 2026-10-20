@@ -10,6 +10,8 @@ add_library(cymatica_audio STATIC
     music_clock.cpp
     music_clock.h
     music_intent.h
+    music_planner.cpp
+    music_planner.h
     music_position.h
     master_limiter.cpp
     master_limiter.h

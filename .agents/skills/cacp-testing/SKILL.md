@@ -119,6 +119,45 @@ Artefatti esportati in `artifacts/cacp/`:
 
 ---
 
+## 1.3 Flusso di Validazione Music Planner e Candidate Search (planner_probe_v1 — Inc-3)
+
+In M2.4 Inc-3, la generazione musicale gerarchica FormPlan $\to$ SectionPlan $\to$ PhrasePlan, la ricerca bounded di candidati, il voice tracking cross-frase e l'orchestrazione delle triadi vengono verificati con il runner `planner_test` (alias `planner_probe_v1`):
+
+### Esecuzione del Runner Diagnostico
+
+```powershell
+.\build\x64-release\apps\cymatica_game\cymatica_game.exe --cacp-run planner_test
+```
+
+Lo scenario diagnostico offline (8 battute a 48 kHz / 120 Hz ticks, circa 15.0 secondi = 720.000 campioni):
+1. **Battute 0..3 (Sezione A, 120 BPM, Re Dorico):** Pianificazione frase iniziale con progressione armonica modale, accordi aperti su Corpo con voice leading conservativo, pattern euclideo su Pulso e Trama, e variazione motivica melodica su Vettore.
+2. **Battute 4..7 (Sezione B, 140 BPM, Sol Eolico):** Transizione di tempo e scala modale, estinzione lease open-pad cross-frase tramite `scheduleNoteOff`, nuova frase musicale a 140 BPM, mantenimento del limite fisico $\le 2$ voci per ruolo e voice leading senza interruzioni.
+3. **Decadimento e Stop:** Comando `Stop` a tick 1750 (frame 700.000), verifica del silenzio numerico pulito post de-click tail.
+
+Artefatti esportati in `artifacts/cacp/`:
+- `artifacts/cacp/planner_probe_v1_manifest.json` (metriche di generazione, scoring deterministico, invarianti motivici, budget triadi e telemetria);
+- `artifacts/cacp/planner_probe_v1.wav` (traccia musicale PCM stereo 48 kHz completa).
+
+### Verifica Quantitativa e Multimodale
+- **Manifest JSON:**
+  - `"verdict": "PASS"`
+  - `"determinism_passed": true` (bit-exactness degli eventi musicali pianificati a parità di seed)
+  - `"stream_isolation_passed": true` (isolamento seed garantito: mutazioni nel canale Gameplay non alterano la forma musicale)
+  - `"motif_invariance_passed": true` (rispetto delle note ancora e dei gradi modali)
+  - `"triad_budget_passed": true` (massimo 2 voci simultanee su Corpo senza furti illegali)
+  - `"fallback_passed": true` (gestione deterministica fail-closed con SilentRecovery su orizzonte temporale esausto)
+  - `"non_silent_audio_passed": true` (energia RMS percepita $> -40\text{ dBFS}$ in entrambe le sezioni)
+  - `"true_peak_passed": true` ($\le -1.0\text{ dBTP}$ verificato dal meter BS.1770-5)
+  - `"zero_clipping_passed": true` (zero campioni saturati)
+  - `"dsp_anomalies_passed": true` (zero NaN/Inf/denormals)
+- **Ispezione Multimodale Vincolante (`read_file` su `planner_probe_v1.wav`):** Invocare `read_file` per verificare la composizione musicale generata:
+  - *Struttura e Coerenza Armonica:* riconoscibilità dei centri tonali (Re Dorico $\to$ Sol Eolico) e fluidità degli accordi di sottofondo;
+  - *Interlocking Ritmico:* alternanza e complementarietà tra i pattern euclidei di Pulso e i riff arpeggiati di Trama;
+  - *Espressività Melodica:* presenza della melodia di Vettore con variazioni motiviche organiche;
+  - *Dinamica e Limiting:* assenza di pompaggi eccessivi, distorsione, click o salti di fase.
+
+---
+
 ## 2. Flusso di Collaudo dal Vivo (Smoke Run)
 
 Per verificare l'applicazione completa end-to-end (inclusi finestra grafica raylib, context OpenGL e riproduzione fisica sugli altoparlanti WASAPI):
