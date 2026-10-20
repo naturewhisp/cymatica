@@ -15,10 +15,10 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 | Specifica | Versione **0.8.3**, roadmap §32 invariata; ADR-0003, ADR-0004 (emendamento §4.3 del 2026-10-20) e ADR-0005 (ingresso Inc-4) specificano i contratti di M2.4 senza modificare i requisiti di milestone. |
 | Design | 0.3.1 (baseline identità 0.3 approvata il 2026-10-06; osservazione agentica documentata il 2026-10-07) |
 | Evidenza storica M1 | `b39bddb46449ee0b203c7234746185ba241d9a42`; Release 41/41, Debug 41/41, Headless 40/40, smoke exit 0, `/W4` zero warning; [evidenze](m1_review_round3.md). Questi risultati appartengono al gate M1. |
-| Ultima CI Headless verificata | Commit documentale [`02885b699402cbabc8ef1cd6877de24c9ff0a1a9`](https://github.com/naturewhisp/cymatica/commit/02885b699402cbabc8ef1cd6877de24c9ff0a1a9): [GitHub Actions run #38395937263](https://github.com/naturewhisp/cymatica/actions/runs/38395937263) PASS — Windows/MSVC Release 74/74, Debug 74/74, CACP `tone_test` PASS. Nessuna CI registrata per `e88a898` né per la remediation del 2026-10-20 (verifica locale: Release 129/129, Debug 129/129, Headless 128/128). Non sostituisce collaudo hardware o giudizio artistico. |
+| Ultima CI Headless verificata | [`f0bcb4d`](https://github.com/naturewhisp/cymatica/commit/f0bcb4dd286b665baadd56773db46f572039e282): [GitHub Actions run 39481595210](https://github.com/naturewhisp/cymatica/actions/runs/39481595210) PASS — Windows/MSVC Release 128/128, Debug 128/128 headless, CACP `tone_test` PASS (esito riportato dalla revisione esterna R6). La micro-remediation R6 è verificata solo in locale: Release 129/129, Debug 129/129, Headless 128/128. Non sostituisce collaudo hardware o giudizio artistico. |
 | Integrazione documentale M2.4 | Contratti D-M2-04..07 (ADR-0003); AUD-D-01..04 ed emendamento §4.3 (ADR-0004); D-M2-08..11 d'ingresso Inc-4 (ADR-0005), tutti `accepted for implementation`; nessun profilo sperimentale `validated`. |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_core` (static lib), `cymatica_replay` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
-| Ultimo aggiornamento | 2026-10-20 (revisione tecnico-scientifica post-Inc-3, remediation DIF-M2-R5-01..22 e decisioni d'ingresso Inc-4 in ADR-0005) |
+| Ultimo aggiornamento | 2026-10-20 (revisione post-Inc-3, remediation DIF-M2-R5-01..22, micro-remediation DIF-M2-R6-01..03 e decisioni d'ingresso Inc-4 in ADR-0005) |
 
 ## Decisioni d'ingresso M0
 
@@ -302,7 +302,7 @@ In ottemperanza a `AGENTS.md §1.1`, Spec §16, §20, §32, [ADR-0003](adr/0003-
 
 ### 2. Profili Iniziali Sperimentali e Versionati (`proposed / experimental initial profile`)
 I seguenti parametri non costituiscono vincoli normativi permanenti e sono soggetti a calibrazione mediante misure ed ascolto:
-- **Fixture di prova `fixture-m2-4-v1` (96 battute, 8.777.142 campioni a 48 kHz = 182,856958 s):** espansione in frasi, armonia e tensioni in [ADR-0005](adr/0005-m2-4-inc4-entry-decisions.md) D-M2-08.
+- **Fixture di prova `fixture-m2-4-v1` (96 battute, 8.777.142 campioni a 48 kHz = 182,857125 s):** espansione in frasi, armonia e tensioni in [ADR-0005](adr/0005-m2-4-inc4-entry-decisions.md) D-M2-08.
   - Sezione A (Esposizione/Sviluppo): Re Dorico, 120 BPM 4/4 (32 battute = 128 semiminime = 64,0 s = 3.072.000 campioni).
   - Sezione B (Contrasto/Tensione): Sol Eolio, 140 BPM 4/4 (32 battute = 128 semiminime = 2.633.142 campioni, frame 3.072.000 $\to$ 5.705.142), pad cross-epoch in sustain. Riconciliazione esatta con semantica `MusicClock::setTempoMap()`.
   - Sezione A′ (Ritorno/Cadenza): Re Dorico, 120 BPM 4/4 (32 battute = 128 semiminime = 64,0 s = 3.072.000 campioni, frame 5.705.142 $\to$ 8.777.142), variazione motivica e cadenza.
@@ -486,7 +486,7 @@ Revisione indipendente richiesta dal titolare dopo il commit `e88a898` (Inc-3), 
 | DIF-M2-R5-19 | MED | Tie-break con policy di default, slot decisionale condiviso, overflow di `candidateId` oltre la frase 255 | Policy esplicita, `kTieBreakDecisionSlot`, id a 64 bit | Test con phraseIndex 300 |
 | DIF-M2-R5-20 | MED | Probe planner: lookahead contato due volte; check tautologici; Stop a 700.000 che tagliava la battuta 8 e i `NoteOff` dei pad; finestre di non-silenzio sbagliate | Lookahead di 7.200 frame contato una volta; check reali (confronto completo, test metamorfico, overlap di Corpo, ack, accoppiamento NoteOn/NoteOff, contabilità dello scheduler); render di 741.200 frame con Stop dopo l'ultimo `NoteOff` | Manifest `planner_probe_v1` |
 | DIF-M2-R5-21 | LOW | `tick = frame / 400` cablato; id evento in ordine di ciclo; scenario CLI sconosciuto apriva la finestra | Tick da `simulationHz`; ordinamento canonico prima della numerazione; errore con exit 2 | Test planner |
-| DIF-M2-R5-22 | HIGH | Documentazione divergente dal codice e affermazioni non supportate: soglia −1,50 vs −1,80 dBFS; pesi; T-ADV descritti diversamente dal codice e riportati tutti a −1,0000 dBTP; «garanzia» true-peak; fallback a 4 livelli; penalità −250 inesistente; durata fixture 182,857125 s; 720.000 frame come durata musicale; alias CLI non implementati presentati come supportati; ispezione percettiva «vincolante» | ADR-0003/0004 corretti (§4.3), ADR-0005, piano, README, skill CACP; errata sotto | Questo record |
+| DIF-M2-R5-22 | HIGH | Documentazione divergente dal codice e affermazioni non supportate: soglia −1,50 vs −1,80 dBFS; pesi; T-ADV descritti diversamente dal codice e riportati tutti a −1,0000 dBTP; «garanzia» true-peak; fallback a 4 livelli; penalità −250 inesistente; 720.000 frame come durata musicale; alias CLI non implementati presentati come supportati; ispezione percettiva «vincolante» | ADR-0003/0004 corretti (§4.3), ADR-0005, piano, README, skill CACP; errata sotto | Questo record |
 
 ### Errata delle sezioni storiche
 
@@ -534,3 +534,24 @@ Il giudizio estetico resta riservato all'ascolto umano di M2.5.
 - osservazione non bloccante: `fallbackLevelsAttempted` non è nella serializzazione dell'hash golden; va aggiunto al prossimo incremento di versione del trace.
 
 Questo esito chiude la remediation post-Inc-3 e i punti aperti per l'avvio di Inc-4. Non chiude M2.4 né M2: la review di chiusura M2.4 (dopo Inc-5), la ratifica di ADR-0005 da parte del titolare e il gate M2.5 restano da eseguire.
+
+---
+
+## Micro-remediation R6 (2026-10-20, revisione esterna di `f0bcb4d`)
+
+Revisione esterna fornita dal titolare dopo il commit `f0bcb4d`. Esito CI di quel commit, riportato dalla revisione: [GitHub Actions run 39481595210](https://github.com/naturewhisp/cymatica/actions/runs/39481595210) PASS (Release e Debug 128/128 headless su `windows-2025`, CACP `tone_test` PASS); per `e88a898`: [run 39436883248](https://github.com/naturewhisp/cymatica/actions/runs/39436883248) PASS. La revisione contesta l'affermazione «zero difetti residui» della review interna; i rilievi sono stati verificati nel codice prima di intervenire.
+
+| ID | Sev. | Rilievo | Intervento | Evidenza |
+|---|---|---|---|---|
+| DIF-M2-R6-01 | MED | `MusicIntentEvent.tick` calcolato con floor (`multiplyDivide(...).value`) anziché con la mappatura normativa M1 per eccesso di `FixedStepAccumulator::sampleFrameToTick` (DIF-M1-15): ad esempio il frame 401 andava al tick 1 invece che al 2, il frame 389.142 al 972 invece che al 973. Il test codificava la formula errata | Il planner usa `FixedStepAccumulator::sampleFrameToTick`; test con oracolo indipendente `(frame + 399) / 400`. `sampleFrame`, altezze e decisioni sono invariati; l'hash golden cambia solo per il campo `tick` (`0x8621158d2d35ecf8` → `0x2983fc5a5463d4cb`), con la storia annotata nel test | `[music_planner]`, golden |
+| DIF-M2-R6-02 | LOW | Durata della fixture: 8.777.142 / 48.000 = **182,857125 s**. Il valore originale era corretto; la revisione post-Inc-3 lo aveva «corretto» per errore in 182,856958 s (errore di calcolo dell'orchestratore, non intercettato dalla review interna) e l'aveva elencato fra le divergenze di DIF-M2-R5-22 | Ripristinato 182,857125 s in ADR-0003, ADR-0005, piano M2.4 e in questo file; voce rimossa da DIF-M2-R5-22. La durata musicale razionale resta 182,857143 s prima della quantizzazione a frame | Questo record |
+| DIF-M2-R6-03 | — (metodologia) | Il gate statistico offline di D-M2-10 non equivale alla garanzia per callback né alla qualificazione realtime su device | Precisazione esplicita in ADR-0005 D-M2-10: esiti separati; la qualificazione resta a M2.5. La ratifica del titolare resta richiesta prima della chiusura di M2.4 | ADR-0005 |
+
+**Varietà musicale (osservazione non bloccante):** il seed agisce solo sul tie-break fra punteggi pari, quindi seed diversi non garantiscono composizioni diverse. Registrato in ADR-0005 come valutazione multi-seed esplorativa di Inc-5 (riproducibilità e diversità misurate separatamente); nessuna modifica al generatore in Inc-4.
+
+**Correzione dell'esito precedente:** la sezione «Review indipendente» qui sopra dichiarava «zero difetti residui». La revisione esterna ha trovato DIF-M2-R6-01/02, quindi quell'affermazione non era corretta al momento del commit `f0bcb4d`.
+
+**Verifica (working tree su `f0bcb4d`):**
+- Release 129/129 e Debug 129/129, 0 `warning C`;
+- Headless 128/128;
+- CACP `tone_test`, `voice_test`, `synth_test`, `planner_test`: PASS.

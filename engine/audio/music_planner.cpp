@@ -1254,6 +1254,10 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
     trace.winningTransformParam = winner.transformParam;
     trace.winningMotif = winner.transformedMotif;
 
+    // Normative M1 frame -> tick mapping (ceil: first tick whose boundary reaches the frame, ADR-0002)
+    const core::FixedStepAccumulator tickMap{core::FixedStepConfig{
+        .internalSampleRate = config_.sampleRate, .simulationHz = config_.simulationHz}};
+
     // Commit the winner: canonical order -> sequential canonical eventIds (INC3-R05)
     for (std::size_t i = 0; i < winner.eventCount; ++i) {
         const auto& ce = winner.events[i];
@@ -1262,8 +1266,7 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
         const MusicIntentEvent intent{
             .eventId = finalId,
             .sampleFrame = ce.sampleFrame,
-            // Fixed-step tick containing the onset: floor(frame * simulationHz / sampleRate)
-            .tick = core::multiplyDivide(ce.sampleFrame, config_.simulationHz, config_.sampleRate).value,
+            .tick = tickMap.sampleFrameToTick(ce.sampleFrame),
             .transportEpoch = currentTransportEpoch,
             .role = ce.role,
             .pitchHz = ce.pitchHz,

@@ -560,8 +560,8 @@ TEST_CASE("Candidate tie-break permutation invariance and canonical eventId assi
                     (p.pitchHz == c.pitchHz && p.durationFrames <= c.durationFrames)))));
                 CHECK(ordered);
             }
-            // Fixed-step tick derived from sample rate and simulation rate (120 Hz -> 400 frames)
-            CHECK(phrase[i].tick == phrase[i].sampleFrame / 400);
+            // Normative M1 mapping (120 Hz -> 400 frames/tick): ceil(frame / 400), oracle computed here
+            CHECK(phrase[i].tick == (phrase[i].sampleFrame + 399) / 400);
         }
     }
 }
@@ -734,7 +734,9 @@ TEST_CASE("Golden regression: canonical event list + decision traces of the A->B
     // IEEE-754 bit pattern). It may only change together with a reviewed policy-version / scoring-profile bump.
     // Pitches come from std::pow, so the value is only guaranteed for the pinned MSVC toolchain/CRT (ADR-0001).
     // Correctness is established by the independent structural oracles in the other test cases.
-    constexpr std::uint64_t kGoldenHash = 0x8621158d2d35ecf8ULL;
+    // Revision history: 0x8621158d2d35ecf8 (Inc-3 remediation) -> 0x2983fc5a5463d4cb (DIF-M2-R6-01: tick now
+    // uses the normative M1 ceil mapping; sampleFrame, pitch and all decisions unchanged).
+    constexpr std::uint64_t kGoldenHash = 0x2983fc5a5463d4cbULL;
     const PlannedRun run = planProbeForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical hash = 0x" << std::hex << h);

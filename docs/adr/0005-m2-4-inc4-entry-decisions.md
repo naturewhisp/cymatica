@@ -16,7 +16,7 @@ Inc-3 ha consegnato pipeline gerarchica, candidate search bounded e probe `plann
 
 ### D-M2-08 — Espansione della fixture `fixture-m2-4-v1` in frasi (precisa D-M2-05)
 
-- **Scelta:** funzione pura del Coordinator `FormPlan × MusicClock → PhrasePlan[24]`: 3 sezioni × 8 frasi × 4 battute (`barsPerPhrase = 4`). Ogni `startFrame`/`endFrame` è `clock.frameAtBar(...)`; ogni onset interno è `clock.frameAtBeatStep(...)` (nessun frame derivato da divisioni locali). Confini attesi: sezione B a 3.072.000, sezione A′ a 5.705.142, fine contenuto a 8.777.142 frame (8.777.142 / 48.000 = 182,856958 s; durata musicale esatta 182,857143 s troncata al frame).
+- **Scelta:** funzione pura del Coordinator `FormPlan × MusicClock → PhrasePlan[24]`: 3 sezioni × 8 frasi × 4 battute (`barsPerPhrase = 4`). Ogni `startFrame`/`endFrame` è `clock.frameAtBar(...)`; ogni onset interno è `clock.frameAtBeatStep(...)` (nessun frame derivato da divisioni locali). Confini attesi: sezione B a 3.072.000, sezione A′ a 5.705.142, fine contenuto a 8.777.142 frame (8.777.142 / 48.000 = 182,857125 s; durata musicale esatta 182,857143 s troncata al frame).
 - **Armonia (tabella deterministica versionata, nessuna estrazione casuale aggiuntiva):** un accordo per battuta, ciclo di frase Stabilità → Preparazione → Tensione → Risoluzione.
   - A e A′ (Re dorico): gradi 0–3–4–0 (i–IV–v–i; il IV maggiore è il colore dorico).
   - B (Sol eolio): gradi 0–5–6–0 (i–VI–VII–i).
@@ -56,6 +56,7 @@ Inc-3 ha consegnato pipeline gerarchica, candidate search bounded e probe `plann
   
   Se una ripetizione fallisce **solo** sul secondo criterio, è ammessa una sola nuova esecuzione e si registrano entrambi i risultati. p50/p95/p99 e il massimo sono sempre riportati. In Debug i valori sono solo riportati.
 - **Motivazione:** su un thread offline non realtime il massimo include la preemption dell'OS e non è un worst case garantito (piano M2.4 §5); un gate sul massimo renderebbe il verdetto instabile, mentre un percentile alto con un limite assoluto al periodo del blocco intercetta sia il costo sistematico sia gli stalli gravi. Questa interpretazione di «deve operare entro ≤ 2,0 ms» (D-M2-07 §1) è una scelta di misura e non un declassamento del target: la verifica su device resta a M2.5.
+- **Limite dichiarato (precisazione R6-03, 2026-10-20):** il gate statistico offline di Inc-4 misura il costo del render su Windows; **non** equivale alla garanzia che ogni callback termini entro 2,0 ms né alla qualificazione realtime. Quest'ultima resta un gate distinto di M2.5 su device (periodo effettivo, MMCSS, underrun). I due esiti si registrano separatamente e il primo non si presenta come prova del secondo.
 - **Alternative scartate:** gate sul massimo (instabile con la preemption); p99 (troppo permissivo sugli eventi rari, come i furti multipli); zero blocchi oltre 2,0 ms (equivale al gate sul massimo); misura solo su device in Inc-4 (non riproducibile in CI e senza controllo del carico).
 - **Ambiente nel manifest:** commit, configurazione, CPU, versione dell'OS, versione MSVC, dimensione del blocco e sample rate.
 - **Test:** `tests/unit/test_realtime_profile.cpp` con label CTest `perf`. Le asserzioni temporali valgono solo con `NDEBUG`. La label è esclusa dai preset CI (runner condivisi non rappresentativi) e il risultato è riportato a parte.
@@ -74,6 +75,10 @@ Inc-3 ha consegnato pipeline gerarchica, candidate search bounded e probe `plann
 - **Riportati senza gate M2.5:** true peak stimato 4× (BS.1770 Annex 2) — resta check ingegneristico della probe, coerente con AUD-D-03 —, gain reduction massima, conteggio dei furti, statistiche di energia per ruolo. LUFS non fa parte di Inc-4.
 - **Motivazione e alternative:** scenari separati, perché un unico verdetto misto farebbe dipendere la correttezza del contenuto dal rumore temporale della macchina (scartato lo scenario unico con alias multipli previsto in origine). Il true peak non è un gate M2.5, coerentemente con AUD-D-03, ma resta un check della probe per intercettare regressioni del limiter (scartata la rimozione completa).
 - **Artefatti:** WAV stereo 16 bit di circa 35,1 MB in `artifacts/cacp/` (escluso da git), con hash del contenuto registrato nel manifest e nell'evidenza. L'eventuale giudizio percettivo dell'agente è supplementare, con modello, capacità, hash e timestamp, oppure `not_run`/`unsupported`; non sostituisce l'ascolto umano di M2.5.
+
+### Nota — riproducibilità e diversità (non è una decisione di Inc-4)
+
+Nel planner Inc-3 i candidati derivano da una tabella fissa di ricette e il seed agisce solo sul tie-break fra punteggi pari. Quindi seed diversi non producono necessariamente composizioni diverse. È accettabile come baseline deterministica, ma non dimostra la varietà richiesta alla musica procedurale. Inc-4 non cambia il generatore. In Inc-5 (dossier M2.4-F) si aggiunge una valutazione multi-seed che misura separatamente la riproducibilità (stesso seed → stesso trace) e la diversità (seed diversi → distanza fra trace), secondo il [protocollo sperimentale](../research/M2_4_Evaluation_Protocol.md). I risultati sono esplorativi e non costituiscono un gate di M2.5. Eventuali sorgenti di variazione guidate dal seed (stream `Harmony`/`Rhythm`) richiedono una decisione successiva basata su quelle misure.
 
 ## 3. Conseguenze
 
