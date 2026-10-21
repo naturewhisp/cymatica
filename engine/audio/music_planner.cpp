@@ -632,6 +632,8 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
         phrases[p].isCrossSectionPadPhrase = isCrossPad;
         phrases[p].crossSectionNoteOffFrame = crossOff;
         phrases[p].delayCorpoOnsetByOneBeat = false;
+        phrases[p].maskTrama = (p < 4); // Trama only in the second half of A (counterpoint)
+        phrases[p].recipeSet = CandidateRecipeSet::Standard;
     }
 
     // 2. Section B: phrases 8..15 (bars 32..63)
@@ -649,6 +651,7 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
         phrases[8 + p].isCrossSectionPadPhrase = isCrossPad;
         phrases[8 + p].crossSectionNoteOffFrame = crossOff;
         phrases[8 + p].delayCorpoOnsetByOneBeat = (p == 0); // Phrase 8 delays Corpo in bar 0 by 1 beat
+        phrases[8 + p].recipeSet = CandidateRecipeSet::ContrastB;
     }
 
     // 3. Section A': phrases 16..23 (bars 64..95)
@@ -662,6 +665,9 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
         phrases[16 + p].isCrossSectionPadPhrase = false;
         phrases[16 + p].crossSectionNoteOffFrame = 0;
         phrases[16 + p].delayCorpoOnsetByOneBeat = (p == 0); // Phrase 16 delays Corpo in bar 0 by 1 beat
+        phrases[16 + p].recipeSet = CandidateRecipeSet::RepriseAPrime;
+        // Final phrase: explicit planner release one simulation tick (400 frames at 120 Hz) before Stop
+        phrases[16 + p].releaseLeadFrames = (p == 7) ? kFixtureM24V1ReleaseLeadFrames : 0;
     }
 
     return phrases;
@@ -904,21 +910,19 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
         if (baseMotif.notes[i].isAnchor) ++anchorsTotal;
     }
 
-    // Final phrase of A' (Section 2, phrase 7): release explicit planner notes before Stop (ADR-0005 D-M2-08)
-    const bool isFinalFixturePhrase = (formPlan_.sectionCount >= 3 && formPlan_.sections[0].barCount > 4 &&
-                                       phrase.sectionIndex == 2 && phrase.phraseIndex == 7);
-    const std::uint64_t maxPhraseOffFrame = isFinalFixturePhrase
-        ? (phrase.endFrame > 400 ? phrase.endFrame - 400ULL : phrase.endFrame)
-        : phrase.endFrame;
+    // Explicit planner release before Stop, declared by the phrase plan (ADR-0005 D-M2-08)
+    const std::uint64_t maxPhraseOffFrame =
+        (phrase.releaseLeadFrames > 0 && phrase.endFrame > phrase.startFrame + phrase.releaseLeadFrames)
+            ? phrase.endFrame - phrase.releaseLeadFrames
+            : phrase.endFrame;
+
+    // Deterministic recipe table declared by the phrase plan (ADR-0005 D-M2-08, INC4-R04)
+    const auto& recipes = (phrase.recipeSet == CandidateRecipeSet::ContrastB) ? kCandidateRecipesB
+                        : (phrase.recipeSet == CandidateRecipeSet::RepriseAPrime) ? kCandidateRecipesAPrime
+                        : kCandidateRecipesA;
 
     for (std::uint32_t k = 0; k < config_.candidateCount; ++k) {
         PhraseCandidate cand{};
-        // Select deterministic recipe table per section (ADR-0005 D-M2-08, INC4-R04)
-        const bool isFixtureM24 = (formPlan_.sectionCount >= 3 && formPlan_.sections[0].barCount > 4);
-        const auto& recipes = isFixtureM24
-            ? ((phrase.sectionIndex == 1) ? kCandidateRecipesB
-               : ((phrase.sectionIndex == 2) ? kCandidateRecipesAPrime : kCandidateRecipesA))
-            : kCandidateRecipesA;
         const auto& recipe = recipes[k % kMaxCandidates];
         cand.candidateIndex = static_cast<std::uint8_t>(k);
         cand.candidateId = packCandidateId(phrase.sectionIndex, phrase.phraseIndex, cand.candidateIndex);
@@ -1008,11 +1012,8 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
             prevVoicing = emitCorpo ? std::optional<TriadVoicing>(barVoicing) : prevVoicing;
 
             // 3. Trama: complementary syncopation, colour tones of the current bar's chord
-            // Role mask: Section A phrases 0..3 without Trama in fixture-m2-4-v1 (ADR-0005 D-M2-08)
-            const bool maskTrama = (formPlan_.sectionCount >= 3 && formPlan_.sections[0].barCount > 4 &&
-                                    phrase.sectionIndex == 0 && phrase.phraseIndex < 4);
-            const bool emitTrama = !maskTrama;
-            if (emitTrama) {
+            // Role mask declared by the phrase plan (ADR-0005 D-M2-08: section A phrases 0..3 without Trama)
+            if (!phrase.maskTrama) {
                 for (std::uint32_t s = 0; s < steps; ++s) {
                     if (!tramaRhythm[s] || pulsoRhythm[s]) continue;
                     const std::int16_t deg = (s % 2 == 0) ? barVoicing.upperColorDegree : barVoicing.corpoHarmonyDegree;
@@ -1055,9 +1056,7 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
         }
         const std::int32_t registerMilli = (motif.noteCount > 0)
             ? (registerSum * prof.tensionPerRegisterDegreeMilli) / static_cast<std::int32_t>(motif.noteCount) : 0;
-        const std::int32_t effectiveTramaPulses = (formPlan_.sectionCount >= 3 && formPlan_.sections[0].barCount > 4 &&
-                                                   phrase.sectionIndex == 0 && phrase.phraseIndex < 4)
-            ? 0 : static_cast<std::int32_t>(cand.tramaPulses);
+        const std::int32_t effectiveTramaPulses = phrase.maskTrama ? 0 : static_cast<std::int32_t>(cand.tramaPulses);
         const std::int32_t extraPulses = static_cast<std::int32_t>(cand.pulsoPulses) + effectiveTramaPulses -
                                          static_cast<std::int32_t>(prof.densityBaselinePulses);
         const std::int32_t densityMilli = std::max(0, extraPulses) * prof.tensionPerExtraPulseMilli;

@@ -1,0 +1,71 @@
+W rep=0 tone=0.00 outPeak=0.3739 (-8.54 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=105.50us p50=94.10us p99.9=687.20us max=1048.60us
+W rep=0 tone=0.40 outPeak=0.7618 (-2.36 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=108.76us p50=96.80us p99.9=509.00us max=914.80us
+W rep=0 tone=0.60 outPeak=0.8128 (-1.80 dBFS) GR=1.47 dB steals=10000 allActive=1 mean=107.83us p50=97.00us p99.9=624.50us max=967.10us
+W rep=1 tone=0.00 outPeak=0.3739 (-8.54 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=105.30us p50=96.00us p99.9=772.50us max=985.20us
+W rep=1 tone=0.40 outPeak=0.7618 (-2.36 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=104.58us p50=98.10us p99.9=696.90us max=1194.40us
+W rep=1 tone=0.60 outPeak=0.8128 (-1.80 dBFS) GR=1.47 dB steals=10000 allActive=1 mean=106.59us p50=98.60us p99.9=763.80us max=987.10us
+W rep=2 tone=0.00 outPeak=0.3739 (-8.54 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=101.63us p50=95.70us p99.9=760.40us max=948.20us
+W rep=2 tone=0.40 outPeak=0.7618 (-2.36 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=108.96us p50=98.50us p99.9=798.70us max=1232.90us
+W rep=2 tone=0.60 outPeak=0.8128 (-1.80 dBFS) GR=1.47 dB steals=10000 allActive=1 mean=105.82us p50=98.50us p99.9=755.80us max=1140.50us
+W rep=3 tone=0.00 outPeak=0.3739 (-8.54 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=102.79us p50=95.80us p99.9=763.90us max=1069.10us
+W rep=3 tone=0.40 outPeak=0.7618 (-2.36 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=109.98us p50=98.40us p99.9=888.30us max=5501.20us
+W rep=3 tone=0.60 outPeak=0.8128 (-1.80 dBFS) GR=1.47 dB steals=10000 allActive=1 mean=109.10us p50=98.90us p99.9=945.70us max=6085.80us
+W rep=4 tone=0.00 outPeak=0.3739 (-8.54 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=102.13us p50=95.70us p99.9=782.50us max=1109.00us
+W rep=4 tone=0.40 outPeak=0.7618 (-2.36 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=104.16us p50=98.10us p99.9=669.20us max=969.10us
+W rep=4 tone=0.60 outPeak=0.8128 (-1.80 dBFS) GR=1.47 dB steals=10000 allActive=1 mean=108.79us p50=98.70us p99.9=765.20us max=947.20us
+LIM rep=0 cond=below_thr_0.5 ns_per_block=6228.2 ns_per_frame=12.164 GR=0.00 dB
+LIM rep=0 cond=decay_no_gr_0.5 ns_per_block=9270.2 ns_per_frame=18.106 GR=0.00 dB
+LIM rep=0 cond=subnormal_const ns_per_block=12809.3 ns_per_frame=25.018 GR=0.00 dB
+LIM rep=0 cond=above_thr_1.5 ns_per_block=7112.4 ns_per_frame=13.891 GR=5.33 dB
+LIM rep=0 cond=far_above_8.0 ns_per_block=7182.2 ns_per_frame=14.028 GR=19.87 dB
+LIM rep=0 cond=bursts_1.5 ns_per_block=6382.8 ns_per_frame=12.466 GR=7.47 dB
+LIM rep=0 cond=silence_0 ns_per_block=6225.3 ns_per_frame=12.159 GR=0.00 dB
+LIM rep=0 cond=decay_subnormal ns_per_block=9572.1 ns_per_frame=18.696 GR=4.77 dB
+LIM rep=1 cond=below_thr_0.5 ns_per_block=6272.6 ns_per_frame=12.251 GR=0.00 dB
+LIM rep=1 cond=decay_no_gr_0.5 ns_per_block=9421.6 ns_per_frame=18.401 GR=0.00 dB
+LIM rep=1 cond=subnormal_const ns_per_block=12978.6 ns_per_frame=25.349 GR=0.00 dB
+LIM rep=1 cond=above_thr_1.5 ns_per_block=7138.2 ns_per_frame=13.942 GR=5.33 dB
+LIM rep=1 cond=far_above_8.0 ns_per_block=7247.5 ns_per_frame=14.155 GR=19.87 dB
+LIM rep=1 cond=bursts_1.5 ns_per_block=6438.0 ns_per_frame=12.574 GR=7.47 dB
+LIM rep=1 cond=silence_0 ns_per_block=6535.7 ns_per_frame=12.765 GR=0.00 dB
+LIM rep=1 cond=decay_subnormal ns_per_block=9236.5 ns_per_frame=18.040 GR=4.77 dB
+LIM rep=2 cond=below_thr_0.5 ns_per_block=6285.9 ns_per_frame=12.277 GR=0.00 dB
+LIM rep=2 cond=decay_no_gr_0.5 ns_per_block=9369.4 ns_per_frame=18.300 GR=0.00 dB
+LIM rep=2 cond=subnormal_const ns_per_block=12654.1 ns_per_frame=24.715 GR=0.00 dB
+LIM rep=2 cond=above_thr_1.5 ns_per_block=7116.5 ns_per_frame=13.899 GR=5.33 dB
+LIM rep=2 cond=far_above_8.0 ns_per_block=7226.8 ns_per_frame=14.115 GR=19.87 dB
+LIM rep=2 cond=bursts_1.5 ns_per_block=6524.8 ns_per_frame=12.744 GR=7.47 dB
+LIM rep=2 cond=silence_0 ns_per_block=6206.0 ns_per_frame=12.121 GR=0.00 dB
+LIM rep=2 cond=decay_subnormal ns_per_block=9374.7 ns_per_frame=18.310 GR=4.77 dB
+LIM rep=3 cond=below_thr_0.5 ns_per_block=6295.4 ns_per_frame=12.296 GR=0.00 dB
+LIM rep=3 cond=decay_no_gr_0.5 ns_per_block=9503.7 ns_per_frame=18.562 GR=0.00 dB
+LIM rep=3 cond=subnormal_const ns_per_block=13207.7 ns_per_frame=25.796 GR=0.00 dB
+LIM rep=3 cond=above_thr_1.5 ns_per_block=7146.9 ns_per_frame=13.959 GR=5.33 dB
+LIM rep=3 cond=far_above_8.0 ns_per_block=7384.7 ns_per_frame=14.423 GR=19.87 dB
+LIM rep=3 cond=bursts_1.5 ns_per_block=6373.1 ns_per_frame=12.448 GR=7.47 dB
+LIM rep=3 cond=silence_0 ns_per_block=6221.3 ns_per_frame=12.151 GR=0.00 dB
+LIM rep=3 cond=decay_subnormal ns_per_block=9271.3 ns_per_frame=18.108 GR=4.77 dB
+LIM rep=4 cond=below_thr_0.5 ns_per_block=6478.1 ns_per_frame=12.652 GR=0.00 dB
+LIM rep=4 cond=decay_no_gr_0.5 ns_per_block=9284.5 ns_per_frame=18.134 GR=0.00 dB
+LIM rep=4 cond=subnormal_const ns_per_block=12676.4 ns_per_frame=24.759 GR=0.00 dB
+LIM rep=4 cond=above_thr_1.5 ns_per_block=7364.5 ns_per_frame=14.384 GR=5.33 dB
+LIM rep=4 cond=far_above_8.0 ns_per_block=7293.9 ns_per_frame=14.246 GR=19.87 dB
+LIM rep=4 cond=bursts_1.5 ns_per_block=6520.3 ns_per_frame=12.735 GR=7.47 dB
+LIM rep=4 cond=silence_0 ns_per_block=6266.1 ns_per_frame=12.238 GR=0.00 dB
+LIM rep=4 cond=decay_subnormal ns_per_block=9465.0 ns_per_frame=18.486 GR=4.77 dB
+LIM rep=5 cond=below_thr_0.5 ns_per_block=6223.0 ns_per_frame=12.154 GR=0.00 dB
+LIM rep=5 cond=decay_no_gr_0.5 ns_per_block=9249.2 ns_per_frame=18.065 GR=0.00 dB
+LIM rep=5 cond=subnormal_const ns_per_block=12791.4 ns_per_frame=24.983 GR=0.00 dB
+LIM rep=5 cond=above_thr_1.5 ns_per_block=7146.5 ns_per_frame=13.958 GR=5.33 dB
+LIM rep=5 cond=far_above_8.0 ns_per_block=7235.2 ns_per_frame=14.131 GR=19.87 dB
+LIM rep=5 cond=bursts_1.5 ns_per_block=6426.3 ns_per_frame=12.551 GR=7.47 dB
+LIM rep=5 cond=silence_0 ns_per_block=6537.4 ns_per_frame=12.768 GR=0.00 dB
+LIM rep=5 cond=decay_subnormal ns_per_block=9375.0 ns_per_frame=18.311 GR=4.77 dB
+LIM rep=6 cond=below_thr_0.5 ns_per_block=6376.9 ns_per_frame=12.455 GR=0.00 dB
+LIM rep=6 cond=decay_no_gr_0.5 ns_per_block=9252.7 ns_per_frame=18.072 GR=0.00 dB
+LIM rep=6 cond=subnormal_const ns_per_block=12829.8 ns_per_frame=25.058 GR=0.00 dB
+LIM rep=6 cond=above_thr_1.5 ns_per_block=7168.9 ns_per_frame=14.002 GR=5.33 dB
+LIM rep=6 cond=far_above_8.0 ns_per_block=7235.3 ns_per_frame=14.132 GR=19.87 dB
+LIM rep=6 cond=bursts_1.5 ns_per_block=6619.5 ns_per_frame=12.929 GR=7.47 dB
+LIM rep=6 cond=silence_0 ns_per_block=6187.2 ns_per_frame=12.084 GR=0.00 dB
+LIM rep=6 cond=decay_subnormal ns_per_block=9270.5 ns_per_frame=18.106 GR=4.77 dB

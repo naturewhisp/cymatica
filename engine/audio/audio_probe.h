@@ -1,7 +1,9 @@
 #pragma once
 
+#include "audio_control.h"
 #include "input_dispatcher.h"
 
+#include <array>
 #include <atomic>
 #include <cstdint>
 #include <string>
@@ -275,30 +277,52 @@ struct PlannerProbeResult {
     [[nodiscard]] std::string toJson() const;
 };
 
-// Runs the authoritative planner_probe_v1 scenario offline in 120 Hz simulation ticks (Inc-3)
-// Profile metrics for fixture_probe_v1 (ADR-0005 D-M2-08/09/11, Inc-4)
+// Regression golden of the fixture_probe_v1 decision trace (seed 1337, policy DEFAULT_POLICY_VERSION_ID,
+// kPlannerScoringProfileV1). Produced by commit 9c61f88 and unchanged by the explicit PhrasePlan flags of
+// the Inc-4 remediation; it may only change together with a reviewed policy or fixture version bump.
+inline constexpr std::uint64_t kFixtureProbeV1GoldenTraceHash = 10949526468471789087ULL;
+// Minimum post-bus telemetry energy for a role to count as active in a section (D-M2-11)
+inline constexpr float kFixtureRoleActivityFloor = 1.0e-4f;
+
+// Metrics of fixture_probe_v1 (ADR-0005 D-M2-08/09/11, Inc-4)
 struct FixtureProbeResult {
     bool passed{false};
     std::uint64_t totalCapturedFrames{0};
     std::uint64_t droppedFrames{0};
+    std::uint64_t contentEndFrame{0};
+    std::uint64_t lookaheadFrames{0};
+    std::uint32_t phrasesPlanned{0};
     std::uint32_t generatedEvents{0};
     std::uint32_t plannerNoteOffs{0};
     std::uint64_t engineProcessedEvents{0};
     std::uint64_t droppedScheduledEvents{0};
     std::uint64_t deferredScheduledEvents{0};
+    std::uint64_t schedulerBackpressureDrops{0};
+    std::size_t revokedStagedEvents{0};
+    std::size_t stagedEventsAtStop{0};
     std::uint32_t orphanNoteRecoveredCount{0};
     std::uint32_t voiceDropCount{0};
+    std::array<AudioCommandAck, 4> transportAcks{}; // Start, SetTempoMap B, SetTempoMap A', Stop
+    std::array<std::array<float, 4>, 3> roleEnergyMax{}; // [section][Pulso, Corpo, Trama, Vettore]
+    std::array<float, 3> sectionRmsDbfs{-120.0f, -120.0f, -120.0f};
+    bool captureCompletePassed{false};
     bool tempoAckPassed{false};
     bool noteOffPairingPassed{false};
+    bool schedulingAccountingPassed{false};
     bool nonSilentAudioPassed{false};
+    bool roleActivityPassed{false};
     bool silenceBoundaryPassed{false};
     bool determinismPassed{false};
+    bool goldenTracePassed{false};
     float peakAmplitude{0.0f};
+    bool sampleCeilingPassed{false};
     float truePeakDbtp{-120.0f};
     bool truePeakPassed{false};
+    float maxGainReductionDb{0.0f};
     std::uint32_t clippedSamples{0};
     bool dspAnomaliesPassed{false};
     std::uint64_t decisionTraceHash{0};
+    std::uint64_t pcmContentHash{0};
     std::string buildId{CYMATICA_BUILD_ID};
     std::uint64_t transportEpoch{0};
     std::uint64_t simulationTicks{0};
@@ -313,9 +337,26 @@ struct FixtureProbeResult {
     [[nodiscard]] std::string toJson() const;
 };
 
-// Profile metrics for profile_probe_v1 (ADR-0005 D-M2-10/11, Inc-4)
-struct ProfileProbeResult {
-    bool passed{false};
+// Benchmark profile of profile_probe_v1 (ADR-0005 D-M2-10): Release, offline, 512-frame blocks
+inline constexpr std::uint32_t kProfileBlockFrames = 512;
+inline constexpr std::uint32_t kProfileWarmupBlocks = 64;
+inline constexpr std::uint32_t kProfileWorkloadWBlocks = 10000;
+inline constexpr std::uint32_t kProfileRepetitions = 3;
+// Workload W diagnostic tone amplitude (Start.paramF32): the tone is summed before the limiter and, with the voices,
+// gives about 3.1 dB of sustained gain reduction (DIF-INC4-R2-01, docs/research/M2_4_DIF-INC4-R2-01_Limiter_GR_Analysis.md)
+inline constexpr float kProfileWorkloadWToneVolume = 0.8f;
+
+enum class ProfileWorkload : std::uint8_t {
+    W = 0, // worst-case stress: 8 held voices, one steal per block, Trama delay, diagnostic tone, limiter in gain reduction
+    F = 1  // full fixture-m2-4-v1 driven by the just-in-time Coordinator
+};
+
+// One measured repetition of a workload (warm-up blocks discarded)
+struct ProfileWorkloadRun {
+    ProfileWorkload workload{ProfileWorkload::W};
+    bool cacpEnabled{false};
+    std::uint32_t repetition{0};
+    bool isRetry{false};
     double p50Ms{0.0};
     double p95Ms{0.0};
     double p99Ms{0.0};
@@ -325,11 +366,24 @@ struct ProfileProbeResult {
     std::uint64_t totalBlocks{0};
     std::uint64_t blocksExceeding2Ms{0};
     std::uint64_t blocksExceedingBlockPeriod{0};
+    float maxGainReductionDb{0.0f};
+    std::uint32_t voiceSteals{0};
+    bool stressConditionsMet{true}; // W: 8 active voices, >= 1 steal per block, limiter GR > 0; F: fixture acks and scheduling correct
     bool p999Passed{false};
     bool blockPeriodPassed{false};
+};
+
+// Metrics of profile_probe_v1 (ADR-0005 D-M2-10/11, Inc-4): W and F, CACP OFF/ON, 3 repetitions each
+struct ProfileProbeResult {
+    bool passed{false};
+    bool timingGated{false}; // Release only; Debug reports timings without gating
+    std::vector<ProfileWorkloadRun> runs{};
+    double worstP999Ms{0.0};
+    double worstMaxMs{0.0};
     std::string buildId{CYMATICA_BUILD_ID};
     std::string osVersion{};
     std::string cpuInfo{};
+    std::string compilerVersion{};
     std::string buildConfig{};
     bool manifestWriteSuccess{false};
     std::string manifestFilePath{};
@@ -341,9 +395,12 @@ struct ProfileProbeResult {
 FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
                                            bool writeFiles = true);
 
+ProfileWorkloadRun runProfileWorkload(ProfileWorkload workload, bool cacpEnabled);
+
 ProfileProbeResult runProfileProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
                                            bool writeFiles = true);
 
+// Runs the authoritative planner_probe_v1 scenario offline in 120 Hz simulation ticks (Inc-3)
 PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
                                            bool writeFiles = true);
 

@@ -56,6 +56,13 @@ Inc-3 ha consegnato pipeline gerarchica, candidate search bounded e probe `plann
   
   Se una ripetizione fallisce **solo** sul secondo criterio, è ammessa una sola nuova esecuzione e si registrano entrambi i risultati. p50/p95/p99 e il massimo sono sempre riportati. In Debug i valori sono solo riportati.
 - **Motivazione:** su un thread offline non realtime il massimo include la preemption dell'OS e non è un worst case garantito (piano M2.4 §5); un gate sul massimo renderebbe il verdetto instabile, mentre un percentile alto con un limite assoluto al periodo del blocco intercetta sia il costo sistematico sia gli stalli gravi. Questa interpretazione di «deve operare entro ≤ 2,0 ms» (D-M2-07 §1) è una scelta di misura e non un declassamento del target: la verifica su device resta a M2.5.
+- **Come W raggiunge la riduzione di guadagno (precisazione DIF-INC4-R2-01, 2026-10-21, decisa dal titolare):**
+  - **Problema:** con il gain staging dei bus di Inc-2 (−6/−8/−10/−6 dB, `kNominalVoiceScale = 0,25`, velocity ≤ 1) le sole 8 voci di W arrivano a −8,54 dBFS, 6,7 dB sotto la soglia del limiter (−1,80 dBFS). Il limiter resta quindi a 0 dB di riduzione, anche con le voci all'unisono.
+  - **Soluzione:** W avvia il trasporto con il tono diagnostico di M2.2 a ampiezza `kProfileWorkloadWToneVolume = 0,8` (`Start.paramF32`). Il tono è sommato alle voci prima del limiter, nello stesso percorso di render di produzione, e produce circa 3,1 dB di riduzione sostenuta.
+  - **Condizione vincolante:** `max_gain_reduction_db > 0` fa parte di `stress_conditions_met` di W, insieme a 8 voci attive e a ≥ 1 furto per blocco misurato.
+  - **Motivazione (misure in [M2_4_DIF-INC4-R2-01_Limiter_GR_Analysis.md](../research/M2_4_DIF-INC4-R2-01_Limiter_GR_Analysis.md)):** il criterio resta quello originale e non viene indebolito. W diventa più pesante (≈ +5 % di costo medio) ed esercita il ramo più costoso del limiter (riduzione sostenuta, +14 % rispetto a sotto soglia), come raccomandato per i carichi di stress misurati [Wilhelm et al. 2008]. La riduzione da sola costa ≈ 0,9 µs per blocco (0,045 % del budget), molto sotto il rumore delle code.
+  - **Alternative scartate:** emendare D-M2-10 togliendo la riduzione (lascia un ramo RT non esercitato); aumentare il carico musicale (non fattibile: −8,54 dBFS); un pre-gain diagnostico nel motore (nuova API e un ramo nel percorso RT).
+  - **Vincolo:** se il tono diagnostico venisse rimosso o limitato, W va ridefinito prima della modifica.
 - **Limite dichiarato (precisazione R6-03, 2026-10-20):** il gate statistico offline di Inc-4 misura il costo del render su Windows; **non** equivale alla garanzia che ogni callback termini entro 2,0 ms né alla qualificazione realtime. Quest'ultima resta un gate distinto di M2.5 su device (periodo effettivo, MMCSS, underrun). I due esiti si registrano separatamente e il primo non si presenta come prova del secondo.
 - **Alternative scartate:** gate sul massimo (instabile con la preemption); p99 (troppo permissivo sugli eventi rari, come i furti multipli); zero blocchi oltre 2,0 ms (equivale al gate sul massimo); misura solo su device in Inc-4 (non riproducibile in CI e senza controllo del carico).
 - **Ambiente nel manifest:** commit, configurazione, CPU, versione dell'OS, versione MSVC, dimensione del blocco e sample rate.
@@ -85,3 +92,14 @@ Nel planner Inc-3 i candidati derivano da una tabella fissa di ricette e il seed
 - Inc-4 ha i contratti necessari per fixture, streaming, profiling e probe. Le API introdotte (espansore di frasi, revoca dello scheduler, wrapper di profiling, scenari CLI) sono interne e non toccano ABI pubbliche.
 - Si aggiornano nella stessa modifica: [ADR-0003](0003-m2-decisions-contracts.md) (rimandi da D-M2-05/D-M2-07), [progress.md](../progress.md) (piano Inc-4), [piano M2.4](../research/M2_4_Implementation_Plan.md) e la [skill CACP](../../.agents/skills/cacp-testing/SKILL.md), che ora riportano gli scenari Inc-4 come *pianificati*.
 - **Criteri di verifica dell'ADR:** ogni check di D-M2-08..11 ha un test o un campo di manifest corrispondente in Inc-4; la review indipendente di chiusura M2.4 verifica la corrispondenza.
+
+## 4. Riferimenti
+
+Fonti citate dalla precisazione DIF-INC4-R2-01 di D-M2-10, consultate il 2026-10-21. L'analisi completa, con le misure, i dati grezzi e il sorgente dell'esperimento, è in [M2_4_DIF-INC4-R2-01_Limiter_GR_Analysis.md](../research/M2_4_DIF-INC4-R2-01_Limiter_GR_Analysis.md).
+
+- R. Wilhelm et al., «The Worst-Case Execution-Time Problem — Overview of Methods and Survey of Tools», *ACM Transactions on Embedded Computing Systems* 7(3), art. 36, 2008. [DOI 10.1145/1347375.1347389](https://doi.org/10.1145/1347375.1347389).
+- D. Giannoulis, M. Massberg, J. D. Reiss, «Digital Dynamic Range Compressor Design — A Tutorial and Analysis», *Journal of the Audio Engineering Society* 60(6), 399–408, 2012. [AES E-Library](https://aes2.org/publications/elibrary-page/?id=16354).
+- T. Hoefler, R. Belli, «Scientific Benchmarking of Parallel Computing Systems: Twelve Ways to Tell the Masses when Reporting Performance Results», *SC15*, 73:1–73:12, ACM, 2015. [Pagina dell'autore](https://www.unixer.de/publications/index.php?pub=222).
+- J. Chen, J. Revels, «Robust benchmarking in noisy environments», arXiv:1608.04295, 2016. [arXiv](https://arxiv.org/abs/1608.04295).
+- M. Wittmann, T. Zeiser, G. Hager, G. Wellein, «Short Note on Costs of Floating Point Operations on current x86-64 Architectures: Denormals, Overflow, Underflow, and Division by Zero», arXiv:1506.03997, 2015. [arXiv](https://arxiv.org/abs/1506.03997).
+- R. Bencina, «Real-time audio programming 101: time waits for nothing», 2011, rossbencina.com. Segnalazione: [LWN](https://lwn.net/Articles/453005/).

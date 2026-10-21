@@ -3,6 +3,20 @@
 #include "audio_scheduler.h"
 #include "music_clock.h"
 #include "music_planner.h"
+#include "unsigned_math.h"
+
+#if defined(_WIN32)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
 
 #include <algorithm>
 #include <cmath>
@@ -1868,40 +1882,314 @@ PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool w
 }
 
 
+// --- M2.4 Inc-4: fixture_probe_v1 and profile_probe_v1 (ADR-0005 D-M2-08..11) ---
+
+namespace {
+
+constexpr std::uint32_t kInc4SampleRate = 48000;
+constexpr std::uint64_t kFixtureSeed = 1337ULL;
+constexpr std::uint64_t kFixturePostStopFrames = 48000; // 1.0 s captured after the Stop frame
+
+std::uint64_t fixtureEpochForSection(std::uint32_t sectionIndex) noexcept {
+    return static_cast<std::uint64_t>(sectionIndex) + 1; // A = 1, B = 2, A' = 3 (expected epoch = current + 1)
+}
+
+void fnvMix(std::uint64_t& h, std::uint64_t v) noexcept {
+    h ^= v;
+    h *= 1099511628211ULL;
+}
+
+// Decision-trace hash of fixture_probe_v1 (field set unchanged since commit 9c61f88).
+std::uint64_t fixtureTraceHash(const std::vector<PhraseDecisionTrace>& traces) noexcept {
+    std::uint64_t h = 14695981039346656037ULL;
+    for (const auto& t : traces) {
+        fnvMix(h, t.decisionId);
+        fnvMix(h, t.winningCandidateId);
+        fnvMix(h, static_cast<std::uint64_t>(t.winningScore));
+        fnvMix(h, static_cast<std::uint64_t>(t.winningTransformKind));
+        fnvMix(h, static_cast<std::uint64_t>(t.winningTransformParam));
+        fnvMix(h, static_cast<std::uint64_t>(t.finalEventCount));
+        fnvMix(h, static_cast<std::uint64_t>(t.plannerNoteOffCount));
+        for (std::size_t c = 0; c < t.candidatesGenerated; ++c) {
+            fnvMix(h, t.candidates[c].candidateId);
+            fnvMix(h, static_cast<std::uint64_t>(t.candidates[c].score));
+        }
+    }
+    return h;
+}
+
+// FNV-1a 64 over the IEEE-754 bit patterns of the captured PCM (artifact content hash, D-M2-11).
+std::uint64_t pcmContentHash(const std::vector<float>& samples) noexcept {
+    std::uint64_t h = 14695981039346656037ULL;
+    for (float s : samples) {
+        std::uint32_t bits = 0;
+        std::memcpy(&bits, &s, sizeof(bits));
+        for (int b = 0; b < 4; ++b) {
+            h ^= (bits >> (8 * b)) & 0xFFU;
+            h *= 1099511628211ULL;
+        }
+    }
+    return h;
+}
+
+// Just-in-time Coordinator of fixture-m2-4-v1 (ADR-0005 D-M2-09), shared by fixture_probe_v1 and workload F.
+class FixtureCoordinator {
+public:
+    static constexpr std::uint64_t kStartCommandId = 1;
+    static constexpr std::uint64_t kTempoBCommandId = 2;
+    static constexpr std::uint64_t kTempoAPrimeCommandId = 3;
+    static constexpr std::uint64_t kStopCommandId = 4;
+
+    FixtureCoordinator(const MusicClock& clock, const FormPlan& form, const std::array<PhrasePlan, 24>& phrases)
+        : clock_(clock), form_(form), phrases_(phrases),
+          planner_({.runSeed = kFixtureSeed, .candidateCount = 8, .sampleRate = kInc4SampleRate,
+                    .lookaheadFrames = AudioSchedulerConfig{}.lookaheadFrames}) {
+        planner_.setFormPlan(form_);
+        for (std::size_t i = 0; i < 2; ++i) {
+            const std::uint32_t boundaryBar = form_.sections[i + 1].startBar;
+            tempoBoundary_[i] = clock_.frameAtBar(boundaryBar);
+            tempoSendFrame_[i] = clock_.frameAtBar(boundaryBar - 1); // at least one bar ahead
+        }
+        const SectionPlan& last = form_.sections[form_.sectionCount - 1];
+        contentEndFrame_ = clock_.frameAtBar(static_cast<std::uint64_t>(last.startBar) + last.barCount);
+        stopSendFrame_ = clock_.frameAtBar(static_cast<std::uint64_t>(last.startBar) + last.barCount - 1);
+    }
+
+    void start(AudioEngine& engine) {
+        planNext(0); // phrase 0
+        planNext(0); // phrase 1 (one phrase of anticipation)
+        engine.sendCommand(AudioCommand{.commandId = kStartCommandId, .type = AudioCommandType::Start, .targetSampleFrame = 0});
+    }
+
+    // Coordinator work before rendering the block that starts at currentFrame.
+    void beforeBlock(std::uint64_t currentFrame, AudioEngine& engine) {
+        for (std::size_t i = 0; i < 2; ++i) {
+            if (!tempoSent_[i] && currentFrame >= tempoSendFrame_[i]) {
+                engine.sendCommand(AudioCommand::makeSetTempoMap(kTempoBCommandId + i, form_.sections[i + 1].tempoMap,
+                                                                 tempoBoundary_[i]));
+                tempoSent_[i] = true;
+            }
+        }
+        if (!stopSent_ && currentFrame >= stopSendFrame_) {
+            engine.sendCommand(AudioCommand{.commandId = kStopCommandId, .type = AudioCommandType::Stop,
+                                            .targetSampleFrame = contentEndFrame_});
+            stopSent_ = true;
+        }
+        // Phrase N+1 is planned when the planning cursor enters phrase N
+        while (!stopped_ && next_ < phrases_.size() && currentFrame >= phrases_[next_ - 1].startFrame) {
+            planNext(core::saturatingAdd(currentFrame, scheduler_.lookaheadFrames()));
+        }
+        if (!stopped_) {
+            (void)scheduler_.dispatchDueEvents(currentFrame, engine);
+        }
+    }
+
+    void drainAcks(AudioEngine& engine) {
+        AudioCommandAck ack{};
+        while (engine.pollAck(ack)) {
+            if (ack.commandId == kStartCommandId) {
+                ackStart_ = ack;
+            } else if (ack.commandId == kTempoBCommandId || ack.commandId == kTempoAPrimeCommandId) {
+                const std::size_t i = static_cast<std::size_t>(ack.commandId - kTempoBCommandId);
+                ackTempo_[i] = ack;
+                if (!tempoAckValid(i)) {
+                    // Fail-closed (D-M2-09): revoke staged events from the planned boundary on
+                    revokedEvents_ += scheduler_.revokeFromFrame(tempoBoundary_[i]);
+                }
+            } else if (ack.commandId == kStopCommandId) {
+                ackStop_ = ack;
+                if (ack.status == AudioCommandStatus::Applied && !stopped_) {
+                    // Stop: empty the staging and reset the planner, simulated tracker included (D-M2-09)
+                    stagedAtStop_ = scheduler_.stagedEventCount();
+                    tracesAtStop_ = planner_.decisionTraces();
+                    noteOffsAtStop_ = planner_.plannedNoteOffs();
+                    scheduler_.clear();
+                    planner_.reset(kFixtureSeed);
+                    stopped_ = true;
+                }
+            }
+        }
+    }
+
+    [[nodiscard]] bool tempoAckValid(std::size_t i) const noexcept {
+        return ackTempo_[i].status == AudioCommandStatus::Applied && ackTempo_[i].sampleFrame == tempoBoundary_[i] &&
+               ackTempo_[i].transportEpoch == fixtureEpochForSection(static_cast<std::uint32_t>(i + 1));
+    }
+    [[nodiscard]] bool startAckValid() const noexcept {
+        return ackStart_.status == AudioCommandStatus::Applied && ackStart_.transportEpoch == 1;
+    }
+    [[nodiscard]] bool stopAckValid() const noexcept {
+        return ackStop_.status == AudioCommandStatus::Applied && ackStop_.sampleFrame == contentEndFrame_;
+    }
+
+    [[nodiscard]] std::uint64_t contentEndFrame() const noexcept { return contentEndFrame_; }
+    [[nodiscard]] std::uint64_t tempoBoundary(std::size_t i) const noexcept { return tempoBoundary_[i]; }
+    [[nodiscard]] const AudioCommandAck& tempoAck(std::size_t i) const noexcept { return ackTempo_[i]; }
+    [[nodiscard]] const AudioCommandAck& startAck() const noexcept { return ackStart_; }
+    [[nodiscard]] const AudioCommandAck& stopAck() const noexcept { return ackStop_; }
+    [[nodiscard]] std::size_t phrasesPlanned() const noexcept { return next_; }
+    [[nodiscard]] bool stopped() const noexcept { return stopped_; }
+    [[nodiscard]] std::size_t stagedAtStop() const noexcept { return stagedAtStop_; }
+    [[nodiscard]] std::size_t revokedEvents() const noexcept { return revokedEvents_; }
+    [[nodiscard]] std::uint64_t backpressureDrops() const noexcept { return scheduler_.backpressureDrops(); }
+    [[nodiscard]] std::uint64_t lookaheadFrames() const noexcept { return scheduler_.lookaheadFrames(); }
+    [[nodiscard]] const std::vector<PhraseDecisionTrace>& tracesAtStop() const noexcept { return tracesAtStop_; }
+    [[nodiscard]] const std::vector<PlannedNoteOff>& noteOffsAtStop() const noexcept { return noteOffsAtStop_; }
+
+private:
+    void planNext(std::uint64_t horizon) {
+        if (next_ >= phrases_.size()) return;
+        const PhrasePlan& p = phrases_[next_];
+        std::vector<MusicIntentEvent> out;
+        planner_.planPhrase(p, clock_, horizon, fixtureEpochForSection(p.sectionIndex), out, &scheduler_);
+        ++next_;
+    }
+
+    const MusicClock& clock_;
+    const FormPlan& form_;
+    const std::array<PhrasePlan, 24>& phrases_;
+    MusicPlanner planner_;
+    AudioScheduler scheduler_{};
+    std::size_t next_{0};
+    std::array<std::uint64_t, 2> tempoBoundary_{};
+    std::array<std::uint64_t, 2> tempoSendFrame_{};
+    std::array<bool, 2> tempoSent_{};
+    std::uint64_t contentEndFrame_{0};
+    std::uint64_t stopSendFrame_{0};
+    bool stopSent_{false};
+    bool stopped_{false};
+    AudioCommandAck ackStart_{};
+    std::array<AudioCommandAck, 2> ackTempo_{};
+    AudioCommandAck ackStop_{};
+    std::size_t stagedAtStop_{0};
+    std::size_t revokedEvents_{0};
+    std::vector<PhraseDecisionTrace> tracesAtStop_{};
+    std::vector<PlannedNoteOff> noteOffsAtStop_{};
+};
+
+std::string cpuBrandString() {
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
+    std::array<int, 4> regs{};
+    __cpuid(regs.data(), static_cast<int>(0x80000000U));
+    if (static_cast<unsigned>(regs[0]) < 0x80000004U) return "unknown";
+    std::array<char, 49> brand{};
+    for (unsigned leaf = 0; leaf < 3; ++leaf) {
+        __cpuid(regs.data(), static_cast<int>(0x80000002U + leaf));
+        std::memcpy(brand.data() + leaf * 16, regs.data(), 16);
+    }
+    std::string s(brand.data());
+    const auto first = s.find_first_not_of(' ');
+    if (first == std::string::npos) return "unknown";
+    return s.substr(first, s.find_last_not_of(' ') - first + 1);
+#else
+    return "unknown";
+#endif
+}
+
+std::string osVersionString() {
+#if defined(_WIN32)
+    using RtlGetVersionFn = LONG(WINAPI*)(PRTL_OSVERSIONINFOW);
+    const HMODULE ntdll = ::GetModuleHandleW(L"ntdll.dll");
+    if (ntdll != nullptr) {
+        const auto fn = reinterpret_cast<RtlGetVersionFn>(reinterpret_cast<void*>(::GetProcAddress(ntdll, "RtlGetVersion")));
+        RTL_OSVERSIONINFOW info{};
+        info.dwOSVersionInfoSize = sizeof(info);
+        if (fn != nullptr && fn(&info) == 0) {
+            return "Windows " + std::to_string(info.dwMajorVersion) + "." + std::to_string(info.dwMinorVersion) +
+                   "." + std::to_string(info.dwBuildNumber);
+        }
+    }
+    return "Windows (unknown version)";
+#else
+    return "unknown";
+#endif
+}
+
+std::string compilerString() {
+#if defined(_MSC_FULL_VER)
+    return "MSVC " + std::to_string(_MSC_FULL_VER);
+#elif defined(__clang__)
+    return std::string("clang ") + __clang_version__;
+#elif defined(__GNUC__)
+    return std::string("gcc ") + __VERSION__;
+#else
+    return "unknown";
+#endif
+}
+
+const char* workloadName(ProfileWorkload w) noexcept {
+    return (w == ProfileWorkload::W) ? "W" : "F";
+}
+
+} // namespace
+
 std::string FixtureProbeResult::toJson() const {
     std::ostringstream ss;
     ss << "{\n";
-    ss << "  \"manifest_version\": \"1.0\",\n";
+    ss << "  \"manifest_version\": \"1.1\",\n";
     ss << "  \"scenario\": \"fixture_probe_v1\",\n";
     ss << "  \"build_id\": \"" << escapeJsonString(buildId) << "\",\n";
     ss << "  \"verdict\": \"" << (passed ? "PASS" : "FAIL") << "\",\n";
+    ss << "  \"run_seed\": " << kFixtureSeed << ",\n";
+    ss << "  \"sample_rate\": " << kInc4SampleRate << ",\n";
+    ss << "  \"lookahead_frames\": " << lookaheadFrames << ",\n";
+    ss << "  \"content_end_frame\": " << contentEndFrame << ",\n";
     ss << "  \"final_transport_epoch\": " << transportEpoch << ",\n";
     ss << "  \"simulation_ticks\": " << simulationTicks << ",\n";
     ss << "  \"requested_sample_frames\": " << requestedSampleFrames << ",\n";
     ss << "  \"applied_sample_frames\": " << totalCapturedFrames << ",\n";
     ss << "  \"dropped_frames\": " << droppedFrames << ",\n";
     ss << "  \"presentation_quality\": \"" << escapeJsonString(presentationQuality) << "\",\n";
+    ss << "  \"phrases_planned\": " << phrasesPlanned << ",\n";
     ss << "  \"generated_events\": " << generatedEvents << ",\n";
     ss << "  \"planner_note_offs\": " << plannerNoteOffs << ",\n";
     ss << "  \"engine_processed_events\": " << engineProcessedEvents << ",\n";
     ss << "  \"dropped_scheduled_events\": " << droppedScheduledEvents << ",\n";
     ss << "  \"deferred_scheduled_events\": " << deferredScheduledEvents << ",\n";
+    ss << "  \"scheduler_backpressure_drops\": " << schedulerBackpressureDrops << ",\n";
+    ss << "  \"revoked_staged_events\": " << revokedStagedEvents << ",\n";
+    ss << "  \"staged_events_at_stop\": " << stagedEventsAtStop << ",\n";
     ss << "  \"orphan_note_recovered\": " << orphanNoteRecoveredCount << ",\n";
     ss << "  \"voice_drop_count\": " << voiceDropCount << ",\n";
+    ss << "  \"transport_acks\": [\n";
+    for (std::size_t i = 0; i < transportAcks.size(); ++i) {
+        const auto& a = transportAcks[i];
+        ss << "    {\"command_id\": " << a.commandId << ", \"status\": " << static_cast<int>(a.status)
+           << ", \"sample_frame\": " << a.sampleFrame << ", \"transport_epoch\": " << a.transportEpoch << "}"
+           << (i + 1 < transportAcks.size() ? ",\n" : "\n");
+    }
+    ss << "  ],\n";
+    ss << "  \"sections\": [\n";
+    for (std::size_t s = 0; s < 3; ++s) {
+        ss << "    {\"section\": " << s << ", \"rms_dbfs\": " << safeJsonFloat(sectionRmsDbfs[s])
+           << ", \"energy_max\": {\"pulso\": " << safeJsonFloat(roleEnergyMax[s][0])
+           << ", \"corpo\": " << safeJsonFloat(roleEnergyMax[s][1]) << ", \"trama\": " << safeJsonFloat(roleEnergyMax[s][2])
+           << ", \"vettore\": " << safeJsonFloat(roleEnergyMax[s][3]) << "}}" << (s < 2 ? ",\n" : "\n");
+    }
+    ss << "  ],\n";
     ss << "  \"peak_amplitude\": " << safeJsonFloat(peakAmplitude) << ",\n";
     ss << "  \"true_peak_dbtp\": " << safeJsonFloat(truePeakDbtp) << ",\n";
+    ss << "  \"max_gain_reduction_db\": " << safeJsonFloat(maxGainReductionDb) << ",\n";
     ss << "  \"clipped_samples\": " << clippedSamples << ",\n";
     ss << "  \"decision_trace_hash\": " << decisionTraceHash << ",\n";
+    ss << "  \"golden_decision_trace_hash\": " << kFixtureProbeV1GoldenTraceHash << ",\n";
+    ss << "  \"pcm_content_hash\": " << pcmContentHash << ",\n";
     ss << "  \"checks\": {\n";
-    ss << "    \"tempo_ack_passed\": " << (tempoAckPassed ? "true" : "false") << ",\n";
+    ss << "    \"capture_complete_passed\": " << (captureCompletePassed ? "true" : "false") << ",\n";
+    ss << "    \"transport_ack_passed\": " << (tempoAckPassed ? "true" : "false") << ",\n";
     ss << "    \"note_off_pairing_passed\": " << (noteOffPairingPassed ? "true" : "false") << ",\n";
+    ss << "    \"scheduling_accounting_passed\": " << (schedulingAccountingPassed ? "true" : "false") << ",\n";
     ss << "    \"non_silent_audio_passed\": " << (nonSilentAudioPassed ? "true" : "false") << ",\n";
+    ss << "    \"role_activity_passed\": " << (roleActivityPassed ? "true" : "false") << ",\n";
     ss << "    \"silence_boundary_passed\": " << (silenceBoundaryPassed ? "true" : "false") << ",\n";
     ss << "    \"determinism_passed\": " << (determinismPassed ? "true" : "false") << ",\n";
+    ss << "    \"golden_trace_passed\": " << (goldenTracePassed ? "true" : "false") << ",\n";
     ss << "    \"true_peak_passed\": " << (truePeakPassed ? "true" : "false") << ",\n";
+    ss << "    \"sample_ceiling_passed\": " << (sampleCeilingPassed ? "true" : "false") << ",\n";
     ss << "    \"zero_clipping_passed\": " << (clippedSamples == 0 ? "true" : "false") << ",\n";
     ss << "    \"dsp_anomalies_passed\": " << (dspAnomaliesPassed ? "true" : "false") << "\n";
     ss << "  },\n";
+    ss << "  \"perceptual_judgement\": \"not_run\",\n";
     ss << "  \"wav_write_success\": " << (wavWriteSuccess ? "true" : "false") << ",\n";
     ss << "  \"manifest_write_success\": " << (manifestWriteSuccess ? "true" : "false") << ",\n";
     ss << "  \"artifacts\": {\n";
@@ -1918,29 +2206,43 @@ std::string FixtureProbeResult::toJson() const {
 std::string ProfileProbeResult::toJson() const {
     std::ostringstream ss;
     ss << "{\n";
-    ss << "  \"manifest_version\": \"1.0\",\n";
+    ss << "  \"manifest_version\": \"1.1\",\n";
     ss << "  \"scenario\": \"profile_probe_v1\",\n";
     ss << "  \"build_id\": \"" << escapeJsonString(buildId) << "\",\n";
     ss << "  \"verdict\": \"" << (passed ? "PASS" : "FAIL") << "\",\n";
-    ss << "  \"percentiles_ms\": {\n";
-    ss << "    \"p50\": " << safeJsonDouble(p50Ms) << ",\n";
-    ss << "    \"p95\": " << safeJsonDouble(p95Ms) << ",\n";
-    ss << "    \"p99\": " << safeJsonDouble(p99Ms) << ",\n";
-    ss << "    \"p999\": " << safeJsonDouble(p999Ms) << ",\n";
-    ss << "    \"max\": " << safeJsonDouble(maxMs) << ",\n";
-    ss << "    \"mean\": " << safeJsonDouble(meanMs) << "\n";
-    ss << "  },\n";
-    ss << "  \"total_blocks\": " << totalBlocks << ",\n";
-    ss << "  \"blocks_exceeding_2ms\": " << blocksExceeding2Ms << ",\n";
-    ss << "  \"blocks_exceeding_block_period\": " << blocksExceedingBlockPeriod << ",\n";
-    ss << "  \"checks\": {\n";
-    ss << "    \"p999_passed\": " << (p999Passed ? "true" : "false") << ",\n";
-    ss << "    \"block_period_passed\": " << (blockPeriodPassed ? "true" : "false") << "\n";
-    ss << "  },\n";
+    ss << "  \"timing_gated\": " << (timingGated ? "true" : "false") << ",\n";
+    ss << "  \"scope\": \"offline render cost on this machine; not a device realtime qualification (ADR-0005 D-M2-10)\",\n";
+    ss << "  \"worst_p999_ms\": " << safeJsonDouble(worstP999Ms) << ",\n";
+    ss << "  \"worst_max_ms\": " << safeJsonDouble(worstMaxMs) << ",\n";
+    ss << "  \"runs\": [\n";
+    for (std::size_t i = 0; i < runs.size(); ++i) {
+        const auto& r = runs[i];
+        ss << "    {\"workload\": \"" << workloadName(r.workload) << "\", \"cacp\": " << (r.cacpEnabled ? "true" : "false")
+           << ", \"repetition\": " << r.repetition << ", \"retry\": " << (r.isRetry ? "true" : "false")
+           << ", \"total_blocks\": " << r.totalBlocks
+           << ", \"p50_ms\": " << safeJsonDouble(r.p50Ms) << ", \"p95_ms\": " << safeJsonDouble(r.p95Ms)
+           << ", \"p99_ms\": " << safeJsonDouble(r.p99Ms) << ", \"p999_ms\": " << safeJsonDouble(r.p999Ms)
+           << ", \"max_ms\": " << safeJsonDouble(r.maxMs) << ", \"mean_ms\": " << safeJsonDouble(r.meanMs)
+           << ", \"blocks_exceeding_2ms\": " << r.blocksExceeding2Ms
+           << ", \"blocks_exceeding_block_period\": " << r.blocksExceedingBlockPeriod
+           << ", \"max_gain_reduction_db\": " << safeJsonFloat(r.maxGainReductionDb)
+           << ", \"voice_steals\": " << r.voiceSteals
+           << ", \"stress_conditions_met\": " << (r.stressConditionsMet ? "true" : "false")
+           << ", \"p999_passed\": " << (r.p999Passed ? "true" : "false")
+           << ", \"block_period_passed\": " << (r.blockPeriodPassed ? "true" : "false") << "}"
+           << (i + 1 < runs.size() ? ",\n" : "\n");
+    }
+    ss << "  ],\n";
     ss << "  \"environment\": {\n";
+    ss << "    \"commit\": \"" << escapeJsonString(buildId) << "\",\n";
+    ss << "    \"build_config\": \"" << escapeJsonString(buildConfig) << "\",\n";
+    ss << "    \"cpu\": \"" << escapeJsonString(cpuInfo) << "\",\n";
     ss << "    \"os_version\": \"" << escapeJsonString(osVersion) << "\",\n";
-    ss << "    \"cpu_info\": \"" << escapeJsonString(cpuInfo) << "\",\n";
-    ss << "    \"build_config\": \"" << escapeJsonString(buildConfig) << "\"\n";
+    ss << "    \"compiler\": \"" << escapeJsonString(compilerVersion) << "\",\n";
+    ss << "    \"block_frames\": " << kProfileBlockFrames << ",\n";
+    ss << "    \"sample_rate\": " << kInc4SampleRate << ",\n";
+    ss << "    \"warmup_blocks\": " << kProfileWarmupBlocks << ",\n";
+    ss << "    \"repetitions\": " << kProfileRepetitions << "\n";
     ss << "  },\n";
     ss << "  \"manifest_write_success\": " << (manifestWriteSuccess ? "true" : "false") << ",\n";
     ss << "  \"artifacts\": {\n";
@@ -1967,9 +2269,7 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     const FormPlan form = MusicPlanner::makeFixtureM24V1Form();
     const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(clock);
 
-    constexpr std::uint32_t kSampleRate = 48000;
-    constexpr std::uint32_t kFramesPerTick = 48000U / core::FixedStepConfig{}.simulationHz; // 400
-    constexpr std::uint64_t kLookahead = AudioSchedulerConfig{}.lookaheadFrames; // 7200
+    constexpr std::uint32_t kFramesPerTick = kInc4SampleRate / core::FixedStepConfig{}.simulationHz; // 400
 
     struct PlanRun {
         std::vector<std::vector<MusicIntentEvent>> intents;
@@ -1977,61 +2277,34 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
         std::vector<PlannedNoteOff> noteOffs;
     };
 
-    auto runPlanningPass = [&](std::uint64_t seed) -> PlanRun {
-        MusicPlanner p({.runSeed = seed, .candidateCount = 8, .sampleRate = kSampleRate, .lookaheadFrames = kLookahead});
+    auto runPlanningPass = [&]() -> PlanRun {
+        MusicPlanner p({.runSeed = kFixtureSeed, .candidateCount = 8, .sampleRate = kInc4SampleRate,
+                        .lookaheadFrames = AudioSchedulerConfig{}.lookaheadFrames});
         p.setFormPlan(form);
         PlanRun run;
         run.intents.resize(phrases.size());
         for (std::size_t i = 0; i < phrases.size(); ++i) {
-            std::uint64_t epoch = 1;
-            if (phrases[i].sectionIndex == 1) epoch = 2;
-            else if (phrases[i].sectionIndex == 2) epoch = 3;
-            p.planPhrase(phrases[i], clock, 0, epoch, run.intents[i], nullptr);
+            p.planPhrase(phrases[i], clock, 0, fixtureEpochForSection(phrases[i].sectionIndex), run.intents[i], nullptr);
         }
         run.traces = p.decisionTraces();
         run.noteOffs = p.plannedNoteOffs();
         return run;
     };
 
-    const PlanRun run1 = runPlanningPass(1337ULL);
-    const PlanRun run2 = runPlanningPass(1337ULL);
+    const PlanRun run1 = runPlanningPass();
+    const PlanRun run2 = runPlanningPass();
+    const bool offlineDeterminism = (run1.intents == run2.intents && run1.traces == run2.traces &&
+                                     run1.noteOffs == run2.noteOffs && run1.traces.size() == phrases.size());
 
-    result.determinismPassed = (run1.intents == run2.intents &&
-                                run1.traces == run2.traces &&
-                                run1.noteOffs == run2.noteOffs &&
-                                !run1.intents.empty());
+    result.decisionTraceHash = fixtureTraceHash(run1.traces);
+    result.goldenTracePassed = (result.decisionTraceHash == kFixtureProbeV1GoldenTraceHash);
 
-    // Compute decision trace hash using FNV-1a 64-bit
-    std::uint64_t traceHash = 14695981039346656037ULL;
-    constexpr std::uint64_t kFnvPrime = 1099511628211ULL;
-    auto hashCombineU64 = [&](std::uint64_t v) {
-        traceHash ^= v;
-        traceHash *= kFnvPrime;
-    };
-
-    std::uint32_t totalIntents = 0;
     for (const auto& phraseIntents : run1.intents) {
-        totalIntents += static_cast<std::uint32_t>(phraseIntents.size());
+        result.generatedEvents += static_cast<std::uint32_t>(phraseIntents.size());
     }
-    result.generatedEvents = totalIntents;
     result.plannerNoteOffs = static_cast<std::uint32_t>(run1.noteOffs.size());
 
-    for (const auto& t : run1.traces) {
-        hashCombineU64(t.decisionId);
-        hashCombineU64(t.winningCandidateId);
-        hashCombineU64(static_cast<std::uint64_t>(t.winningScore));
-        hashCombineU64(static_cast<std::uint64_t>(t.winningTransformKind));
-        hashCombineU64(static_cast<std::uint64_t>(t.winningTransformParam));
-        hashCombineU64(static_cast<std::uint64_t>(t.finalEventCount));
-        hashCombineU64(static_cast<std::uint64_t>(t.plannerNoteOffCount));
-        for (std::size_t c = 0; c < t.candidatesGenerated; ++c) {
-            hashCombineU64(t.candidates[c].candidateId);
-            hashCombineU64(static_cast<std::uint64_t>(t.candidates[c].score));
-        }
-    }
-    result.decisionTraceHash = traceHash;
-
-    // Check NoteOn/NoteOff pairing
+    // NoteOn/NoteOff pairing: timed notes carry their own NoteOff, open pads exactly one planner NoteOff
     {
         bool pairingOk = true;
         for (const auto& phraseIntents : run1.intents) {
@@ -2056,9 +2329,9 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
         result.noteOffPairingPassed = pairingOk;
     }
 
-    // --- Offline render ---
+    // --- Offline render driven by the just-in-time Coordinator ---
     AudioEngine engine;
-    if (!engine.initOffline({kSampleRate, 2, 220.0f})) {
+    if (!engine.initOffline({kInc4SampleRate, 2, 220.0f})) {
         result.passed = false;
         result.failureReason = "Failed to initialize AudioEngine in offline mode";
         return result;
@@ -2066,89 +2339,45 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     AudioProbe probe(AudioProbe::kDefaultCapacityFrames, 2, engine.sampleRate());
     engine.attachAudioProbe(&probe);
 
-    const std::uint64_t contentEndFrame = clock.frameAtBar(96); // 8,777,142
-    constexpr std::uint64_t kPostStopFrames = 48000;            // 1.0 s
-    result.simulationTicks = (contentEndFrame + kPostStopFrames + kFramesPerTick - 1) / kFramesPerTick;
+    FixtureCoordinator coordinator(clock, form, phrases);
+    result.contentEndFrame = coordinator.contentEndFrame();
+    result.lookaheadFrames = coordinator.lookaheadFrames();
+    result.simulationTicks = (result.contentEndFrame + kFixturePostStopFrames + kFramesPerTick - 1) / kFramesPerTick;
     result.requestedSampleFrames = result.simulationTicks * kFramesPerTick; // 8,825,200 (exact tick boundary)
-
-    MusicPlanner livePlanner({.runSeed = 1337ULL, .candidateCount = 8, .sampleRate = kSampleRate, .lookaheadFrames = kLookahead});
-    livePlanner.setFormPlan(form);
-    AudioScheduler scheduler;
-    std::size_t nextPhraseToPlan = 0;
-
-    auto planNextLivePhrase = [&](std::uint64_t horizon) {
-        if (nextPhraseToPlan >= phrases.size()) return;
-        const auto& p = phrases[nextPhraseToPlan];
-        std::uint64_t epoch = 1;
-        if (p.sectionIndex == 1) epoch = 2;
-        else if (p.sectionIndex == 2) epoch = 3;
-        std::vector<MusicIntentEvent> out;
-        livePlanner.planPhrase(p, clock, horizon, epoch, out, &scheduler);
-        ++nextPhraseToPlan;
-    };
-
-    // Plan phrase 0 and 1 in advance
-    planNextLivePhrase(0);
-    planNextLivePhrase(0);
-
-    engine.sendCommand(AudioCommand{.commandId = 1, .type = AudioCommandType::Start, .targetSampleFrame = 0});
-
-    const std::uint64_t tempoChangeFrameB = 3072000ULL;
-    const std::uint64_t tempoChangeFrameA1 = 5705142ULL;
-    const std::uint64_t bar31Frame = clock.frameAtBar(31);
-    const std::uint64_t bar63Frame = clock.frameAtBar(63);
-    const std::uint64_t bar95Frame = clock.frameAtBar(95);
-    const std::uint64_t stopFrame = contentEndFrame;
-
-    bool sentTempoB = false;
-    bool sentTempoA1 = false;
-    bool sentStop = false;
-    AudioCommandAck ackB{};
-    AudioCommandAck ackA1{};
-    AudioCommandAck ackStop{};
 
     std::vector<float> recordedStereo;
     recordedStereo.reserve(static_cast<std::size_t>(result.requestedSampleFrames) * 2);
     std::vector<float> readChunk(static_cast<std::size_t>(kFramesPerTick) * 2);
     std::vector<float> tickBlock(static_cast<std::size_t>(kFramesPerTick) * 2);
+    bool captureContinuous = true;
 
+    coordinator.start(engine);
     for (std::uint64_t tick = 0; tick < result.simulationTicks; ++tick) {
         const std::uint64_t currentFrame = tick * kFramesPerTick;
-
-        if (!sentTempoB && currentFrame >= bar31Frame) {
-            engine.sendCommand(AudioCommand::makeSetTempoMap(2, form.sections[1].tempoMap, tempoChangeFrameB));
-            sentTempoB = true;
-        }
-        if (!sentTempoA1 && currentFrame >= bar63Frame) {
-            engine.sendCommand(AudioCommand::makeSetTempoMap(3, form.sections[2].tempoMap, tempoChangeFrameA1));
-            sentTempoA1 = true;
-        }
-        if (!sentStop && currentFrame >= bar95Frame) {
-            engine.sendCommand(AudioCommand{.commandId = 4, .type = AudioCommandType::Stop, .targetSampleFrame = stopFrame});
-            sentStop = true;
-        }
-
-        while (nextPhraseToPlan < phrases.size() &&
-               (nextPhraseToPlan <= 1 || currentFrame >= phrases[nextPhraseToPlan - 1].startFrame)) {
-            const std::uint64_t horizon = currentFrame + scheduler.lookaheadFrames();
-            planNextLivePhrase(horizon);
-        }
-
-        scheduler.dispatchDueEvents(currentFrame, engine);
-
+        coordinator.beforeBlock(currentFrame, engine);
         engine.processBlock(tickBlock.data(), kFramesPerTick);
 
-        const std::uint32_t framesRead = probe.readFrames(readChunk.data(), kFramesPerTick);
-        if (framesRead > 0) {
+        // Drain the probe completely on every block (no capture discontinuity)
+        std::uint32_t drained = 0;
+        for (;;) {
+            const std::uint32_t framesRead = probe.readFrames(readChunk.data(), kFramesPerTick);
+            if (framesRead == 0) break;
+            drained += framesRead;
             recordedStereo.insert(recordedStereo.end(), readChunk.begin(), readChunk.begin() + (framesRead * 2));
         }
+        if (drained != kFramesPerTick) captureContinuous = false;
 
-        AudioCommandAck ack{};
-        while (engine.pollAck(ack)) {
-            if (ack.commandId == 2) ackB = ack;
-            else if (ack.commandId == 3) ackA1 = ack;
-            else if (ack.commandId == 4) ackStop = ack;
+        // Per-section, per-role post-bus activity from the telemetry (D-M2-11)
+        if (engine.updateTelemetry() && currentFrame < result.contentEndFrame) {
+            const auto& t = engine.telemetry();
+            const std::size_t s = (currentFrame >= coordinator.tempoBoundary(1)) ? 2
+                                : (currentFrame >= coordinator.tempoBoundary(0)) ? 1 : 0;
+            const std::array<float, 4> energies{t.pulse.energy, t.body.energy, t.texture.energy, t.vector.energy};
+            for (std::size_t r = 0; r < 4; ++r) {
+                result.roleEnergyMax[s][r] = (std::max)(result.roleEnergyMax[s][r], energies[r]);
+            }
         }
+        coordinator.drainAcks(engine);
     }
 
     result.totalCapturedFrames = recordedStereo.size() / 2;
@@ -2160,104 +2389,121 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     result.droppedScheduledEvents = engine.droppedScheduledEvents();
     result.deferredScheduledEvents = engine.deferredScheduledEvents();
     result.engineProcessedEvents = engine.totalScheduledEventsProcessed();
+    result.maxGainReductionDb = engine.masterLimiter().maxGainReductionDb();
     const std::uint32_t finalDspAnomalies = engine.telemetry().dspAnomalyCount;
 
     engine.detachAudioProbe();
     engine.shutdown();
 
-    // Check ACKs
-    result.tempoAckPassed = (ackB.status == AudioCommandStatus::Applied &&
-                             ackB.sampleFrame == tempoChangeFrameB &&
-                             ackB.transportEpoch == 2 &&
-                             ackA1.status == AudioCommandStatus::Applied &&
-                             ackA1.sampleFrame == tempoChangeFrameA1 &&
-                             ackA1.transportEpoch == 3);
+    result.phrasesPlanned = static_cast<std::uint32_t>(coordinator.phrasesPlanned());
+    result.schedulerBackpressureDrops = coordinator.backpressureDrops();
+    result.revokedStagedEvents = coordinator.revokedEvents();
+    result.stagedEventsAtStop = coordinator.stagedAtStop();
+
+    // Rendered plan == offline plan (the live Coordinator plans the same decisions just in time)
+    result.determinismPassed = offlineDeterminism && coordinator.stopped() &&
+                               coordinator.tracesAtStop() == run1.traces && coordinator.noteOffsAtStop() == run1.noteOffs;
+
+    result.captureCompletePassed = captureContinuous && result.droppedFrames == 0 &&
+                                   result.totalCapturedFrames == result.requestedSampleFrames;
+
+    // Transport acks: Start epoch 1, SetTempoMap Applied at the planned frames with epochs 2 and 3, Stop Applied
+    result.transportAcks = {coordinator.startAck(), coordinator.tempoAck(0), coordinator.tempoAck(1), coordinator.stopAck()};
+    result.tempoAckPassed = coordinator.startAckValid() && coordinator.tempoAckValid(0) && coordinator.tempoAckValid(1) &&
+                            coordinator.stopAckValid() && result.revokedStagedEvents == 0;
+
+    result.schedulingAccountingPassed = result.droppedScheduledEvents == 0 && result.deferredScheduledEvents == 0 &&
+                                        result.schedulerBackpressureDrops == 0 && result.stagedEventsAtStop == 0 &&
+                                        result.orphanNoteRecoveredCount == 0 &&
+                                        result.phrasesPlanned == phrases.size();
 
     // Peak, clipping, finite
     float maxAmp = 0.0f;
-    std::uint32_t clipCount = 0;
     bool finiteOk = true;
     for (float s : recordedStereo) {
-        if (!std::isfinite(s)) {
-            finiteOk = false;
-        }
+        if (!std::isfinite(s)) finiteOk = false;
         const float a = std::abs(s);
         if (a > maxAmp) maxAmp = a;
-        if (a >= (32767.0f / 32768.0f)) {
-            ++clipCount;
-        }
+        if (a >= (32767.0f / 32768.0f)) ++result.clippedSamples;
     }
     result.peakAmplitude = maxAmp;
-    result.clippedSamples = clipCount;
+    result.sampleCeilingPassed = finiteOk && (maxAmp <= MasterLimiter::kHardCeilingLinear);
     result.dspAnomaliesPassed = (finalDspAnomalies == 0 && finiteOk);
 
-    // True peak
+    // True peak: engineering check of the probe, not an M2.5 gate (AUD-D-03)
     result.truePeakDbtp = analysis::estimateTruePeakDbtp(recordedStereo.data(), result.totalCapturedFrames, 2);
     result.truePeakPassed = (result.truePeakDbtp <= -1.0f);
 
-    // Silence boundary (INC4-R09): exact 0.0f from frame 8,777,238 to end of file
-    bool silenceOk = true;
-    constexpr std::uint64_t kSilenceStartFrame = 8777142ULL + 96ULL; // 8777238
-    if (result.totalCapturedFrames >= kSilenceStartFrame) {
-        for (std::size_t i = static_cast<std::size_t>(kSilenceStartFrame) * 2; i < recordedStereo.size(); ++i) {
-            if (recordedStereo[i] != 0.0f) {
-                silenceOk = false;
-                break;
+    // Numerical silence after the Stop declick ramp (2 ms = 96 frames at 48 kHz)
+    {
+        const std::uint64_t silenceStart = result.contentEndFrame + 96ULL;
+        bool silenceOk = result.totalCapturedFrames > silenceStart;
+        for (std::size_t i = static_cast<std::size_t>(silenceStart) * 2; silenceOk && i < recordedStereo.size(); ++i) {
+            if (recordedStereo[i] != 0.0f) silenceOk = false;
+        }
+        result.silenceBoundaryPassed = silenceOk;
+    }
+
+    // Non-silence per section (whole-section RMS) and per role (telemetry post-bus energy)
+    {
+        const std::array<std::uint64_t, 4> bounds{0, coordinator.tempoBoundary(0), coordinator.tempoBoundary(1),
+                                                  result.contentEndFrame};
+        bool nonSilent = true;
+        for (std::size_t s = 0; s < 3; ++s) {
+            if (bounds[s + 1] * 2 <= recordedStereo.size() && bounds[s + 1] > bounds[s]) {
+                result.sectionRmsDbfs[s] = analysis::computeRmsDbfs(&recordedStereo[static_cast<std::size_t>(bounds[s]) * 2],
+                                                                    static_cast<std::size_t>(bounds[s + 1] - bounds[s]) * 2);
+            }
+            if (!(result.sectionRmsDbfs[s] > -40.0f)) nonSilent = false;
+        }
+        result.nonSilentAudioPassed = nonSilent;
+
+        bool rolesActive = true;
+        for (const auto& section : result.roleEnergyMax) {
+            for (float e : section) {
+                if (!(e > kFixtureRoleActivityFloor)) rolesActive = false;
             }
         }
-    } else {
-        silenceOk = false;
-    }
-    result.silenceBoundaryPassed = silenceOk;
-
-    // Non-silent audio in active sections
-    {
-        const auto windowRms = [&](std::uint64_t bar) {
-            const std::uint64_t from = clock.frameAtBar(bar);
-            const std::uint64_t to = clock.frameAtBar(bar + 1);
-            if (to * 2 <= recordedStereo.size()) {
-                return analysis::computeRmsDbfs(&recordedStereo[static_cast<std::size_t>(from) * 2],
-                                                static_cast<std::size_t>(to - from) * 2);
-            }
-            return -120.0f;
-        };
-        const float rmsA = windowRms(1);
-        const float rmsB = windowRms(33);
-        const float rmsA1 = windowRms(65);
-        result.nonSilentAudioPassed = (rmsA > -40.0f && rmsB > -40.0f && rmsA1 > -40.0f);
+        result.roleActivityPassed = rolesActive;
     }
 
-    const bool peakPassed = (maxAmp <= (MasterLimiter::kHardCeilingLinear + 1e-6f));
+    result.pcmContentHash = pcmContentHash(recordedStereo);
 
-    result.passed = (result.droppedFrames == 0) &&
+    result.passed = result.captureCompletePassed &&
                     result.determinismPassed &&
+                    result.goldenTracePassed &&
                     result.noteOffPairingPassed &&
                     result.tempoAckPassed &&
+                    result.schedulingAccountingPassed &&
                     result.nonSilentAudioPassed &&
+                    result.roleActivityPassed &&
                     result.silenceBoundaryPassed &&
                     result.truePeakPassed &&
-                    peakPassed &&
+                    result.sampleCeilingPassed &&
                     (result.clippedSamples == 0) &&
-                    result.dspAnomaliesPassed &&
-                    (result.droppedScheduledEvents == 0) &&
-                    (result.deferredScheduledEvents == 0) &&
-                    (result.orphanNoteRecoveredCount == 0);
+                    result.dspAnomaliesPassed;
 
     if (!result.passed) {
         std::ostringstream err;
-        if (result.droppedFrames > 0) err << "dropped frames in probe; ";
-        if (!result.determinismPassed) err << "determinism check failed; ";
+        if (!result.captureCompletePassed) err << "incomplete or discontinuous capture (" << result.totalCapturedFrames
+                                               << " of " << result.requestedSampleFrames << " frames, dropped "
+                                               << result.droppedFrames << "); ";
+        if (!result.determinismPassed) err << "determinism check failed (offline passes or rendered plan differ); ";
+        if (!result.goldenTracePassed) err << "decision trace hash " << result.decisionTraceHash << " != golden "
+                                           << kFixtureProbeV1GoldenTraceHash << "; ";
         if (!result.noteOffPairingPassed) err << "NoteOn/NoteOff pairing failed; ";
-        if (!result.tempoAckPassed) err << "tempoAck check failed; ";
-        if (!result.nonSilentAudioPassed) err << "non-silent audio check failed; ";
+        if (!result.tempoAckPassed) err << "transport ack check failed (revoked " << result.revokedStagedEvents << "); ";
+        if (!result.schedulingAccountingPassed) err << "scheduling accounting failed (dropped " << result.droppedScheduledEvents
+                                                    << ", deferred " << result.deferredScheduledEvents << ", orphans "
+                                                    << result.orphanNoteRecoveredCount << ", staged at stop "
+                                                    << result.stagedEventsAtStop << "); ";
+        if (!result.nonSilentAudioPassed) err << "non-silent section check failed; ";
+        if (!result.roleActivityPassed) err << "role activity check failed; ";
         if (!result.silenceBoundaryPassed) err << "silence boundary violated after Stop declick tail; ";
-        if (!peakPassed) err << "peak amplitude exceeded hard ceiling (" << maxAmp << " > " << MasterLimiter::kHardCeilingLinear << "); ";
+        if (!result.sampleCeilingPassed) err << "sample ceiling exceeded (" << maxAmp << " > " << MasterLimiter::kHardCeilingLinear << "); ";
         if (!result.truePeakPassed) err << "true peak ceiling violated (" << result.truePeakDbtp << " > -1.0 dBTP); ";
         if (result.clippedSamples > 0) err << "clipped samples: " << result.clippedSamples << "; ";
         if (!result.dspAnomaliesPassed) err << "DSP anomalies or non-finite samples detected; ";
-        if (result.droppedScheduledEvents > 0) err << "dropped scheduled events: " << result.droppedScheduledEvents << "; ";
-        if (result.deferredScheduledEvents > 0) err << "deferred scheduled events: " << result.deferredScheduledEvents << "; ";
-        if (result.orphanNoteRecoveredCount > 0) err << "orphan notes recovered: " << result.orphanNoteRecoveredCount << "; ";
         result.failureReason = err.str();
     }
 
@@ -2269,14 +2515,9 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
         result.wavFilePath = (dir / "fixture_probe_v1.wav").lexically_normal().string();
         result.manifestFilePath = (dir / "fixture_probe_v1_manifest.json").lexically_normal().string();
 
-        const bool wavOk = analysis::writeWavStereo16(
-            result.wavFilePath,
-            recordedStereo.data(),
-            result.totalCapturedFrames,
-            kSampleRate
-        );
-        result.wavWriteSuccess = wavOk;
-        if (!wavOk) {
+        result.wavWriteSuccess = analysis::writeWavStereo16(result.wavFilePath, recordedStereo.data(),
+                                                            result.totalCapturedFrames, kInc4SampleRate);
+        if (!result.wavWriteSuccess) {
             result.passed = false;
             result.failureReason += "[WAV write failed] ";
         }
@@ -2300,138 +2541,158 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     return result;
 }
 
+ProfileWorkloadRun runProfileWorkload(ProfileWorkload workload, bool cacpEnabled) {
+    ProfileWorkloadRun run;
+    run.workload = workload;
+    run.cacpEnabled = cacpEnabled;
+
+    AudioEngine engine;
+    if (!engine.initOffline({kInc4SampleRate, 2, 220.0f})) {
+        run.stressConditionsMet = false;
+        return run;
+    }
+    AudioProbe probe(AudioProbe::kDefaultCapacityFrames, 2, kInc4SampleRate);
+    if (cacpEnabled) engine.attachAudioProbe(&probe);
+
+    std::vector<float> blockBuffer(static_cast<std::size_t>(kProfileBlockFrames) * 2, 0.0f);
+    std::vector<float> probeDrain(static_cast<std::size_t>(kProfileBlockFrames) * 2, 0.0f);
+    const auto renderBlock = [&]() {
+        engine.processBlock(blockBuffer.data(), kProfileBlockFrames);
+        if (cacpEnabled) {
+            while (probe.readFrames(probeDrain.data(), kProfileBlockFrames) > 0) {}
+        }
+    };
+
+    if (workload == ProfileWorkload::W) {
+        // 8 held voices on every role (timbreParam > 0 engages filters and the Trama delay), then one
+        // full-velocity NoteOn per block: every block steals a held voice. The voices alone peak at -8.54 dBFS, so
+        // the diagnostic tone (summed before the limiter) drives the limiter into gain reduction (ADR-0005 D-M2-10).
+        engine.sendCommand(AudioCommand{.commandId = 1, .type = AudioCommandType::Start,
+                                        .paramF32 = kProfileWorkloadWToneVolume, .targetSampleFrame = 0});
+        const std::array<MusicRole, 4> roles{MusicRole::Pulso, MusicRole::Corpo, MusicRole::Trama, MusicRole::Vettore};
+        std::uint64_t nextEventId = 1;
+        const auto noteOn = [&](MusicRole role, std::uint64_t frame, float hz) {
+            return ScheduledAudioEvent{.eventId = nextEventId++, .sampleFrame = frame, .transportEpoch = 1,
+                                       .type = AudioEventType::NoteOn, .role = role, .valueA = hz, .valueB = 1.0f,
+                                       .durationFrames = 0, .timbreParam = 0.5f};
+        };
+        for (std::size_t r = 0; r < roles.size(); ++r) {
+            for (int v = 0; v < 2; ++v) {
+                if (!engine.scheduleAudioEvent(noteOn(roles[r], 0, 220.0f + static_cast<float>(r * 50 + v * 25)))) {
+                    run.stressConditionsMet = false;
+                }
+            }
+        }
+        const std::uint32_t totalBlocks = kProfileWarmupBlocks + kProfileWorkloadWBlocks;
+        std::uint32_t stealsBefore = 0;
+        for (std::uint32_t b = 0; b < totalBlocks; ++b) {
+            if (b == kProfileWarmupBlocks) {
+                // Discard warm-up measurements
+                engine.resetCallbackProfileHistogram();
+                engine.masterLimiter().resetTelemetry();
+                (void)engine.updateTelemetry();
+                stealsBefore = engine.telemetry().voiceDropCount;
+            }
+            const std::uint64_t frame = static_cast<std::uint64_t>(b) * kProfileBlockFrames;
+            if (!engine.scheduleAudioEvent(noteOn(roles[b % roles.size()], frame, 220.0f + static_cast<float>((b % 4) * 50)))) {
+                run.stressConditionsMet = false;
+            }
+            renderBlock();
+            if (b >= kProfileWarmupBlocks) {
+                if (!engine.updateTelemetry() || engine.telemetry().activeVoiceCount != 8) run.stressConditionsMet = false;
+            }
+        }
+        (void)engine.updateTelemetry();
+        run.voiceSteals = engine.telemetry().voiceDropCount - stealsBefore;
+        run.maxGainReductionDb = engine.masterLimiter().maxGainReductionDb();
+        // One steal per measured block and the limiter in gain reduction (ADR-0005 D-M2-10)
+        if (run.voiceSteals < kProfileWorkloadWBlocks || !(run.maxGainReductionDb > 0.0f)) run.stressConditionsMet = false;
+    } else {
+        const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+        if (!optClock.has_value()) {
+            run.stressConditionsMet = false;
+            return run;
+        }
+        const MusicClock& clock = *optClock;
+        const FormPlan form = MusicPlanner::makeFixtureM24V1Form();
+        const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(clock);
+        FixtureCoordinator coordinator(clock, form, phrases);
+        const std::uint64_t totalFrames = coordinator.contentEndFrame() + kFixturePostStopFrames;
+        const std::uint64_t totalBlocks = (totalFrames + kProfileBlockFrames - 1) / kProfileBlockFrames;
+
+        coordinator.start(engine);
+        for (std::uint64_t b = 0; b < totalBlocks; ++b) {
+            if (b == kProfileWarmupBlocks) engine.resetCallbackProfileHistogram();
+            coordinator.beforeBlock(b * kProfileBlockFrames, engine);
+            renderBlock();
+            coordinator.drainAcks(engine);
+        }
+        run.maxGainReductionDb = engine.masterLimiter().maxGainReductionDb();
+        run.stressConditionsMet = coordinator.stopped() && coordinator.tempoAckValid(0) && coordinator.tempoAckValid(1) &&
+                                  engine.droppedScheduledEvents() == 0 && engine.deferredScheduledEvents() == 0;
+    }
+
+    const CallbackProfileHistogram& hist = engine.callbackProfileHistogram();
+    run.p50Ms = hist.percentileMs(50.0);
+    run.p95Ms = hist.percentileMs(95.0);
+    run.p99Ms = hist.percentileMs(99.0);
+    run.p999Ms = hist.percentileMs(99.9);
+    run.maxMs = hist.maxMs();
+    run.meanMs = hist.meanMs();
+    run.totalBlocks = hist.totalBlocks;
+    run.blocksExceeding2Ms = hist.blocksExceeding2Ms;
+    run.blocksExceedingBlockPeriod = hist.blocksExceedingBlockPeriod;
+    run.p999Passed = (run.p999Ms <= 2.0); // 512-frame blocks: no normalisation needed
+    run.blockPeriodPassed = (run.blocksExceedingBlockPeriod == 0);
+
+    if (cacpEnabled) engine.detachAudioProbe();
+    engine.shutdown();
+    return run;
+}
+
 ProfileProbeResult runProfileProbeV1Offline(const std::string& outputDir, bool writeFiles) {
     ProfileProbeResult result;
     result.buildId = CYMATICA_BUILD_ID;
-    result.osVersion = "Windows";
-#if defined(_MSC_VER)
-    result.cpuInfo = "MSVC " + std::to_string(_MSC_VER);
-#else
-    result.cpuInfo = "Generic x64";
-#endif
+    result.osVersion = osVersionString();
+    result.cpuInfo = cpuBrandString();
+    result.compilerVersion = compilerString();
 #ifdef NDEBUG
     result.buildConfig = "Release";
+    result.timingGated = true;
 #else
-    result.buildConfig = "Debug";
+    result.buildConfig = "Debug"; // timings reported only (ADR-0005 D-M2-10)
+    result.timingGated = false;
 #endif
 
-    constexpr std::uint32_t kSampleRate = 48000;
-    constexpr std::uint32_t kBlockFrames = 512;
-    constexpr std::uint32_t kWarmupBlocks = 64;
-    constexpr std::uint32_t kWorkloadWBlocks = 10000;
-
-    AudioEngine engine;
-    if (!engine.initOffline({kSampleRate, 2, 220.0f})) {
-        result.passed = false;
-        result.failureReason = "Failed to initialize AudioEngine in offline mode";
-        return result;
-    }
-
-    AudioProbe probe(AudioProbe::kDefaultCapacityFrames, 2, kSampleRate);
-    engine.attachAudioProbe(&probe);
-
-    engine.sendCommand(AudioCommand{.commandId = 1, .type = AudioCommandType::Start, .targetSampleFrame = 0});
-
-    std::vector<float> blockBuffer(kBlockFrames * 2, 0.0f);
-    std::vector<float> probeDrain(kBlockFrames * 2, 0.0f);
-
-    const std::array<MusicRole, 4> roles = {MusicRole::Pulso, MusicRole::Corpo, MusicRole::Trama, MusicRole::Vettore};
-
-    // Initialize 8 voices (2 per role)
-    std::uint64_t nextEventId = 1;
-    for (int r = 0; r < 4; ++r) {
-        for (int v = 0; v < 2; ++v) {
-            ScheduledAudioEvent ev{};
-            ev.eventId = nextEventId++;
-            ev.sampleFrame = 0;
-            ev.transportEpoch = 1;
-            ev.type = AudioEventType::NoteOn;
-            ev.role = roles[static_cast<std::size_t>(r)];
-            ev.valueA = 220.0f + static_cast<float>(r * 50 + v * 25);
-            ev.valueB = 1.0f;
-            ev.timbreParam = 0.5f;
-            ev.durationFrames = 0;
-            engine.scheduleAudioEvent(ev);
+    bool allPassed = true;
+    std::ostringstream err;
+    for (const ProfileWorkload workload : {ProfileWorkload::W, ProfileWorkload::F}) {
+        for (const bool cacp : {false, true}) {
+            for (std::uint32_t rep = 0; rep < kProfileRepetitions; ++rep) {
+                ProfileWorkloadRun run = runProfileWorkload(workload, cacp);
+                run.repetition = rep;
+                result.runs.push_back(run);
+                // A repetition failing only on the block-period criterion gets a single re-run; both are recorded
+                if (result.timingGated && run.stressConditionsMet && run.p999Passed && !run.blockPeriodPassed) {
+                    run = runProfileWorkload(workload, cacp);
+                    run.repetition = rep;
+                    run.isRetry = true;
+                    result.runs.push_back(run);
+                }
+                const bool timingOk = !result.timingGated || (run.p999Passed && run.blockPeriodPassed);
+                if (!run.stressConditionsMet || !timingOk) {
+                    allPassed = false;
+                    err << "workload " << workloadName(workload) << " CACP " << (cacp ? "ON" : "OFF") << " rep " << rep
+                        << ": stress=" << (run.stressConditionsMet ? "ok" : "FAIL") << " p99.9=" << run.p999Ms
+                        << " ms, blocks over period=" << run.blocksExceedingBlockPeriod << "; ";
+                }
+                result.worstP999Ms = (std::max)(result.worstP999Ms, run.p999Ms);
+                result.worstMaxMs = (std::max)(result.worstMaxMs, run.maxMs);
+            }
         }
     }
-
-    // Warm-up blocks
-    for (std::uint32_t b = 0; b < kWarmupBlocks; ++b) {
-        const std::uint64_t currentFrame = static_cast<std::uint64_t>(b) * kBlockFrames;
-        ScheduledAudioEvent ev{};
-        ev.eventId = nextEventId++;
-        ev.sampleFrame = currentFrame;
-        ev.transportEpoch = 1;
-        ev.type = AudioEventType::NoteOn;
-        ev.role = roles[b % roles.size()];
-        ev.valueA = 220.0f + static_cast<float>((b % 4) * 50);
-        ev.valueB = 1.0f;
-        ev.timbreParam = 0.5f;
-        ev.durationFrames = 0;
-        engine.scheduleAudioEvent(ev);
-
-        engine.processBlock(blockBuffer.data(), kBlockFrames);
-        probe.readFrames(probeDrain.data(), kBlockFrames);
-    }
-
-    // Reset histogram after warm-up
-    engine.resetCallbackProfileHistogram();
-
-    // Workload W: 10,000 blocks
-    bool allVoicesActive = true;
-    for (std::uint32_t b = 0; b < kWorkloadWBlocks; ++b) {
-        const std::uint64_t currentFrame = static_cast<std::uint64_t>(kWarmupBlocks + b) * kBlockFrames;
-        ScheduledAudioEvent ev{};
-        ev.eventId = nextEventId++;
-        ev.sampleFrame = currentFrame;
-        ev.transportEpoch = 1;
-        ev.type = AudioEventType::NoteOn;
-        ev.role = roles[b % roles.size()];
-        ev.valueA = 220.0f + static_cast<float>((b % 4) * 50);
-        ev.valueB = 1.0f;
-        ev.timbreParam = 0.5f;
-        ev.durationFrames = 0;
-        engine.scheduleAudioEvent(ev);
-
-        engine.processBlock(blockBuffer.data(), kBlockFrames);
-        probe.readFrames(probeDrain.data(), kBlockFrames);
-
-        (void)engine.updateTelemetry();
-        if (engine.telemetry().activeVoiceCount != 8) {
-            allVoicesActive = false;
-        }
-    }
-
-    const auto hist = engine.callbackProfileHistogram();
-    result.p50Ms = hist.percentileMs(50.0);
-    result.p95Ms = hist.percentileMs(95.0);
-    result.p99Ms = hist.percentileMs(99.0);
-    result.p999Ms = hist.percentileMs(99.9);
-    result.maxMs = hist.maxMs();
-    result.meanMs = hist.meanMs();
-    result.totalBlocks = hist.totalBlocks;
-    result.blocksExceeding2Ms = hist.blocksExceeding2Ms;
-    result.blocksExceedingBlockPeriod = hist.blocksExceedingBlockPeriod;
-
-    engine.detachAudioProbe();
-    engine.shutdown();
-
-    result.p999Passed = (result.p999Ms <= 2.0);
-    result.blockPeriodPassed = (result.blocksExceedingBlockPeriod == 0);
-
-#ifdef NDEBUG
-    result.passed = result.p999Passed && result.blockPeriodPassed && allVoicesActive;
-#else
-    result.passed = allVoicesActive;
-#endif
-
-    if (!result.passed) {
-        std::ostringstream err;
-        if (!allVoicesActive) err << "not all 8 voices remained active during Workload W; ";
-        if (!result.p999Passed) err << "p99.9 exceeds 2.0 ms (" << result.p999Ms << " ms); ";
-        if (!result.blockPeriodPassed) err << "blocks exceeding block period: " << result.blocksExceedingBlockPeriod << "; ";
-        result.failureReason = err.str();
-    }
+    result.passed = allPassed;
+    result.failureReason = err.str();
 
     if (writeFiles) {
         std::filesystem::path dir(outputDir);

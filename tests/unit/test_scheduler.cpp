@@ -1075,3 +1075,19 @@ TEST_CASE("AudioEngine: rejected SetTempoMap does not corrupt playback (INC4-R02
     CHECK(engine.telemetry().orphanNoteRecoveredCount == 0);
 }
 
+TEST_CASE("AudioScheduler: revokeFromFrame keeps staged notes that start before the boundary (D-M2-09)", "[scheduler][revoke_staging_boundary]") {
+    AudioScheduler scheduler;
+    // Staged (not yet dispatched) note that starts before the boundary and ends after it: both events stay
+    const ScheduledAudioEvent onA{.eventId = 1, .sampleFrame = 900, .transportEpoch = 1, .type = AudioEventType::NoteOn, .role = MusicRole::Corpo, .durationFrames = 0};
+    const ScheduledAudioEvent offA{.eventId = 1, .sampleFrame = 1500, .transportEpoch = 1, .type = AudioEventType::NoteOff, .role = MusicRole::Corpo};
+    // Note starting exactly at the boundary: NoteOn and its NoteOff are revoked
+    const ScheduledAudioEvent onB{.eventId = 2, .sampleFrame = 1000, .transportEpoch = 2, .type = AudioEventType::NoteOn, .role = MusicRole::Pulso, .durationFrames = 0};
+    const ScheduledAudioEvent offB{.eventId = 2, .sampleFrame = 1200, .transportEpoch = 2, .type = AudioEventType::NoteOff, .role = MusicRole::Pulso};
+    // Non-note event after the boundary is revoked
+    const ScheduledAudioEvent param{.eventId = 3, .sampleFrame = 1100, .transportEpoch = 2, .type = AudioEventType::ParameterChange, .role = MusicRole::Trama};
+    for (const auto& ev : {onA, offA, onB, offB, param}) scheduler.stageEvent(ev);
+
+    CHECK(scheduler.revokeFromFrame(1000) == 3);
+    CHECK(scheduler.stagedEventCount() == 2);
+    CHECK(scheduler.revokeFromFrame(1000) == 0); // idempotent
+}

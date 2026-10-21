@@ -896,5 +896,202 @@ TEST_CASE("Offline CACP fixture_probe_v1 validation", "[music_planner][fixture_p
     CHECK(res.deferredScheduledEvents == 0);
     CHECK(res.orphanNoteRecoveredCount == 0);
     CHECK(res.totalCapturedFrames == res.requestedSampleFrames);
+    CHECK(res.captureCompletePassed);
+    CHECK(res.goldenTracePassed);
+    CHECK(res.decisionTraceHash == kFixtureProbeV1GoldenTraceHash);
+    CHECK(res.schedulingAccountingPassed);
+    CHECK(res.roleActivityPassed);
+    CHECK(res.sampleCeilingPassed);
+    CHECK(res.phrasesPlanned == 24);
+    CHECK(res.revokedStagedEvents == 0);
+    CHECK(res.transportAcks[1].sampleFrame == 3072000ULL);
+    CHECK(res.transportAcks[1].transportEpoch == 2);
+    CHECK(res.transportAcks[2].sampleFrame == 5705142ULL);
+    CHECK(res.transportAcks[2].transportEpoch == 3);
 }
 
+namespace {
+
+// Full fixture-m2-4-v1 planned offline (epoch = section + 1), same inputs as fixture_probe_v1
+PlannedRun planFixtureForm(std::uint64_t seed) {
+    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+    REQUIRE(optClock.has_value());
+    const MusicClock& clock = *optClock;
+    const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(clock);
+    MusicPlanner planner({.runSeed = seed, .candidateCount = 8, .sampleRate = 48000});
+    planner.setFormPlan(MusicPlanner::makeFixtureM24V1Form());
+    PlannedRun run{};
+    for (const auto& p : phrases) {
+        std::vector<MusicIntentEvent> out;
+        planner.planPhrase(p, clock, 0, p.sectionIndex + 1ULL, out, nullptr);
+        run.intents.push_back(out);
+    }
+    run.traces = planner.decisionTraces();
+    run.noteOffs = planner.plannedNoteOffs();
+    run.tracker = planner.voiceTracker();
+    return run;
+}
+
+// Independent oracle of the fixture bar grid: A 120 BPM from 0, B 140 BPM from bar 32, A' 120 BPM from bar 64,
+// each segment anchored at the truncated frame of its first bar (16 steps per 4/4 bar).
+std::uint64_t oracleFixtureBarFrame(std::uint64_t bar) {
+    const std::uint64_t bStart = oracleStepFrame(0, 32ULL * 16, 120);
+    const std::uint64_t aPrimeStart = oracleStepFrame(bStart, 32ULL * 16, 140);
+    if (bar < 32) return oracleStepFrame(0, bar * 16, 120);
+    if (bar < 64) return oracleStepFrame(bStart, (bar - 32) * 16, 140);
+    return oracleStepFrame(aPrimeStart, (bar - 64) * 16, 120);
+}
+
+} // namespace
+
+TEST_CASE("Fixture M2.4 V1: 25 phrase boundaries match an independent rational oracle (D-M2-08)", "[music_planner][fixture_boundaries_oracle]") {
+    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+    REQUIRE(optClock.has_value());
+    const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(*optClock);
+
+    CHECK(oracleFixtureBarFrame(32) == 3072000ULL);
+    CHECK(oracleFixtureBarFrame(64) == 5705142ULL);
+    CHECK(oracleFixtureBarFrame(96) == 8777142ULL);
+    for (std::size_t i = 0; i < phrases.size(); ++i) {
+        INFO("phrase " << i);
+        CHECK(phrases[i].startBar == 4 * i);
+        CHECK(phrases[i].startFrame == oracleFixtureBarFrame(4 * i));
+        CHECK(phrases[i].endFrame == oracleFixtureBarFrame(4 * i + 4));
+        if (i + 1 < phrases.size()) CHECK(phrases[i].endFrame == phrases[i + 1].startFrame);
+    }
+    // Cross-section NoteOffs: one beat (4 steps) of the next section's tempo after its first downbeat
+    CHECK(phrases[7].crossSectionNoteOffFrame == oracleStepFrame(3072000ULL, 4, 140));
+    CHECK(phrases[15].crossSectionNoteOffFrame == oracleStepFrame(5705142ULL, 4, 120));
+    CHECK(phrases[7].crossSectionNoteOffFrame == 3092571ULL);
+    CHECK(phrases[15].crossSectionNoteOffFrame == 5729142ULL);
+}
+
+TEST_CASE("Fixture M2.4 V1: section functions, tension profile and phrase flags are explicit (D-M2-08)", "[music_planner][fixture_phrase_flags]") {
+    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+    REQUIRE(optClock.has_value());
+    const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(*optClock);
+    const FormPlan form = MusicPlanner::makeFixtureM24V1Form();
+
+    CHECK(form.sections[0].baseTension == 0.20f);
+    CHECK(form.sections[1].baseTension == 0.60f);
+    CHECK(form.sections[2].baseTension == 0.35f);
+
+    for (std::size_t i = 0; i < phrases.size(); ++i) {
+        INFO("phrase " << i);
+        const auto& p = phrases[i];
+        CHECK(p.sectionIndex == i / 8);
+        CHECK(p.maskTrama == (i < 4));
+        CHECK(p.recipeSet == (i < 8 ? CandidateRecipeSet::Standard
+                              : i < 16 ? CandidateRecipeSet::ContrastB : CandidateRecipeSet::RepriseAPrime));
+        CHECK(p.isCrossSectionPadPhrase == (i == 7 || i == 15));
+        CHECK(p.delayCorpoOnsetByOneBeat == (i == 8 || i == 16));
+        CHECK(p.releaseLeadFrames == (i == 23 ? kFixtureM24V1ReleaseLeadFrames : 0ULL));
+        CHECK(p.cadenceGoal == (i == 23 ? CadenceGoal::ModalResolution
+                                : (i == 7 || i == 15) ? CadenceGoal::ContrastShift : CadenceGoal::Sustain));
+    }
+    // Harmony: A/A' 0-3-4-0, B 0-5-6-0
+    const std::array<std::int16_t, 4> rootsA{0, 3, 4, 0};
+    const std::array<std::int16_t, 4> rootsB{0, 5, 6, 0};
+    for (std::size_t b = 0; b < 4; ++b) {
+        CHECK(phrases[0].chords[b].rootDegree == rootsA[b]);
+        CHECK(phrases[8].chords[b].rootDegree == rootsB[b]);
+        CHECK(phrases[16].chords[b].rootDegree == rootsA[b]);
+    }
+}
+
+TEST_CASE("Fixture M2.4 V1: planned content honours role masks, recipes, pad lease and final release (D-M2-08)", "[music_planner][fixture_planned_content]") {
+    const PlannedRun run = planFixtureForm(1337ULL);
+    REQUIRE(run.intents.size() == 24);
+    REQUIRE(run.traces.size() == 24);
+
+    // No fallback anywhere in the fixture
+    for (const auto& t : run.traces) {
+        CHECK_FALSE(t.fallbackTriggered);
+    }
+
+    // Role mask: Trama only from phrase 4 of section A on
+    const auto countRole = [](const std::vector<MusicIntentEvent>& v, MusicRole r) {
+        return std::count_if(v.begin(), v.end(), [r](const MusicIntentEvent& e) { return e.role == r; });
+    };
+    for (std::size_t i = 0; i < 4; ++i) CHECK(countRole(run.intents[i], MusicRole::Trama) == 0);
+    for (std::size_t i = 4; i < 24; ++i) CHECK(countRole(run.intents[i], MusicRole::Trama) > 0);
+
+    // Recipes: B only ModalTranspose / ContourInversion; A' never transposes (anchor-preserving reprise)
+    for (std::size_t i = 8; i < 24; ++i) {
+        const auto& t = run.traces[i];
+        for (std::size_t c = 0; c < t.candidatesGenerated; ++c) {
+            const auto k = t.candidates[c].transformKind;
+            if (i < 16) {
+                CHECK((k == MotifTransformKind::ModalTranspose || k == MotifTransformKind::ContourInversion));
+            } else {
+                CHECK(k != MotifTransformKind::ModalTranspose);
+            }
+        }
+    }
+
+    // Cross-section pads: phrases 7 and 15 emit exactly two open Corpo pads on the bar-3 downbeat, released by
+    // the planner one beat into the next section with the old epoch; the pad therefore sounds at the boundary.
+    struct PadCase {
+        std::size_t phrase;
+        std::uint64_t onFrame;
+        std::uint64_t boundary;
+        std::uint64_t offFrame;
+        std::uint64_t epoch;
+    };
+    for (const PadCase pc : {PadCase{7, oracleFixtureBarFrame(31), 3072000ULL, 3092571ULL, 1},
+                             PadCase{15, oracleFixtureBarFrame(63), 5705142ULL, 5729142ULL, 2}}) {
+        INFO("pad phrase " << pc.phrase);
+        std::size_t pads = 0;
+        for (const auto& e : run.intents[pc.phrase]) {
+            if (e.durationFrames != 0) continue;
+            ++pads;
+            CHECK(e.role == MusicRole::Corpo);
+            CHECK(e.sampleFrame == pc.onFrame);
+            const auto off = std::find_if(run.noteOffs.begin(), run.noteOffs.end(),
+                                          [&](const PlannedNoteOff& o) { return o.eventId == e.eventId; });
+            REQUIRE(off != run.noteOffs.end());
+            CHECK(off->sampleFrame == pc.offFrame);
+            CHECK(off->transportEpoch == pc.epoch);
+            CHECK(e.sampleFrame < pc.boundary);
+            CHECK(off->sampleFrame > pc.boundary);
+        }
+        CHECK(pads == 2);
+        // First Corpo onset of the next phrase coincides with the pad NoteOff (beat 1 of bar 0)
+        std::uint64_t firstCorpo = UINT64_MAX;
+        for (const auto& e : run.intents[pc.phrase + 1]) {
+            if (e.role == MusicRole::Corpo) firstCorpo = (std::min)(firstCorpo, e.sampleFrame);
+        }
+        CHECK(firstCorpo == pc.offFrame);
+    }
+    CHECK(run.noteOffs.size() == 4); // the only open pads of the fixture
+
+    // No Rule-2 steal (held voice) in the winning plans at the section boundaries
+    for (const std::size_t i : {std::size_t{7}, std::size_t{8}, std::size_t{15}, std::size_t{16}}) {
+        const auto& t = run.traces[i];
+        for (std::size_t c = 0; c < t.candidatesGenerated; ++c) {
+            if (t.candidates[c].candidateId == t.winningCandidateId) {
+                INFO("phrase " << i);
+                CHECK(t.candidates[c].simulatedSteals == 0);
+            }
+        }
+    }
+
+    // Final phrase: every planner note ends before the Stop frame minus the release lead
+    const std::uint64_t releaseLimit = 8777142ULL - kFixtureM24V1ReleaseLeadFrames;
+    for (const auto& e : run.intents[23]) {
+        CHECK(e.durationFrames > 0);
+        CHECK(e.sampleFrame + e.durationFrames <= releaseLimit);
+    }
+}
+
+TEST_CASE("Golden regression: canonical plan of fixture-m2-4-v1", "[music_planner][golden][fixture_golden]") {
+    // REGRESSION GOLDEN, NOT AN ORACLE (same serialization and caveats as the A->B probe golden above).
+    // Produced by the Inc-4 remediation with behaviour identical to commit 9c61f88 (the fixture_probe_v1
+    // decision-trace hash kFixtureProbeV1GoldenTraceHash is unchanged).
+    constexpr std::uint64_t kGoldenFixtureHash = 0x4f021cb9e8637598ULL;
+    const PlannedRun run = planFixtureForm(1337ULL);
+    const std::uint64_t h = canonicalHash(run);
+    INFO("canonical fixture hash = 0x" << std::hex << h);
+    CHECK(h == kGoldenFixtureHash);
+    CHECK(canonicalHash(planFixtureForm(1337ULL)) == h);
+}

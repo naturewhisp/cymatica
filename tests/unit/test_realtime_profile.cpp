@@ -11,263 +11,43 @@ using namespace cymatica::audio;
 
 namespace {
 
-constexpr std::uint32_t kSampleRate = 48000;
-constexpr std::uint32_t kBlockFrames = 512;
-constexpr std::uint32_t kWarmupBlocks = 64;
-constexpr std::uint32_t kWorkloadWBlocks = 10000;
-constexpr std::size_t kRepetitions = 3;
-
-void runWorkloadWIteration(bool cacpEnabled) {
-    AudioEngine engine;
-    REQUIRE(engine.initOffline({kSampleRate, 2, 220.0f}));
-
-    AudioProbe probe(AudioProbe::kDefaultCapacityFrames, 2, kSampleRate);
-    if (cacpEnabled) {
-        engine.attachAudioProbe(&probe);
-    }
-
-    engine.sendCommand(AudioCommand{.commandId = 1, .type = AudioCommandType::Start, .targetSampleFrame = 0});
-
-    std::vector<float> blockBuffer(kBlockFrames * 2, 0.0f);
-    std::vector<float> probeDrain(kBlockFrames * 2, 0.0f);
-
-    const std::array<MusicRole, 4> roles = {MusicRole::Pulso, MusicRole::Corpo, MusicRole::Trama, MusicRole::Vettore};
-
-    // Initialize 8 voices (2 per role)
-    std::uint64_t nextEventId = 1;
-    for (int r = 0; r < 4; ++r) {
-        for (int v = 0; v < 2; ++v) {
-            ScheduledAudioEvent ev{};
-            ev.eventId = nextEventId++;
-            ev.sampleFrame = 0;
-            ev.transportEpoch = 1;
-            ev.type = AudioEventType::NoteOn;
-            ev.role = roles[static_cast<std::size_t>(r)];
-            ev.valueA = 220.0f + static_cast<float>(r * 50 + v * 25);
-            ev.valueB = 1.0f; // full velocity to drive limiter into saturation
-            ev.timbreParam = 0.5f; // engage DSP filters / synthesis / delays
-            ev.durationFrames = 0; // open sustain
-            REQUIRE(engine.scheduleAudioEvent(ev));
+// ADR-0005 D-M2-10 verdict for one workload/CACP pair: 3 repetitions; a repetition failing only on the
+// block-period criterion gets a single re-run and both results are reported.
+void checkWorkload(ProfileWorkload workload, bool cacpEnabled) {
+    for (std::uint32_t rep = 0; rep < kProfileRepetitions; ++rep) {
+        ProfileWorkloadRun run = runProfileWorkload(workload, cacpEnabled);
+        INFO("Workload " << (workload == ProfileWorkload::W ? "W" : "F") << " CACP=" << (cacpEnabled ? "ON" : "OFF")
+             << " rep " << rep << ": p50=" << run.p50Ms << " p99.9=" << run.p999Ms << " max=" << run.maxMs
+             << " ms, over period=" << run.blocksExceedingBlockPeriod << ", GR=" << run.maxGainReductionDb
+             << " dB, steals=" << run.voiceSteals);
+        REQUIRE(run.stressConditionsMet);
+        if (workload == ProfileWorkload::W) {
+            CHECK(run.totalBlocks == kProfileWorkloadWBlocks);
         }
-    }
-
-    // Warm-up blocks
-    for (std::uint32_t b = 0; b < kWarmupBlocks; ++b) {
-        const std::uint64_t currentFrame = static_cast<std::uint64_t>(b) * kBlockFrames;
-        ScheduledAudioEvent ev{};
-        ev.eventId = nextEventId++;
-        ev.sampleFrame = currentFrame;
-        ev.transportEpoch = 1;
-        ev.type = AudioEventType::NoteOn;
-        ev.role = roles[b % roles.size()];
-        ev.valueA = 220.0f + static_cast<float>((b % 4) * 50);
-        ev.valueB = 1.0f;
-        ev.timbreParam = 0.5f;
-        ev.durationFrames = 0;
-        REQUIRE(engine.scheduleAudioEvent(ev));
-
-        engine.processBlock(blockBuffer.data(), kBlockFrames);
-        if (cacpEnabled) {
-            probe.readFrames(probeDrain.data(), kBlockFrames);
-        }
-    }
-
-    // Discard warm-up measurements
-    engine.resetCallbackProfileHistogram();
-
-    // Measured run: 10,000 blocks
-    for (std::uint32_t b = 0; b < kWorkloadWBlocks; ++b) {
-        const std::uint64_t currentFrame = static_cast<std::uint64_t>(kWarmupBlocks + b) * kBlockFrames;
-        ScheduledAudioEvent ev{};
-        ev.eventId = nextEventId++;
-        ev.sampleFrame = currentFrame;
-        ev.transportEpoch = 1;
-        ev.type = AudioEventType::NoteOn;
-        ev.role = roles[b % roles.size()];
-        ev.valueA = 220.0f + static_cast<float>((b % 4) * 50);
-        ev.valueB = 1.0f;
-        ev.timbreParam = 0.5f;
-        ev.durationFrames = 0;
-        REQUIRE(engine.scheduleAudioEvent(ev));
-
-        engine.processBlock(blockBuffer.data(), kBlockFrames);
-        if (cacpEnabled) {
-            probe.readFrames(probeDrain.data(), kBlockFrames);
-        }
-
-        REQUIRE(engine.updateTelemetry());
-        // Assert all 8 voice slots remain active on every block (INC4-R07)
-        REQUIRE(engine.telemetry().activeVoiceCount == 8);
-    }
-
-    const auto hist = engine.callbackProfileHistogram();
-    CHECK(hist.totalBlocks == kWorkloadWBlocks);
-
-    const double p999Ms = hist.percentileMs(99.9);
-    const double p50Ms = hist.percentileMs(50.0);
-    const double maxMs = hist.maxMs();
-
-    INFO("Workload W (CACP=" << (cacpEnabled ? "ON" : "OFF")
-         << ") p50=" << p50Ms << "ms, p99.9=" << p999Ms << "ms, max=" << maxMs
-         << "ms, overruns=" << hist.blocksExceedingBlockPeriod);
-
 #ifdef NDEBUG
-    // Release mode hard realtime gate: p99.9 <= 2.0 ms, zero blocks > block period (10.667 ms)
-    CHECK(p999Ms <= 2.0);
-    CHECK(hist.blocksExceedingBlockPeriod == 0);
+        if (run.p999Passed && !run.blockPeriodPassed) {
+            const ProfileWorkloadRun retry = runProfileWorkload(workload, cacpEnabled);
+            WARN("block-period retry: first run over period=" << run.blocksExceedingBlockPeriod
+                 << ", retry over period=" << retry.blocksExceedingBlockPeriod);
+            REQUIRE(retry.stressConditionsMet);
+            run = retry;
+        }
+        CHECK(run.p999Passed);
+        CHECK(run.blockPeriodPassed);
 #endif
-
-    if (cacpEnabled) {
-        engine.detachAudioProbe();
     }
-    engine.shutdown();
-}
-
-void runWorkloadFIteration(bool cacpEnabled) {
-    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
-    REQUIRE(optClock.has_value());
-    const MusicClock& clock = *optClock;
-    const FormPlan form = MusicPlanner::makeFixtureM24V1Form();
-    const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(clock);
-
-    AudioEngine engine;
-    REQUIRE(engine.initOffline({kSampleRate, 2, 220.0f}));
-
-    AudioProbe probe(AudioProbe::kDefaultCapacityFrames, 2, kSampleRate);
-    if (cacpEnabled) {
-        engine.attachAudioProbe(&probe);
-    }
-
-    const std::uint64_t contentEndFrame = clock.frameAtBar(96);
-    constexpr std::uint64_t kPostStopFrames = 48000;
-    const std::uint64_t totalFrames = contentEndFrame + kPostStopFrames;
-    const std::uint64_t totalBlocks = (totalFrames + kBlockFrames - 1) / kBlockFrames;
-
-    MusicPlanner planner({.runSeed = 1337ULL, .candidateCount = 8, .sampleRate = kSampleRate, .lookaheadFrames = AudioSchedulerConfig{}.lookaheadFrames});
-    planner.setFormPlan(form);
-    AudioScheduler scheduler;
-    std::size_t nextPhraseToPlan = 0;
-
-    auto planNextPhrase = [&](std::uint64_t horizon) {
-        if (nextPhraseToPlan >= phrases.size()) return;
-        const auto& p = phrases[nextPhraseToPlan];
-        std::uint64_t epoch = 1;
-        if (p.sectionIndex == 1) epoch = 2;
-        else if (p.sectionIndex == 2) epoch = 3;
-        std::vector<MusicIntentEvent> out;
-        planner.planPhrase(p, clock, horizon, epoch, out, &scheduler);
-        ++nextPhraseToPlan;
-    };
-
-    planNextPhrase(0);
-    planNextPhrase(0);
-
-    engine.sendCommand(AudioCommand{.commandId = 1, .type = AudioCommandType::Start, .targetSampleFrame = 0});
-
-    const std::uint64_t tempoChangeFrameB = 3072000ULL;
-    const std::uint64_t tempoChangeFrameA1 = 5705142ULL;
-    const std::uint64_t bar31Frame = clock.frameAtBar(31);
-    const std::uint64_t bar63Frame = clock.frameAtBar(63);
-    const std::uint64_t bar95Frame = clock.frameAtBar(95);
-    const std::uint64_t stopFrame = contentEndFrame;
-
-    bool sentTempoB = false;
-    bool sentTempoA1 = false;
-    bool sentStop = false;
-
-    std::vector<float> blockBuffer(kBlockFrames * 2, 0.0f);
-    std::vector<float> probeDrain(kBlockFrames * 2, 0.0f);
-
-    // Warm-up 64 blocks
-    for (std::uint32_t b = 0; b < kWarmupBlocks && b < totalBlocks; ++b) {
-        const std::uint64_t currentFrame = static_cast<std::uint64_t>(b) * kBlockFrames;
-        scheduler.dispatchDueEvents(currentFrame, engine);
-        engine.processBlock(blockBuffer.data(), kBlockFrames);
-        if (cacpEnabled) {
-            probe.readFrames(probeDrain.data(), kBlockFrames);
-        }
-    }
-
-    engine.resetCallbackProfileHistogram();
-
-    for (std::uint64_t b = kWarmupBlocks; b < totalBlocks; ++b) {
-        const std::uint64_t currentFrame = b * kBlockFrames;
-
-        if (!sentTempoB && currentFrame >= bar31Frame) {
-            engine.sendCommand(AudioCommand::makeSetTempoMap(2, form.sections[1].tempoMap, tempoChangeFrameB));
-            sentTempoB = true;
-        }
-        if (!sentTempoA1 && currentFrame >= bar63Frame) {
-            engine.sendCommand(AudioCommand::makeSetTempoMap(3, form.sections[2].tempoMap, tempoChangeFrameA1));
-            sentTempoA1 = true;
-        }
-        if (!sentStop && currentFrame >= bar95Frame) {
-            engine.sendCommand(AudioCommand{.commandId = 4, .type = AudioCommandType::Stop, .targetSampleFrame = stopFrame});
-            sentStop = true;
-        }
-
-        while (nextPhraseToPlan < phrases.size() &&
-               (nextPhraseToPlan <= 1 || currentFrame >= phrases[nextPhraseToPlan - 1].startFrame)) {
-            const std::uint64_t horizon = currentFrame + scheduler.lookaheadFrames();
-            planNextPhrase(horizon);
-        }
-
-        scheduler.dispatchDueEvents(currentFrame, engine);
-        engine.processBlock(blockBuffer.data(), kBlockFrames);
-        if (cacpEnabled) {
-            probe.readFrames(probeDrain.data(), kBlockFrames);
-        }
-
-        AudioCommandAck ack{};
-        while (engine.pollAck(ack)) {}
-    }
-
-    const auto hist = engine.callbackProfileHistogram();
-    const double p999Ms = hist.percentileMs(99.9);
-    const double p50Ms = hist.percentileMs(50.0);
-    const double maxMs = hist.maxMs();
-
-    INFO("Workload F (CACP=" << (cacpEnabled ? "ON" : "OFF")
-         << ") p50=" << p50Ms << "ms, p99.9=" << p999Ms << "ms, max=" << maxMs
-         << "ms, overruns=" << hist.blocksExceedingBlockPeriod);
-
-#ifdef NDEBUG
-    CHECK(p999Ms <= 2.0);
-    CHECK(hist.blocksExceedingBlockPeriod == 0);
-#endif
-
-    if (cacpEnabled) {
-        engine.detachAudioProbe();
-    }
-    engine.shutdown();
 }
 
 } // namespace
 
 TEST_CASE("Realtime Profile: Workload W 10000 blocks stress", "[perf][realtime_profile][workload_w]") {
-    SECTION("CACP OFF") {
-        for (std::size_t rep = 0; rep < kRepetitions; ++rep) {
-            runWorkloadWIteration(false);
-        }
-    }
-    SECTION("CACP ON") {
-        for (std::size_t rep = 0; rep < kRepetitions; ++rep) {
-            runWorkloadWIteration(true);
-        }
-    }
+    SECTION("CACP OFF") { checkWorkload(ProfileWorkload::W, false); }
+    SECTION("CACP ON") { checkWorkload(ProfileWorkload::W, true); }
 }
 
 TEST_CASE("Realtime Profile: Workload F full 96-bar fixture", "[perf][realtime_profile][workload_f]") {
-    SECTION("CACP OFF") {
-        for (std::size_t rep = 0; rep < kRepetitions; ++rep) {
-            runWorkloadFIteration(false);
-        }
-    }
-    SECTION("CACP ON") {
-        for (std::size_t rep = 0; rep < kRepetitions; ++rep) {
-            runWorkloadFIteration(true);
-        }
-    }
+    SECTION("CACP OFF") { checkWorkload(ProfileWorkload::F, false); }
+    SECTION("CACP ON") { checkWorkload(ProfileWorkload::F, true); }
 }
 
 TEST_CASE("CallbackProfileHistogram calculation and percentiles (DIF-INC4-01)", "[audio_engine][profile_histogram]") {
@@ -294,8 +74,14 @@ TEST_CASE("CallbackProfileHistogram calculation and percentiles (DIF-INC4-01)", 
     CHECK(hist.blocksExceeding2Ms == 1);
     CHECK(hist.blocksExceedingBlockPeriod == 0);
 
+    // p is always a percentage: 0.5 is the 0.5th percentile, not the median
     CHECK(hist.percentileMs(50.0) == 0.10);
-    CHECK(hist.percentileMs(0.50) == 0.10);
+    CHECK(hist.percentileMs(0.5) == 0.10);
+    CHECK(hist.percentileMs(1.0) == 0.10);
+    CHECK(hist.percentileMs(60.0) == 0.20);
+    CHECK(hist.percentileMs(0.0) == 0.10);
+    CHECK(hist.percentileMs(-5.0) == 0.10);
+    CHECK(hist.percentileMs(250.0) == 3.00);
     CHECK(hist.percentileMs(90.0) == 0.20);
     CHECK(hist.percentileMs(99.0) == 0.50);
     CHECK(hist.percentileMs(99.9) == 1.00);

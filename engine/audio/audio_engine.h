@@ -7,6 +7,7 @@
 #include "realtime_exchange.h"
 #include "voice_allocator.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -80,9 +81,10 @@ struct CallbackProfileHistogram {
         return static_cast<double>(maxDurationNs) / 1000000.0;
     }
 
+    // p is a percentage in [0, 100] (e.g. 99.9); returns the upper bound of the bin, capped at the maximum.
     [[nodiscard]] double percentileMs(double p) const noexcept {
         if (totalBlocks == 0) return 0.0;
-        const double frac = (p > 1.0) ? (p / 100.0) : p;
+        const double frac = ((p >= 0.0) ? (std::min)(p, 100.0) : 0.0) / 100.0; // NaN -> 0
         const double rawTarget = frac * static_cast<double>(totalBlocks);
         const auto targetCount = (rawTarget <= 1.0)
             ? 1ULL

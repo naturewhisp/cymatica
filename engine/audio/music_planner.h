@@ -169,6 +169,17 @@ struct TriadVoicing {
 inline constexpr std::uint32_t kMaxPhraseBars = 4;     // One ChordSpec per bar (chords[b % 4])
 inline constexpr std::uint32_t kMaxStepsPerBar = 32;   // Bounded by core::kMaxEuclideanSteps
 
+// Candidate recipe table of a phrase (ADR-0005 D-M2-08). Standard is the Inc-3 table;
+// the fixture-m2-4-v1 sections B and A' declare their own tables explicitly.
+enum class CandidateRecipeSet : std::uint8_t {
+    Standard      = 0,
+    ContrastB     = 1, // ModalTranspose and ContourInversion only
+    RepriseAPrime = 2  // Motif_0 reprise with anchor-preserving transforms only
+};
+
+// fixture-m2-4-v1 final phrase: planner notes end one 120 Hz simulation tick before Stop (ADR-0005 D-M2-08)
+inline constexpr std::uint64_t kFixtureM24V1ReleaseLeadFrames = 400;
+
 struct PhrasePlan {
     std::uint32_t sectionIndex{0};
     std::uint32_t phraseIndex{0};
@@ -185,6 +196,11 @@ struct PhrasePlan {
     bool isCrossSectionPadPhrase{false};
     std::uint64_t crossSectionNoteOffFrame{0};
     bool delayCorpoOnsetByOneBeat{false};
+    // Per-phrase role mask and recipe table, declared by the phrase expander (ADR-0005 D-M2-08)
+    bool maskTrama{false};
+    CandidateRecipeSet recipeSet{CandidateRecipeSet::Standard};
+    // Explicit planner release this many frames before endFrame (final phrase before Stop); 0 = none
+    std::uint64_t releaseLeadFrames{0};
 };
 
 struct SectionPlan {

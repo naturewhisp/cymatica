@@ -1,0 +1,42 @@
+[cacp] Running scenario 'profile_test' (M2.4 Inc-4 profile_probe_v1)...
+[cacp] Verdict: PASS
+{
+  "manifest_version": "1.1",
+  "scenario": "profile_probe_v1",
+  "build_id": "9c61f88",
+  "verdict": "PASS",
+  "timing_gated": true,
+  "scope": "offline render cost on this machine; not a device realtime qualification (ADR-0005 D-M2-10)",
+  "worst_p999_ms": 0.43,
+  "worst_max_ms": 1.0658,
+  "runs": [
+    {"workload": "W", "cacp": false, "repetition": 0, "retry": false, "total_blocks": 10000, "p50_ms": 0.1, "p95_ms": 0.12, "p99_ms": 0.18, "p999_ms": 0.43, "max_ms": 0.515, "mean_ms": 0.098854, "blocks_exceeding_2ms": 0, "blocks_exceeding_block_period": 0, "max_gain_reduction_db": 3.09506, "voice_steals": 10000, "stress_conditions_met": true, "p999_passed": true, "block_period_passed": true},
+    {"workload": "W", "cacp": false, "repetition": 1, "retry": false, "total_blocks": 10000, "p50_ms": 0.1, "p95_ms": 0.13, "p99_ms": 0.19, "p999_ms": 0.41, "max_ms": 0.4744, "mean_ms": 0.099549, "blocks_exceeding_2ms": 0, "blocks_exceeding_block_period": 0, "max_gain_reduction_db": 3.09506, "voice_steals": 10000, "stress_conditions_met": true, "p999_passed": true, "block_period_passed": true},
+    {"workload": "W", "cacp": false, "repetition": 2, "retry": false, "total_blocks": 10000, "p50_ms": 0.1, "p95_ms": 0.12, "p99_ms": 0.17, "p999_ms": 0.32, "max_ms": 0.5187, "mean_ms": 0.0984871, "blocks_exceeding_2ms": 0, "blocks_exceeding_block_period": 0, "max_gain_reduction_db": 3.09506, "voice_steals": 10000, "stress_conditions_met": true, "p999_passed": true, "block_period_passed": true},
+    {"workload": "W", "cacp": true, "repetition": 0, "retry": false, "total_blocks": 10000, "p50_ms": 0.1, "p95_ms": 0.12, "p99_ms": 0.17, "p999_ms": 0.43, "max_ms": 0.537, "mean_ms": 0.098755, "blocks_exceeding_2ms": 0, "blocks_exceeding_block_period": 0, "max_gain_reduction_db": 3.09506, "voice_steals": 10000, "stress_conditions_met": true, "p999_passed": true, "block_period_passed": true},
+    {"workload": "W", "cacp": true, "repetition": 1, "retry": false, "total_blocks": 10000, "p50_ms": 0.1, "p95_ms": 0.12, "p99_ms": 0.17, "p999_ms": 0.42, "max_ms": 0.4738, "mean_ms": 0.0983653, "blocks_exceeding_2ms": 0, "blocks_exceeding_block_period": 0, "max_gain_reduction_db": 3.09506, "voice_steals": 10000, "stress_conditions_met": true, "p999_passed": true, "block_period_passed": true},
+    {"workload": "W", "cacp": true, "repetition": 2, "retry": false, "total_blocks": 10000, "p50_ms": 0.1, "p95_ms": 0.12, "p99_ms": 0.16, "p999_ms": 0.28, "max_ms": 1.0658, "mean_ms": 0.0990232, "blocks_exceeding_2ms": 0, "blocks_exceeding_block_period": 0, "max_gain_reduction_db": 3.09506, "voice_steals": 10000, "stress_conditions_met": true, "p999_passed": true, "block_period_passed": true},
+    {"workload": "F", "cacp": false, "repetition": 0, "retry": false, "total_blocks": 17173, "p50_ms": 0.06, "p95_ms": 0.07, "p99_ms": 0.1, "p999_ms": 0.18, "max_ms": 0.3248, "mean_ms": 0.0565001, "blocks_exceeding_2ms": 0, "blocks_exceeding_block_period": 0, "max_gain_reduction_db": 0, "voice_steals": 0, "stress_conditions_met": true, "p999_passed": true, "block_period_passed": true},
+    {"workload": "F", "cacp": false, "repetition": 1, "retry": false, "total_blocks": 17173, "p50_ms": 0.06, "p95_ms": 0.09, "p99_ms": 0.11, "p999_ms": 0.21, "max_ms": 0.5153, "mean_ms": 0.058132, "blocks_exceeding_2ms": 0, "blocks_exceeding_block_period": 0, "max_gain_reduction_db": 0, "voice_steals": 0, "stress_conditions_met": true, "p999_passed": true, "block_period_passed": true},
+    {"workload": "F", "cacp": false, "repetition": 2, "retry": false, "total_blocks": 17173, "p50_ms": 0.06, "p95_ms": 0.08, "p99_ms": 0.1, "p999_ms": 0.18, "max_ms": 0.2946, "mean_ms": 0.0568232, "blocks_exceeding_2ms": 0, "blocks_exceeding_block_period": 0, "max_gain_reduction_db": 0, "voice_steals": 0, "stress_conditions_met": true, "p999_passed": true, "block_period_passed": true},
+    {"workload": "F", "cacp": true, "repetition": 0, "retry": false, "total_blocks": 17173, "p50_ms": 0.06, "p95_ms": 0.08, "p99_ms": 0.1, "p999_ms": 0.19, "max_ms": 0.3505, "mean_ms": 0.0570122, "blocks_exceeding_2ms": 0, "blocks_exceeding_block_period": 0, "max_gain_reduction_db": 0, "voice_steals": 0, "stress_conditions_met": true, "p999_passed": true, "block_period_passed": true},
+    {"workload": "F", "cacp": true, "repetition": 1, "retry": false, "total_blocks": 17173, "p50_ms": 0.06, "p95_ms": 0.08, "p99_ms": 0.1, "p999_ms": 0.21, "max_ms": 0.2779, "mean_ms": 0.057464, "blocks_exceeding_2ms": 0, "blocks_exceeding_block_period": 0, "max_gain_reduction_db": 0, "voice_steals": 0, "stress_conditions_met": true, "p999_passed": true, "block_period_passed": true},
+    {"workload": "F", "cacp": true, "repetition": 2, "retry": false, "total_blocks": 17173, "p50_ms": 0.06, "p95_ms": 0.08, "p99_ms": 0.1, "p999_ms": 0.2, "max_ms": 0.3982, "mean_ms": 0.0570654, "blocks_exceeding_2ms": 0, "blocks_exceeding_block_period": 0, "max_gain_reduction_db": 0, "voice_steals": 0, "stress_conditions_met": true, "p999_passed": true, "block_period_passed": true}
+  ],
+  "environment": {
+    "commit": "9c61f88",
+    "build_config": "Release",
+    "cpu": "AMD Ryzen 7 7700X 8-Core Processor",
+    "os_version": "Windows 10.0.26300",
+    "compiler": "MSVC 195136260",
+    "block_frames": 512,
+    "sample_rate": 48000,
+    "warmup_blocks": 64,
+    "repetitions": 3
+  },
+  "manifest_write_success": true,
+  "artifacts": {
+    "manifest_file": "artifacts\\cacp\\profile_probe_v1_manifest.json"
+  }
+}
+
