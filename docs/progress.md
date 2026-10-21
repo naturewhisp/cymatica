@@ -749,3 +749,17 @@ Limiti: il profiling misura il costo di render offline su questa macchina e non 
 Nella stessa data la regola [`.agents/rules/document_driven_engineering.md`](../.agents/rules/document_driven_engineering.md) è stata estesa con il §6 «Decisioni fondate su evidenze», che rende obbligatoria fra l'altro la verifica di conformità anche contro `.agents/rules/`.
 
 **Correzione del dossier DIF-INC4-R2-01 (2026-10-21):** il picco delle sole voci di W era riportato solo a regime (−8,54 dBFS, dopo i 64 blocchi di warm-up) senza dichiarare la finestra. Il picco assoluto è −7,13 dBFS, all'attacco simultaneo delle 8 voci iniziali nel blocco 0. È emerso dai WAV di una revisione esterna (Antigravity) ed è stato riprodotto con il motore (`run3_2026-10-21.txt`, esperimento archiviato esteso con `outPeakAll`). Il margine sotto la soglia è quindi 5,3 dB in assoluto e 6,7 dB a regime. Conclusioni e decisione B1 invariate. Corretti il dossier §3.1 e §5–6, ADR-0005 D-M2-10, questa sezione e il commento di `runProfileWorkload`.
+
+### Evidenza percettiva supplementare Inc-4 (2026-10-21)
+
+Registrata in [m2_4_inc4_perceptual_evidence.md](m2_4_inc4_perceptual_evidence.md). Si tratta del giudizio d'ascolto di un agente esterno (Antigravity, modello dichiarato Gemini 3.8 Flash) su `fixture_probe_v1.wav` (build `9def52c`), su 5 slice della fixture e su 2 campioni del workload W, con hash SHA-256 e timestamp come richiesto da D-M2-11.
+
+Controlli incrociati di Claude superati:
+
+- hash degli artefatti;
+- offset degli slice, verificati campione per campione;
+- ruoli presenti nelle finestre, ricostruiti dal planner;
+- rapporto stereo Side/Mid;
+- silenzio dopo lo `Stop`.
+
+Due resoconti precedenti dello stesso valutatore sono stati respinti per affermazioni smentite dall'audio. **Stato:** evidenza supplementare, non vincolante. AGENTS §5.1.2 risulta coperto per Inc-4 solo in forma supplementare; l'ascolto umano e la verifica su device restano in M2.5. **Limiti:** i campioni W non sono riproducibili dal repo; modello e capacità del valutatore non sono verificabili.
