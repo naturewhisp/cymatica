@@ -1,0 +1,32 @@
+{
+  "A": {
+    "bar": 24,
+    "side_mid_db": -20.14,
+    "trama_planned_onsets": 20
+  },
+  "B": {
+    "bar": 16,
+    "side_mid_db": -20.15,
+    "trama_planned_onsets": 20
+  },
+  "C": {
+    "bar": 8,
+    "side_mid_db": -23.59,
+    "trama_planned_onsets": 0
+  },
+  "D": {
+    "bar": 40,
+    "side_mid_db": -20.35,
+    "trama_planned_onsets": 20
+  },
+  "E": {
+    "bar": 72,
+    "side_mid_db": -20.05,
+    "trama_planned_onsets": 20
+  },
+  "F": {
+    "bar": 0,
+    "side_mid_db": -24.07,
+    "trama_planned_onsets": 0
+  }
+}

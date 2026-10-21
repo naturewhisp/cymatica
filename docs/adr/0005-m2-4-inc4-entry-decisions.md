@@ -83,6 +83,13 @@ Inc-3 ha consegnato pipeline gerarchica, candidate search bounded e probe `plann
 - **Riportati senza gate M2.5:** true peak stimato 4× (BS.1770 Annex 2) — resta check ingegneristico della probe, coerente con AUD-D-03 —, gain reduction massima, conteggio dei furti, statistiche di energia per ruolo. LUFS non fa parte di Inc-4.
 - **Motivazione e alternative:** scenari separati, perché un unico verdetto misto farebbe dipendere la correttezza del contenuto dal rumore temporale della macchina (scartato lo scenario unico con alias multipli previsto in origine). Il true peak non è un gate M2.5, coerentemente con AUD-D-03, ma resta un check della probe per intercettare regressioni del limiter (scartata la rimozione completa).
 - **Artefatti:** WAV stereo 16 bit di circa 35,1 MB in `artifacts/cacp/` (escluso da git), con hash del contenuto registrato nel manifest e nell'evidenza. L'eventuale giudizio percettivo dell'agente è supplementare, con modello, capacità, hash e timestamp, oppure `not_run`/`unsupported`; non sostituisce l'ascolto umano di M2.5.
+- **Metodi di valutazione dell'agente (precisazione del 2026-10-21, decisione del titolare; analisi in [M2_4_CACP_Evaluation_Methods.md](../research/M2_4_CACP_Evaluation_Methods.md)):**
+  - **Gerarchia:** i gate si basano solo su test, descrittori quantitativi e telemetria del motore. L'ingestione audio e la lettura di spettrogrammi da parte di un agente restano supplementari e non decidono mai un verdetto.
+  - **Capacità dichiarate:** ogni giudizio dell'agente registra le capacità del canale usato (canali, risoluzione, token/s). Con l'API Gemini l'audio è mono a 16 Kbps, 32 token/s.
+  - **Affermazioni non ammesse:** sullo stereo se il canale è mono; su fenomeni sotto la risoluzione temporale del canale (~31 ms con 32 token/s); da spettrogrammi letti senza un pacchetto di riferimenti etichettati.
+  - **Riferimento obbligatorio:** ogni affermazione indica la finestra (frame o battute) e il metodo (ascolto, spettrogramma, descrittore, codice). Le affermazioni ricavate da codice o documenti non si presentano come percezione.
+  - **Controlli di falsificazione:** un giudizio vale come evidenza supplementare solo se supera i controlli contro i dati dello scenario (es. ruoli effettivamente presenti nella finestra secondo gli intent). Da Inc-5 i controlli sono automatici, nel pacchetto `evaluation_pack_v1` e nel risultato strutturato v0.
+  - **Riferimenti bibliografici:** le fonti sono nel §3.1 del dossier.
 
 ### Nota — riproducibilità e diversità (non è una decisione di Inc-4)
 

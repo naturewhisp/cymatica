@@ -69,6 +69,7 @@ Sintesi delle osservazioni che il valutatore attribuisce esclusivamente all'asco
 ## 5. Limiti
 
 - **Modello e capacità** sono dichiarati dal valutatore e non verificabili.
+- **Stereo non attribuibile all'ascolto** (aggiunto il 2026-10-21): secondo la documentazione dell'API Gemini l'audio viene ridotto a 16 Kbps e i canali vengono uniti in un solo canale. Se Antigravity usa questa pipeline, l'osservazione «timbro allargato ai lati» (battute 16, 36, 68) è corretta nei fatti (misura Side/Mid, §4), ma non può derivare dall'ascolto. Lo stesso vale per fenomeni sotto ~31 ms (32 token/s). Analisi in [M2_4_CACP_Evaluation_Methods.md](research/M2_4_CACP_Evaluation_Methods.md) §3.1.
 - **Campioni del workload W** generati da un test temporaneo che il valutatore ha poi ripristinato, quindi non riproducibili dal repo (contro `.agents/rules/document_driven_engineering.md` §6.8). Il picco di W0 è riprodotto in modo indipendente (run3); il campione W con B1 è coerente con `profile_probe_v1` (GR 3,10 dB).
 - **«140/140 test»** citato dal valutatore non è stato eseguito nella sua sessione d'ascolto: viene dalle verifiche precedenti registrate in `progress.md`.
 - **Gli artefatti WAV non sono versionati;** sono riproducibili soltanto per la fixture (`cymatica_game --cacp-run fixture_test`, hash del contenuto nel manifest). Gli slice e i campioni W sono stati eliminati da `artifacts/cacp/` dopo la registrazione.

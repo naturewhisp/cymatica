@@ -85,6 +85,20 @@ Registrare il giudizio percettivo formale nell'evidenza di milestone (es. `docs/
 - Sessione e timestamp di valutazione;
 - Giudizio percettivo ed esito formale.
 
+### Passo 3b: Ammissibilità dei giudizi dell'agente (ADR-0005 D-M2-11, decisione del 2026-10-21)
+
+Regole obbligatorie per ogni giudizio percettivo di un agente. L'analisi con misure e fonti è in [`docs/research/M2_4_CACP_Evaluation_Methods.md`](../../../docs/research/M2_4_CACP_Evaluation_Methods.md).
+
+1. **Il giudizio è supplementare.** I verdetti vengono solo da test, manifest e descrittori quantitativi. Un giudizio positivo non annulla un check fallito; uno negativo apre un'indagine, non un FAIL.
+2. **Dichiarare le capacità del canale:** canali, risoluzione e token/s. Con l'API Gemini l'audio è **mono a 16 Kbps, 32 token/s**.
+3. **Affermazioni vietate:**
+   - sullo stereo (larghezza, panorama, delay L/R) se il canale è mono: lo stereo si valuta con il descrittore Side/Mid o con lo spettrogramma Side;
+   - su click o discontinuità più brevi della risoluzione del canale (~31 ms con 32 token/s): si valutano con i check PCM;
+   - dalla lettura di spettrogrammi senza riferimenti etichettati. Senza riferimenti un agente ha ottenuto 2 giudizi corretti su 6 in un test alla cieca.
+4. **Ogni affermazione indica finestra e metodo:** frame o battute; ascolto, spettrogramma, descrittore oppure codice. I valori letti nel codice (costanti, parametri) non si presentano come percezione.
+5. **Controlli di falsificazione:** confrontare ogni affermazione con i dati dello scenario, almeno i ruoli presenti nella finestra secondo gli intent. Un giudizio che descrive ruoli assenti va respinto.
+6. **Usare finestre generate dal repo**, non slice creati ad hoc da script esterni. Da Inc-5 si usa il pacchetto `evaluation_pack_v1` (finestre annotate, spettrogrammi Mid/Side con riferimenti, descrittori, hash) con il risultato di valutazione strutturato v0, che esegue i controlli in automatico. *Pianificato in Inc-5, non ancora implementato.*
+
 ---
 
 ## 1.2 Flusso di Validazione Polifonia e Voice Stealing (voice_probe_v1 — Inc-1)

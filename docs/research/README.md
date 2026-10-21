@@ -13,6 +13,7 @@ Documenti dedicati alla qualità compositiva, timbrica e audiovisiva di CYMATICA
 | [Piano di implementazione M2.4](M2_4_Implementation_Plan.md) | Roadmap Inc-1..5 (Inc-1 completato, Gate pre-Inc-2 chiuso), contratti voice/epoch, palette, test e differimento delle scelte sperimentali |
 | [Analisi scientifica distorsione e aliasing Inc-1](M2_4_Voice_Distortion_Aliasing_Evidence.md) | Diagnosi quantitativa campioni clippati, THD+N, aliasing da hard-clipping e gain staging in `voice_probe_v1` |
 | [DIF-INC4-R2-01: workload W e GR del limiter (2026-10-21)](M2_4_DIF-INC4-R2-01_Limiter_GR_Analysis.md) | Analisi con misure delle alternative per il carico W di D-M2-10 (livelli raggiungibili, costo della GR, subnormali, variabilità delle code); dati grezzi in `experiments/dif_inc4_r2_01/` |
+| [Metodi di valutazione CACP (2026-10-21)](M2_4_CACP_Evaluation_Methods.md) | Ingestione audio, spettrogrammi, descrittori e telemetria a confronto con misure e fonti; raccomandazioni per Inc-5 (*proposed*) e ricerche d'ingresso M5/M6; dati in `experiments/cacp_methods/` |
 | [Protocollo di valutazione](M2_4_Evaluation_Protocol.md) | Esperimenti A/B, test di ascolto, metriche separate e profiling realtime |
 | [Roadmap di ricerca futura](../roadmap_music_research_addendum.md) | Conseguenze proposte per M2.4/M2.5 e M3–M13 |
 
