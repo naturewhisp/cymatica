@@ -743,3 +743,7 @@ Limiti: il profiling misura il costo di render offline su questa macchina e non 
 - Le code dipendono dal carico della macchina: in sessioni diverse dello stesso giorno il p99.9 di W è variato fra 0,18 e 0,73 ms (dossier §3.4).
 - Il campo `commit` del manifest è il valore fissato alla configurazione di CMake (`9c61f88`) e non riflette il working tree modificato.
 - Nessuna CI eseguita; nessuna misura su device (M2.5).
+
+**Conformità alle regole (2026-10-21):** una verifica successiva ha trovato una tensione fra B1 e [`.agents/rules/realtime_and_serialization.md`](../.agents/rules/realtime_and_serialization.md) §4, secondo cui il tono diagnostico deve restare silenziato mentre suonano le voci polifoniche. Il titolare ha deciso di precisare la regola: il tono può suonare insieme alle voci solo nei carichi di benchmark diagnostici dichiarati in un ADR, oggi solo il workload W di D-M2-10. Runtime, fixture, golden, scenari CACP di contenuto ed export WAV per l'ascolto restano esclusi. B1 è conforme e la questione è chiusa (dossier §7-bis, ADR-0005 D-M2-10).
+
+Nella stessa data la regola [`.agents/rules/document_driven_engineering.md`](../.agents/rules/document_driven_engineering.md) è stata estesa con il §6 «Decisioni fondate su evidenze», che rende obbligatoria fra l'altro la verifica di conformità anche contro `.agents/rules/`.

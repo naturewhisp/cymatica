@@ -166,6 +166,14 @@ B2 non è fattibile; B3 è sproporzionata.
 - **Teoria vs. misura:** il limite teorico di §2.1 trascura il wet del delay di Trama (che lo alzerebbe) e il ducking (che lo abbassa); il picco misurato resta il dato decisivo.
 - **Device:** nessuna misura su device; la qualificazione realtime resta a M2.5 (D-M2-10, limite R6-03).
 
+## 7-bis. Conformità alle regole di `.agents/rules/` (verifica tardiva, 2026-10-21)
+
+La verifica contro le regole in `.agents/rules/` è stata eseguita **dopo** la decisione: nell'analisi iniziale mancava. [realtime_and_serialization.md](../../.agents/rules/realtime_and_serialization.md) §4 stabilisce che i generatori diagnostici legacy (`ma_waveform`) restino «silenziati e disaccoppiati durante il funzionamento del `VoiceAllocator` polifonico, attivandosi solo in presenza di richieste esplicite di tono continuo (`activeVolume > 1e-6f`)».
+
+- **Compatibilità:** B1 attiva il tono con una richiesta esplicita (`Start.paramF32 = 0,8`), solo nel benchmark offline `profile_probe_v1` e mai nel runtime o nella fixture. Il caso rientra quindi nella clausola di attivazione esplicita.
+- **Tensione residua:** la regola presuppone che tono e voci polifoniche non suonino insieme. In W suonano insieme, e il tono si somma alle voci prima del limiter.
+- **Risoluzione (decisione del titolare, 2026-10-21):** la regola §4 è stata precisata. Il tono diagnostico può suonare insieme alle voci solo nei carichi di benchmark diagnostici dichiarati in un ADR; oggi l'unico caso è il workload W di D-M2-10, con `kProfileWorkloadWToneVolume = 0,8`. Runtime, fixture, golden, scenari CACP di contenuto ed export WAV per l'ascolto restano esclusi. B1 è quindi conforme e la questione è chiusa.
+
 ## 8. Esito dell'applicazione (2026-10-21)
 
 **Modifiche:**
