@@ -13,6 +13,8 @@ add_library(cymatica_audio STATIC
     music_planner.cpp
     music_planner.h
     music_position.h
+    plan_canonical_hash.cpp
+    plan_canonical_hash.h
     master_limiter.cpp
     master_limiter.h
     realtime_exchange.h

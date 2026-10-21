@@ -3,6 +3,7 @@
 #include "audio_scheduler.h"
 #include "music_clock.h"
 #include "music_planner.h"
+#include "plan_canonical_hash.h"
 #include "unsigned_math.h"
 
 #if defined(_WIN32)
@@ -1933,15 +1934,26 @@ std::uint64_t pcmContentHash(const std::vector<float>& samples) noexcept {
 }
 
 // Just-in-time Coordinator of fixture-m2-4-v1 (ADR-0005 D-M2-09), shared by fixture_probe_v1 and workload F.
+// It is the Inc-4 test bench, not the runtime Coordinator: on an invalid transport ack it performs the terminal
+// fail-closed safe stop of D-INC4-R3-01 (Failed state, no further planning, revocation of the staging from the
+// boundary keeping the NoteOffs of committed notes, explicit emergency Stop at the first audio block boundary
+// still executable after the ack, then Stopped). Checkpoint rollback and replanning belong to the runtime
+// Coordinator (D-M2-09, M2.5).
 class FixtureCoordinator {
 public:
     static constexpr std::uint64_t kStartCommandId = 1;
     static constexpr std::uint64_t kTempoBCommandId = 2;
     static constexpr std::uint64_t kTempoAPrimeCommandId = 3;
     static constexpr std::uint64_t kStopCommandId = 4;
+    static constexpr std::uint64_t kEmergencyStopCommandId = 5;
+    // LateTempoMap fault: the B SetTempoMap is sent this many frames after its boundary (rejected as late)
+    static constexpr std::uint64_t kLateTempoDelayFrames = 2048;
 
-    FixtureCoordinator(const MusicClock& clock, const FormPlan& form, const std::array<PhrasePlan, 24>& phrases)
-        : clock_(clock), form_(form), phrases_(phrases),
+    enum class State : std::uint8_t { Running, Failed, Stopped };
+
+    FixtureCoordinator(const MusicClock& clock, const FormPlan& form, const std::array<PhrasePlan, 24>& phrases,
+                       FixtureInjectedFault fault = FixtureInjectedFault::None)
+        : clock_(clock), form_(form), phrases_(phrases), fault_(fault),
           planner_({.runSeed = kFixtureSeed, .candidateCount = 8, .sampleRate = kInc4SampleRate,
                     .lookaheadFrames = AudioSchedulerConfig{}.lookaheadFrames}) {
         planner_.setFormPlan(form_);
@@ -1949,6 +1961,9 @@ public:
             const std::uint32_t boundaryBar = form_.sections[i + 1].startBar;
             tempoBoundary_[i] = clock_.frameAtBar(boundaryBar);
             tempoSendFrame_[i] = clock_.frameAtBar(boundaryBar - 1); // at least one bar ahead
+        }
+        if (fault_ == FixtureInjectedFault::LateTempoMap) {
+            tempoSendFrame_[0] = tempoBoundary_[0] + kLateTempoDelayFrames;
         }
         const SectionPlan& last = form_.sections[form_.sectionCount - 1];
         contentEndFrame_ = clock_.frameAtBar(static_cast<std::uint64_t>(last.startBar) + last.barCount);
@@ -1961,25 +1976,51 @@ public:
         engine.sendCommand(AudioCommand{.commandId = kStartCommandId, .type = AudioCommandType::Start, .targetSampleFrame = 0});
     }
 
-    // Coordinator work before rendering the block that starts at currentFrame.
-    void beforeBlock(std::uint64_t currentFrame, AudioEngine& engine) {
+    // Coordinator work before rendering the block [currentFrame, currentFrame + frames).
+    void beforeBlock(std::uint64_t currentFrame, std::uint32_t frames, AudioEngine& engine) {
+        droppedAtBlockStart_ = engine.droppedScheduledEvents();
+        lastBlockEndFrame_ = currentFrame + frames;
         for (std::size_t i = 0; i < 2; ++i) {
-            if (!tempoSent_[i] && currentFrame >= tempoSendFrame_[i]) {
-                engine.sendCommand(AudioCommand::makeSetTempoMap(kTempoBCommandId + i, form_.sections[i + 1].tempoMap,
-                                                                 tempoBoundary_[i]));
-                tempoSent_[i] = true;
+            if (!boundaryBlockSeen_[i] && currentFrame + frames > tempoBoundary_[i]) {
+                droppedAtBoundaryBlock_[i] = droppedAtBlockStart_;
+                boundaryBlockSeen_[i] = true;
             }
         }
-        if (!stopSent_ && currentFrame >= stopSendFrame_) {
-            engine.sendCommand(AudioCommand{.commandId = kStopCommandId, .type = AudioCommandType::Stop,
-                                            .targetSampleFrame = contentEndFrame_});
-            stopSent_ = true;
+
+        if (state_ == State::Running) {
+            for (std::size_t i = 0; i < 2; ++i) {
+                if (!tempoSent_[i] && currentFrame >= tempoSendFrame_[i]) {
+                    TempoMap map = form_.sections[i + 1].tempoMap;
+                    if (i == 0 && fault_ == FixtureInjectedFault::InvalidTempoMap) {
+                        map.bpm = RationalBpm{0, 1}; // rejected on receipt by the engine
+                    }
+                    engine.sendCommand(AudioCommand::makeSetTempoMap(kTempoBCommandId + i, map, tempoBoundary_[i]));
+                    tempoSent_[i] = true;
+                }
+            }
+            if (!stopSent_ && currentFrame >= stopSendFrame_) {
+                engine.sendCommand(AudioCommand{.commandId = kStopCommandId, .type = AudioCommandType::Stop,
+                                                .targetSampleFrame = contentEndFrame_});
+                stopSent_ = true;
+            }
+            // Phrase N+1 is planned when the planning cursor enters phrase N
+            while (next_ < phrases_.size() && currentFrame >= phrases_[next_ - 1].startFrame) {
+                planNext(core::saturatingAdd(currentFrame, scheduler_.lookaheadFrames()));
+            }
+        } else if (state_ == State::Failed && !emergencyStopSent_) {
+            // Stop at the first audio block boundary still executable after the invalid ack (never retroactive).
+            // A full command queue is retried on the next block (bounded by the run length).
+            ++emergencyStopAttempts_;
+            if (engine.sendCommand(AudioCommand{.commandId = kEmergencyStopCommandId, .type = AudioCommandType::Stop,
+                                                .targetSampleFrame = currentFrame})) {
+                emergencyStopSent_ = true;
+                emergencyStopTarget_ = currentFrame;
+            }
         }
-        // Phrase N+1 is planned when the planning cursor enters phrase N
-        while (!stopped_ && next_ < phrases_.size() && currentFrame >= phrases_[next_ - 1].startFrame) {
-            planNext(core::saturatingAdd(currentFrame, scheduler_.lookaheadFrames()));
-        }
-        if (!stopped_) {
+
+        // Until the transport is stopped the staging is still dispatched: after a failure it only holds the
+        // NoteOffs of committed notes and events before the failed boundary.
+        if (state_ != State::Stopped) {
             (void)scheduler_.dispatchDueEvents(currentFrame, engine);
         }
     }
@@ -1993,19 +2034,19 @@ public:
                 const std::size_t i = static_cast<std::size_t>(ack.commandId - kTempoBCommandId);
                 ackTempo_[i] = ack;
                 if (!tempoAckValid(i)) {
-                    // Fail-closed (D-M2-09): revoke staged events from the planned boundary on
-                    revokedEvents_ += scheduler_.revokeFromFrame(tempoBoundary_[i]);
+                    fail(i);
                 }
-            } else if (ack.commandId == kStopCommandId) {
-                ackStop_ = ack;
-                if (ack.status == AudioCommandStatus::Applied && !stopped_) {
+            } else if (ack.commandId == kStopCommandId || ack.commandId == kEmergencyStopCommandId) {
+                (ack.commandId == kStopCommandId ? ackStop_ : ackEmergencyStop_) = ack;
+                if (ack.status == AudioCommandStatus::Applied && state_ != State::Stopped) {
                     // Stop: empty the staging and reset the planner, simulated tracker included (D-M2-09)
                     stagedAtStop_ = scheduler_.stagedEventCount();
                     tracesAtStop_ = planner_.decisionTraces();
                     noteOffsAtStop_ = planner_.plannedNoteOffs();
+                    droppedAtStopAck_ = engine.droppedScheduledEvents();
                     scheduler_.clear();
                     planner_.reset(kFixtureSeed);
-                    stopped_ = true;
+                    state_ = State::Stopped;
                 }
             }
         }
@@ -2021,22 +2062,63 @@ public:
     [[nodiscard]] bool stopAckValid() const noexcept {
         return ackStop_.status == AudioCommandStatus::Applied && ackStop_.sampleFrame == contentEndFrame_;
     }
+    [[nodiscard]] bool emergencyStopAckValid() const noexcept {
+        return emergencyStopSent_ && ackEmergencyStop_.status == AudioCommandStatus::Applied &&
+               ackEmergencyStop_.sampleFrame == emergencyStopTarget_;
+    }
 
+    // Drops before the failed transition took effect (its boundary block or the failure block, whichever came
+    // first) are unexpected; later ones are invalidations caused by the failure and the emergency Stop.
+    [[nodiscard]] std::uint64_t unexpectedDrops(std::uint64_t totalDrops) const noexcept {
+        if (state_ == State::Running || failedTransition_ > 1) return totalDrops;
+        std::uint64_t cut = dropsAtFailureBlockStart_;
+        if (boundaryBlockSeen_[failedTransition_]) cut = (std::min)(cut, droppedAtBoundaryBlock_[failedTransition_]);
+        return (std::min)(cut, totalDrops);
+    }
+
+    [[nodiscard]] State state() const noexcept { return state_; }
+    [[nodiscard]] bool failed() const noexcept { return failedTransition_ <= 1; }
+    [[nodiscard]] std::uint64_t failedCommandId() const noexcept {
+        return failed() ? kTempoBCommandId + failedTransition_ : 0;
+    }
+    [[nodiscard]] const std::string& failureReason() const noexcept { return failureReason_; }
+    [[nodiscard]] std::uint64_t failureDetectedAtFrame() const noexcept { return failureDetectedAtFrame_; }
+    [[nodiscard]] std::uint64_t emergencyStopTarget() const noexcept { return emergencyStopTarget_; }
+    [[nodiscard]] std::uint32_t emergencyStopAttempts() const noexcept { return emergencyStopAttempts_; }
+    [[nodiscard]] const AudioCommandAck& emergencyStopAck() const noexcept { return ackEmergencyStop_; }
+    [[nodiscard]] std::uint64_t droppedAtStopAck() const noexcept { return droppedAtStopAck_; }
     [[nodiscard]] std::uint64_t contentEndFrame() const noexcept { return contentEndFrame_; }
     [[nodiscard]] std::uint64_t tempoBoundary(std::size_t i) const noexcept { return tempoBoundary_[i]; }
     [[nodiscard]] const AudioCommandAck& tempoAck(std::size_t i) const noexcept { return ackTempo_[i]; }
     [[nodiscard]] const AudioCommandAck& startAck() const noexcept { return ackStart_; }
     [[nodiscard]] const AudioCommandAck& stopAck() const noexcept { return ackStop_; }
     [[nodiscard]] std::size_t phrasesPlanned() const noexcept { return next_; }
-    [[nodiscard]] bool stopped() const noexcept { return stopped_; }
+    [[nodiscard]] bool stopped() const noexcept { return state_ == State::Stopped; }
     [[nodiscard]] std::size_t stagedAtStop() const noexcept { return stagedAtStop_; }
     [[nodiscard]] std::size_t revokedEvents() const noexcept { return revokedEvents_; }
+    [[nodiscard]] std::uint64_t dispatchedEvents() const noexcept { return scheduler_.totalDispatchedEvents(); }
     [[nodiscard]] std::uint64_t backpressureDrops() const noexcept { return scheduler_.backpressureDrops(); }
     [[nodiscard]] std::uint64_t lookaheadFrames() const noexcept { return scheduler_.lookaheadFrames(); }
     [[nodiscard]] const std::vector<PhraseDecisionTrace>& tracesAtStop() const noexcept { return tracesAtStop_; }
     [[nodiscard]] const std::vector<PlannedNoteOff>& noteOffsAtStop() const noexcept { return noteOffsAtStop_; }
 
 private:
+    void fail(std::size_t transition) {
+        if (state_ != State::Running) return;
+        state_ = State::Failed;
+        failedTransition_ = transition;
+        dropsAtFailureBlockStart_ = droppedAtBlockStart_;
+        failureDetectedAtFrame_ = lastBlockEndFrame_; // first block boundary still executable
+        const AudioCommandAck& a = ackTempo_[transition];
+        failureReason_ = "SetTempoMap " + std::to_string(kTempoBCommandId + transition) + " ack " +
+                         (a.status == AudioCommandStatus::Rejected ? std::string("Rejected") : std::string("invalid")) +
+                         " (frame " + std::to_string(a.sampleFrame) + ", epoch " + std::to_string(a.transportEpoch) +
+                         "; expected Applied at " + std::to_string(tempoBoundary_[transition]) + ", epoch " +
+                         std::to_string(fixtureEpochForSection(static_cast<std::uint32_t>(transition + 1))) + ")";
+        // Revoke the staged events from the failed boundary on, keeping the NoteOffs of committed notes
+        revokedEvents_ += scheduler_.revokeFromFrame(tempoBoundary_[transition]);
+    }
+
     void planNext(std::uint64_t horizon) {
         if (next_ >= phrases_.size()) return;
         const PhrasePlan& p = phrases_[next_];
@@ -2048,8 +2130,10 @@ private:
     const MusicClock& clock_;
     const FormPlan& form_;
     const std::array<PhrasePlan, 24>& phrases_;
+    FixtureInjectedFault fault_{FixtureInjectedFault::None};
     MusicPlanner planner_;
     AudioScheduler scheduler_{};
+    State state_{State::Running};
     std::size_t next_{0};
     std::array<std::uint64_t, 2> tempoBoundary_{};
     std::array<std::uint64_t, 2> tempoSendFrame_{};
@@ -2057,10 +2141,22 @@ private:
     std::uint64_t contentEndFrame_{0};
     std::uint64_t stopSendFrame_{0};
     bool stopSent_{false};
-    bool stopped_{false};
+    bool emergencyStopSent_{false};
+    std::uint64_t emergencyStopTarget_{0};
+    std::uint32_t emergencyStopAttempts_{0};
+    std::size_t failedTransition_{2}; // 2 = none
+    std::string failureReason_{};
+    std::uint64_t failureDetectedAtFrame_{0};
+    std::uint64_t droppedAtBlockStart_{0};
+    std::uint64_t lastBlockEndFrame_{0};
+    std::uint64_t dropsAtFailureBlockStart_{0};
+    std::array<std::uint64_t, 2> droppedAtBoundaryBlock_{};
+    std::array<bool, 2> boundaryBlockSeen_{};
+    std::uint64_t droppedAtStopAck_{0};
     AudioCommandAck ackStart_{};
     std::array<AudioCommandAck, 2> ackTempo_{};
     AudioCommandAck ackStop_{};
+    AudioCommandAck ackEmergencyStop_{};
     std::size_t stagedAtStop_{0};
     std::size_t revokedEvents_{0};
     std::vector<PhraseDecisionTrace> tracesAtStop_{};
@@ -2144,6 +2240,7 @@ std::string FixtureProbeResult::toJson() const {
     ss << "  \"generated_events\": " << generatedEvents << ",\n";
     ss << "  \"planner_note_offs\": " << plannerNoteOffs << ",\n";
     ss << "  \"engine_processed_events\": " << engineProcessedEvents << ",\n";
+    ss << "  \"expected_engine_events\": " << expectedEngineEvents << ",\n";
     ss << "  \"dropped_scheduled_events\": " << droppedScheduledEvents << ",\n";
     ss << "  \"deferred_scheduled_events\": " << deferredScheduledEvents << ",\n";
     ss << "  \"scheduler_backpressure_drops\": " << schedulerBackpressureDrops << ",\n";
@@ -2173,6 +2270,9 @@ std::string FixtureProbeResult::toJson() const {
     ss << "  \"clipped_samples\": " << clippedSamples << ",\n";
     ss << "  \"decision_trace_hash\": " << decisionTraceHash << ",\n";
     ss << "  \"golden_decision_trace_hash\": " << kFixtureProbeV1GoldenTraceHash << ",\n";
+    ss << "  \"canonical_plan_hash_format\": " << kCanonicalPlanHashFormatVersion << ",\n";
+    ss << "  \"canonical_plan_hash\": " << canonicalPlanHash << ",\n";
+    ss << "  \"golden_canonical_plan_hash\": " << kFixtureProbeV1GoldenPlanHash << ",\n";
     ss << "  \"pcm_content_hash\": " << pcmContentHash << ",\n";
     ss << "  \"checks\": {\n";
     ss << "    \"capture_complete_passed\": " << (captureCompletePassed ? "true" : "false") << ",\n";
@@ -2184,10 +2284,27 @@ std::string FixtureProbeResult::toJson() const {
     ss << "    \"silence_boundary_passed\": " << (silenceBoundaryPassed ? "true" : "false") << ",\n";
     ss << "    \"determinism_passed\": " << (determinismPassed ? "true" : "false") << ",\n";
     ss << "    \"golden_trace_passed\": " << (goldenTracePassed ? "true" : "false") << ",\n";
+    ss << "    \"golden_plan_passed\": " << (goldenPlanPassed ? "true" : "false") << ",\n";
     ss << "    \"true_peak_passed\": " << (truePeakPassed ? "true" : "false") << ",\n";
     ss << "    \"sample_ceiling_passed\": " << (sampleCeilingPassed ? "true" : "false") << ",\n";
     ss << "    \"zero_clipping_passed\": " << (clippedSamples == 0 ? "true" : "false") << ",\n";
     ss << "    \"dsp_anomalies_passed\": " << (dspAnomaliesPassed ? "true" : "false") << "\n";
+    ss << "  },\n";
+    ss << "  \"fault_injection\": {\n";
+    ss << "    \"injected_fault\": " << static_cast<int>(injectedFault) << ",\n";
+    ss << "    \"coordinator_failed\": " << (coordinatorFailed ? "true" : "false") << ",\n";
+    ss << "    \"failure_reason\": \"" << escapeJsonString(coordinatorFailureReason) << "\",\n";
+    ss << "    \"failed_command_id\": " << failedCommandId << ",\n";
+    ss << "    \"failure_detected_at_frame\": " << failureDetectedAtFrame << ",\n";
+    ss << "    \"emergency_stop_frame\": " << emergencyStopFrame << ",\n";
+    ss << "    \"emergency_stop_attempts\": " << emergencyStopAttempts << ",\n";
+    ss << "    \"emergency_stop_ack_status\": " << static_cast<int>(emergencyStopAck.status) << ",\n";
+    ss << "    \"dispatched_events\": " << dispatchedEvents << ",\n";
+    ss << "    \"unexpected_dropped_events\": " << unexpectedDroppedEvents << ",\n";
+    ss << "    \"invalidated_dropped_events\": " << invalidatedDroppedEvents << ",\n";
+    ss << "    \"active_voices_after_stop\": " << activeVoicesAfterStop << ",\n";
+    ss << "    \"stale_event_rejected\": " << (staleEventRejected ? "true" : "false") << ",\n";
+    ss << "    \"safe_stop_passed\": " << (safeStopPassed ? "true" : "false") << "\n";
     ss << "  },\n";
     ss << "  \"perceptual_judgement\": \"not_run\",\n";
     ss << "  \"wav_write_success\": " << (wavWriteSuccess ? "true" : "false") << ",\n";
@@ -2255,8 +2372,16 @@ std::string ProfileProbeResult::toJson() const {
     return ss.str();
 }
 
-FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool writeFiles) {
+bool fixtureSchedulingAccountingPassed(const FixtureProbeResult& r, std::size_t expectedPhrases) noexcept {
+    return r.droppedScheduledEvents == 0 && r.deferredScheduledEvents == 0 && r.schedulerBackpressureDrops == 0 &&
+           r.stagedEventsAtStop == 0 && r.orphanNoteRecoveredCount == 0 && r.phrasesPlanned == expectedPhrases &&
+           r.generatedEvents > 0 && r.expectedEngineEvents == 2ULL * r.generatedEvents &&
+           r.engineProcessedEvents == r.expectedEngineEvents;
+}
+
+FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool writeFiles, FixtureInjectedFault fault) {
     FixtureProbeResult result;
+    result.injectedFault = fault;
     result.buildId = CYMATICA_BUILD_ID;
 
     const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
@@ -2298,6 +2423,9 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
 
     result.decisionTraceHash = fixtureTraceHash(run1.traces);
     result.goldenTracePassed = (result.decisionTraceHash == kFixtureProbeV1GoldenTraceHash);
+    // Full canonical plan (events + NoteOffs + decisions), shared with the golden tests (DIF-INC4-R3-03)
+    result.canonicalPlanHash = canonicalPlanHash(run1.intents, run1.noteOffs, run1.traces);
+    result.goldenPlanPassed = (result.canonicalPlanHash == kFixtureProbeV1GoldenPlanHash);
 
     for (const auto& phraseIntents : run1.intents) {
         result.generatedEvents += static_cast<std::uint32_t>(phraseIntents.size());
@@ -2339,7 +2467,7 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     AudioProbe probe(AudioProbe::kDefaultCapacityFrames, 2, engine.sampleRate());
     engine.attachAudioProbe(&probe);
 
-    FixtureCoordinator coordinator(clock, form, phrases);
+    FixtureCoordinator coordinator(clock, form, phrases, fault);
     result.contentEndFrame = coordinator.contentEndFrame();
     result.lookaheadFrames = coordinator.lookaheadFrames();
     result.simulationTicks = (result.contentEndFrame + kFixturePostStopFrames + kFramesPerTick - 1) / kFramesPerTick;
@@ -2354,7 +2482,7 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     coordinator.start(engine);
     for (std::uint64_t tick = 0; tick < result.simulationTicks; ++tick) {
         const std::uint64_t currentFrame = tick * kFramesPerTick;
-        coordinator.beforeBlock(currentFrame, engine);
+        coordinator.beforeBlock(currentFrame, kFramesPerTick, engine);
         engine.processBlock(tickBlock.data(), kFramesPerTick);
 
         // Drain the probe completely on every block (no capture discontinuity)
@@ -2391,11 +2519,41 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     result.engineProcessedEvents = engine.totalScheduledEventsProcessed();
     result.maxGainReductionDb = engine.masterLimiter().maxGainReductionDb();
     const std::uint32_t finalDspAnomalies = engine.telemetry().dspAnomalyCount;
+    result.activeVoicesAfterStop = engine.telemetry().activeVoiceCount;
+    result.dispatchedEvents = coordinator.dispatchedEvents();
+    result.unexpectedDroppedEvents = coordinator.unexpectedDrops(result.droppedScheduledEvents);
+    result.invalidatedDroppedEvents = result.droppedScheduledEvents - result.unexpectedDroppedEvents;
+
+    // A NoteOn of the terminated run delivered after the Stop must never sound (old epoch < minValidEpoch).
+    // Probe-only check on the stopped engine, outside the recorded capture.
+    {
+        const std::uint64_t dropsBefore = engine.droppedScheduledEvents();
+        const std::uint64_t nowFrame = result.simulationTicks * kFramesPerTick;
+        const ScheduledAudioEvent stale{.eventId = 0xFFFFFFFFULL, .sampleFrame = nowFrame,
+                                        .transportEpoch = result.transportEpoch > 0 ? result.transportEpoch - 1 : 0,
+                                        .type = AudioEventType::NoteOn, .role = MusicRole::Corpo, .valueA = 220.0f,
+                                        .valueB = 1.0f, .durationFrames = 0, .timbreParam = 0.5f};
+        const bool queued = engine.scheduleAudioEvent(stale);
+        engine.processBlock(tickBlock.data(), kFramesPerTick);
+        (void)engine.updateTelemetry();
+        bool silent = true;
+        for (float x : tickBlock) silent = silent && (x == 0.0f);
+        result.staleEventRejected = queued && engine.telemetry().activeVoiceCount == 0 &&
+                                    engine.droppedScheduledEvents() == dropsBefore + 1 && silent;
+        while (probe.readFrames(readChunk.data(), kFramesPerTick) > 0) {}
+    }
 
     engine.detachAudioProbe();
     engine.shutdown();
 
     result.phrasesPlanned = static_cast<std::uint32_t>(coordinator.phrasesPlanned());
+    result.coordinatorFailed = coordinator.failed();
+    result.coordinatorFailureReason = coordinator.failureReason();
+    result.failedCommandId = coordinator.failedCommandId();
+    result.failureDetectedAtFrame = coordinator.failureDetectedAtFrame();
+    result.emergencyStopFrame = coordinator.emergencyStopTarget();
+    result.emergencyStopAttempts = coordinator.emergencyStopAttempts();
+    result.emergencyStopAck = coordinator.emergencyStopAck();
     result.schedulerBackpressureDrops = coordinator.backpressureDrops();
     result.revokedStagedEvents = coordinator.revokedEvents();
     result.stagedEventsAtStop = coordinator.stagedAtStop();
@@ -2412,10 +2570,8 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     result.tempoAckPassed = coordinator.startAckValid() && coordinator.tempoAckValid(0) && coordinator.tempoAckValid(1) &&
                             coordinator.stopAckValid() && result.revokedStagedEvents == 0;
 
-    result.schedulingAccountingPassed = result.droppedScheduledEvents == 0 && result.deferredScheduledEvents == 0 &&
-                                        result.schedulerBackpressureDrops == 0 && result.stagedEventsAtStop == 0 &&
-                                        result.orphanNoteRecoveredCount == 0 &&
-                                        result.phrasesPlanned == phrases.size();
+    result.expectedEngineEvents = 2ULL * result.generatedEvents;
+    result.schedulingAccountingPassed = fixtureSchedulingAccountingPassed(result, phrases.size());
 
     // Peak, clipping, finite
     float maxAmp = 0.0f;
@@ -2436,7 +2592,8 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
 
     // Numerical silence after the Stop declick ramp (2 ms = 96 frames at 48 kHz)
     {
-        const std::uint64_t silenceStart = result.contentEndFrame + 96ULL;
+        const std::uint64_t stopFrame = result.coordinatorFailed ? result.emergencyStopFrame : result.contentEndFrame;
+        const std::uint64_t silenceStart = stopFrame + 96ULL;
         bool silenceOk = result.totalCapturedFrames > silenceStart;
         for (std::size_t i = static_cast<std::size_t>(silenceStart) * 2; silenceOk && i < recordedStereo.size(); ++i) {
             if (recordedStereo[i] != 0.0f) silenceOk = false;
@@ -2469,9 +2626,28 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
 
     result.pcmContentHash = pcmContentHash(recordedStereo);
 
+    // Terminal fail-closed safe stop (D-INC4-R3-01). Nominal run: no failure, no unexpected drop. Failed run:
+    // Stopped state, emergency Stop Applied at the first block boundary after the ack (never retroactive),
+    // every dispatched event accounted for by the engine, no unexpected drop, no active voice, numerical
+    // silence after the 2 ms declick and an old-epoch NoteOn that never sounds.
+    if (result.coordinatorFailed) {
+        result.safeStopPassed = coordinator.stopped() && coordinator.emergencyStopAckValid() &&
+                                result.emergencyStopFrame >= result.failureDetectedAtFrame &&
+                                (result.emergencyStopAttempts > 1 || result.emergencyStopFrame == result.failureDetectedAtFrame) &&
+                                result.engineProcessedEvents == result.dispatchedEvents &&
+                                result.unexpectedDroppedEvents == 0 && result.orphanNoteRecoveredCount == 0 &&
+                                result.activeVoicesAfterStop == 0 && result.silenceBoundaryPassed &&
+                                result.staleEventRejected && result.dspAnomaliesPassed;
+    } else {
+        result.safeStopPassed = coordinator.stopped() && result.unexpectedDroppedEvents == 0 &&
+                                result.engineProcessedEvents == result.dispatchedEvents &&
+                                result.activeVoicesAfterStop == 0 && result.staleEventRejected;
+    }
+
     result.passed = result.captureCompletePassed &&
                     result.determinismPassed &&
                     result.goldenTracePassed &&
+                    result.goldenPlanPassed &&
                     result.noteOffPairingPassed &&
                     result.tempoAckPassed &&
                     result.schedulingAccountingPassed &&
@@ -2481,7 +2657,9 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
                     result.truePeakPassed &&
                     result.sampleCeilingPassed &&
                     (result.clippedSamples == 0) &&
-                    result.dspAnomaliesPassed;
+                    result.dspAnomaliesPassed &&
+                    result.safeStopPassed &&
+                    !result.coordinatorFailed;
 
     if (!result.passed) {
         std::ostringstream err;
@@ -2491,12 +2669,15 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
         if (!result.determinismPassed) err << "determinism check failed (offline passes or rendered plan differ); ";
         if (!result.goldenTracePassed) err << "decision trace hash " << result.decisionTraceHash << " != golden "
                                            << kFixtureProbeV1GoldenTraceHash << "; ";
+        if (!result.goldenPlanPassed) err << "canonical plan hash " << result.canonicalPlanHash << " != golden "
+                                          << kFixtureProbeV1GoldenPlanHash << "; ";
         if (!result.noteOffPairingPassed) err << "NoteOn/NoteOff pairing failed; ";
         if (!result.tempoAckPassed) err << "transport ack check failed (revoked " << result.revokedStagedEvents << "); ";
         if (!result.schedulingAccountingPassed) err << "scheduling accounting failed (dropped " << result.droppedScheduledEvents
                                                     << ", deferred " << result.deferredScheduledEvents << ", orphans "
                                                     << result.orphanNoteRecoveredCount << ", staged at stop "
-                                                    << result.stagedEventsAtStop << "); ";
+                                                    << result.stagedEventsAtStop << ", engine events "
+                                                    << result.engineProcessedEvents << " of " << result.expectedEngineEvents << "); ";
         if (!result.nonSilentAudioPassed) err << "non-silent section check failed; ";
         if (!result.roleActivityPassed) err << "role activity check failed; ";
         if (!result.silenceBoundaryPassed) err << "silence boundary violated after Stop declick tail; ";
@@ -2504,6 +2685,9 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
         if (!result.truePeakPassed) err << "true peak ceiling violated (" << result.truePeakDbtp << " > -1.0 dBTP); ";
         if (result.clippedSamples > 0) err << "clipped samples: " << result.clippedSamples << "; ";
         if (!result.dspAnomaliesPassed) err << "DSP anomalies or non-finite samples detected; ";
+        if (result.coordinatorFailed) err << "coordinator failed: " << result.coordinatorFailureReason
+                                          << "; emergency stop at " << result.emergencyStopFrame << "; ";
+        if (!result.safeStopPassed) err << "safe stop check failed; ";
         result.failureReason = err.str();
     }
 
@@ -2623,7 +2807,7 @@ ProfileWorkloadRun runProfileWorkload(ProfileWorkload workload, bool cacpEnabled
         coordinator.start(engine);
         for (std::uint64_t b = 0; b < totalBlocks; ++b) {
             if (b == kProfileWarmupBlocks) engine.resetCallbackProfileHistogram();
-            coordinator.beforeBlock(b * kProfileBlockFrames, engine);
+            coordinator.beforeBlock(b * kProfileBlockFrames, kProfileBlockFrames, engine);
             renderBlock();
             coordinator.drainAcks(engine);
         }

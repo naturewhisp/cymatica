@@ -3,22 +3,22 @@
 Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa resta nella specifica (§32); questo file registra solo stato, decisioni ed evidenze.
 
 
-> **Stato M2.4 (2026-10-21):** Inc-1..Inc-4 implementati. La revisione post-Inc-4 del 2026-10-21 ha concluso **NON OK** sulla commit `9c61f88` (check D-M2-10/D-M2-11 mancanti, euristica implicita della fixture, record di evidenza incoerente). La remediation è registrata nella sezione [«Revisione post-Inc-4»](#revisione-post-inc-4-2026-10-21) e chiude **tutti** i rilievi DIF-INC4-R2-01..07: R2-01 è chiuso con l'opzione B1 decisa dal titolare (tono diagnostico nel workload W, precisazione di D-M2-10 in ADR-0005). La remediation è nel working tree, non committata, e non è verificata in CI. Le decisioni di [ADR-0005](adr/0005-m2-4-inc4-entry-decisions.md) restano `accepted for implementation`; la ratifica del titolare è richiesta prima della chiusura di M2.4. Inc-5 non avviato. Questa riga e la tabella «Stato corrente» sono l'unico record dello stato; le sezioni successive sono registri storici e alcune affermazioni sono corrette da errata espliciti.
+> **Stato M2.4 (2026-10-21):** Inc-1..Inc-4 implementati, committati su `main` fino a [`8ba772e`](https://github.com/naturewhisp/cymatica/commit/8ba772e6c7c2c9012547d1595b631c910399c212) e verificati in CI ([run 39671112436](https://github.com/naturewhisp/cymatica/actions/runs/39671112436), Release e Debug PASS). La revisione post-Inc-4 interna (R2, rilievi DIF-INC4-R2-01..07) è chiusa: vedi [«Revisione post-Inc-4»](#revisione-post-inc-4-2026-10-21). Una revisione esterna successiva (R3, 2026-10-21) ha aperto 5 rilievi: R3-01 (opzione B del titolare, arresto terminale fail-closed), R3-02, R3-03 e R3-04 sono corretti nel working tree, non committato; per R3-05 la scadenza proposta è M2.5. Vedi [«Revisione esterna R3»](#revisione-esterna-r3-post-inc-4-2026-10-21). Le decisioni di [ADR-0005](adr/0005-m2-4-inc4-entry-decisions.md) restano `accepted for implementation` e la ratifica del titolare è richiesta prima della chiusura di M2.4. Le raccomandazioni R1–R6 del dossier sui metodi CACP sono approvate per Inc-5; Inc-5 non è avviato. Questa riga e la tabella «Stato corrente» sono l'unico record dello stato; le sezioni successive sono registri storici e alcune affermazioni sono corrette da errata espliciti.
 
 ## Stato corrente
 
 | Campo | Valore |
 |---|---|
-| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse; **M2.4: Inc-1..Inc-4 implementati; remediation post-Inc-4 del 2026-10-21 applicata nel working tree, DIF-INC4-R2-01..07 chiusi** (esiti in [Revisione post-Inc-4](#revisione-post-inc-4-2026-10-21)); Inc-5 non avviato; M2.5 gate d'integrazione finale. M2 complessiva non conclusa. |
+| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse; **M2.4: Inc-1..Inc-4 implementati e committati (CI verde su `8ba772e`); remediation R2 chiusa; revisione esterna R3 con R3-01..04 corretti nel working tree, R3-05 proposto per M2.5** ([Revisione esterna R3](#revisione-esterna-r3-post-inc-4-2026-10-21)); Inc-5 approvato nel perimetro (R1–R6) ma non avviato; M2.5 gate d'integrazione finale. M2 complessiva non conclusa. |
 | Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
 | Stato M1 | **Completata: review indipendente OK, zero difetti residui, gate round 3 passati** |
 | Specifica | Versione **0.8.3**, roadmap §32 invariata; ADR-0003, ADR-0004 (emendamento §4.3 del 2026-10-20) e ADR-0005 (ingresso Inc-4) specificano i contratti di M2.4 senza modificare i requisiti di milestone. |
 | Design | 0.3.1 (baseline identità 0.3 approvata il 2026-10-06; osservazione agentica documentata il 2026-10-07) |
 | Evidenza storica M1 | `b39bddb46449ee0b203c7234746185ba241d9a42`; Release 41/41, Debug 41/41, Headless 40/40, smoke exit 0, `/W4` zero warning; [evidenze](m1_review_round3.md). Questi risultati appartengono al gate M1. |
-| Ultima CI Headless verificata | [`f0bcb4d`](https://github.com/naturewhisp/cymatica/commit/f0bcb4dd286b665baadd56773db46f572039e282): [GitHub Actions run 39481595210](https://github.com/naturewhisp/cymatica/actions/runs/39481595210) PASS — Windows/MSVC Release 128/128, Debug 128/128 headless, CACP `tone_test` PASS (esito riportato dalla revisione esterna R6). La micro-remediation R6 è verificata solo in locale: Release 129/129, Debug 129/129, Headless 128/128. Non sostituisce collaudo hardware o giudizio artistico. |
+| Ultima CI Headless verificata | [`8ba772e`](https://github.com/naturewhisp/cymatica/commit/8ba772e6c7c2c9012547d1595b631c910399c212): [GitHub Actions run 39671112436](https://github.com/naturewhisp/cymatica/actions/runs/39671112436) «Windows CI», job Release (windows-2025) e Debug (windows-2025) `success`, verificato con `gh run view` il 2026-10-21. Il dettaglio dei log (140/140 headless per configurazione e CACP `tone_test` PASS) viene dalla revisione esterna R3. La CI esclude i test `perf`, valutati sulle misure locali archiviate. Non sostituisce collaudo hardware o giudizio artistico. |
 | Integrazione documentale M2.4 | Contratti D-M2-04..07 (ADR-0003); AUD-D-01..04 ed emendamento §4.3 (ADR-0004); D-M2-08..11 d'ingresso Inc-4 (ADR-0005), tutti `accepted for implementation`; nessun profilo sperimentale `validated`. |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_core` (static lib), `cymatica_replay` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
-| Ultimo aggiornamento | 2026-10-21 (revisione post-Inc-4 della commit `9c61f88`, remediation DIF-INC4-R2-01..07; R2-01 chiuso con l'opzione B1 e la precisazione di D-M2-10 in ADR-0005) |
+| Ultimo aggiornamento | 2026-10-21 (revisione esterna R3 su `9c61f88..8ba772e`: corretti R3-01 arresto sicuro fail-closed (decisione D-INC4-R3-01), R3-02 contabilità eventi, R3-03 hash canonico condiviso e R3-04 stato documentale; R3-05 proposto per M2.5) |
 
 ## Decisioni d'ingresso M0
 
@@ -795,3 +795,39 @@ Due resoconti precedenti dello stesso valutatore sono stati respinti per afferma
 - **R2–R6:** sono deliverable di Inc-5 nel piano operativo qui sopra.
 
 Inc-5 non è avviato. Le condizioni d'ingresso R-M5/R-M6 restano proposte.
+
+---
+
+## Revisione esterna R3 post-Inc-4 (2026-10-21)
+
+Revisione indipendente dei sei commit `9c61f88..8ba772e`, fornita dal titolare. Giudica Inc-4 «sostanzialmente realizzato, non chiuso senza riserve» e raccomanda una micro-remediation R3 sui primi tre rilievi.
+
+**Verifiche dell'agente prima della remediation:**
+
+- CI: run 39671112436 conclusa con `success` (job Release e Debug), `main` allineato a `origin`;
+- motore: un evento con epoch futura non raggiunta viene scartato e contato in `droppedScheduledEvents`, mentre le NoteOff dell'epoch precedente restano applicabili;
+- contatore: `totalScheduledEventsProcessed` conta anche gli eventi scartati.
+
+| ID | Sev. | Rilievo | Stato e intervento |
+|---|---|---|---|
+| DIF-INC4-R3-01 | HIGH | Il `FixtureCoordinator`, su un ack di `SetTempoMap` non valido, revoca lo staging ma non ripristina il checkpoint del planner, non ripianifica, non passa a uno stato terminale e non ferma le frasi successive. Il recupero dopo un rifiuto non è testato. | **Corretto con l'opzione B (decisione del titolare D-INC4-R3-01).** Il banco di prova entra nello stato `Failed`, smette di pianificare e registra il motivo; revoca lo staging dal confine conservando le NoteOff delle note consegnate; invia uno `Stop` d'emergenza al primo confine di blocco ancora eseguibile dopo l'ack (non retroattivo, ritentato sotto backpressure) e ne verifica l'ack; separa gli scarti imprevisti da quelli invalidati; verifica voci, silenzio e rifiuto di un evento stantio. Test `[fixture_safe_stop]` con due guasti iniettati. Rollback, riconciliazione e ripianificazione restano al Coordinator runtime di M2.5, come registrato in ADR-0005 D-M2-09. |
+| DIF-INC4-R3-02 | MED | `schedulingAccountingPassed` non confronta gli eventi processati dal motore con quelli attesi. | **Corretto.** Nuova funzione pura `fixtureSchedulingAccountingPassed()` con l'invariante `engineProcessedEvents == expectedEngineEvents == 2 × generatedEvents` (con `dropped == 0`, quindi tutti applicati); campo `expected_engine_events` nel manifest; test negativo `[fixture_accounting]` (coppia omessa, evento in più, attesa non derivata dagli intent, piano vuoto, drop, frase mancante). Il test verifica il predicato del verdetto: un'omissione end-to-end richiederebbe un punto d'iniezione nello scheduler, non introdotto. |
+| DIF-INC4-R3-03 | MED | L'hash della probe copre solo un sottoinsieme delle decisioni; ADR-0005 D-M2-11 chiede eventi e decisioni. | **Corretto.** Serializzazione canonica condivisa `canonicalPlanHash()` ([plan_canonical_hash.h](../engine/audio/plan_canonical_hash.h), formato versione 1), spostata dai test senza cambiare un byte: i golden `planner_probe_v1` `0x2983fc5a5463d4cb` e della fixture `0x4f021cb9e8637598` sono invariati. La probe vincola il verdetto anche a `golden_plan_passed` (`kFixtureProbeV1GoldenPlanHash`). L'hash del trace storico resta riportato e vincolante. Test `[canonical_plan_hash]` sulla sensibilità a evento, NoteOff e trace. |
+| DIF-INC4-R3-04 | MED | L'intestazione di progress.md indicava la remediation come non committata né verificata in CI; «Ultima CI» puntava a `f0bcb4d`. | **Corretto:** riga di stato, «Milestone attiva», «Ultima CI» (run 39671112436) e «Ultimo aggiornamento». |
+| DIF-INC4-R3-05 | LOW | `callbackProfileHistogram()` e `resetCallbackProfileHistogram()` espongono e modificano dati posseduti dal thread audio, senza un vincolo verificabile di quiescenza. | **Proposto per M2.5** (prima dei test su device), come suggerito dalla revisione. Opzioni: snapshot pubblicato con slot dedicato, oppure asserzione di quiescenza (motore offline o device fermo); nessun lock in callback. |
+
+**Osservazioni recepite senza intervento sul codice:**
+
+- **Intent non è percezione.** Il confronto con gli intent prova che un elemento era *previsto*, non che sia *udibile*. Aggiunto ai limiti del [dossier sui metodi CACP](research/M2_4_CACP_Evaluation_Methods.md) §8.
+- **Diversità fra seed.** La valutazione della diversità fra seed resta l'obiettivo artistico prioritario: è già prevista per Inc-5 nella nota di ADR-0005 e nel [protocollo di valutazione](research/M2_4_Evaluation_Protocol.md). Gli strumenti CACP servono quella valutazione, non la sostituiscono.
+
+**Verifica della micro-remediation R3** (working tree su `8ba772e`, non committato):
+
+| Check | Comando | Esito |
+|---|---|---|
+| Release + headless | `scripts/build.ps1 -Config Release -Test -Headless` | **143/143 PASS**, 0 `warning C` (R3-02/03: 142; R3-01 aggiunge `[fixture_safe_stop]`) |
+| Debug + headless | `scripts/build.ps1 -Config Debug -Test -Headless` | **143/143 PASS**, 0 `warning C` |
+| Benchmark Release | `ctest --test-dir build/x64-release -L perf` | **2/2 PASS** (il workload F usa il Coordinator modificato) |
+| Arresto sicuro, rifiuto tardivo | `[fixture_safe_stop]`, `FixtureInjectedFault::LateTempoMap` | `FAIL` atteso; guasto rilevato e `Stop` d'emergenza `Applied` a 3.074.800 (58 ms dopo il confine B 3.072.000); 3 eventi dell'epoch 2 già consegnati invalidati; 0 scarti imprevisti; 865 processati = 865 inviati; pianificazione ferma a 10 frasi; 0 voci attive; silenzio; evento stantio rifiutato |
+| Arresto sicuro, mappa non valida | `[fixture_safe_stop]`, `FixtureInjectedFault::InvalidTempoMap` | `FAIL` atteso; rifiuto alla ricezione, `Stop` a 2.976.400 (circa una battuta prima del confine); 1 evento invalidato; 0 imprevisti; 839 = 839; pianificazione ferma a 9 frasi; 0 voci; silenzio; evento stantio rifiutato |
+| `fixture_test` (Release) | `cymatica_game --cacp-run fixture_test` | **PASS**; `engine_processed_events` 2.784 = `expected_engine_events` 2.784 = `dispatched_events`; 0 scarti imprevisti e 0 invalidati; `safe_stop_passed` true; `canonical_plan_hash` = golden (5693144463743088024); trace hash e `pcm_content_hash` 15126969907236845529 invariati; manifest JSON valido |

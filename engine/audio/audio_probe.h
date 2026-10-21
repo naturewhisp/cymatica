@@ -281,8 +281,19 @@ struct PlannerProbeResult {
 // kPlannerScoringProfileV1). Produced by commit 9c61f88 and unchanged by the explicit PhrasePlan flags of
 // the Inc-4 remediation; it may only change together with a reviewed policy or fixture version bump.
 inline constexpr std::uint64_t kFixtureProbeV1GoldenTraceHash = 10949526468471789087ULL;
+// Regression golden of the full canonical plan of fixture_probe_v1 (events + planner NoteOffs + decision traces,
+// canonicalPlanHash format version 1, DIF-INC4-R3-03). Same value as the [fixture_golden] test, which uses the
+// same shared serialization.
+inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0x4f021cb9e8637598ULL;
 // Minimum post-bus telemetry energy for a role to count as active in a section (D-M2-11)
 inline constexpr float kFixtureRoleActivityFloor = 1.0e-4f;
+
+// Fault injected into fixture_probe_v1 to exercise the terminal fail-closed safe stop (D-INC4-R3-01)
+enum class FixtureInjectedFault : std::uint8_t {
+    None            = 0,
+    InvalidTempoMap = 1, // B SetTempoMap with an unsupported map: rejected on receipt, one bar before the boundary
+    LateTempoMap    = 2  // B SetTempoMap sent after its boundary: rejected as late, epoch-2 events already committed
+};
 
 // Metrics of fixture_probe_v1 (ADR-0005 D-M2-08/09/11, Inc-4)
 struct FixtureProbeResult {
@@ -322,6 +333,24 @@ struct FixtureProbeResult {
     std::uint32_t clippedSamples{0};
     bool dspAnomaliesPassed{false};
     std::uint64_t decisionTraceHash{0};
+    std::uint64_t canonicalPlanHash{0};
+    bool goldenPlanPassed{false};
+    std::uint64_t expectedEngineEvents{0}; // 2 x generatedEvents: one NoteOn and one NoteOff per intent
+    // Terminal fail-closed safe stop (D-INC4-R3-01); populated in every run, exercised by injected faults
+    FixtureInjectedFault injectedFault{FixtureInjectedFault::None};
+    bool coordinatorFailed{false};
+    std::string coordinatorFailureReason{};
+    std::uint64_t failedCommandId{0};
+    std::uint64_t failureDetectedAtFrame{0};  // first audio block boundary still executable after the ack
+    std::uint64_t emergencyStopFrame{0};      // target frame of the emergency Stop
+    std::uint32_t emergencyStopAttempts{0};   // >1 only under command-queue backpressure
+    AudioCommandAck emergencyStopAck{};
+    std::uint64_t dispatchedEvents{0};        // events the scheduler pushed to the engine SPSC
+    std::uint64_t unexpectedDroppedEvents{0}; // drops before the failed transition took effect
+    std::uint64_t invalidatedDroppedEvents{0};// drops caused by the failure and the emergency Stop
+    std::uint32_t activeVoicesAfterStop{0};
+    bool staleEventRejected{false};           // an old-epoch NoteOn after the Stop never sounds
+    bool safeStopPassed{false};
     std::uint64_t pcmContentHash{0};
     std::string buildId{CYMATICA_BUILD_ID};
     std::uint64_t transportEpoch{0};
@@ -392,8 +421,14 @@ struct ProfileProbeResult {
     [[nodiscard]] std::string toJson() const;
 };
 
+// Scheduling-accounting verdict of fixture_probe_v1 (DIF-INC4-R3-02): every planned intent reaches the engine as
+// exactly one NoteOn and one NoteOff, none dropped or deferred, no backpressure, empty staging at Stop, no orphan
+// recovery and every phrase planned. Pure function so that negative cases can be tested directly.
+[[nodiscard]] bool fixtureSchedulingAccountingPassed(const FixtureProbeResult& r, std::size_t expectedPhrases) noexcept;
+
 FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
-                                           bool writeFiles = true);
+                                           bool writeFiles = true,
+                                           FixtureInjectedFault fault = FixtureInjectedFault::None);
 
 ProfileWorkloadRun runProfileWorkload(ProfileWorkload workload, bool cacpEnabled);
 

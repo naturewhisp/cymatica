@@ -6,6 +6,7 @@
 #include "euclidean_rhythm.h"
 #include "music_clock.h"
 #include "music_planner.h"
+#include "plan_canonical_hash.h"
 
 #include <algorithm>
 #include <bit>
@@ -62,51 +63,9 @@ float oracleMidiHz(int midi) {
     return std::clamp(440.0f * std::pow(2.0f, (static_cast<float>(midi) - 69.0f) / 12.0f), 20.0f, 16000.0f);
 }
 
-// --- Canonical little-endian serialization + FNV-1a 64 (golden regression) ---
-struct Fnv1a64 {
-    std::uint64_t h{0xcbf29ce484222325ULL};
-    void byte(std::uint8_t b) { h ^= b; h *= 0x100000001b3ULL; }
-    void u64(std::uint64_t v) { for (int i = 0; i < 8; ++i) byte(static_cast<std::uint8_t>(v >> (8 * i))); }
-    void u32(std::uint32_t v) { for (int i = 0; i < 4; ++i) byte(static_cast<std::uint8_t>(v >> (8 * i))); }
-    void i32(std::int32_t v) { u32(static_cast<std::uint32_t>(v)); }
-    void f32(float v) { u32(std::bit_cast<std::uint32_t>(v)); }
-};
-
+// Canonical plan hash (shared with the CACP probes, format kCanonicalPlanHashFormatVersion, DIF-INC4-R3-03)
 std::uint64_t canonicalHash(const PlannedRun& run) {
-    Fnv1a64 f;
-    for (const auto& phrase : run.intents) {
-        f.u64(phrase.size());
-        for (const auto& e : phrase) {
-            f.u64(e.eventId); f.u64(e.sampleFrame); f.u64(e.tick); f.u64(e.transportEpoch);
-            f.byte(static_cast<std::uint8_t>(e.role)); f.f32(e.pitchHz); f.f32(e.velocity);
-            f.u32(e.durationFrames); f.f32(e.timbreParam);
-        }
-    }
-    f.u64(run.noteOffs.size());
-    for (const auto& o : run.noteOffs) {
-        f.u64(o.eventId); f.byte(static_cast<std::uint8_t>(o.role)); f.u64(o.sampleFrame); f.u64(o.transportEpoch);
-    }
-    f.u64(run.traces.size());
-    for (const auto& t : run.traces) {
-        f.u64(t.decisionId); f.u64(t.tieBreakDecisionId); f.u64(t.runSeed); f.u32(t.policyVersion);
-        f.u32(t.scoringProfileVersion); f.u32(t.sectionIndex); f.u32(t.phraseIndex); f.u32(t.startBar);
-        f.i32(t.targetTensionMilli); f.byte(static_cast<std::uint8_t>(t.planViolation));
-        f.u32(t.candidatesGenerated); f.u32(t.candidatesValid);
-        for (std::size_t c = 0; c < t.candidatesGenerated; ++c) {
-            const auto& e = t.candidates[c];
-            f.u64(e.candidateId); f.byte(static_cast<std::uint8_t>(e.transformKind)); f.i32(e.transformParam);
-            f.u32(e.motifId); f.byte(static_cast<std::uint8_t>(e.violation)); f.i32(e.score); f.u64(e.tieBreakHash);
-            f.u32(e.simulatedSteals); f.u32(e.eventCount);
-            f.i32(e.features.voiceLeadingDistance); f.i32(e.features.tensionEstimateMilli);
-            f.i32(e.features.anchorFidelityMilli); f.i32(e.features.onsetDensityMilli); f.u32(e.features.simulatedSteals);
-        }
-        f.u64(t.winningCandidateId); f.i32(t.winningScore); f.byte(static_cast<std::uint8_t>(t.winningTransformKind));
-        f.i32(t.winningTransformParam); f.u32(t.winningMotif.motifId); f.u32(t.tiedTopCandidates);
-        f.byte(t.fallbackTriggered ? 1 : 0); f.byte(static_cast<std::uint8_t>(t.fallbackKind));
-        for (const auto v : t.fallbackLevelViolations) f.byte(static_cast<std::uint8_t>(v));
-        f.u64(t.firstEventId); f.u64(t.finalEventCount); f.u32(t.plannerNoteOffCount);
-    }
-    return f.h;
+    return canonicalPlanHash(run.intents, run.noteOffs, run.traces);
 }
 
 } // namespace
@@ -899,6 +858,15 @@ TEST_CASE("Offline CACP fixture_probe_v1 validation", "[music_planner][fixture_p
     CHECK(res.captureCompletePassed);
     CHECK(res.goldenTracePassed);
     CHECK(res.decisionTraceHash == kFixtureProbeV1GoldenTraceHash);
+    CHECK(res.goldenPlanPassed);
+    CHECK(res.canonicalPlanHash == kFixtureProbeV1GoldenPlanHash);
+    CHECK(res.engineProcessedEvents == 2ULL * res.generatedEvents);
+    CHECK_FALSE(res.coordinatorFailed);
+    CHECK(res.safeStopPassed);
+    CHECK(res.unexpectedDroppedEvents == 0);
+    CHECK(res.invalidatedDroppedEvents == 0);
+    CHECK(res.engineProcessedEvents == res.dispatchedEvents);
+    CHECK(res.staleEventRejected);
     CHECK(res.schedulingAccountingPassed);
     CHECK(res.roleActivityPassed);
     CHECK(res.sampleCeilingPassed);
@@ -1094,4 +1062,102 @@ TEST_CASE("Golden regression: canonical plan of fixture-m2-4-v1", "[music_planne
     INFO("canonical fixture hash = 0x" << std::hex << h);
     CHECK(h == kGoldenFixtureHash);
     CHECK(canonicalHash(planFixtureForm(1337ULL)) == h);
+}
+
+TEST_CASE("fixture_probe_v1 scheduling accounting rejects missing or extra engine events (DIF-INC4-R3-02)", "[music_planner][fixture_accounting]") {
+    // Nominal accounting of the documented run: 1392 intents -> 2784 engine events
+    FixtureProbeResult ok{};
+    ok.generatedEvents = 1392;
+    ok.expectedEngineEvents = 2ULL * ok.generatedEvents;
+    ok.engineProcessedEvents = 2784;
+    ok.phrasesPlanned = 24;
+    CHECK(fixtureSchedulingAccountingPassed(ok, 24));
+
+    FixtureProbeResult missingPair = ok;            // one NoteOn/NoteOff pair silently omitted
+    missingPair.engineProcessedEvents -= 2;
+    CHECK_FALSE(fixtureSchedulingAccountingPassed(missingPair, 24));
+
+    FixtureProbeResult extraEvent = ok;             // one event too many reaches the engine
+    extraEvent.engineProcessedEvents += 1;
+    CHECK_FALSE(fixtureSchedulingAccountingPassed(extraEvent, 24));
+
+    FixtureProbeResult wrongExpectation = ok;       // expectation not derived from the intents
+    wrongExpectation.expectedEngineEvents = 2782;
+    wrongExpectation.engineProcessedEvents = 2782;
+    CHECK_FALSE(fixtureSchedulingAccountingPassed(wrongExpectation, 24));
+
+    FixtureProbeResult empty{};                     // nothing planned is never a PASS
+    CHECK_FALSE(fixtureSchedulingAccountingPassed(empty, 0));
+
+    FixtureProbeResult dropped = ok;
+    dropped.droppedScheduledEvents = 1;
+    CHECK_FALSE(fixtureSchedulingAccountingPassed(dropped, 24));
+
+    FixtureProbeResult missingPhrase = ok;
+    missingPhrase.phrasesPlanned = 23;
+    CHECK_FALSE(fixtureSchedulingAccountingPassed(missingPhrase, 24));
+}
+
+TEST_CASE("Canonical plan hash: shared serialization is versioned and sensitive to every section (DIF-INC4-R3-03)", "[music_planner][canonical_plan_hash]") {
+    STATIC_REQUIRE(kCanonicalPlanHashFormatVersion == 1);
+    PlannedRun run = planFixtureForm(1337ULL);
+    const std::uint64_t h = canonicalPlanHash(run.intents, run.noteOffs, run.traces);
+    CHECK(h == kFixtureProbeV1GoldenPlanHash);
+
+    PlannedRun event = run;                         // a single event field
+    event.intents[5][0].sampleFrame += 1;
+    CHECK(canonicalPlanHash(event.intents, event.noteOffs, event.traces) != h);
+
+    PlannedRun noteOff = run;                       // a planner NoteOff
+    noteOff.noteOffs[0].sampleFrame += 1;
+    CHECK(canonicalPlanHash(noteOff.intents, noteOff.noteOffs, noteOff.traces) != h);
+
+    PlannedRun trace = run;                         // a decision trace
+    trace.traces[3].winningScore += 1;
+    CHECK(canonicalPlanHash(trace.intents, trace.noteOffs, trace.traces) != h);
+}
+
+TEST_CASE("fixture_probe_v1: rejected SetTempoMap leads to a terminal fail-closed safe stop (D-INC4-R3-01)", "[music_planner][fixture_safe_stop]") {
+    for (const auto fault : {FixtureInjectedFault::LateTempoMap, FixtureInjectedFault::InvalidTempoMap}) {
+        INFO("fault " << static_cast<int>(fault));
+        const auto res = runFixtureProbeV1Offline("artifacts/cacp", false, fault);
+        INFO(res.failureReason);
+
+        // The run is a FAIL by design, with a recorded reason
+        CHECK_FALSE(res.passed);
+        CHECK(res.coordinatorFailed);
+        CHECK(res.failedCommandId == 2);
+        CHECK_FALSE(res.coordinatorFailureReason.empty());
+        CHECK(res.transportAcks[1].status == AudioCommandStatus::Rejected);
+
+        // Planning stopped at the failure: the phrases of section A' were never planned
+        CHECK(res.phrasesPlanned < 24);
+
+        // Emergency Stop applied at the first audio block boundary still executable after the ack (not retroactive)
+        CHECK(res.emergencyStopAck.status == AudioCommandStatus::Applied);
+        CHECK(res.emergencyStopAttempts == 1);
+        CHECK(res.emergencyStopFrame == res.failureDetectedAtFrame);
+        CHECK(res.emergencyStopAck.sampleFrame == res.emergencyStopFrame);
+
+        // Committed events were in the SPSC when the run failed: they are accounted as invalidations, not losses
+        CHECK(res.invalidatedDroppedEvents > 0);
+        CHECK(res.unexpectedDroppedEvents == 0);
+        CHECK(res.engineProcessedEvents == res.dispatchedEvents);
+        CHECK(res.invalidatedDroppedEvents == res.droppedScheduledEvents);
+
+        // No hanging note, silence after the 2 ms declick, old-epoch events cannot sound again
+        CHECK(res.orphanNoteRecoveredCount == 0);
+        CHECK(res.activeVoicesAfterStop == 0);
+        CHECK(res.silenceBoundaryPassed);
+        CHECK(res.staleEventRejected);
+        CHECK(res.dspAnomaliesPassed);
+        CHECK(res.safeStopPassed);
+    }
+
+    // Late rejection: the failure is detected after the B boundary, with epoch-2 events already committed
+    const auto late = runFixtureProbeV1Offline("artifacts/cacp", false, FixtureInjectedFault::LateTempoMap);
+    CHECK(late.failureDetectedAtFrame > 3072000ULL);
+    // Rejection on receipt: detected about one bar before the boundary
+    const auto early = runFixtureProbeV1Offline("artifacts/cacp", false, FixtureInjectedFault::InvalidTempoMap);
+    CHECK(early.failureDetectedAtFrame < 3072000ULL);
 }

@@ -183,6 +183,7 @@ Le ricerche vanno svolte con il metodo del §6 della regola document-driven prim
 - **E2:** un solo valutatore (Claude), 12 finestre e contenuto ripetitivo. È un indizio coerente con la letteratura, non una misura di affidabilità generale.
 - **E3:** Side/Mid separa la Trama perché è l'unico ruolo con delay stereo. Non è un rivelatore generale di ruoli.
 - **Fonti:** abstract e metadati, salvo G-DOC (testo letto). Le accuratezze dipendono dalla versione del benchmark (MMAU è stato rivisto nel 2025).
+- **Intent non è percezione** (revisione esterna R3, 2026-10-21): la corrispondenza fra onset rilevati e Music Intent prova che un evento era previsto ed è arrivato al segnale, non che sia udibile o musicalmente efficace. I controlli di falsificazione di R1/R3 respingono affermazioni incompatibili con il piano, ma non dimostrano la percezione: quella resta all'ascolto umano.
 - **Pipeline di Antigravity non verificata:** se Antigravity non usa la pipeline documentata dell'API Gemini, la conseguenza 1 del §3.1 va riverificata sul suo canale reale.
 
 ## 9. Decisione (2026-10-21)
