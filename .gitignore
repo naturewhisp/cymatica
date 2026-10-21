@@ -47,6 +47,7 @@ out/
 
 # IDE / local presets (CMakePresets.json resta versionato)
 .vs/
+.claude/
 CMakeUserPresets.json
 
 # CMake generated files

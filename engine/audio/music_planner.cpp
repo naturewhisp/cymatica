@@ -333,6 +333,7 @@ TriadVoicing voiceTriad(const ChordSpec& chord, std::optional<std::int16_t> prev
 // --- 4. Simulated Voice Tracker (Cross-Phrase State Tracking, INC3-R02) ---
 
 void SimulatedVoiceTracker::updateAtFrame(std::uint64_t frame) noexcept {
+    lastUpdatedFrame_ = std::max(lastUpdatedFrame_, frame);
     for (auto& s : slots_) {
         if (!s.active) continue;
         if (!s.inRelease && s.noteOffFrame > 0 && s.noteOffFrame <= frame) {
@@ -414,9 +415,12 @@ void SimulatedVoiceTracker::simulateNoteOff(MusicRole role, std::uint64_t eventI
     for (std::size_t i = rIdx * kSlotsPerRole; i < (rIdx + 1) * kSlotsPerRole; ++i) {
         auto& s = slots_[i];
         if (s.active && !s.inRelease && s.eventId == eventId) {
-            s.inRelease = true;
             s.noteOffFrame = sampleFrame;
-            s.expireFrame = core::saturatingAdd(sampleFrame, kReleaseTailFrames);
+            // Only transition to inRelease if the sampleFrame has already arrived (INC4-R03)
+            if (sampleFrame <= lastUpdatedFrame_) {
+                s.inRelease = true;
+                s.expireFrame = core::saturatingAdd(sampleFrame, kReleaseTailFrames);
+            }
         }
     }
 }
@@ -424,6 +428,7 @@ void SimulatedVoiceTracker::simulateNoteOff(MusicRole role, std::uint64_t eventI
 void SimulatedVoiceTracker::reset() noexcept {
     slots_.fill(SimulatedVoiceSlot{});
     heldVoiceSteals_ = 0;
+    lastUpdatedFrame_ = 0;
 }
 
 
@@ -511,6 +516,30 @@ void MusicPlanner::reset(std::uint64_t newSeed) noexcept {
     lastCorpoVoicing_.reset();
 }
 
+MusicPlanner::PlannerCheckpoint MusicPlanner::createCheckpoint() const noexcept {
+    return PlannerCheckpoint{
+        .voiceTracker = voiceTracker_,
+        .lastCorpoVoicing = lastCorpoVoicing_,
+        .nextEventId = nextEventId_,
+        .totalFallbacks = totalFallbacks_,
+        .traceCount = traces_.size(),
+        .plannedNoteOffCount = plannedNoteOffs_.size()
+    };
+}
+
+void MusicPlanner::restoreCheckpoint(const PlannerCheckpoint& cp) noexcept {
+    voiceTracker_ = cp.voiceTracker;
+    lastCorpoVoicing_ = cp.lastCorpoVoicing;
+    nextEventId_ = cp.nextEventId;
+    totalFallbacks_ = cp.totalFallbacks;
+    if (cp.traceCount < traces_.size()) {
+        traces_.resize(cp.traceCount);
+    }
+    if (cp.plannedNoteOffCount < plannedNoteOffs_.size()) {
+        plannedNoteOffs_.resize(cp.plannedNoteOffCount);
+    }
+}
+
 FormPlan MusicPlanner::makeFixtureM24V1Form() noexcept {
     FormPlan fp{};
     fp.sectionCount = 3;
@@ -534,7 +563,7 @@ FormPlan MusicPlanner::makeFixtureM24V1Form() noexcept {
         .barCount = 32,
         .tempoMap = TempoMap{.bpm = RationalBpm{140, 1}, .timeSignatureNum = 4, .timeSignatureDen = 4, .subdivisionsPerBeat = 4, .beatsPerBar = 4, .barsPerPhrase = 4},
         .scale = ModalScale{.rootMidiNote = 55, .mode = ScaleMode::Aeolian}, // G3
-        .baseTension = 0.50f,
+        .baseTension = 0.60f, // ADR-0005 D-M2-08 (was 0.50f)
         .sectionMotif = makeAeolianBaseMotif(),
         .sustainPadIntoNextSection = true
     };
@@ -546,12 +575,96 @@ FormPlan MusicPlanner::makeFixtureM24V1Form() noexcept {
         .barCount = 32,
         .tempoMap = TempoMap{.bpm = RationalBpm{120, 1}, .timeSignatureNum = 4, .timeSignatureDen = 4, .subdivisionsPerBeat = 4, .beatsPerBar = 4, .barsPerPhrase = 4},
         .scale = ModalScale{.rootMidiNote = 62, .mode = ScaleMode::Dorian}, // D4
-        .baseTension = 0.70f,
+        .baseTension = 0.35f, // ADR-0005 D-M2-08 (was 0.70f)
         .sectionMotif = makeDorianBaseMotif(),
         .sustainPadIntoNextSection = false
     };
 
     return fp;
+}
+
+std::optional<MusicClock> MusicPlanner::makeFixtureM24V1Clock() noexcept {
+    const FormPlan form = makeFixtureM24V1Form();
+    auto clockOpt = MusicClock::create(48000, form.sections[0].tempoMap);
+    if (!clockOpt.has_value()) return std::nullopt;
+    const std::uint64_t boundaryB = clockOpt->frameAtBar(form.sections[1].startBar);
+    if (!clockOpt->setTempoMap(form.sections[1].tempoMap, boundaryB)) return std::nullopt;
+    const std::uint64_t boundaryAPrime = clockOpt->frameAtBar(form.sections[2].startBar);
+    if (!clockOpt->setTempoMap(form.sections[2].tempoMap, boundaryAPrime)) return std::nullopt;
+    return clockOpt;
+}
+
+std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicClock& clock) noexcept {
+    const FormPlan form = makeFixtureM24V1Form();
+    std::array<PhrasePlan, 24> phrases{};
+
+    // Section A & A' (Re Dorico): degrees 0-3-4-0 (i-IV-v-i)
+    const std::array<ChordSpec, 4> chordsA{
+        ChordSpec{0, 2, 4, HarmonicFunction::Stability, false},
+        ChordSpec{3, 5, 0, HarmonicFunction::Preparation, false},
+        ChordSpec{4, 6, 1, HarmonicFunction::Tension, false},
+        ChordSpec{0, 2, 4, HarmonicFunction::Resolution, false}
+    };
+    // Section B (Sol Eolio): degrees 0-5-6-0 (i-VI-VII-i)
+    const std::array<ChordSpec, 4> chordsB{
+        ChordSpec{0, 2, 4, HarmonicFunction::Stability, false},
+        ChordSpec{5, 0, 2, HarmonicFunction::Preparation, false},
+        ChordSpec{6, 1, 3, HarmonicFunction::Tension, false},
+        ChordSpec{0, 2, 4, HarmonicFunction::Resolution, false}
+    };
+
+    // NoteOff frames for cross-section open pads: S * beatsPerBar + 1 beat (ADR-0005 D-M2-08)
+    const std::uint64_t noteOffAtoB = clock.frameAtBeat(32 * 4 + 1);      // 1 beat into Section B (frame 3,092,571)
+    const std::uint64_t noteOffBtoAPrime = clock.frameAtBeat(64 * 4 + 1); // 1 beat into Section A' (frame 5,729,142)
+
+    // 1. Section A: phrases 0..7 (bars 0..31)
+    for (std::uint32_t p = 0; p < 8; ++p) {
+        std::array<ChordSpec, 4> ch = chordsA;
+        bool isCrossPad = false;
+        std::uint64_t crossOff = 0;
+        if (p == 7) {
+            // Bar 3 (Resolution): open pad sustained 1 beat into Section B
+            ch[3].openPadSustain = true;
+            isCrossPad = true;
+            crossOff = noteOffAtoB;
+        }
+        phrases[p] = makePhrasePlan(clock, form.sections[0], p, ch, (p == 7) ? CadenceGoal::ContrastShift : CadenceGoal::Sustain);
+        phrases[p].isCrossSectionPadPhrase = isCrossPad;
+        phrases[p].crossSectionNoteOffFrame = crossOff;
+        phrases[p].delayCorpoOnsetByOneBeat = false;
+    }
+
+    // 2. Section B: phrases 8..15 (bars 32..63)
+    for (std::uint32_t p = 0; p < 8; ++p) {
+        std::array<ChordSpec, 4> ch = chordsB;
+        bool isCrossPad = false;
+        std::uint64_t crossOff = 0;
+        if (p == 7) {
+            // Bar 3 (Resolution): open pad sustained 1 beat into Section A'
+            ch[3].openPadSustain = true;
+            isCrossPad = true;
+            crossOff = noteOffBtoAPrime;
+        }
+        phrases[8 + p] = makePhrasePlan(clock, form.sections[1], p, ch, (p == 7) ? CadenceGoal::ContrastShift : CadenceGoal::Sustain);
+        phrases[8 + p].isCrossSectionPadPhrase = isCrossPad;
+        phrases[8 + p].crossSectionNoteOffFrame = crossOff;
+        phrases[8 + p].delayCorpoOnsetByOneBeat = (p == 0); // Phrase 8 delays Corpo in bar 0 by 1 beat
+    }
+
+    // 3. Section A': phrases 16..23 (bars 64..95)
+    for (std::uint32_t p = 0; p < 8; ++p) {
+        std::array<ChordSpec, 4> ch = chordsA;
+        CadenceGoal goal = CadenceGoal::Sustain;
+        if (p == 7) {
+            goal = CadenceGoal::ModalResolution;
+        }
+        phrases[16 + p] = makePhrasePlan(clock, form.sections[2], p, ch, goal);
+        phrases[16 + p].isCrossSectionPadPhrase = false;
+        phrases[16 + p].crossSectionNoteOffFrame = 0;
+        phrases[16 + p].delayCorpoOnsetByOneBeat = (p == 0); // Phrase 16 delays Corpo in bar 0 by 1 beat
+    }
+
+    return phrases;
 }
 
 FormPlan MusicPlanner::makePlannerProbeV1Form() noexcept {
@@ -677,8 +790,8 @@ struct CandidateRecipe {
     std::int16_t param{0};
 };
 
-// Fixed bounded recipe table for candidate k in [0, kMaxCandidates)
-constexpr std::array<CandidateRecipe, kMaxCandidates> kCandidateRecipes{{
+// Section A recipes (Standard 8 recipes)
+constexpr std::array<CandidateRecipe, kMaxCandidates> kCandidateRecipesA{{
     {MotifTransformKind::Identity, 0},
     {MotifTransformKind::ModalTranspose, 2},
     {MotifTransformKind::ContourInversion, 2},
@@ -687,6 +800,30 @@ constexpr std::array<CandidateRecipe, kMaxCandidates> kCandidateRecipes{{
     {MotifTransformKind::OctaveShift, 1},               // param = octave delta
     {MotifTransformKind::ModalTranspose, -2},
     {MotifTransformKind::ContourInversion, 4},
+}};
+
+// Section B recipes (Contrasting section: strictly ModalTranspose and ContourInversion, ADR-0005 D-M2-08, INC4-R04)
+constexpr std::array<CandidateRecipe, kMaxCandidates> kCandidateRecipesB{{
+    {MotifTransformKind::ModalTranspose, 1},
+    {MotifTransformKind::ModalTranspose, 2},
+    {MotifTransformKind::ModalTranspose, -1},
+    {MotifTransformKind::ModalTranspose, -2},
+    {MotifTransformKind::ContourInversion, 0},
+    {MotifTransformKind::ContourInversion, 2},
+    {MotifTransformKind::ContourInversion, 4},
+    {MotifTransformKind::ModalTranspose, 3},
+}};
+
+// Section A' recipes (Reprise of Motif_0 with anchor-preserving transforms, ADR-0005 D-M2-08, INC4-R04)
+constexpr std::array<CandidateRecipe, kMaxCandidates> kCandidateRecipesAPrime{{
+    {MotifTransformKind::Identity, 0},
+    {MotifTransformKind::ContourInversion, 2},          // pivot 2: swaps tonic 0 and fifth 4 (both tonic triad degrees)
+    {MotifTransformKind::EuclideanRhythmVariation, 1},  // rhythm variation preserves anchor degrees
+    {MotifTransformKind::OctaveShift, 1},               // octave +1 preserves degrees
+    {MotifTransformKind::EuclideanRhythmVariation, 2},  // rhythm variation
+    {MotifTransformKind::ContourInversion, 2},          // pivot 2
+    {MotifTransformKind::OctaveShift, -1},              // octave -1
+    {MotifTransformKind::Identity, 0},
 }};
 
 // Trama note length in grid steps: staccato, legato, half-bar sustain (may cross the bar line, capped at the phrase end)
@@ -767,9 +904,22 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
         if (baseMotif.notes[i].isAnchor) ++anchorsTotal;
     }
 
+    // Final phrase of A' (Section 2, phrase 7): release explicit planner notes before Stop (ADR-0005 D-M2-08)
+    const bool isFinalFixturePhrase = (formPlan_.sectionCount >= 3 && formPlan_.sections[0].barCount > 4 &&
+                                       phrase.sectionIndex == 2 && phrase.phraseIndex == 7);
+    const std::uint64_t maxPhraseOffFrame = isFinalFixturePhrase
+        ? (phrase.endFrame > 400 ? phrase.endFrame - 400ULL : phrase.endFrame)
+        : phrase.endFrame;
+
     for (std::uint32_t k = 0; k < config_.candidateCount; ++k) {
         PhraseCandidate cand{};
-        const auto& recipe = kCandidateRecipes[k % kMaxCandidates];
+        // Select deterministic recipe table per section (ADR-0005 D-M2-08, INC4-R04)
+        const bool isFixtureM24 = (formPlan_.sectionCount >= 3 && formPlan_.sections[0].barCount > 4);
+        const auto& recipes = isFixtureM24
+            ? ((phrase.sectionIndex == 1) ? kCandidateRecipesB
+               : ((phrase.sectionIndex == 2) ? kCandidateRecipesAPrime : kCandidateRecipesA))
+            : kCandidateRecipesA;
+        const auto& recipe = recipes[k % kMaxCandidates];
         cand.candidateIndex = static_cast<std::uint8_t>(k);
         cand.candidateId = packCandidateId(phrase.sectionIndex, phrase.phraseIndex, cand.candidateIndex);
         cand.transformKind = recipe.kind;
@@ -811,15 +961,46 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
                 ++melodicRhythmicOnsets;
             }
 
-            // 2. Corpo: one chord per bar (lasting until the next chord onset), or one open pad per phrase
-            const bool emitCorpo = !openPadPhrase || b == 0;
+            // 2. Corpo: one chord per bar (lasting until the next chord onset), or open pad per phrase / cross-section
+            bool emitCorpo = false;
+            bool isBarOpenPad = false;
+            std::uint64_t offFrame = 0;
+
+            if (phrase.isCrossSectionPadPhrase) {
+                if (b < 3) {
+                    emitCorpo = true;
+                    isBarOpenPad = false;
+                    offFrame = std::min(grid.barFrame[b + 1], maxPhraseOffFrame);
+                } else {
+                    emitCorpo = true;
+                    isBarOpenPad = true;
+                    offFrame = phrase.crossSectionNoteOffFrame;
+                }
+            } else if (openPadPhrase) {
+                if (b == 0) {
+                    emitCorpo = true;
+                    isBarOpenPad = true;
+                    offFrame = phrase.endFrame;
+                } else {
+                    emitCorpo = false;
+                }
+            } else {
+                emitCorpo = true;
+                isBarOpenPad = false;
+                offFrame = std::min(grid.barFrame[b + 1], maxPhraseOffFrame);
+            }
+
             if (emitCorpo) {
-                const std::uint64_t onFrame = grid.barFrame[b];
-                const std::uint64_t offFrame = grid.barFrame[b + 1];
+                std::uint64_t onFrame = grid.barFrame[b];
+                if (phrase.delayCorpoOnsetByOneBeat && b == 0) {
+                    // Delay onset to beat 1 in first phrase after cross-section pad (INC4-R03)
+                    const std::uint32_t stepsPerBeat = grid.stepsPerBeat[0];
+                    onFrame = grid.stepFrame(0, stepsPerBeat);
+                }
                 pushEvent(cand, makeEvent(onFrame, offFrame, MusicRole::Corpo, degreeToMidiNote(phrase.scale, barVoicing.corpoBassDegree),
-                                          0.85f, 0.40f, openPadPhrase));
+                                          0.85f, 0.40f, isBarOpenPad));
                 pushEvent(cand, makeEvent(onFrame, offFrame, MusicRole::Corpo, degreeToMidiNote(phrase.scale, barVoicing.corpoHarmonyDegree),
-                                          0.75f, 0.40f, openPadPhrase));
+                                          0.75f, 0.40f, isBarOpenPad));
                 if (prevVoicing.has_value()) vlDistance += voicingDistance(barVoicing, *prevVoicing);
                 cand.lastCorpoVoicing = barVoicing;
             }
@@ -827,13 +1008,19 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
             prevVoicing = emitCorpo ? std::optional<TriadVoicing>(barVoicing) : prevVoicing;
 
             // 3. Trama: complementary syncopation, colour tones of the current bar's chord
-            for (std::uint32_t s = 0; s < steps; ++s) {
-                if (!tramaRhythm[s] || pulsoRhythm[s]) continue;
-                const std::int16_t deg = (s % 2 == 0) ? barVoicing.upperColorDegree : barVoicing.corpoHarmonyDegree;
-                const std::uint64_t offFrame = std::min(grid.stepFrame(b, s + cand.tramaSustainSteps), phrase.endFrame);
-                pushEvent(cand, makeEvent(grid.stepFrame(b, s), offFrame, MusicRole::Trama,
-                                          degreeToMidiNote(phrase.scale, deg + 7), 0.70f, 0.50f, false));
-                ++melodicRhythmicOnsets;
+            // Role mask: Section A phrases 0..3 without Trama in fixture-m2-4-v1 (ADR-0005 D-M2-08)
+            const bool maskTrama = (formPlan_.sectionCount >= 3 && formPlan_.sections[0].barCount > 4 &&
+                                    phrase.sectionIndex == 0 && phrase.phraseIndex < 4);
+            const bool emitTrama = !maskTrama;
+            if (emitTrama) {
+                for (std::uint32_t s = 0; s < steps; ++s) {
+                    if (!tramaRhythm[s] || pulsoRhythm[s]) continue;
+                    const std::int16_t deg = (s % 2 == 0) ? barVoicing.upperColorDegree : barVoicing.corpoHarmonyDegree;
+                    const std::uint64_t tramaOffFrame = std::min(grid.stepFrame(b, s + cand.tramaSustainSteps), maxPhraseOffFrame);
+                    pushEvent(cand, makeEvent(grid.stepFrame(b, s), tramaOffFrame, MusicRole::Trama,
+                                              degreeToMidiNote(phrase.scale, deg + 7), 0.70f, 0.50f, false));
+                    ++melodicRhythmicOnsets;
+                }
             }
 
             // 4. Vettore: transformed motif (register offset applied in octaves)
@@ -846,7 +1033,8 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
                 }
                 const std::uint32_t offStep = std::min<std::uint32_t>(note.stepOffset + note.durationSteps, steps);
                 const std::int32_t degree = note.scaleDegree + 7 * motif.registerOctaveOffset;
-                pushEvent(cand, makeEvent(grid.stepFrame(b, note.stepOffset), grid.stepFrame(b, offStep), MusicRole::Vettore,
+                const std::uint64_t vOffFrame = std::min(grid.stepFrame(b, offStep), maxPhraseOffFrame);
+                pushEvent(cand, makeEvent(grid.stepFrame(b, note.stepOffset), vOffFrame, MusicRole::Vettore,
                                           degreeToMidiNote(phrase.scale, degree, note.chromaticOffset),
                                           note.velocity, 0.60f, false));
                 ++melodicRhythmicOnsets;
@@ -867,7 +1055,10 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
         }
         const std::int32_t registerMilli = (motif.noteCount > 0)
             ? (registerSum * prof.tensionPerRegisterDegreeMilli) / static_cast<std::int32_t>(motif.noteCount) : 0;
-        const std::int32_t extraPulses = static_cast<std::int32_t>(cand.pulsoPulses + cand.tramaPulses) -
+        const std::int32_t effectiveTramaPulses = (formPlan_.sectionCount >= 3 && formPlan_.sections[0].barCount > 4 &&
+                                                   phrase.sectionIndex == 0 && phrase.phraseIndex < 4)
+            ? 0 : static_cast<std::int32_t>(cand.tramaPulses);
+        const std::int32_t extraPulses = static_cast<std::int32_t>(cand.pulsoPulses) + effectiveTramaPulses -
                                          static_cast<std::int32_t>(prof.densityBaselinePulses);
         const std::int32_t densityMilli = std::max(0, extraPulses) * prof.tensionPerExtraPulseMilli;
         const std::int32_t harmonicMilli = (grid.barCount > 0) ? harmonicTensionSum / static_cast<std::int32_t>(grid.barCount) : 0;
@@ -1042,11 +1233,13 @@ std::uint32_t MusicPlanner::simulateCandidate(const PhraseCandidate& candidate,
         bool stolen = false;
         (void)tracker.simulateNoteOn(e.role, firstEventId + i, e.sampleFrame, e.durationFrames, e.pitchHz, stolen);
     }
-    // Explicit open-pad NoteOffs at the phrase end (after every onset of the phrase, which are < endFrame)
+    // Explicit open-pad NoteOffs at the phrase end or cross-section target frame (INC4-R03)
     for (std::size_t i = 0; i < candidate.eventCount; ++i) {
         const auto& e = candidate.events[i];
         if (e.isOpenPad) {
-            tracker.simulateNoteOff(e.role, firstEventId + i, phrase.endFrame);
+            const std::uint64_t offFrame = phrase.isCrossSectionPadPhrase
+                ? phrase.crossSectionNoteOffFrame : phrase.endFrame;
+            tracker.simulateNoteOff(e.role, firstEventId + i, offFrame);
         }
     }
     return tracker.heldVoiceSteals() - before;
@@ -1280,8 +1473,10 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
         }
 
         if (ce.isOpenPad) {
-            // Explicit matching NoteOff at the phrase boundary (INC3-R01, INC3-R03)
-            const PlannedNoteOff off{.eventId = finalId, .role = ce.role, .sampleFrame = phrase.endFrame,
+            // Explicit matching NoteOff at the phrase boundary or cross-section target frame (INC3-R01, INC4-R03)
+            const std::uint64_t offFrame = phrase.isCrossSectionPadPhrase
+                ? phrase.crossSectionNoteOffFrame : phrase.endFrame;
+            const PlannedNoteOff off{.eventId = finalId, .role = ce.role, .sampleFrame = offFrame,
                                      .transportEpoch = currentTransportEpoch};
             plannedNoteOffs_.push_back(off);
             ++trace.plannerNoteOffCount;

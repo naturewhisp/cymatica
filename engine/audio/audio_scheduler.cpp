@@ -84,6 +84,42 @@ void AudioScheduler::scheduleNoteOff(std::uint64_t eventId, MusicRole role, std:
     stageEvent(offEvt);
 }
 
+std::size_t AudioScheduler::revokeFromFrame(std::uint64_t boundaryFrame) {
+    // Identify NoteOns at or after boundaryFrame to revoke
+    std::vector<std::uint64_t> revokedNoteOnIds;
+    revokedNoteOnIds.reserve(stagedEvents_.size());
+    for (const auto& ev : stagedEvents_) {
+        if (ev.type == AudioEventType::NoteOn && ev.sampleFrame >= boundaryFrame) {
+            revokedNoteOnIds.push_back(ev.eventId);
+        }
+    }
+
+    // Remove:
+    // - NoteOns with sampleFrame >= boundaryFrame
+    // - NoteOffs whose eventId matches a revoked NoteOn
+    // - Non-note events with sampleFrame >= boundaryFrame
+    // Staged NoteOffs whose NoteOn was already committed (not in revokedNoteOnIds) are strictly preserved.
+    const std::size_t originalCount = stagedEvents_.size();
+    stagedEvents_.erase(
+        std::remove_if(stagedEvents_.begin(), stagedEvents_.end(), [&](const ScheduledAudioEvent& ev) {
+            if (ev.sampleFrame >= boundaryFrame) {
+                if (ev.type == AudioEventType::NoteOn) {
+                    return true;
+                }
+                if (ev.type == AudioEventType::NoteOff) {
+                    const auto it = std::find(revokedNoteOnIds.begin(), revokedNoteOnIds.end(), ev.eventId);
+                    return it != revokedNoteOnIds.end();
+                }
+                return true;
+            }
+            return false;
+        }),
+        stagedEvents_.end()
+    );
+
+    return originalCount - stagedEvents_.size();
+}
+
 std::size_t AudioScheduler::dispatchDueEvents(std::uint64_t currentRenderCursor, AudioEngine& audioEngine) {
     const std::uint64_t horizonFrame = core::saturatingAdd(currentRenderCursor, config_.lookaheadFrames);
     std::size_t dispatched = 0;
@@ -131,6 +167,11 @@ void AudioScheduler::setLookaheadFrames(std::uint64_t frames) noexcept {
 
 void AudioScheduler::clear() noexcept {
     stagedEvents_.clear();
+}
+
+void AudioScheduler::resetDiagnosticCounters() noexcept {
+    totalDispatched_ = 0;
+    backpressureDrops_ = 0;
 }
 
 } // namespace cymatica::audio

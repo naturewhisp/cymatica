@@ -72,9 +72,23 @@ int main(int argc, char** argv) {
                 std::printf("[cacp] Verdict: %s\n", res.passed ? "PASS" : "FAIL");
                 std::printf("%s\n", res.toJson().c_str());
                 return res.passed ? 0 : 1;
+            } else if (std::strcmp(scenario, "fixture_test") == 0 ||
+                       std::strcmp(scenario, "fixture_probe_v1") == 0) {
+                std::printf("[cacp] Running scenario '%s' (M2.4 Inc-4 fixture_probe_v1)...\n", scenario);
+                auto res = cymatica::audio::runFixtureProbeV1Offline("artifacts/cacp", true);
+                std::printf("[cacp] Verdict: %s\n", res.passed ? "PASS" : "FAIL");
+                std::printf("%s\n", res.toJson().c_str());
+                return res.passed ? 0 : 1;
+            } else if (std::strcmp(scenario, "profile_test") == 0 ||
+                       std::strcmp(scenario, "profile_probe_v1") == 0) {
+                std::printf("[cacp] Running scenario '%s' (M2.4 Inc-4 profile_probe_v1)...\n", scenario);
+                auto res = cymatica::audio::runProfileProbeV1Offline("artifacts/cacp", true);
+                std::printf("[cacp] Verdict: %s\n", res.passed ? "PASS" : "FAIL");
+                std::printf("%s\n", res.toJson().c_str());
+                return res.passed ? 0 : 1;
             } else {
                 std::fprintf(stderr, "[cacp] ERROR: unknown scenario '%s' (known: tone_test, voice_test, "
-                                     "synth_test, timbre_test, planner_test and their *_probe_v* aliases)\n",
+                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test and their *_probe_v* aliases)\n",
                              scenario);
                 return 2;
             }

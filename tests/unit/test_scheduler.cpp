@@ -974,3 +974,104 @@ TEST_CASE("AudioEngine: 44.1 kHz block-end multi-event dispatch does not drop se
     CHECK(engine.telemetry().activeVoiceCount == 2);
 }
 
+TEST_CASE("AudioScheduler: revokeFromFrame revokes staging events and preserves committed NoteOffs (INC4-R01, INC4-R02)", "[scheduler][revoke_staging]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+
+    AudioSchedulerConfig cfg;
+    cfg.lookaheadFrames = 7200; // 150 ms
+    AudioScheduler scheduler(cfg);
+
+    // Note 1: onset 1000, duration 1000 -> NoteOff at 2000
+    ScheduledAudioEvent on1{.eventId = 1, .sampleFrame = 1000, .transportEpoch = 1, .type = AudioEventType::NoteOn, .role = MusicRole::Pulso, .durationFrames = 1000};
+    ScheduledAudioEvent off1{.eventId = 1, .sampleFrame = 2000, .transportEpoch = 1, .type = AudioEventType::NoteOff, .role = MusicRole::Pulso};
+
+    // Note 2: onset 5000, duration 4000 -> NoteOff at 9000 (cross-boundary note)
+    ScheduledAudioEvent on2{.eventId = 2, .sampleFrame = 5000, .transportEpoch = 1, .type = AudioEventType::NoteOn, .role = MusicRole::Corpo, .durationFrames = 4000};
+    ScheduledAudioEvent off2{.eventId = 2, .sampleFrame = 9000, .transportEpoch = 1, .type = AudioEventType::NoteOff, .role = MusicRole::Corpo};
+
+    // Note 3: future note onset 8000, duration 2000 -> NoteOff at 10000
+    ScheduledAudioEvent on3{.eventId = 3, .sampleFrame = 8000, .transportEpoch = 2, .type = AudioEventType::NoteOn, .role = MusicRole::Vettore, .durationFrames = 2000};
+    ScheduledAudioEvent off3{.eventId = 3, .sampleFrame = 10000, .transportEpoch = 2, .type = AudioEventType::NoteOff, .role = MusicRole::Vettore};
+
+    scheduler.stageEvent(on1);
+    scheduler.stageEvent(off1);
+    scheduler.stageEvent(on2);
+    scheduler.stageEvent(off2);
+    scheduler.stageEvent(on3);
+    scheduler.stageEvent(off3);
+
+    REQUIRE(scheduler.stagedEventCount() == 6);
+
+    // Dispatch at cursor 0 with lookahead 7200:
+    // Events at <= 7200: on1 (1000), off1 (2000), on2 (5000) -> 3 dispatched
+    const std::size_t d1 = scheduler.dispatchDueEvents(0, engine);
+    REQUIRE(d1 == 3);
+    REQUIRE(scheduler.totalDispatchedEvents() == 3);
+    REQUIRE(scheduler.stagedEventCount() == 3); // off2 (9000), on3 (8000), off3 (10000)
+
+    // Revoke from boundary frame 7500:
+    // on3 (8000 >= 7500) and off3 (10000 >= 7500) MUST be revoked.
+    // off2 (9000 >= 7500) MUST BE PRESERVED because on2 (5000 < 7500) was already committed!
+    const std::size_t revoked = scheduler.revokeFromFrame(7500);
+    CHECK(revoked == 2); // on3 and off3 revoked
+    REQUIRE(scheduler.stagedEventCount() == 1); // off2 preserved!
+
+    // Advance cursor to 2000 (horizon 2000 + 7200 = 9200): off2 (9000) is now due
+    const std::size_t d2 = scheduler.dispatchDueEvents(2000, engine);
+    REQUIRE(d2 == 1);
+    REQUIRE(scheduler.totalDispatchedEvents() == 4);
+    REQUIRE(scheduler.stagedEventCount() == 0);
+
+    // Diagnostic counters persistence and explicit reset (INC4-R08)
+    scheduler.clear();
+    CHECK(scheduler.totalDispatchedEvents() == 4); // Cumulative!
+    scheduler.resetDiagnosticCounters();
+    CHECK(scheduler.totalDispatchedEvents() == 0);
+    CHECK(scheduler.backpressureDrops() == 0);
+}
+
+TEST_CASE("AudioEngine: rejected SetTempoMap does not corrupt playback (INC4-R02)", "[scheduler][epoch_rejected_spsc_safety]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+
+    engine.sendCommand(AudioCommand{.commandId = 1, .type = AudioCommandType::Start, .targetSampleFrame = 0});
+
+    // Schedule active note in epoch 1
+    ScheduledAudioEvent activeNote{
+        .eventId = 1,
+        .sampleFrame = 0,
+        .transportEpoch = 1,
+        .type = AudioEventType::NoteOn,
+        .role = MusicRole::Corpo,
+        .valueA = 220.0f,
+        .valueB = 0.8f,
+        .durationFrames = 1000
+    };
+    REQUIRE(engine.scheduleAudioEvent(activeNote));
+
+    // Send invalid SetTempoMap command (bpm = 0.0f -> rejected)
+    TempoMap invalidMap{.bpm = RationalBpm{0, 1}, .timeSignatureNum = 4, .timeSignatureDen = 4, .subdivisionsPerBeat = 4, .beatsPerBar = 4, .barsPerPhrase = 4};
+    engine.sendCommand(AudioCommand::makeSetTempoMap(2, invalidMap, 500));
+
+    // Render 1000 frames
+    std::vector<float> buf(500 * 2, 0.0f);
+    engine.processBlock(buf.data(), 500);
+    engine.processBlock(buf.data(), 500);
+
+    AudioCommandAck ack{};
+    bool gotAck = false;
+    while (engine.pollAck(ack)) {
+        if (ack.commandId == 2) {
+            gotAck = true;
+            CHECK(ack.status == AudioCommandStatus::Rejected);
+        }
+    }
+    CHECK(gotAck);
+
+    REQUIRE(engine.updateTelemetry());
+    // Epoch must remain 1 because SetTempoMap was rejected
+    CHECK(engine.telemetry().transportEpoch == 1);
+    CHECK(engine.telemetry().orphanNoteRecoveredCount == 0);
+}
+

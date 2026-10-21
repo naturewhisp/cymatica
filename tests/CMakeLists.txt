@@ -11,6 +11,7 @@ add_executable(cymatica_tests
     unit/test_voice_allocator.cpp
     unit/test_synth_dsp.cpp
     unit/test_music_planner.cpp
+    unit/test_realtime_profile.cpp
 )
 
 target_link_libraries(cymatica_tests

@@ -332,6 +332,8 @@ float estimateTruePeakDbtp(const float* pInterleavedSamples,
 
 namespace {
 
+double safeJsonDouble(double v) noexcept { return std::isfinite(v) ? v : 0.0; }
+
 float safeJsonFloat(float v) noexcept {
     return std::isfinite(v) ? v : 0.0f;
 }
@@ -1845,6 +1847,598 @@ PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool w
             result.passed = false;
             result.failureReason += "[WAV write failed] ";
         }
+
+        std::ofstream mf(result.manifestFilePath);
+        if (!mf.is_open()) {
+            result.passed = false;
+            result.manifestWriteSuccess = false;
+            result.failureReason += "[Manifest write failed] ";
+        } else {
+            result.manifestWriteSuccess = true;
+            mf << result.toJson();
+            if (!mf.good()) {
+                result.passed = false;
+                result.manifestWriteSuccess = false;
+                result.failureReason += "[Manifest write failed] ";
+            }
+        }
+    }
+
+    return result;
+}
+
+
+std::string FixtureProbeResult::toJson() const {
+    std::ostringstream ss;
+    ss << "{\n";
+    ss << "  \"manifest_version\": \"1.0\",\n";
+    ss << "  \"scenario\": \"fixture_probe_v1\",\n";
+    ss << "  \"build_id\": \"" << escapeJsonString(buildId) << "\",\n";
+    ss << "  \"verdict\": \"" << (passed ? "PASS" : "FAIL") << "\",\n";
+    ss << "  \"final_transport_epoch\": " << transportEpoch << ",\n";
+    ss << "  \"simulation_ticks\": " << simulationTicks << ",\n";
+    ss << "  \"requested_sample_frames\": " << requestedSampleFrames << ",\n";
+    ss << "  \"applied_sample_frames\": " << totalCapturedFrames << ",\n";
+    ss << "  \"dropped_frames\": " << droppedFrames << ",\n";
+    ss << "  \"presentation_quality\": \"" << escapeJsonString(presentationQuality) << "\",\n";
+    ss << "  \"generated_events\": " << generatedEvents << ",\n";
+    ss << "  \"planner_note_offs\": " << plannerNoteOffs << ",\n";
+    ss << "  \"engine_processed_events\": " << engineProcessedEvents << ",\n";
+    ss << "  \"dropped_scheduled_events\": " << droppedScheduledEvents << ",\n";
+    ss << "  \"deferred_scheduled_events\": " << deferredScheduledEvents << ",\n";
+    ss << "  \"orphan_note_recovered\": " << orphanNoteRecoveredCount << ",\n";
+    ss << "  \"voice_drop_count\": " << voiceDropCount << ",\n";
+    ss << "  \"peak_amplitude\": " << safeJsonFloat(peakAmplitude) << ",\n";
+    ss << "  \"true_peak_dbtp\": " << safeJsonFloat(truePeakDbtp) << ",\n";
+    ss << "  \"clipped_samples\": " << clippedSamples << ",\n";
+    ss << "  \"decision_trace_hash\": " << decisionTraceHash << ",\n";
+    ss << "  \"checks\": {\n";
+    ss << "    \"tempo_ack_passed\": " << (tempoAckPassed ? "true" : "false") << ",\n";
+    ss << "    \"note_off_pairing_passed\": " << (noteOffPairingPassed ? "true" : "false") << ",\n";
+    ss << "    \"non_silent_audio_passed\": " << (nonSilentAudioPassed ? "true" : "false") << ",\n";
+    ss << "    \"silence_boundary_passed\": " << (silenceBoundaryPassed ? "true" : "false") << ",\n";
+    ss << "    \"determinism_passed\": " << (determinismPassed ? "true" : "false") << ",\n";
+    ss << "    \"true_peak_passed\": " << (truePeakPassed ? "true" : "false") << ",\n";
+    ss << "    \"zero_clipping_passed\": " << (clippedSamples == 0 ? "true" : "false") << ",\n";
+    ss << "    \"dsp_anomalies_passed\": " << (dspAnomaliesPassed ? "true" : "false") << "\n";
+    ss << "  },\n";
+    ss << "  \"wav_write_success\": " << (wavWriteSuccess ? "true" : "false") << ",\n";
+    ss << "  \"manifest_write_success\": " << (manifestWriteSuccess ? "true" : "false") << ",\n";
+    ss << "  \"artifacts\": {\n";
+    ss << "    \"wav_file\": \"" << escapeJsonString(wavFilePath) << "\",\n";
+    ss << "    \"manifest_file\": \"" << escapeJsonString(manifestFilePath) << "\"\n";
+    ss << "  }";
+    if (!failureReason.empty()) {
+        ss << ",\n  \"failure_reason\": \"" << escapeJsonString(failureReason) << "\"";
+    }
+    ss << "\n}\n";
+    return ss.str();
+}
+
+std::string ProfileProbeResult::toJson() const {
+    std::ostringstream ss;
+    ss << "{\n";
+    ss << "  \"manifest_version\": \"1.0\",\n";
+    ss << "  \"scenario\": \"profile_probe_v1\",\n";
+    ss << "  \"build_id\": \"" << escapeJsonString(buildId) << "\",\n";
+    ss << "  \"verdict\": \"" << (passed ? "PASS" : "FAIL") << "\",\n";
+    ss << "  \"percentiles_ms\": {\n";
+    ss << "    \"p50\": " << safeJsonDouble(p50Ms) << ",\n";
+    ss << "    \"p95\": " << safeJsonDouble(p95Ms) << ",\n";
+    ss << "    \"p99\": " << safeJsonDouble(p99Ms) << ",\n";
+    ss << "    \"p999\": " << safeJsonDouble(p999Ms) << ",\n";
+    ss << "    \"max\": " << safeJsonDouble(maxMs) << ",\n";
+    ss << "    \"mean\": " << safeJsonDouble(meanMs) << "\n";
+    ss << "  },\n";
+    ss << "  \"total_blocks\": " << totalBlocks << ",\n";
+    ss << "  \"blocks_exceeding_2ms\": " << blocksExceeding2Ms << ",\n";
+    ss << "  \"blocks_exceeding_block_period\": " << blocksExceedingBlockPeriod << ",\n";
+    ss << "  \"checks\": {\n";
+    ss << "    \"p999_passed\": " << (p999Passed ? "true" : "false") << ",\n";
+    ss << "    \"block_period_passed\": " << (blockPeriodPassed ? "true" : "false") << "\n";
+    ss << "  },\n";
+    ss << "  \"environment\": {\n";
+    ss << "    \"os_version\": \"" << escapeJsonString(osVersion) << "\",\n";
+    ss << "    \"cpu_info\": \"" << escapeJsonString(cpuInfo) << "\",\n";
+    ss << "    \"build_config\": \"" << escapeJsonString(buildConfig) << "\"\n";
+    ss << "  },\n";
+    ss << "  \"manifest_write_success\": " << (manifestWriteSuccess ? "true" : "false") << ",\n";
+    ss << "  \"artifacts\": {\n";
+    ss << "    \"manifest_file\": \"" << escapeJsonString(manifestFilePath) << "\"\n";
+    ss << "  }";
+    if (!failureReason.empty()) {
+        ss << ",\n  \"failure_reason\": \"" << escapeJsonString(failureReason) << "\"";
+    }
+    ss << "\n}\n";
+    return ss.str();
+}
+
+FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool writeFiles) {
+    FixtureProbeResult result;
+    result.buildId = CYMATICA_BUILD_ID;
+
+    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+    if (!optClock.has_value()) {
+        result.passed = false;
+        result.failureReason = "Failed to create Fixture M2.4 V1 clock";
+        return result;
+    }
+    const MusicClock& clock = *optClock;
+    const FormPlan form = MusicPlanner::makeFixtureM24V1Form();
+    const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(clock);
+
+    constexpr std::uint32_t kSampleRate = 48000;
+    constexpr std::uint32_t kFramesPerTick = 48000U / core::FixedStepConfig{}.simulationHz; // 400
+    constexpr std::uint64_t kLookahead = AudioSchedulerConfig{}.lookaheadFrames; // 7200
+
+    struct PlanRun {
+        std::vector<std::vector<MusicIntentEvent>> intents;
+        std::vector<PhraseDecisionTrace> traces;
+        std::vector<PlannedNoteOff> noteOffs;
+    };
+
+    auto runPlanningPass = [&](std::uint64_t seed) -> PlanRun {
+        MusicPlanner p({.runSeed = seed, .candidateCount = 8, .sampleRate = kSampleRate, .lookaheadFrames = kLookahead});
+        p.setFormPlan(form);
+        PlanRun run;
+        run.intents.resize(phrases.size());
+        for (std::size_t i = 0; i < phrases.size(); ++i) {
+            std::uint64_t epoch = 1;
+            if (phrases[i].sectionIndex == 1) epoch = 2;
+            else if (phrases[i].sectionIndex == 2) epoch = 3;
+            p.planPhrase(phrases[i], clock, 0, epoch, run.intents[i], nullptr);
+        }
+        run.traces = p.decisionTraces();
+        run.noteOffs = p.plannedNoteOffs();
+        return run;
+    };
+
+    const PlanRun run1 = runPlanningPass(1337ULL);
+    const PlanRun run2 = runPlanningPass(1337ULL);
+
+    result.determinismPassed = (run1.intents == run2.intents &&
+                                run1.traces == run2.traces &&
+                                run1.noteOffs == run2.noteOffs &&
+                                !run1.intents.empty());
+
+    // Compute decision trace hash using FNV-1a 64-bit
+    std::uint64_t traceHash = 14695981039346656037ULL;
+    constexpr std::uint64_t kFnvPrime = 1099511628211ULL;
+    auto hashCombineU64 = [&](std::uint64_t v) {
+        traceHash ^= v;
+        traceHash *= kFnvPrime;
+    };
+
+    std::uint32_t totalIntents = 0;
+    for (const auto& phraseIntents : run1.intents) {
+        totalIntents += static_cast<std::uint32_t>(phraseIntents.size());
+    }
+    result.generatedEvents = totalIntents;
+    result.plannerNoteOffs = static_cast<std::uint32_t>(run1.noteOffs.size());
+
+    for (const auto& t : run1.traces) {
+        hashCombineU64(t.decisionId);
+        hashCombineU64(t.winningCandidateId);
+        hashCombineU64(static_cast<std::uint64_t>(t.winningScore));
+        hashCombineU64(static_cast<std::uint64_t>(t.winningTransformKind));
+        hashCombineU64(static_cast<std::uint64_t>(t.winningTransformParam));
+        hashCombineU64(static_cast<std::uint64_t>(t.finalEventCount));
+        hashCombineU64(static_cast<std::uint64_t>(t.plannerNoteOffCount));
+        for (std::size_t c = 0; c < t.candidatesGenerated; ++c) {
+            hashCombineU64(t.candidates[c].candidateId);
+            hashCombineU64(static_cast<std::uint64_t>(t.candidates[c].score));
+        }
+    }
+    result.decisionTraceHash = traceHash;
+
+    // Check NoteOn/NoteOff pairing
+    {
+        bool pairingOk = true;
+        for (const auto& phraseIntents : run1.intents) {
+            for (const auto& e : phraseIntents) {
+                std::uint64_t offFrame = 0;
+                std::size_t matches = 0;
+                for (const auto& off : run1.noteOffs) {
+                    if (off.eventId == e.eventId && off.role == e.role) {
+                        ++matches;
+                        offFrame = off.sampleFrame;
+                    }
+                }
+                if (e.durationFrames > 0) {
+                    if (matches != 0) pairingOk = false;
+                    offFrame = e.sampleFrame + e.durationFrames;
+                } else if (matches != 1) {
+                    pairingOk = false;
+                }
+                if (offFrame <= e.sampleFrame) pairingOk = false;
+            }
+        }
+        result.noteOffPairingPassed = pairingOk;
+    }
+
+    // --- Offline render ---
+    AudioEngine engine;
+    if (!engine.initOffline({kSampleRate, 2, 220.0f})) {
+        result.passed = false;
+        result.failureReason = "Failed to initialize AudioEngine in offline mode";
+        return result;
+    }
+    AudioProbe probe(AudioProbe::kDefaultCapacityFrames, 2, engine.sampleRate());
+    engine.attachAudioProbe(&probe);
+
+    const std::uint64_t contentEndFrame = clock.frameAtBar(96); // 8,777,142
+    constexpr std::uint64_t kPostStopFrames = 48000;            // 1.0 s
+    result.simulationTicks = (contentEndFrame + kPostStopFrames + kFramesPerTick - 1) / kFramesPerTick;
+    result.requestedSampleFrames = result.simulationTicks * kFramesPerTick; // 8,825,200 (exact tick boundary)
+
+    MusicPlanner livePlanner({.runSeed = 1337ULL, .candidateCount = 8, .sampleRate = kSampleRate, .lookaheadFrames = kLookahead});
+    livePlanner.setFormPlan(form);
+    AudioScheduler scheduler;
+    std::size_t nextPhraseToPlan = 0;
+
+    auto planNextLivePhrase = [&](std::uint64_t horizon) {
+        if (nextPhraseToPlan >= phrases.size()) return;
+        const auto& p = phrases[nextPhraseToPlan];
+        std::uint64_t epoch = 1;
+        if (p.sectionIndex == 1) epoch = 2;
+        else if (p.sectionIndex == 2) epoch = 3;
+        std::vector<MusicIntentEvent> out;
+        livePlanner.planPhrase(p, clock, horizon, epoch, out, &scheduler);
+        ++nextPhraseToPlan;
+    };
+
+    // Plan phrase 0 and 1 in advance
+    planNextLivePhrase(0);
+    planNextLivePhrase(0);
+
+    engine.sendCommand(AudioCommand{.commandId = 1, .type = AudioCommandType::Start, .targetSampleFrame = 0});
+
+    const std::uint64_t tempoChangeFrameB = 3072000ULL;
+    const std::uint64_t tempoChangeFrameA1 = 5705142ULL;
+    const std::uint64_t bar31Frame = clock.frameAtBar(31);
+    const std::uint64_t bar63Frame = clock.frameAtBar(63);
+    const std::uint64_t bar95Frame = clock.frameAtBar(95);
+    const std::uint64_t stopFrame = contentEndFrame;
+
+    bool sentTempoB = false;
+    bool sentTempoA1 = false;
+    bool sentStop = false;
+    AudioCommandAck ackB{};
+    AudioCommandAck ackA1{};
+    AudioCommandAck ackStop{};
+
+    std::vector<float> recordedStereo;
+    recordedStereo.reserve(static_cast<std::size_t>(result.requestedSampleFrames) * 2);
+    std::vector<float> readChunk(static_cast<std::size_t>(kFramesPerTick) * 2);
+    std::vector<float> tickBlock(static_cast<std::size_t>(kFramesPerTick) * 2);
+
+    for (std::uint64_t tick = 0; tick < result.simulationTicks; ++tick) {
+        const std::uint64_t currentFrame = tick * kFramesPerTick;
+
+        if (!sentTempoB && currentFrame >= bar31Frame) {
+            engine.sendCommand(AudioCommand::makeSetTempoMap(2, form.sections[1].tempoMap, tempoChangeFrameB));
+            sentTempoB = true;
+        }
+        if (!sentTempoA1 && currentFrame >= bar63Frame) {
+            engine.sendCommand(AudioCommand::makeSetTempoMap(3, form.sections[2].tempoMap, tempoChangeFrameA1));
+            sentTempoA1 = true;
+        }
+        if (!sentStop && currentFrame >= bar95Frame) {
+            engine.sendCommand(AudioCommand{.commandId = 4, .type = AudioCommandType::Stop, .targetSampleFrame = stopFrame});
+            sentStop = true;
+        }
+
+        while (nextPhraseToPlan < phrases.size() &&
+               (nextPhraseToPlan <= 1 || currentFrame >= phrases[nextPhraseToPlan - 1].startFrame)) {
+            const std::uint64_t horizon = currentFrame + scheduler.lookaheadFrames();
+            planNextLivePhrase(horizon);
+        }
+
+        scheduler.dispatchDueEvents(currentFrame, engine);
+
+        engine.processBlock(tickBlock.data(), kFramesPerTick);
+
+        const std::uint32_t framesRead = probe.readFrames(readChunk.data(), kFramesPerTick);
+        if (framesRead > 0) {
+            recordedStereo.insert(recordedStereo.end(), readChunk.begin(), readChunk.begin() + (framesRead * 2));
+        }
+
+        AudioCommandAck ack{};
+        while (engine.pollAck(ack)) {
+            if (ack.commandId == 2) ackB = ack;
+            else if (ack.commandId == 3) ackA1 = ack;
+            else if (ack.commandId == 4) ackStop = ack;
+        }
+    }
+
+    result.totalCapturedFrames = recordedStereo.size() / 2;
+    result.droppedFrames = probe.droppedFrames();
+    (void)engine.updateTelemetry();
+    result.transportEpoch = engine.telemetry().transportEpoch;
+    result.orphanNoteRecoveredCount = engine.telemetry().orphanNoteRecoveredCount;
+    result.voiceDropCount = engine.telemetry().voiceDropCount;
+    result.droppedScheduledEvents = engine.droppedScheduledEvents();
+    result.deferredScheduledEvents = engine.deferredScheduledEvents();
+    result.engineProcessedEvents = engine.totalScheduledEventsProcessed();
+    const std::uint32_t finalDspAnomalies = engine.telemetry().dspAnomalyCount;
+
+    engine.detachAudioProbe();
+    engine.shutdown();
+
+    // Check ACKs
+    result.tempoAckPassed = (ackB.status == AudioCommandStatus::Applied &&
+                             ackB.sampleFrame == tempoChangeFrameB &&
+                             ackB.transportEpoch == 2 &&
+                             ackA1.status == AudioCommandStatus::Applied &&
+                             ackA1.sampleFrame == tempoChangeFrameA1 &&
+                             ackA1.transportEpoch == 3);
+
+    // Peak, clipping, finite
+    float maxAmp = 0.0f;
+    std::uint32_t clipCount = 0;
+    bool finiteOk = true;
+    for (float s : recordedStereo) {
+        if (!std::isfinite(s)) {
+            finiteOk = false;
+        }
+        const float a = std::abs(s);
+        if (a > maxAmp) maxAmp = a;
+        if (a >= (32767.0f / 32768.0f)) {
+            ++clipCount;
+        }
+    }
+    result.peakAmplitude = maxAmp;
+    result.clippedSamples = clipCount;
+    result.dspAnomaliesPassed = (finalDspAnomalies == 0 && finiteOk);
+
+    // True peak
+    result.truePeakDbtp = analysis::estimateTruePeakDbtp(recordedStereo.data(), result.totalCapturedFrames, 2);
+    result.truePeakPassed = (result.truePeakDbtp <= -1.0f);
+
+    // Silence boundary (INC4-R09): exact 0.0f from frame 8,777,238 to end of file
+    bool silenceOk = true;
+    constexpr std::uint64_t kSilenceStartFrame = 8777142ULL + 96ULL; // 8777238
+    if (result.totalCapturedFrames >= kSilenceStartFrame) {
+        for (std::size_t i = static_cast<std::size_t>(kSilenceStartFrame) * 2; i < recordedStereo.size(); ++i) {
+            if (recordedStereo[i] != 0.0f) {
+                silenceOk = false;
+                break;
+            }
+        }
+    } else {
+        silenceOk = false;
+    }
+    result.silenceBoundaryPassed = silenceOk;
+
+    // Non-silent audio in active sections
+    {
+        const auto windowRms = [&](std::uint64_t bar) {
+            const std::uint64_t from = clock.frameAtBar(bar);
+            const std::uint64_t to = clock.frameAtBar(bar + 1);
+            if (to * 2 <= recordedStereo.size()) {
+                return analysis::computeRmsDbfs(&recordedStereo[static_cast<std::size_t>(from) * 2],
+                                                static_cast<std::size_t>(to - from) * 2);
+            }
+            return -120.0f;
+        };
+        const float rmsA = windowRms(1);
+        const float rmsB = windowRms(33);
+        const float rmsA1 = windowRms(65);
+        result.nonSilentAudioPassed = (rmsA > -40.0f && rmsB > -40.0f && rmsA1 > -40.0f);
+    }
+
+    const bool peakPassed = (maxAmp <= (MasterLimiter::kHardCeilingLinear + 1e-6f));
+
+    result.passed = (result.droppedFrames == 0) &&
+                    result.determinismPassed &&
+                    result.noteOffPairingPassed &&
+                    result.tempoAckPassed &&
+                    result.nonSilentAudioPassed &&
+                    result.silenceBoundaryPassed &&
+                    result.truePeakPassed &&
+                    peakPassed &&
+                    (result.clippedSamples == 0) &&
+                    result.dspAnomaliesPassed &&
+                    (result.droppedScheduledEvents == 0) &&
+                    (result.deferredScheduledEvents == 0) &&
+                    (result.orphanNoteRecoveredCount == 0);
+
+    if (!result.passed) {
+        std::ostringstream err;
+        if (result.droppedFrames > 0) err << "dropped frames in probe; ";
+        if (!result.determinismPassed) err << "determinism check failed; ";
+        if (!result.noteOffPairingPassed) err << "NoteOn/NoteOff pairing failed; ";
+        if (!result.tempoAckPassed) err << "tempoAck check failed; ";
+        if (!result.nonSilentAudioPassed) err << "non-silent audio check failed; ";
+        if (!result.silenceBoundaryPassed) err << "silence boundary violated after Stop declick tail; ";
+        if (!peakPassed) err << "peak amplitude exceeded hard ceiling (" << maxAmp << " > " << MasterLimiter::kHardCeilingLinear << "); ";
+        if (!result.truePeakPassed) err << "true peak ceiling violated (" << result.truePeakDbtp << " > -1.0 dBTP); ";
+        if (result.clippedSamples > 0) err << "clipped samples: " << result.clippedSamples << "; ";
+        if (!result.dspAnomaliesPassed) err << "DSP anomalies or non-finite samples detected; ";
+        if (result.droppedScheduledEvents > 0) err << "dropped scheduled events: " << result.droppedScheduledEvents << "; ";
+        if (result.deferredScheduledEvents > 0) err << "deferred scheduled events: " << result.deferredScheduledEvents << "; ";
+        if (result.orphanNoteRecoveredCount > 0) err << "orphan notes recovered: " << result.orphanNoteRecoveredCount << "; ";
+        result.failureReason = err.str();
+    }
+
+    if (writeFiles) {
+        std::filesystem::path dir(outputDir);
+        std::error_code ec;
+        std::filesystem::create_directories(dir, ec);
+
+        result.wavFilePath = (dir / "fixture_probe_v1.wav").lexically_normal().string();
+        result.manifestFilePath = (dir / "fixture_probe_v1_manifest.json").lexically_normal().string();
+
+        const bool wavOk = analysis::writeWavStereo16(
+            result.wavFilePath,
+            recordedStereo.data(),
+            result.totalCapturedFrames,
+            kSampleRate
+        );
+        result.wavWriteSuccess = wavOk;
+        if (!wavOk) {
+            result.passed = false;
+            result.failureReason += "[WAV write failed] ";
+        }
+
+        std::ofstream mf(result.manifestFilePath);
+        if (!mf.is_open()) {
+            result.passed = false;
+            result.manifestWriteSuccess = false;
+            result.failureReason += "[Manifest write failed] ";
+        } else {
+            result.manifestWriteSuccess = true;
+            mf << result.toJson();
+            if (!mf.good()) {
+                result.passed = false;
+                result.manifestWriteSuccess = false;
+                result.failureReason += "[Manifest write failed] ";
+            }
+        }
+    }
+
+    return result;
+}
+
+ProfileProbeResult runProfileProbeV1Offline(const std::string& outputDir, bool writeFiles) {
+    ProfileProbeResult result;
+    result.buildId = CYMATICA_BUILD_ID;
+    result.osVersion = "Windows";
+#if defined(_MSC_VER)
+    result.cpuInfo = "MSVC " + std::to_string(_MSC_VER);
+#else
+    result.cpuInfo = "Generic x64";
+#endif
+#ifdef NDEBUG
+    result.buildConfig = "Release";
+#else
+    result.buildConfig = "Debug";
+#endif
+
+    constexpr std::uint32_t kSampleRate = 48000;
+    constexpr std::uint32_t kBlockFrames = 512;
+    constexpr std::uint32_t kWarmupBlocks = 64;
+    constexpr std::uint32_t kWorkloadWBlocks = 10000;
+
+    AudioEngine engine;
+    if (!engine.initOffline({kSampleRate, 2, 220.0f})) {
+        result.passed = false;
+        result.failureReason = "Failed to initialize AudioEngine in offline mode";
+        return result;
+    }
+
+    AudioProbe probe(AudioProbe::kDefaultCapacityFrames, 2, kSampleRate);
+    engine.attachAudioProbe(&probe);
+
+    engine.sendCommand(AudioCommand{.commandId = 1, .type = AudioCommandType::Start, .targetSampleFrame = 0});
+
+    std::vector<float> blockBuffer(kBlockFrames * 2, 0.0f);
+    std::vector<float> probeDrain(kBlockFrames * 2, 0.0f);
+
+    const std::array<MusicRole, 4> roles = {MusicRole::Pulso, MusicRole::Corpo, MusicRole::Trama, MusicRole::Vettore};
+
+    // Initialize 8 voices (2 per role)
+    std::uint64_t nextEventId = 1;
+    for (int r = 0; r < 4; ++r) {
+        for (int v = 0; v < 2; ++v) {
+            ScheduledAudioEvent ev{};
+            ev.eventId = nextEventId++;
+            ev.sampleFrame = 0;
+            ev.transportEpoch = 1;
+            ev.type = AudioEventType::NoteOn;
+            ev.role = roles[static_cast<std::size_t>(r)];
+            ev.valueA = 220.0f + static_cast<float>(r * 50 + v * 25);
+            ev.valueB = 1.0f;
+            ev.timbreParam = 0.5f;
+            ev.durationFrames = 0;
+            engine.scheduleAudioEvent(ev);
+        }
+    }
+
+    // Warm-up blocks
+    for (std::uint32_t b = 0; b < kWarmupBlocks; ++b) {
+        const std::uint64_t currentFrame = static_cast<std::uint64_t>(b) * kBlockFrames;
+        ScheduledAudioEvent ev{};
+        ev.eventId = nextEventId++;
+        ev.sampleFrame = currentFrame;
+        ev.transportEpoch = 1;
+        ev.type = AudioEventType::NoteOn;
+        ev.role = roles[b % roles.size()];
+        ev.valueA = 220.0f + static_cast<float>((b % 4) * 50);
+        ev.valueB = 1.0f;
+        ev.timbreParam = 0.5f;
+        ev.durationFrames = 0;
+        engine.scheduleAudioEvent(ev);
+
+        engine.processBlock(blockBuffer.data(), kBlockFrames);
+        probe.readFrames(probeDrain.data(), kBlockFrames);
+    }
+
+    // Reset histogram after warm-up
+    engine.resetCallbackProfileHistogram();
+
+    // Workload W: 10,000 blocks
+    bool allVoicesActive = true;
+    for (std::uint32_t b = 0; b < kWorkloadWBlocks; ++b) {
+        const std::uint64_t currentFrame = static_cast<std::uint64_t>(kWarmupBlocks + b) * kBlockFrames;
+        ScheduledAudioEvent ev{};
+        ev.eventId = nextEventId++;
+        ev.sampleFrame = currentFrame;
+        ev.transportEpoch = 1;
+        ev.type = AudioEventType::NoteOn;
+        ev.role = roles[b % roles.size()];
+        ev.valueA = 220.0f + static_cast<float>((b % 4) * 50);
+        ev.valueB = 1.0f;
+        ev.timbreParam = 0.5f;
+        ev.durationFrames = 0;
+        engine.scheduleAudioEvent(ev);
+
+        engine.processBlock(blockBuffer.data(), kBlockFrames);
+        probe.readFrames(probeDrain.data(), kBlockFrames);
+
+        (void)engine.updateTelemetry();
+        if (engine.telemetry().activeVoiceCount != 8) {
+            allVoicesActive = false;
+        }
+    }
+
+    const auto hist = engine.callbackProfileHistogram();
+    result.p50Ms = hist.percentileMs(50.0);
+    result.p95Ms = hist.percentileMs(95.0);
+    result.p99Ms = hist.percentileMs(99.0);
+    result.p999Ms = hist.percentileMs(99.9);
+    result.maxMs = hist.maxMs();
+    result.meanMs = hist.meanMs();
+    result.totalBlocks = hist.totalBlocks;
+    result.blocksExceeding2Ms = hist.blocksExceeding2Ms;
+    result.blocksExceedingBlockPeriod = hist.blocksExceedingBlockPeriod;
+
+    engine.detachAudioProbe();
+    engine.shutdown();
+
+    result.p999Passed = (result.p999Ms <= 2.0);
+    result.blockPeriodPassed = (result.blocksExceedingBlockPeriod == 0);
+
+#ifdef NDEBUG
+    result.passed = result.p999Passed && result.blockPeriodPassed && allVoicesActive;
+#else
+    result.passed = allVoicesActive;
+#endif
+
+    if (!result.passed) {
+        std::ostringstream err;
+        if (!allVoicesActive) err << "not all 8 voices remained active during Workload W; ";
+        if (!result.p999Passed) err << "p99.9 exceeds 2.0 ms (" << result.p999Ms << " ms); ";
+        if (!result.blockPeriodPassed) err << "blocks exceeding block period: " << result.blocksExceedingBlockPeriod << "; ";
+        result.failureReason = err.str();
+    }
+
+    if (writeFiles) {
+        std::filesystem::path dir(outputDir);
+        std::error_code ec;
+        std::filesystem::create_directories(dir, ec);
+
+        result.manifestFilePath = (dir / "profile_probe_v1_manifest.json").lexically_normal().string();
 
         std::ofstream mf(result.manifestFilePath);
         if (!mf.is_open()) {

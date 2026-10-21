@@ -43,6 +43,9 @@ struct AudioTelemetryFrame {
     std::uint32_t voiceDropCount{0};               // Monotonic count of voice steals (ADR-0003, ADR-0004)
     std::uint32_t orphanNoteRecoveredCount{0};     // Open-pad lease backstop auto-releases (ADR-0003)
     std::uint32_t dspAnomalyCount{0};              // Non-finite (NaN/Inf) samples sanitised
+    std::uint32_t callbackDurationLastUs{0};       // Duration of last completed processBlock in us (INC4-R06)
+    std::uint32_t callbackDurationMaxUs{0};        // Maximum callback block duration in us
+    std::uint32_t callbackOverruns2Ms{0};          // Blocks exceeding 2.0 ms * frameCount / 512
 
     [[nodiscard]] constexpr bool operator==(const AudioTelemetryFrame& other) const noexcept = default;
 };

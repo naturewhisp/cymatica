@@ -42,6 +42,12 @@ public:
     // Explicit NoteOff scheduling for open-pad leases (ADR-0003 D-M2-04 §4, INC3-R01)
     void scheduleNoteOff(std::uint64_t eventId, MusicRole role, std::uint64_t sampleFrame, std::uint64_t transportEpoch = 0);
 
+    // Staging revocation (ADR-0005 D-M2-09, INC4-R01, INC4-R02):
+    // Removes staged NoteOn events with sampleFrame >= boundaryFrame and their staged NoteOffs.
+    // Preserves staged NoteOff events whose NoteOn was already committed to AudioEngine (sampleFrame < boundaryFrame).
+    // Returns the number of events removed.
+    std::size_t revokeFromFrame(std::uint64_t boundaryFrame);
+
     // Transport epoch tracking
     void setTransportEpoch(std::uint64_t epoch) noexcept;
     [[nodiscard]] std::uint64_t transportEpoch() const noexcept;
@@ -58,6 +64,7 @@ public:
     void setLookaheadFrames(std::uint64_t frames) noexcept;
 
     void clear() noexcept;
+    void resetDiagnosticCounters() noexcept;
 
 private:
     AudioSchedulerConfig config_{};

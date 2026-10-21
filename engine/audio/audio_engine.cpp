@@ -8,6 +8,7 @@
 #include "music_clock.h"
 
 #include <atomic>
+#include <chrono>
 #include <memory>
 
 #if defined(_MSC_VER) || defined(__x86_64__) || defined(_M_X64)
@@ -66,6 +67,9 @@ struct AudioEngine::Impl {
 
     // MasterLimiter terminal digital protection (ADR-0004 AUD-D-02, Inc-2)
     MasterLimiter masterLimiter_{};
+
+    // Callback profiling histogram (ADR-0005 D-M2-10, INC4-R06)
+    CallbackProfileHistogram profileHistogram{};
 
     void renderWaveformSlice(float* pOut, std::uint32_t offset, std::uint32_t count, std::uint64_t logicalFrame) noexcept {
         if (pOut == nullptr || count == 0) return;
@@ -204,6 +208,7 @@ struct AudioEngine::Impl {
 
     // Realtime processing function: zero heap allocation, bounded execution (§20.2)
     void processBlock(float* pOutput, std::uint32_t frameCount) noexcept {
+        const auto tStart = std::chrono::steady_clock::now();
         const std::uint64_t blockStartFrame = renderCursor.load(std::memory_order_relaxed);
         const std::uint64_t blockEndFrame = musicClock.deviceToInternalFrames(deviceFramesRendered + frameCount, sampleRate);
 
@@ -599,7 +604,14 @@ struct AudioEngine::Impl {
         telem.orphanNoteRecoveredCount = voiceAllocator.orphanNoteRecoveredCount();
         // Voice/bus sanitisations plus the terminal limiter's non-finite input guard
         telem.dspAnomalyCount = voiceAllocator.dspAnomalyCount() + masterLimiter_.anomalyCount();
+        telem.callbackDurationLastUs = static_cast<std::uint32_t>(profileHistogram.lastDurationNs / 1000ULL);
+        telem.callbackDurationMaxUs = static_cast<std::uint32_t>(profileHistogram.maxDurationNs / 1000ULL);
+        telem.callbackOverruns2Ms = static_cast<std::uint32_t>(profileHistogram.blocksExceeding2Ms);
         telemetryBuffer.publish();
+
+        const auto tEnd = std::chrono::steady_clock::now();
+        const auto durNs = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(tEnd - tStart).count());
+        profileHistogram.record(durNs, frameCount, sampleRate);
     }
 
     static void dataCallback(ma_device* pDevice, void* pOutput, const void*, ma_uint32 frameCount) {
@@ -884,6 +896,17 @@ VoiceAllocator& AudioEngine::voiceAllocator() noexcept {
 const MasterLimiter& AudioEngine::masterLimiter() const noexcept {
     static const MasterLimiter empty{};
     return pImpl_ ? pImpl_->masterLimiter_ : empty;
+}
+
+const CallbackProfileHistogram& AudioEngine::callbackProfileHistogram() const noexcept {
+    static const CallbackProfileHistogram empty{};
+    return pImpl_ ? pImpl_->profileHistogram : empty;
+}
+
+void AudioEngine::resetCallbackProfileHistogram() noexcept {
+    if (pImpl_) {
+        pImpl_->profileHistogram.reset();
+    }
 }
 
 MasterLimiter& AudioEngine::masterLimiter() noexcept {

@@ -771,3 +771,130 @@ TEST_CASE("Offline CACP planner_probe_v1 validation", "[music_planner][fallback_
     CHECK(res.droppedFrames == 0);
     CHECK(res.totalCapturedFrames == res.requestedSampleFrames);
 }
+
+TEST_CASE("MusicPlanner: checkpoint and rollback restores bit-exact state (INC4-R01)", "[music_planner][checkpoint_rollback]") {
+    const MusicClock clock = probeClock();
+    const auto phrases = MusicPlanner::makePlannerProbeV1Phrases(clock);
+
+    MusicPlanner planner({.runSeed = 1337ULL, .candidateCount = 6, .sampleRate = 48000});
+    planner.setFormPlan(MusicPlanner::makePlannerProbeV1Form());
+
+    std::vector<MusicIntentEvent> outA;
+    planner.planPhrase(phrases[0], clock, 0, 1, outA, nullptr);
+
+    // Save checkpoint after phrase 0
+    const auto checkpoint = planner.createCheckpoint();
+
+    // Plan phrase 1 (Section B)
+    std::vector<MusicIntentEvent> outB1;
+    planner.planPhrase(phrases[1], clock, 0, 2, outB1, nullptr);
+    const auto tracesB1 = planner.decisionTraces();
+    const auto noteOffsB1 = planner.plannedNoteOffs();
+
+    // Rollback to checkpoint
+    planner.restoreCheckpoint(checkpoint);
+
+    // Verify checkpoint restored trace and noteOff counts
+    CHECK(planner.decisionTraces().size() == 1);
+    CHECK(planner.plannedNoteOffs().empty());
+
+    // Re-plan phrase 1
+    std::vector<MusicIntentEvent> outB2;
+    planner.planPhrase(phrases[1], clock, 0, 2, outB2, nullptr);
+    const auto tracesB2 = planner.decisionTraces();
+    const auto noteOffsB2 = planner.plannedNoteOffs();
+
+    // Must be bit-exact identical
+    CHECK(outB1 == outB2);
+    CHECK(tracesB1 == tracesB2);
+    CHECK(noteOffsB1 == noteOffsB2);
+}
+
+TEST_CASE("SimulatedVoiceTracker: delays release transition until programmed sample frame (INC4-R03)", "[music_planner][simulated_tracker_cross_section_timing]") {
+    SimulatedVoiceTracker tracker;
+    bool wasStolen = false;
+    const int slotIdx = tracker.simulateNoteOn(MusicRole::Corpo, 1, 1000, 0, 220.0f, wasStolen);
+    REQUIRE(slotIdx >= 0);
+
+    // Scheduled NoteOff far into the future (frame 10,000)
+    tracker.simulateNoteOff(MusicRole::Corpo, 1, 10000);
+
+    // At frame 5,000 (before 10,000): voice must NOT be inRelease yet!
+    tracker.updateAtFrame(5000);
+    CHECK(tracker.activeCountForRole(MusicRole::Corpo, 5000) == 1);
+    CHECK_FALSE(tracker.slots()[static_cast<std::size_t>(slotIdx)].inRelease);
+
+    // At frame 10,000: voice transitions to inRelease
+    tracker.updateAtFrame(10000);
+    CHECK(tracker.slots()[static_cast<std::size_t>(slotIdx)].inRelease);
+}
+
+TEST_CASE("Fixture M2.4 V1: 24 phrases, 96 bars, and golden rational boundaries (D-M2-08)", "[music_planner][fixture_phrases_and_boundaries]") {
+    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+    REQUIRE(optClock.has_value());
+    const MusicClock& clock = *optClock;
+    const FormPlan form = MusicPlanner::makeFixtureM24V1Form();
+    const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(clock);
+
+    REQUIRE(phrases.size() == 24);
+    REQUIRE(form.sectionCount == 3);
+
+    // Section A: phrases 0..7 (bars 0..31)
+    CHECK(phrases[0].startFrame == 0);
+    CHECK(phrases[7].endFrame == 3072000ULL); // Bar 32
+
+    // Section B: phrases 8..15 (bars 32..63)
+    CHECK(phrases[8].startFrame == 3072000ULL);
+    CHECK(phrases[15].endFrame == 5705142ULL); // Bar 64
+
+    // Section A': phrases 16..23 (bars 64..95)
+    CHECK(phrases[16].startFrame == 5705142ULL);
+    CHECK(phrases[23].endFrame == 8777142ULL); // Bar 96
+
+    // Cross-section pad lease on phrase 7 and 15
+    CHECK(phrases[7].isCrossSectionPadPhrase);
+    CHECK(phrases[15].isCrossSectionPadPhrase);
+    CHECK_FALSE(phrases[23].isCrossSectionPadPhrase);
+
+    // Pad note off frame is +1 beat into next section
+    // Section B is 140 BPM: 1 beat = (48000 * 60) / 140 = 20571.428... frames (frame 3092571)
+    CHECK(phrases[7].crossSectionNoteOffFrame == clock.frameAtBeatStep(32 * 4 + 1, 0, 4));
+
+    // Section A' is 120 BPM: 1 beat = (48000 * 60) / 120 = 24000 frames
+    // 5705142 + 24000 = 5729142 (exact frameAtBeatStep(64 * 4 + 1, 0, 4))
+    CHECK(phrases[15].crossSectionNoteOffFrame == clock.frameAtBeatStep(64 * 4 + 1, 0, 4));
+
+    // Section B candidate recipes: strictly ModalTranspose and ContourInversion (INC4-R04)
+    MusicPlanner planner({.runSeed = 1337ULL, .candidateCount = 8, .sampleRate = 48000});
+    planner.setFormPlan(form);
+
+    std::vector<MusicIntentEvent> outB;
+    planner.planPhrase(phrases[8], clock, 0, 2, outB, nullptr);
+    const auto traceB = planner.decisionTraces().back();
+    for (std::size_t i = 0; i < traceB.candidatesGenerated; ++i) {
+        const auto k = traceB.candidates[i].transformKind;
+        CHECK((k == MotifTransformKind::ModalTranspose || k == MotifTransformKind::ContourInversion));
+    }
+}
+
+TEST_CASE("Offline CACP fixture_probe_v1 validation", "[music_planner][fixture_probe_v1]") {
+    const auto res = runFixtureProbeV1Offline("artifacts/cacp", false);
+    INFO(res.failureReason);
+    REQUIRE(res.passed);
+    CHECK(res.determinismPassed);
+    CHECK(res.noteOffPairingPassed);
+    CHECK(res.tempoAckPassed);
+    CHECK(res.nonSilentAudioPassed);
+    CHECK(res.silenceBoundaryPassed);
+    CHECK(res.truePeakPassed);
+    CHECK(res.truePeakDbtp <= -1.0f);
+    CHECK(res.peakAmplitude <= (MasterLimiter::kHardCeilingLinear + 1e-6f));
+    CHECK(res.clippedSamples == 0);
+    CHECK(res.dspAnomaliesPassed);
+    CHECK(res.droppedFrames == 0);
+    CHECK(res.droppedScheduledEvents == 0);
+    CHECK(res.deferredScheduledEvents == 0);
+    CHECK(res.orphanNoteRecoveredCount == 0);
+    CHECK(res.totalCapturedFrames == res.requestedSampleFrames);
+}
+

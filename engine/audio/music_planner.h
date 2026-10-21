@@ -182,6 +182,9 @@ struct PhrasePlan {
     MusicRole dominantRole{MusicRole::Vettore};
     CadenceGoal cadenceGoal{CadenceGoal::Sustain};
     std::uint32_t baseMotifId{0};
+    bool isCrossSectionPadPhrase{false};
+    std::uint64_t crossSectionNoteOffFrame{0};
+    bool delayCorpoOnsetByOneBeat{false};
 };
 
 struct SectionPlan {
@@ -380,10 +383,12 @@ public:
     [[nodiscard]] const std::array<SimulatedVoiceSlot, kTotalSlots>& slots() const noexcept { return slots_; }
     // Monotonic count of Rule-2 steals (held voice, not in release) simulated so far.
     [[nodiscard]] std::uint32_t heldVoiceSteals() const noexcept { return heldVoiceSteals_; }
+    [[nodiscard]] std::uint64_t lastUpdatedFrame() const noexcept { return lastUpdatedFrame_; }
 
 private:
     std::array<SimulatedVoiceSlot, kTotalSlots> slots_{};
     std::uint32_t heldVoiceSteals_{0};
+    std::uint64_t lastUpdatedFrame_{0};
 };
 
 
@@ -477,6 +482,8 @@ public:
 
     // Factory profiles
     [[nodiscard]] static FormPlan makeFixtureM24V1Form() noexcept;   // 96 bars A-B-A' (~182.86s)
+    [[nodiscard]] static std::optional<MusicClock> makeFixtureM24V1Clock() noexcept;
+    [[nodiscard]] static std::array<PhrasePlan, 24> makeFixtureM24V1Phrases(const MusicClock& clock) noexcept;
     [[nodiscard]] static FormPlan makePlannerProbeV1Form() noexcept; // 8 bars A-B test (~14.86s)
     // Planning clock of planner_probe_v1: section A tempo map, section B tempo map at frameAtBar(4).
     [[nodiscard]] static std::optional<MusicClock> makePlannerProbeV1Clock() noexcept;
@@ -496,6 +503,18 @@ public:
     [[nodiscard]] const SimulatedVoiceTracker& voiceTracker() const noexcept { return voiceTracker_; }
 
     void reset(std::uint64_t newSeed = 0) noexcept;
+
+    // Checkpoint & rollback API for mutable planning horizon (ADR-0005 D-M2-09, INC4-R01)
+    struct PlannerCheckpoint {
+        SimulatedVoiceTracker voiceTracker{};
+        std::optional<TriadVoicing> lastCorpoVoicing{};
+        std::uint64_t nextEventId{1};
+        std::uint32_t totalFallbacks{0};
+        std::size_t traceCount{0};
+        std::size_t plannedNoteOffCount{0};
+    };
+    [[nodiscard]] PlannerCheckpoint createCheckpoint() const noexcept;
+    void restoreCheckpoint(const PlannerCheckpoint& cp) noexcept;
 
     // Candidate selection logic exposed for testing (INC3-R05). `tieBreakDecisionId` is the
     // kTieBreakDecisionSlot decision id; hashes use config().runSeed and config().policyVersion.

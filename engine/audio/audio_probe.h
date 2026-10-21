@@ -276,6 +276,74 @@ struct PlannerProbeResult {
 };
 
 // Runs the authoritative planner_probe_v1 scenario offline in 120 Hz simulation ticks (Inc-3)
+// Profile metrics for fixture_probe_v1 (ADR-0005 D-M2-08/09/11, Inc-4)
+struct FixtureProbeResult {
+    bool passed{false};
+    std::uint64_t totalCapturedFrames{0};
+    std::uint64_t droppedFrames{0};
+    std::uint32_t generatedEvents{0};
+    std::uint32_t plannerNoteOffs{0};
+    std::uint64_t engineProcessedEvents{0};
+    std::uint64_t droppedScheduledEvents{0};
+    std::uint64_t deferredScheduledEvents{0};
+    std::uint32_t orphanNoteRecoveredCount{0};
+    std::uint32_t voiceDropCount{0};
+    bool tempoAckPassed{false};
+    bool noteOffPairingPassed{false};
+    bool nonSilentAudioPassed{false};
+    bool silenceBoundaryPassed{false};
+    bool determinismPassed{false};
+    float peakAmplitude{0.0f};
+    float truePeakDbtp{-120.0f};
+    bool truePeakPassed{false};
+    std::uint32_t clippedSamples{0};
+    bool dspAnomaliesPassed{false};
+    std::uint64_t decisionTraceHash{0};
+    std::string buildId{CYMATICA_BUILD_ID};
+    std::uint64_t transportEpoch{0};
+    std::uint64_t simulationTicks{0};
+    std::uint64_t requestedSampleFrames{0};
+    std::string presentationQuality{"Estimated"};
+    bool wavWriteSuccess{false};
+    bool manifestWriteSuccess{false};
+    std::string wavFilePath{};
+    std::string manifestFilePath{};
+    std::string failureReason{};
+
+    [[nodiscard]] std::string toJson() const;
+};
+
+// Profile metrics for profile_probe_v1 (ADR-0005 D-M2-10/11, Inc-4)
+struct ProfileProbeResult {
+    bool passed{false};
+    double p50Ms{0.0};
+    double p95Ms{0.0};
+    double p99Ms{0.0};
+    double p999Ms{0.0};
+    double maxMs{0.0};
+    double meanMs{0.0};
+    std::uint64_t totalBlocks{0};
+    std::uint64_t blocksExceeding2Ms{0};
+    std::uint64_t blocksExceedingBlockPeriod{0};
+    bool p999Passed{false};
+    bool blockPeriodPassed{false};
+    std::string buildId{CYMATICA_BUILD_ID};
+    std::string osVersion{};
+    std::string cpuInfo{};
+    std::string buildConfig{};
+    bool manifestWriteSuccess{false};
+    std::string manifestFilePath{};
+    std::string failureReason{};
+
+    [[nodiscard]] std::string toJson() const;
+};
+
+FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
+                                           bool writeFiles = true);
+
+ProfileProbeResult runProfileProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
+                                           bool writeFiles = true);
+
 PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
                                            bool writeFiles = true);
 
