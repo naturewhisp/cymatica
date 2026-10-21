@@ -50,24 +50,30 @@ Il tono di M2.2 (`ma_waveform`) è sommato alle voci *prima* del limiter (`rende
 **Dati grezzi:**
 
 - [run1](experiments/dif_inc4_r2_01/run1_2026-10-21.txt): prima versione dell'esperimento, 6 livelli di tono × 3 ripetizioni e 6 condizioni del limiter × 7.
-- [run2](experiments/dif_inc4_r2_01/run2_2026-10-21.txt): versione archiviata, 3 livelli × 5 ripetizioni interlacciate e 8 condizioni × 7.
+- [run2](experiments/dif_inc4_r2_01/run2_2026-10-21.txt): seconda versione, 3 livelli × 5 ripetizioni interlacciate e 8 condizioni × 7.
+- [run3](experiments/dif_inc4_r2_01/run3_2026-10-21.txt): versione archiviata corrente, che misura il picco anche sui 64 blocchi di warm-up (`outPeakAll`); 3 livelli × 5 ripetizioni. Aggiunta dopo la correzione del 2026-10-21 (§3.1).
 
-### 3.1 Q1 — livelli raggiungibili (run1, deterministici)
+### 3.1 Q1 — livelli raggiungibili (run1 e run3, deterministici)
 
-Il picco d'uscita è identico in tutte le ripetizioni.
+Il picco d'uscita è identico in tutte le ripetizioni. Si distinguono due finestre:
 
-| Carico W | Picco d'uscita | GR massima |
-|---|---|---|
-| solo voci (tono 0) | 0,3739 (**−8,54 dBFS**) | 0 dB |
-| + tono 0,25 | 0,6130 (−4,25 dBFS) | 0 dB |
-| + tono 0,40 | 0,7618 (−2,36 dBFS) | 0 dB |
-| + tono 0,50 | 0,8128 (−1,80 dBFS, limitato) | 0,52 dB |
-| + tono 0,60 | 0,8128 | 1,47 dB |
-| + tono 0,80 | 0,8129 | 3,10 dB |
+- **assoluto:** tutti i blocchi, warm-up compreso (run3);
+- **regime:** i 10.000 blocchi misurati dopo i 64 di warm-up, cioè la finestra del gate D-M2-10 (run1 e run3).
+
+| Carico W | Picco assoluto | Picco a regime | GR massima |
+|---|---|---|---|
+| solo voci (tono 0) | 0,4402 (**−7,13 dBFS**), al frame 144 del blocco 0 | 0,3739 (**−8,54 dBFS**) | 0 dB |
+| + tono 0,25 | — | 0,6130 (−4,25 dBFS) | 0 dB |
+| + tono 0,40 | 0,7779 (−2,18 dBFS) | 0,7618 (−2,36 dBFS) | 0 dB |
+| + tono 0,50 | — | 0,8128 (−1,80 dBFS, limitato) | 0,52 dB |
+| + tono 0,60 | 0,8128 | 0,8128 | 1,47 dB |
+| + tono 0,80 | — | 0,8129 | 3,10 dB |
+
+Il picco assoluto delle sole voci nasce dall'attacco simultaneo delle 8 voci iniziali, tutte a velocity 1 al frame 0, nel blocco 0. Dopo, i furti di una voce per blocco non riproducono quella coerenza. Il valore è emerso dai WAV di una revisione esterna (Antigravity, 2026-10-21): un campione di 250 blocchi dava −7,13 dBFS assoluti e −9,09 dBFS sui blocchi 64–249. Il dato è stato poi riprodotto con il motore in run3. **Correzione del 2026-10-21:** la prima versione di questo dossier riportava solo il picco a regime (−8,54 dBFS) senza dichiarare la finestra.
 
 In aggiunta, durante la remediation W con 8 voci all'unisono (110 Hz) ha dato GR = 0 dB.
 
-**Risposta a Q1:** con soli eventi musicali W resta **6,7 dB sotto la soglia**. Lo impediscono il gain staging di Inc-2 e il clamp della velocity, che sono scelte di progetto deliberate di ADR-0003 D-M2-06 e ADR-0004, non un difetto del carico. Con il tono diagnostico ≥ 0,5 il limiter entra in riduzione in modo stabile.
+**Risposta a Q1:** con soli eventi musicali W resta sotto la soglia di **5,3 dB in assoluto** (picco d'attacco del blocco 0) e di **6,7 dB a regime**. Lo impediscono il gain staging di Inc-2 e il clamp della velocity, che sono scelte di progetto deliberate di ADR-0003 D-M2-06 e ADR-0004, non un difetto del carico. Con il tono diagnostico ≥ 0,5 il limiter entra in riduzione in modo stabile.
 
 ### 3.2 Q2a — costo del limiter isolato (run2, 7 ripetizioni × 100.000 blocchi, mediana [min–max])
 
@@ -133,7 +139,7 @@ Fonti consultate il 2026-10-21. Per gli articoli a pagamento (AES, ACM) sono sta
 | | **A. Emendare D-M2-10** (W senza GR) | **B1. W con tono diagnostico** (`Start.paramF32 = 0,8`) | **B2. Più carico musicale** | **B3. Hook di pre-gain diagnostico nel motore** | **C. A + micro-benchmark del limiter** |
 |---|---|---|---|---|---|
 | Conforme al testo di D-M2-10 | No, serve un emendamento | **Sì**; precisa solo *come* si ottiene la GR | — | Sì | No, serve un emendamento |
-| Fattibilità | Immediata | **Immediata, nessuna modifica al motore** | **Non fattibile** (§3.1: −8,54 dBFS, clamp della velocity, unisono insufficiente) | Nuova API e un ramo nel percorso RT | Media (nuovo test `perf`) |
+| Fattibilità | Immediata | **Immediata, nessuna modifica al motore** | **Non fattibile** (§3.1: −7,13 dBFS assoluti e −8,54 dBFS a regime, clamp della velocity, unisono insufficiente) | Nuova API e un ramo nel percorso RT | Media (nuovo test `perf`) |
 | Copertura dei cammini (W08) | Il ramo di GR non è esercitato nella callback | **Ogni stadio attivo**: tono, voci, furti, bus, delay, limiter in GR sostenuta, il caso più costoso di §3.2 | — | Completa | GR coperta solo a livello di componente |
 | Effetto sul gate p99.9 | Nessuno (Δ ≈ 0,9 µs ≪ rumore) | W più pesante del ≈ 5 % (più conservativo) | — | Simile a B1 | Nessuno |
 | Rappresentatività | Il carico musicale reale non raggiunge mai la soglia | Il tono non è contenuto musicale; la GR è sostenuta e non transitoria (ma sostenuta è il caso peggiore: 13,96 contro 12,57 ns/frame dei burst) | — | Artificiale | Componente isolato, senza le interazioni della callback |
@@ -156,7 +162,7 @@ B2 non è fattibile; B3 è sproporzionata.
 ### Modifiche previste in caso di scelta B1
 
 - `runProfileWorkload(W)`: `Start` con `paramF32 = 0,8f` (costante nominata, ad es. `kProfileWorkloadWToneVolume`) e ripristino del gate `maxGainReductionDb > 0`.
-- ADR-0005 D-M2-10: aggiungere che la riduzione di guadagno di W si ottiene con il tono diagnostico a 0,8 sommato prima del limiter, perché il solo carico musicale resta a −8,54 dBFS; citare questo documento.
+- ADR-0005 D-M2-10: aggiungere che la riduzione di guadagno di W si ottiene con il tono diagnostico a 0,8 sommato prima del limiter, perché il solo carico musicale resta a −7,13 dBFS assoluti (−8,54 dBFS a regime); citare questo documento.
 - progress.md: chiudere DIF-INC4-R2-01 con le nuove misure di `profile_probe_v1`.
 
 ## 7. Limiti dell'analisi

@@ -2565,7 +2565,7 @@ ProfileWorkloadRun runProfileWorkload(ProfileWorkload workload, bool cacpEnabled
 
     if (workload == ProfileWorkload::W) {
         // 8 held voices on every role (timbreParam > 0 engages filters and the Trama delay), then one
-        // full-velocity NoteOn per block: every block steals a held voice. The voices alone peak at -8.54 dBFS, so
+        // full-velocity NoteOn per block: every block steals a held voice. The voices alone peak at -7.13 dBFS (block-0 onset; -8.54 dBFS steady), so
         // the diagnostic tone (summed before the limiter) drives the limiter into gain reduction (ADR-0005 D-M2-10).
         engine.sendCommand(AudioCommand{.commandId = 1, .type = AudioCommandType::Start,
                                         .paramF32 = kProfileWorkloadWToneVolume, .targetSampleFrame = 0});

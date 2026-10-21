@@ -22,7 +22,8 @@ namespace {
 struct WStats {
     double meanUs, p50Us, p999Us, maxUs;
     float preLimiterPeak; // only valid when no GR (output == input)
-    float outPeak;
+    float outPeak;     // blocks after the 64 warm-up blocks (measured window)
+    float outPeakAll;  // all blocks, warm-up included (initial 8-voice onset)
     float grDb;
     std::uint32_t steals;
     bool allActive;
@@ -52,6 +53,7 @@ WStats runW(float toneVolume, std::uint32_t blocks = 10000) {
     std::vector<double> durs;
     durs.reserve(blocks);
     float peak = 0.0f;
+    float peakAll = 0.0f;
     WStats s{};
     s.allActive = true;
     std::uint32_t stealsBefore = 0;
@@ -64,6 +66,7 @@ WStats runW(float toneVolume, std::uint32_t blocks = 10000) {
         }
         REQUIRE(engine.scheduleAudioEvent(on(roles[b % 4], static_cast<std::uint64_t>(b) * 512, 220.0f + static_cast<float>((b % 4) * 50))));
         engine.processBlock(buf.data(), 512);
+        for (float x : buf) peakAll = std::max(peakAll, std::abs(x));
         if (b >= 64) {
             durs.push_back(static_cast<double>(engine.callbackProfileHistogram().lastDurationNs) / 1000.0);
             for (float x : buf) peak = std::max(peak, std::abs(x));
@@ -74,6 +77,7 @@ WStats runW(float toneVolume, std::uint32_t blocks = 10000) {
     s.steals = engine.telemetry().voiceDropCount - stealsBefore;
     s.grDb = engine.masterLimiter().maxGainReductionDb();
     s.outPeak = peak;
+    s.outPeakAll = peakAll;
     s.preLimiterPeak = peak;
     s.meanUs = std::accumulate(durs.begin(), durs.end(), 0.0) / static_cast<double>(durs.size());
     s.p50Us = pct(durs, 50.0);
@@ -121,8 +125,8 @@ TEST_CASE("EXPERIMENT R2-01 W levels and tone sweep", "[.][experiment_r2_01]") {
     for (int rep = 0; rep < 5; ++rep) {
         for (float tv : {0.0f, 0.4f, 0.6f}) {
             const WStats s = runW(tv);
-            std::printf("W rep=%d tone=%.2f outPeak=%.4f (%.2f dBFS) GR=%.2f dB steals=%u allActive=%d mean=%.2fus p50=%.2fus p99.9=%.2fus max=%.2fus\n",
-                        rep, tv, s.outPeak, 20.0 * std::log10(std::max(1e-9f, s.outPeak)), s.grDb, s.steals, s.allActive ? 1 : 0,
+            std::printf("W rep=%d tone=%.2f outPeakAll=%.4f (%.2f dBFS) outPeak=%.4f (%.2f dBFS) GR=%.2f dB steals=%u allActive=%d mean=%.2fus p50=%.2fus p99.9=%.2fus max=%.2fus\n",
+                        rep, tv, s.outPeakAll, 20.0 * std::log10(std::max(1e-9f, s.outPeakAll)), s.outPeak, 20.0 * std::log10(std::max(1e-9f, s.outPeak)), s.grDb, s.steals, s.allActive ? 1 : 0,
                         s.meanUs, s.p50Us, s.p999Us, s.maxUs);
         }
     }

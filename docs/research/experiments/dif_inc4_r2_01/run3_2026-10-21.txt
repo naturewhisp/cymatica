@@ -1,0 +1,15 @@
+W rep=0 tone=0.00 outPeakAll=0.4402 (-7.13 dBFS) outPeak=0.3739 (-8.54 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=95.24us p50=91.40us p99.9=453.40us max=592.70us
+W rep=0 tone=0.40 outPeakAll=0.7779 (-2.18 dBFS) outPeak=0.7618 (-2.36 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=97.61us p50=93.50us p99.9=459.00us max=514.40us
+W rep=0 tone=0.60 outPeakAll=0.8128 (-1.80 dBFS) outPeak=0.8128 (-1.80 dBFS) GR=1.47 dB steals=10000 allActive=1 mean=97.06us p50=93.60us p99.9=429.90us max=610.60us
+W rep=1 tone=0.00 outPeakAll=0.4402 (-7.13 dBFS) outPeak=0.3739 (-8.54 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=94.91us p50=91.10us p99.9=451.30us max=513.50us
+W rep=1 tone=0.40 outPeakAll=0.7779 (-2.18 dBFS) outPeak=0.7618 (-2.36 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=97.01us p50=93.40us p99.9=404.50us max=500.60us
+W rep=1 tone=0.60 outPeakAll=0.8128 (-1.80 dBFS) outPeak=0.8128 (-1.80 dBFS) GR=1.47 dB steals=10000 allActive=1 mean=97.10us p50=93.70us p99.9=273.80us max=470.40us
+W rep=2 tone=0.00 outPeakAll=0.4402 (-7.13 dBFS) outPeak=0.3739 (-8.54 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=94.47us p50=91.10us p99.9=423.90us max=591.50us
+W rep=2 tone=0.40 outPeakAll=0.7779 (-2.18 dBFS) outPeak=0.7618 (-2.36 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=97.06us p50=93.40us p99.9=356.90us max=502.20us
+W rep=2 tone=0.60 outPeakAll=0.8128 (-1.80 dBFS) outPeak=0.8128 (-1.80 dBFS) GR=1.47 dB steals=10000 allActive=1 mean=97.46us p50=93.60us p99.9=440.50us max=547.10us
+W rep=3 tone=0.00 outPeakAll=0.4402 (-7.13 dBFS) outPeak=0.3739 (-8.54 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=94.90us p50=91.10us p99.9=423.50us max=498.30us
+W rep=3 tone=0.40 outPeakAll=0.7779 (-2.18 dBFS) outPeak=0.7618 (-2.36 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=97.77us p50=93.40us p99.9=449.30us max=521.90us
+W rep=3 tone=0.60 outPeakAll=0.8128 (-1.80 dBFS) outPeak=0.8128 (-1.80 dBFS) GR=1.47 dB steals=10000 allActive=1 mean=98.83us p50=93.90us p99.9=472.20us max=533.00us
+W rep=4 tone=0.00 outPeakAll=0.4402 (-7.13 dBFS) outPeak=0.3739 (-8.54 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=94.45us p50=91.20us p99.9=267.30us max=483.50us
+W rep=4 tone=0.40 outPeakAll=0.7779 (-2.18 dBFS) outPeak=0.7618 (-2.36 dBFS) GR=0.00 dB steals=10000 allActive=1 mean=96.16us p50=93.40us p99.9=237.60us max=479.00us
+W rep=4 tone=0.60 outPeakAll=0.8128 (-1.80 dBFS) outPeak=0.8128 (-1.80 dBFS) GR=1.47 dB steals=10000 allActive=1 mean=96.33us p50=93.60us p99.9=250.80us max=494.20us
