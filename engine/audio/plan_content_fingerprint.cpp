@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <map>
 #include <tuple>
 
@@ -31,16 +32,26 @@ struct NoteRecord {
     }
 };
 
-// round(x * 1000) for a finite value; -0 maps to 0 through lround
+// Rounds a finite double to int32 only when the result is representable (DIF-5a-03); -0 maps to 0.
+// INT32_MIN is reserved for the pitch sentinel, so the admitted range is [INT32_MIN + 1, INT32_MAX].
+std::optional<std::int32_t> roundToInt32(double v) noexcept {
+    if (!std::isfinite(v)) return std::nullopt;
+    const double r = std::round(v); // half away from zero, as std::lround
+    constexpr double kMin = static_cast<double>(std::numeric_limits<std::int32_t>::min()) + 1.0;
+    constexpr double kMax = static_cast<double>(std::numeric_limits<std::int32_t>::max());
+    if (!(r >= kMin && r <= kMax)) return std::nullopt;
+    return static_cast<std::int32_t>(r);
+}
+
+// round(x * 1000) for a finite, representable value
 std::optional<std::int32_t> quantizeMilli(float x) noexcept {
-    if (!std::isfinite(x)) return std::nullopt;
-    return static_cast<std::int32_t>(std::lround(static_cast<double>(x) * 1000.0));
+    return roundToInt32(static_cast<double>(x) * 1000.0);
 }
 
 std::optional<std::int32_t> quantizeCents(float hz) noexcept {
     if (!std::isfinite(hz) || hz < 0.0f) return std::nullopt;
     if (hz == 0.0f) return kFingerprintPitchNotApplicable;
-    return static_cast<std::int32_t>(std::lround(1200.0 * std::log2(static_cast<double>(hz) / 440.0)));
+    return roundToInt32(1200.0 * std::log2(static_cast<double>(hz) / 440.0));
 }
 
 } // namespace

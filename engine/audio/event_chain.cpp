@@ -102,8 +102,6 @@ ChainReconcileResult reconcileEventChain(const ChainReconcileInput& in) {
             ++r.canceled;
             if (in.path == ChainPath::Nominal) {
                 mismatch("cancellation on the nominal path: " + describe(rec.id));
-            } else if (rec.reason == EventCancelReason::None) {
-                mismatch("cancellation without an admitted reason: " + describe(rec.id));
             }
         }
     }
@@ -111,6 +109,48 @@ ChainReconcileResult reconcileEventChain(const ChainReconcileInput& in) {
         const Tally& t = tally[keyOf(id)];
         if (t.sent + t.canceled != t.expected) {
             mismatch("expected event neither sent nor canceled: " + describe(id));
+        }
+    }
+
+    // Causal admissibility of each cancellation (DIF-5a-01)
+    std::map<std::pair<std::uint64_t, std::uint8_t>, std::size_t> revokedNoteOns;
+    for (const auto& rec : in.schedulerLog) {
+        if (rec.kind == SchedulerEventKind::Canceled && rec.reason == EventCancelReason::Revoked &&
+            rec.id.type == AudioEventType::NoteOn) {
+            ++revokedNoteOns[{rec.id.eventId, static_cast<std::uint8_t>(rec.id.role)}];
+        }
+    }
+    for (const auto& rec : in.schedulerLog) {
+        if (rec.kind != SchedulerEventKind::Canceled || in.path == ChainPath::Nominal) continue;
+        switch (rec.reason) {
+            case EventCancelReason::Revoked:
+                if (!in.revokeBoundaryFrame.has_value()) {
+                    mismatch("revocation without a declared revocation boundary: " + describe(rec.id));
+                } else if (rec.contextFrame != *in.revokeBoundaryFrame) {
+                    mismatch("revocation at boundary " + std::to_string(rec.contextFrame) + " instead of the failed boundary " +
+                             std::to_string(*in.revokeBoundaryFrame) + ": " + describe(rec.id));
+                } else if (rec.id.sampleFrame < *in.revokeBoundaryFrame) {
+                    mismatch("event before the revocation boundary cannot be revoked: " + describe(rec.id));
+                } else if (rec.id.type == AudioEventType::NoteOff &&
+                           revokedNoteOns.find({rec.id.eventId, static_cast<std::uint8_t>(rec.id.role)}) == revokedNoteOns.end()) {
+                    mismatch("NoteOff revoked although its NoteOn was not revoked (it must be preserved): " + describe(rec.id));
+                }
+                break;
+            case EventCancelReason::ClearedAtStop:
+                if (!in.stopClearFrame.has_value()) {
+                    mismatch("clear at Stop without a declared applied Stop: " + describe(rec.id));
+                } else if (rec.contextFrame != *in.stopClearFrame) {
+                    mismatch("clear at Stop frame " + std::to_string(rec.contextFrame) + " instead of " +
+                             std::to_string(*in.stopClearFrame) + ": " + describe(rec.id));
+                } else if (rec.id.sampleFrame < *in.stopClearFrame) {
+                    mismatch("event due before the Stop cleared instead of sent: " + describe(rec.id));
+                }
+                break;
+            case EventCancelReason::None:
+            case EventCancelReason::Cleared:
+            default:
+                mismatch("cancellation without an admitted reason: " + describe(rec.id));
+                break;
         }
     }
 

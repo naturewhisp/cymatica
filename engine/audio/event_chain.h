@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -31,6 +32,10 @@ struct ChainReconcileInput {
     std::span<const EventIdentity> expectedIgnored;       // NoteOffs allowed to be Ignored (declared in advance)
     ChainPath path{ChainPath::Nominal};
     std::uint64_t faultCutFrame{0};                       // InjectedFault only
+    // Causal context of the cancellations (DIF-5a-01), declared by the Coordinator: the revocation boundary of
+    // the failed transition and the frame of the applied Stop that cleared the staging. Absent = not admitted.
+    std::optional<std::uint64_t> revokeBoundaryFrame{};
+    std::optional<std::uint64_t> stopClearFrame{};
     bool spscDrained{false};                              // SPSC queue verified empty in quiescence
 };
 
@@ -50,6 +55,11 @@ struct ChainReconcileResult {
 
 // Identity-based reconciliation (D-M2-12 points 2-7, precisions of 5a): E_exp = E_sent (+) E_canceled,
 // E_sent = E_cons after the SPSC drain, dispositions admitted per path. Counter equality alone never passes.
+// Every cancellation must be causally possible (DIF-5a-01):
+//   Revoked       - contextFrame == revokeBoundaryFrame, event frame >= boundary, and a NoteOff only together
+//                   with the revocation of its own NoteOn (revokeFromFrame preserves the NoteOffs of sent notes);
+//   ClearedAtStop - contextFrame == stopClearFrame and event frame >= that frame (nothing due before the Stop);
+//   any other reason (None, Cleared) fails.
 [[nodiscard]] ChainReconcileResult reconcileEventChain(const ChainReconcileInput& in);
 
 } // namespace cymatica::audio

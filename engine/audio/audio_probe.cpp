@@ -2052,7 +2052,8 @@ public:
                     tracesAtStop_ = planner_.decisionTraces();
                     noteOffsAtStop_ = planner_.plannedNoteOffs();
                     droppedAtStopAck_ = engine.droppedScheduledEvents();
-                    scheduler_.clear();
+                    scheduler_.clearAtStop(ack.sampleFrame);
+                    stopClearFrame_ = ack.sampleFrame;
                     planner_.reset(kFixtureSeed);
                     state_ = State::Stopped;
                 }
@@ -2091,6 +2092,13 @@ public:
         std::uint64_t cut = failureBlockStartFrame_;
         if (boundaryBlockSeen_[failedTransition_]) cut = (std::min)(cut, boundaryBlockStartFrame_[failedTransition_]);
         return cut;
+    }
+    // Causal context declared to the O3 reconciliation (DIF-5a-01): revocation boundary and applied-Stop frame
+    [[nodiscard]] std::optional<std::uint64_t> revokeBoundaryFrame() const noexcept {
+        return failed() ? std::optional<std::uint64_t>{tempoBoundary_[failedTransition_]} : std::nullopt;
+    }
+    [[nodiscard]] std::optional<std::uint64_t> stopClearFrame() const noexcept {
+        return stopped() ? std::optional<std::uint64_t>{stopClearFrame_} : std::nullopt;
     }
     [[nodiscard]] const std::vector<std::vector<MusicIntentEvent>>& jitIntents() const noexcept { return jitIntents_; }
     [[nodiscard]] const SchedulerEventLog& schedulerLog() const noexcept { return schedulerLog_; }
@@ -2187,6 +2195,7 @@ private:
     std::vector<PlannedNoteOff> noteOffsAtStop_{};
     std::vector<std::vector<MusicIntentEvent>> jitIntents_{};
     SchedulerEventLog schedulerLog_{kEventChainLogCapacity};
+    std::uint64_t stopClearFrame_{0};
 };
 
 std::string cpuBrandString() {
@@ -2640,6 +2649,8 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
             .expectedIgnored = {}, // fixture v1: no NoteOff is expected to be ignored
             .path = coordinator.failed() ? ChainPath::InjectedFault : ChainPath::Nominal,
             .faultCutFrame = coordinator.faultCutFrame(),
+            .revokeBoundaryFrame = coordinator.revokeBoundaryFrame(),
+            .stopClearFrame = coordinator.stopClearFrame(),
             .spscDrained = result.chainSpscDrained,
         });
         result.chainExpectedEvents = chain.expected;

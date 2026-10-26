@@ -132,6 +132,20 @@ TEST_CASE("Content fingerprint: special values, role filter and real planner det
     CHECK_FALSE(bad.valid);
     CHECK_FALSE(bad.error.empty());
 
+    // Finite values outside the int32 range of the quantized field are rejected, not converted (DIF-5a-03)
+    PadPlan huge = padPlan(96000, 144000);
+    huge.intents[0][0].velocity = 3.0e9f;
+    CHECK_FALSE(musicalContentFingerprint(huge.intents, huge.noteOffs).valid);
+    huge.intents[0][0].velocity = 0.8f;
+    huge.intents[0][1].timbreParam = -3.0e9f;
+    CHECK_FALSE(musicalContentFingerprint(huge.intents, huge.noteOffs).valid);
+    huge.intents[0][1].timbreParam = 2.2e6f; // x1000 = 2.2e9 > INT32_MAX
+    CHECK_FALSE(musicalContentFingerprint(huge.intents, huge.noteOffs).valid);
+    huge.intents[0][1].timbreParam = 2.0e6f; // x1000 = 2.0e9, representable
+    CHECK(musicalContentFingerprint(huge.intents, huge.noteOffs).valid);
+    huge.intents[0][2].pitchHz = std::numeric_limits<float>::max(); // log2 keeps the cents in range
+    CHECK(musicalContentFingerprint(huge.intents, huge.noteOffs).valid);
+
     const Plan zeroPitch{{note(1, 0, MusicRole::Pulso, 0.0f, 100)}};
     CHECK(musicalContentFingerprint(zeroPitch, {}).valid);
     const Plan negZero{{note(1, 0, MusicRole::Pulso, 55.0f, 100)}};
@@ -277,30 +291,45 @@ TEST_CASE("O3 reconciliation rejects losses even when observed counters agree (D
 }
 
 TEST_CASE("O3 reconciliation on the injected-fault path (D-M2-12 point 7, DIF-5.0-R2-01)", "[event_chain][o3_reconcile]") {
-    const PadPlan p = padPlan(96000, 144000);
-    const auto expected = expectedAudioEvents(p.intents, p.noteOffs);
-    constexpr std::uint64_t kCut = 50000;
+    // Failure at the boundary 50000, emergency Stop applied at 52000
+    constexpr std::uint64_t kBoundary = 50000;
+    constexpr std::uint64_t kStop = 52000;
+    const Plan intents{{note(10, 0, MusicRole::Corpo, 220.0f, 0), note(11, 0, MusicRole::Corpo, 330.0f, 0),
+                        note(20, 60000, MusicRole::Vettore, 440.0f, 2400)}};
+    const std::vector<PlannedNoteOff> offs{
+        {.eventId = 10, .role = MusicRole::Corpo, .sampleFrame = 51000, .transportEpoch = 1},   // sent, then invalidated
+        {.eventId = 11, .role = MusicRole::Corpo, .sampleFrame = 144000, .transportEpoch = 1}}; // preserved, cleared at Stop
+    const auto expected = expectedAudioEvents(intents, offs);
+    REQUIRE(expected.size() == 6);
 
-    // Two explicit releases: one revoked before being sent, one committed and invalidated by the Stop
     std::vector<SchedulerEventRecord> sched;
     std::vector<AppliedEventRecord> applied;
     for (const auto& id : expected) {
-        if (id.type == AudioEventType::NoteOff && id.eventId == 10) {
-            sched.push_back({.id = id, .kind = SchedulerEventKind::Canceled, .reason = EventCancelReason::Revoked});
+        if (id.eventId == 20) { // NoteOn and derived NoteOff after the boundary: revoked before being sent
+            sched.push_back({.id = id, .kind = SchedulerEventKind::Canceled, .reason = EventCancelReason::Revoked,
+                             .contextFrame = kBoundary});
         } else if (id.type == AudioEventType::NoteOff && id.eventId == 11) {
+            sched.push_back({.id = id, .kind = SchedulerEventKind::Canceled, .reason = EventCancelReason::ClearedAtStop,
+                             .contextFrame = kStop});
+        } else if (id.type == AudioEventType::NoteOff && id.eventId == 10) {
             sched.push_back({.id = id, .kind = SchedulerEventKind::Sent});
-            applied.push_back({.id = id, .consumedFrame = kCut + 400, .disposition = EventDisposition::Dropped,
+            applied.push_back({.id = id, .consumedFrame = kStop, .disposition = EventDisposition::Dropped,
                                .reason = EventDropReason::StopDrain});
         } else {
             sched.push_back({.id = id, .kind = SchedulerEventKind::Sent});
             applied.push_back({.id = id, .consumedFrame = id.sampleFrame, .disposition = EventDisposition::Applied, .slot = 0});
         }
     }
+    auto run = [&](const std::vector<SchedulerEventRecord>& s, const std::vector<AppliedEventRecord>& a) {
+        return reconcileEventChain({.expected = expected, .schedulerLog = s, .appliedLog = a,
+                                    .path = ChainPath::InjectedFault, .faultCutFrame = kBoundary,
+                                    .revokeBoundaryFrame = kBoundary, .stopClearFrame = kStop, .spscDrained = true});
+    };
 
-    const auto r = reconcile(expected, sched, applied, ChainPath::InjectedFault, kCut);
+    const auto r = run(sched, applied);
     INFO(r.firstMismatch);
     CHECK(r.passed);
-    CHECK(r.canceled == 1);
+    CHECK(r.canceled == 3);
     CHECK(r.dropped == 1);
     CHECK(r.sent + r.canceled == r.expected);
     CHECK(r.consumed == r.sent);
@@ -309,26 +338,126 @@ TEST_CASE("O3 reconciliation on the injected-fault path (D-M2-12 point 7, DIF-5.
         auto a = applied;
         for (const auto& rec : sched) {
             if (rec.kind == SchedulerEventKind::Canceled) {
-                a.push_back({.id = rec.id, .consumedFrame = kCut, .disposition = EventDisposition::Dropped,
+                a.push_back({.id = rec.id, .consumedFrame = kStop, .disposition = EventDisposition::Dropped,
                              .reason = EventDropReason::StopDrain});
             }
         }
-        CHECK_FALSE(reconcile(expected, sched, a, ChainPath::InjectedFault, kCut).passed);
+        CHECK_FALSE(run(sched, a).passed);
     }
     SECTION("drop before the fault cut frame is an arbitrary loss") {
         auto a = applied;
-        for (auto& rec : a) if (rec.disposition == EventDisposition::Dropped) rec.consumedFrame = kCut - 1;
-        CHECK_FALSE(reconcile(expected, sched, a, ChainPath::InjectedFault, kCut).passed);
+        for (auto& rec : a) if (rec.disposition == EventDisposition::Dropped) rec.consumedFrame = kBoundary - 1;
+        CHECK_FALSE(run(sched, a).passed);
     }
     SECTION("drop without an admitted reason") {
         auto a = applied;
         for (auto& rec : a) if (rec.disposition == EventDisposition::Dropped) rec.reason = EventDropReason::None;
-        CHECK_FALSE(reconcile(expected, sched, a, ChainPath::InjectedFault, kCut).passed);
+        CHECK_FALSE(run(sched, a).passed);
     }
-    SECTION("cancellation without an admitted reason") {
-        auto s = sched;
-        for (auto& rec : s) if (rec.kind == SchedulerEventKind::Canceled) rec.reason = EventCancelReason::None;
-        CHECK_FALSE(reconcile(expected, s, applied, ChainPath::InjectedFault, kCut).passed);
+}
+
+TEST_CASE("O3 reconciliation rejects causally impossible cancellations (DIF-5a-01)", "[event_chain][o3_reconcile]") {
+    constexpr std::uint64_t kBoundary = 10000;
+    constexpr std::uint64_t kStop = 12000;
+    // A NoteOn at frame 100 (long before the failure), a note after the boundary, an open pad released late
+    const Plan intents{{note(1, 100, MusicRole::Pulso, 55.0f, 1200), note(2, 20000, MusicRole::Vettore, 440.0f, 2400),
+                        note(3, 100, MusicRole::Corpo, 220.0f, 0)}};
+    const std::vector<PlannedNoteOff> offs{{.eventId = 3, .role = MusicRole::Corpo, .sampleFrame = 60000, .transportEpoch = 1}};
+    const auto expected = expectedAudioEvents(intents, offs);
+
+    auto canceled = [](const EventIdentity& id, EventCancelReason reason, std::uint64_t ctx) {
+        return SchedulerEventRecord{.id = id, .kind = SchedulerEventKind::Canceled, .reason = reason, .contextFrame = ctx};
+    };
+    auto find = [&](std::uint64_t eventId, AudioEventType type) {
+        EventIdentity found{.eventId = 0};
+        for (const auto& id : expected) {
+            if (id.eventId == eventId && id.type == type) { found = id; break; }
+        }
+        return found;
+    };
+    const EventIdentity on1 = find(1, AudioEventType::NoteOn);
+    const EventIdentity off1 = find(1, AudioEventType::NoteOff);
+    const EventIdentity on2 = find(2, AudioEventType::NoteOn);
+    const EventIdentity off2 = find(2, AudioEventType::NoteOff);
+    const EventIdentity on3 = find(3, AudioEventType::NoteOn);
+    const EventIdentity off3 = find(3, AudioEventType::NoteOff);
+    REQUIRE((on1.eventId == 1 && off1.eventId == 1 && on2.eventId == 2 && off2.eventId == 2 && on3.eventId == 3 && off3.eventId == 3));
+
+    auto run = [&](const std::vector<SchedulerEventRecord>& s, const std::vector<AppliedEventRecord>& a,
+                   std::optional<std::uint64_t> boundary = 10000ULL, std::optional<std::uint64_t> stop = 12000ULL) {
+        return reconcileEventChain({.expected = expected, .schedulerLog = s, .appliedLog = a,
+                                    .path = ChainPath::InjectedFault, .faultCutFrame = kBoundary,
+                                    .revokeBoundaryFrame = boundary, .stopClearFrame = stop, .spscDrained = true});
+    };
+    auto applied = [](const EventIdentity& id) {
+        return AppliedEventRecord{.id = id, .consumedFrame = id.sampleFrame, .disposition = EventDisposition::Applied, .slot = 0};
+    };
+    auto sent = [](const EventIdentity& id) { return SchedulerEventRecord{.id = id, .kind = SchedulerEventKind::Sent}; };
+
+    // Admissible baseline: note 1 and pad 3 sent and applied, note 2 revoked at the boundary, pad release cleared at Stop
+    const std::vector<SchedulerEventRecord> okSched{sent(on1), sent(off1), sent(on3),
+                                                    canceled(on2, EventCancelReason::Revoked, kBoundary),
+                                                    canceled(off2, EventCancelReason::Revoked, kBoundary),
+                                                    canceled(off3, EventCancelReason::ClearedAtStop, kStop)};
+    const std::vector<AppliedEventRecord> okApplied{applied(on1), applied(off1), applied(on3)};
+    {
+        const auto r = run(okSched, okApplied);
+        INFO(r.firstMismatch);
+        CHECK(r.passed);
+    }
+
+    SECTION("NoteOn at frame 100 revoked for a failure at 10000 (review counterexample)") {
+        const std::vector<SchedulerEventRecord> s{canceled(on1, EventCancelReason::Revoked, kBoundary),
+                                                  canceled(off1, EventCancelReason::Revoked, kBoundary), sent(on3),
+                                                  canceled(on2, EventCancelReason::Revoked, kBoundary),
+                                                  canceled(off2, EventCancelReason::Revoked, kBoundary),
+                                                  canceled(off3, EventCancelReason::ClearedAtStop, kStop)};
+        CHECK_FALSE(run(s, {applied(on3)}).passed);
+    }
+    SECTION("revocation at a boundary other than the failed one") {
+        auto s = okSched;
+        s[3].contextFrame = kBoundary + 400;
+        s[4].contextFrame = kBoundary + 400;
+        CHECK_FALSE(run(s, okApplied).passed);
+    }
+    SECTION("revocation without a declared failure boundary") {
+        CHECK_FALSE(run(okSched, okApplied, std::nullopt).passed);
+    }
+    SECTION("NoteOff of a sent note revoked instead of preserved") {
+        auto s = okSched;
+        s[5] = canceled(off3, EventCancelReason::Revoked, kBoundary);
+        CHECK_FALSE(run(s, okApplied).passed);
+    }
+    SECTION("NoteOff revoked alone while its NoteOn after the boundary was sent") {
+        auto s = okSched;
+        s[3] = sent(on2);
+        auto a = okApplied;
+        a.push_back({.id = on2, .consumedFrame = kStop, .disposition = EventDisposition::Dropped,
+                     .reason = EventDropReason::StopDrain});
+        CHECK_FALSE(run(s, a).passed);
+    }
+    SECTION("clear at Stop with the wrong reason, context or timing") {
+        auto plainClear = okSched;
+        plainClear[5] = canceled(off3, EventCancelReason::Cleared, 0);
+        CHECK_FALSE(run(plainClear, okApplied).passed);
+
+        auto wrongFrame = okSched;
+        wrongFrame[5].contextFrame = kStop + 400;
+        CHECK_FALSE(run(wrongFrame, okApplied).passed);
+
+        CHECK_FALSE(run(okSched, okApplied, kBoundary, std::nullopt).passed);
+
+        // An event due before the Stop that was cleared instead of sent
+        auto early = okSched;
+        early[1] = canceled(off1, EventCancelReason::ClearedAtStop, kStop);
+        CHECK_FALSE(run(early, {applied(on1), applied(on3)}).passed);
+    }
+    SECTION("unknown reason") {
+        auto s = okSched;
+        s[5].reason = static_cast<EventCancelReason>(42);
+        CHECK_FALSE(run(s, okApplied).passed);
+        s[5].reason = EventCancelReason::None;
+        CHECK_FALSE(run(s, okApplied).passed);
     }
 }
 
@@ -357,8 +486,8 @@ TEST_CASE("Scheduler log: a NoteOff preserved by the revocation and cleared at S
     // Failure at frame 10000: the later note and its NoteOff are revoked, the pad NoteOff is preserved
     CHECK(scheduler.revokeFromFrame(10000) == 2);
     CHECK(scheduler.stagedEventCount() == 1);
-    // Stop before the preserved NoteOff is dispatched
-    scheduler.clear();
+    // Stop applied at 12000 before the preserved NoteOff is dispatched
+    scheduler.clearAtStop(12000);
 
     REQUIRE(engine.scheduledEventQueueEmpty());
     REQUIRE(engine.setAppliedEventLog(nullptr));
@@ -367,9 +496,13 @@ TEST_CASE("Scheduler log: a NoteOff preserved by the revocation and cleared at S
     std::size_t cleared = 0;
     for (const auto& rec : schedLog.records()) {
         if (rec.kind != SchedulerEventKind::Canceled) continue;
-        if (rec.reason == EventCancelReason::Revoked) ++revoked;
+        if (rec.reason == EventCancelReason::Revoked) {
+            ++revoked;
+            CHECK(rec.contextFrame == 10000);
+        }
         if (rec.reason == EventCancelReason::ClearedAtStop) {
             ++cleared;
+            CHECK(rec.contextFrame == 12000);
             CHECK(rec.id.type == AudioEventType::NoteOff);
             CHECK(rec.id.eventId == 1);
         }
@@ -385,17 +518,32 @@ TEST_CASE("Scheduler log: a NoteOff preserved by the revocation and cleared at S
     const auto expected = expectedAudioEvents(plan, offs);
     std::vector<SchedulerEventRecord> sched(schedLog.records().begin(), schedLog.records().end());
     std::vector<AppliedEventRecord> applied(appliedLog.records().begin(), appliedLog.records().end());
+    auto run = [&](const std::vector<SchedulerEventRecord>& s) {
+        return reconcileEventChain({.expected = expected, .schedulerLog = s, .appliedLog = applied,
+                                    .path = ChainPath::InjectedFault, .faultCutFrame = 10000,
+                                    .revokeBoundaryFrame = 10000ULL, .stopClearFrame = 12000ULL, .spscDrained = true});
+    };
 
-    const auto r = reconcile(expected, sched, applied, ChainPath::InjectedFault, 10000);
+    const auto r = run(sched);
     INFO(r.firstMismatch);
     CHECK(r.passed);
     CHECK(r.canceled == 3);
 
     // Classifying the preserved NoteOff as sent (it never reached the SPSC) must fail
-    for (auto& rec : sched) {
+    auto relabeled = sched;
+    for (auto& rec : relabeled) {
         if (rec.reason == EventCancelReason::ClearedAtStop) { rec.kind = SchedulerEventKind::Sent; rec.reason = EventCancelReason::None; }
     }
-    CHECK_FALSE(reconcile(expected, sched, applied, ChainPath::InjectedFault, 10000).passed);
+    CHECK_FALSE(run(relabeled).passed);
+
+    // A plain clear() without the Stop context is logged as Cleared and never admitted
+    AudioScheduler other({.lookaheadFrames = 7200});
+    SchedulerEventLog otherLog(8);
+    other.setEventLog(&otherLog);
+    other.scheduleNoteOff(1, MusicRole::Corpo, 60000, 1);
+    other.clear();
+    REQUIRE(otherLog.size() == 1);
+    CHECK(otherLog.records()[0].reason == EventCancelReason::Cleared);
 }
 
 TEST_CASE("Applied-event log: dispositions, drop reasons, overflow and quiescence (D-M2-12)", "[event_chain][applied_log]") {

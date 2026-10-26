@@ -64,7 +64,7 @@ Il registro completo è nel [progress](../progress.md#revisione-del-piano-inc-5-
      - velocity e `timbreParam` → `round(x·1000)`.
    - *Ordine canonico:* ordinamento lessicografico totale dei record di nota su (`sampleFrame`, ruolo, altezza quantizzata, velocity quantizzata, timbro quantizzato, `durationFrames`, rilasci espliciti), seguito dai rilasci orfani ordinati per (frame, ruolo). È indipendente dall'ordine di emissione e dagli `eventId`. Due note identiche in tutti i campi sono indistinguibili anche musicalmente, quindi il loro ordine relativo non conta.
    - *Esclusioni:* seed, `eventId`, `tick`, epoch, `decisionId`, candidati, punteggi, tie-break e ogni altro metadato che può variare senza cambiare la musica.
-   - *Valori speciali:* un'altezza 0 o non applicabile usa una sentinella esplicita; lo zero negativo vale 0; un valore non finito è un errore e non produce fingerprint (come nella canonicalizzazione di RFC 8785).
+   - *Valori speciali:* un'altezza 0 o non applicabile usa una sentinella esplicita; lo zero negativo vale 0; un valore non finito è un errore e non produce fingerprint (come nella canonicalizzazione di RFC 8785). Lo stesso vale per un valore finito il cui arrotondamento non è rappresentabile nel campo intero (DIF-5a-03): non si converte mai fuori dominio.
    - *Serializzazione* (codifica deterministica non ambigua, precisata dopo la review del 2026-10-26). Tutti gli interi sono little-endian a larghezza fissa e ogni lista è preceduta dalla propria lunghezza:
      1. intestazione: versione del formato (`u32`), sample rate (`u32`), numero di note (`u64`), numero di rilasci orfani (`u64`);
      2. per ogni nota, in ordine canonico: ruolo (`u8`), `sampleFrame` (`u64`), altezza (`i32`), velocity (`i32`), timbro (`i32`), `durationFrames` (`u32`), numero di rilasci espliciti (`u32`), poi i frame dei rilasci espliciti in ordine crescente (`u64` ciascuno);
@@ -119,7 +119,14 @@ Le uguaglianze dei conteggi sono solo una conseguenza; non sostituiscono il conf
 | Ragione | Operazione nel codice (alla data) |
 |---|---|
 | `Revoked` | `AudioScheduler::revokeFromFrame`: NoteOn con frame ≥ confine, NoteOff delle note revocate, eventi non di nota oltre il confine |
-| `ClearedAtStop` | `AudioScheduler::clear` sullo `Stop` del Coordinator |
+| `ClearedAtStop` | `AudioScheduler::clearAtStop(stopFrame)` sullo `Stop` applicato del Coordinator |
+| `Cleared` | `AudioScheduler::clear()` senza contesto di `Stop`: registrato, ma mai ammesso dalla riconciliazione |
+
+**Validazione causale delle cancellazioni** (DIF-5a-01, review di 5a del 2026-10-26). Ogni record di cancellazione porta il proprio contesto (`contextFrame`): il confine della revoca, oppure il frame dello `Stop` applicato. Il Coordinator dichiara alla riconciliazione il confine della transizione fallita e il frame dello `Stop` che ha svuotato lo staging. Una ragione diversa da `None` non basta: la cancellazione deve essere causalmente possibile.
+
+- **`Revoked`:** contesto uguale al confine dichiarato; frame dell'evento non anteriore al confine; un NoteOff solo insieme alla revoca del proprio NoteOn. `revokeFromFrame` conserva i NoteOff delle note già inviate: revocarne uno è un errore.
+- **`ClearedAtStop`:** contesto uguale al frame dello `Stop` dichiarato, e frame dell'evento non anteriore allo `Stop`. Un evento già dovuto prima dello `Stop` doveva essere inviato, non cancellato.
+- **`None`, `Cleared` o ragioni sconosciute:** FAIL. Lo stesso vale per una cancellazione senza contesto dichiarato.
 
 Il sink è opzionale, come per gli eventi applicati, e l'overflow rende la catena FAIL. Lo stesso registro annota gli invii riusciti, quindi `E_sent` non dipende dal solo contatore `totalDispatched`.
 

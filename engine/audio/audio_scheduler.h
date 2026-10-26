@@ -65,6 +65,9 @@ public:
     void setLookaheadFrames(std::uint64_t frames) noexcept;
 
     void clear() noexcept;
+    // Clears the staging on an applied Stop: logged as ClearedAtStop with the Stop frame as causal context
+    // (ADR-0006 D-M2-12, DIF-5a-01). A plain clear() is logged as Cleared, which O3 never admits.
+    void clearAtStop(std::uint64_t stopFrame) noexcept;
     void resetDiagnosticCounters() noexcept;
 
     // O3 scheduler log (ADR-0006 D-M2-12): one record per event sent to the engine SPSC (Sent) or removed from
@@ -80,11 +83,14 @@ private:
     std::uint64_t backpressureDrops_{0};
     SchedulerEventLog* eventLog_{nullptr};
 
-    void logEvent(const ScheduledAudioEvent& e, SchedulerEventKind kind, EventCancelReason reason) noexcept {
+    void logEvent(const ScheduledAudioEvent& e, SchedulerEventKind kind, EventCancelReason reason,
+                  std::uint64_t contextFrame = 0) noexcept {
         if (eventLog_ != nullptr) {
-            eventLog_->push(SchedulerEventRecord{.id = EventIdentity::of(e), .kind = kind, .reason = reason});
+            eventLog_->push(SchedulerEventRecord{.id = EventIdentity::of(e), .kind = kind, .reason = reason,
+                                                 .contextFrame = contextFrame});
         }
     }
+    void clearWithReason(EventCancelReason reason, std::uint64_t contextFrame) noexcept;
 };
 
 } // namespace cymatica::audio

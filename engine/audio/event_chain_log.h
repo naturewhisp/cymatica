@@ -55,14 +55,17 @@ enum class SchedulerEventKind : std::uint8_t {
 
 enum class EventCancelReason : std::uint8_t {
     None          = 0,
-    Revoked       = 1, // AudioScheduler::revokeFromFrame
-    ClearedAtStop = 2  // AudioScheduler::clear on the Coordinator Stop
+    Revoked       = 1, // AudioScheduler::revokeFromFrame(boundary): contextFrame = boundary
+    ClearedAtStop = 2, // AudioScheduler::clearAtStop(stopFrame) on an applied Stop: contextFrame = stop frame
+    Cleared       = 3  // AudioScheduler::clear() without a Stop context: never admitted by the O3 reconciliation
 };
 
 struct SchedulerEventRecord {
     EventIdentity id{};
     SchedulerEventKind kind{SchedulerEventKind::Sent};
     EventCancelReason reason{EventCancelReason::None};
+    // Causal context of a cancellation (DIF-5a-01): revocation boundary, or frame of the applied Stop
+    std::uint64_t contextFrame{0};
 };
 
 // Fixed-capacity record log. Storage is allocated once by the owner, outside the realtime path; push() never

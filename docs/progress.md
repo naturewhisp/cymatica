@@ -3,13 +3,13 @@
 Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa resta nella specifica (§32); questo file registra solo stato, decisioni ed evidenze.
 
 
-> **Stato M2.4 (2026-10-21):** Inc-1..Inc-4 implementati, committati su `main` fino a [`b0f466f`](https://github.com/naturewhisp/cymatica/commit/b0f466f) e verificati in CI ([run 39674430446](https://github.com/naturewhisp/cymatica/actions/runs/39674430446), Release e Debug PASS). La revisione post-Inc-4 interna (R2, rilievi DIF-INC4-R2-01..07) è chiusa: vedi [«Revisione post-Inc-4»](#revisione-post-inc-4-2026-10-21). Una revisione esterna successiva (R3, 2026-10-21) ha aperto 5 rilievi: R3-01 (opzione B del titolare, arresto terminale fail-closed), R3-02, R3-03 e R3-04 sono corretti nel commit `b0f466f`, con CI verde; per R3-05 la scadenza proposta è M2.5. Due precisazioni residue non bloccanti sono registrate nella stessa sezione: l'hash del piano JIT è assegnato a Inc-5, lo stato del registro è aggiornato. Vedi [«Revisione esterna R3»](#revisione-esterna-r3-post-inc-4-2026-10-21). Le decisioni di [ADR-0005](adr/0005-m2-4-inc4-entry-decisions.md) restano `accepted for implementation` e la ratifica del titolare è richiesta prima della chiusura di M2.4. Le raccomandazioni R1–R6 del dossier sui metodi CACP sono approvate per Inc-5. **Inc-5 è avviato a fasi (2026-10-26):** la fase 5.0, decisioni d'ingresso in [ADR-0006](adr/0006-m2-4-inc5-entry-decisions.md), è chiusa con review OK su `1d39e88`; la fase 5a (catena O3, hash JIT, fingerprint del contenuto) è chiusa con review OK e committata; 5b non è autorizzata. Vedi [«M2.4 Inc-5 — piano a fasi»](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26). Questa riga e la tabella «Stato corrente» sono l'unico record dello stato; le sezioni successive sono registri storici e alcune affermazioni sono corrette da errata espliciti.
+> **Stato M2.4 (2026-10-21):** Inc-1..Inc-4 implementati, committati su `main` fino a [`b0f466f`](https://github.com/naturewhisp/cymatica/commit/b0f466f) e verificati in CI ([run 39674430446](https://github.com/naturewhisp/cymatica/actions/runs/39674430446), Release e Debug PASS). La revisione post-Inc-4 interna (R2, rilievi DIF-INC4-R2-01..07) è chiusa: vedi [«Revisione post-Inc-4»](#revisione-post-inc-4-2026-10-21). Una revisione esterna successiva (R3, 2026-10-21) ha aperto 5 rilievi: R3-01 (opzione B del titolare, arresto terminale fail-closed), R3-02, R3-03 e R3-04 sono corretti nel commit `b0f466f`, con CI verde; per R3-05 la scadenza proposta è M2.5. Due precisazioni residue non bloccanti sono registrate nella stessa sezione: l'hash del piano JIT è assegnato a Inc-5, lo stato del registro è aggiornato. Vedi [«Revisione esterna R3»](#revisione-esterna-r3-post-inc-4-2026-10-21). Le decisioni di [ADR-0005](adr/0005-m2-4-inc4-entry-decisions.md) restano `accepted for implementation` e la ratifica del titolare è richiesta prima della chiusura di M2.4. Le raccomandazioni R1–R6 del dossier sui metodi CACP sono approvate per Inc-5. **Inc-5 è avviato a fasi (2026-10-26):** la fase 5.0, decisioni d'ingresso in [ADR-0006](adr/0006-m2-4-inc5-entry-decisions.md), è chiusa con review OK su `1d39e88`; la fase 5a (catena O3, hash JIT, fingerprint del contenuto) è committata in `8f3dfab`, con review indipendente NON OK (DIF-5a-01..03); la micro-remediation è committata e la review mirata è OK (titolare, 2026-10-26): 5a è chiusa; 5b non è autorizzata. Vedi [«M2.4 Inc-5 — piano a fasi»](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26). Questa riga e la tabella «Stato corrente» sono l'unico record dello stato; le sezioni successive sono registri storici e alcune affermazioni sono corrette da errata espliciti.
 
 ## Stato corrente
 
 | Campo | Valore |
 |---|---|
-| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse; **M2.4: Inc-1..Inc-4 implementati e committati (CI verde su `8ba772e`); remediation R2 chiusa; revisione esterna R3 con R3-01..04 corretti in `b0f466f` (CI verde), R3-05 proposto per M2.5** ([Revisione esterna R3](#revisione-esterna-r3-post-inc-4-2026-10-21)); Inc-5 avviato a fasi: 5.0 chiusa (review OK su `1d39e88`), 5a chiusa (review OK), 5b non autorizzata ([piano a fasi](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26)); M2.5 gate d'integrazione finale. M2 complessiva non conclusa. |
+| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse; **M2.4: Inc-1..Inc-4 implementati e committati (CI verde su `8ba772e`); remediation R2 chiusa; revisione esterna R3 con R3-01..04 corretti in `b0f466f` (CI verde), R3-05 proposto per M2.5** ([Revisione esterna R3](#revisione-esterna-r3-post-inc-4-2026-10-21)); Inc-5 avviato a fasi: 5.0 chiusa (review OK su `1d39e88`), 5a chiusa dopo micro-remediation (review mirata OK), 5b non autorizzata ([piano a fasi](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26)); M2.5 gate d'integrazione finale. M2 complessiva non conclusa. |
 | Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
 | Stato M1 | **Completata: review indipendente OK, zero difetti residui, gate round 3 passati** |
 | Specifica | Versione **0.8.3**, roadmap §32 invariata; ADR-0003, ADR-0004 (emendamento §4.3 del 2026-10-20) e ADR-0005 (ingresso Inc-4) specificano i contratti di M2.4 senza modificare i requisiti di milestone. |
@@ -18,7 +18,7 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 | Ultima CI Headless verificata | [`b0f466f`](https://github.com/naturewhisp/cymatica/commit/b0f466f): [GitHub Actions run 39674430446](https://github.com/naturewhisp/cymatica/actions/runs/39674430446) «Windows CI», job Release (windows-2025) e Debug (windows-2025) `success`, verificato con `gh run view` il 2026-10-21. Precedente: `8ba772e`, [run 39671112436](https://github.com/naturewhisp/cymatica/actions/runs/39671112436); il dettaglio dei suoi log (140/140 headless per configurazione, CACP `tone_test` PASS) viene dalla revisione esterna R3. La CI esclude i test `perf`, valutati sulle misure locali archiviate. Non sostituisce collaudo hardware o giudizio artistico. |
 | Integrazione documentale M2.4 | Contratti D-M2-04..07 (ADR-0003); AUD-D-01..04 ed emendamento §4.3 (ADR-0004); D-M2-08..11 d'ingresso Inc-4 (ADR-0005); D-M2-12..16 d'ingresso Inc-5 (ADR-0006, in review); tutti `accepted for implementation`; nessun profilo sperimentale `validated`. |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_core` (static lib), `cymatica_replay` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
-| Ultimo aggiornamento | 2026-10-26 (Inc-5: 5.0 e 5a chiuse con review OK; 5a 151/151 Release e Debug headless; 5b non autorizzata). Precedente, stesso giorno (Inc-5 fase 5.0: ADR-0006 con D-M2-12..16, piano a fasi con review obbligatoria, registro INC5-REV-01..05; non committato). Precedente: 2026-10-21 (micro-remediation R3 committata in `b0f466f` con CI verde: R3-01 arresto sicuro fail-closed (D-INC4-R3-01), R3-02 contabilità eventi, R3-03 hash canonico condiviso, R3-04 stato documentale; R3-05 proposto per M2.5; hash del piano JIT assegnato a Inc-5) |
+| Ultimo aggiornamento | 2026-10-26 (Inc-5: 5.0 chiusa con review OK; 5a in `8f3dfab`, review NON OK, micro-remediation DIF-5a-01..03 con 152/152 Release e Debug headless, review mirata OK: 5a chiusa; 5b non autorizzata). Precedente, stesso giorno (Inc-5 fase 5.0: ADR-0006 con D-M2-12..16, piano a fasi con review obbligatoria, registro INC5-REV-01..05; non committato). Precedente: 2026-10-21 (micro-remediation R3 committata in `b0f466f` con CI verde: R3-01 arresto sicuro fail-closed (D-INC4-R3-01), R3-02 contabilità eventi, R3-03 hash canonico condiviso, R3-04 stato documentale; R3-05 proposto per M2.5; hash del piano JIT assegnato a Inc-5) |
 
 ## Decisioni d'ingresso M0
 
@@ -855,7 +855,7 @@ L'ordine 5a → 5b → 5c → 5d → 5e è invariato. Inc-5 non introduce nuove 
 | Fase | Oggetto della review | Condizione per procedere | Stato |
 |---|---|---|---|
 | 5.0 | ADR-0006, decisioni D-M2-12..16, confini realtime/offline, definizioni delle metriche | decisioni coerenti e documentate; review OK | **chiusa**: review OK il 2026-10-26 su [`1d39e88`](https://github.com/naturewhisp/cymatica/commit/1d39e881ea3858161ca78cc47845503d69e54ef4), dopo tre cicli di correzione (`431b03f`, `1624142`, `a235997`, `1d39e88`) |
-| 5a | registro degli eventi applicati, confronto JIT/offline, catena O3, fault injection, overflow, profilazione | eventi verificati esattamente; nessun difetto di concorrenza o regressione | autorizzata il 2026-10-26; **chiusa**: review OK il 2026-10-26, committata su `main` nel commit successivo a `1d39e88` |
+| 5a | registro degli eventi applicati, confronto JIT/offline, catena O3, fault injection, overflow, profilazione | eventi verificati esattamente; nessun difetto di concorrenza o regressione | autorizzata il 2026-10-26; implementata e committata in [`8f3dfab`](https://github.com/naturewhisp/cymatica/commit/8f3dfab4a165add6ac78bbf7b5a694a44bdc9f29); review indipendente **NON OK** (DIF-5a-01..03); micro-remediation committata nel commit successivo; **chiusa**: review mirata OK comunicata dal titolare il 2026-10-26 («Review mirata di 5a OK») |
 | 5b | FFT/STFT, onset, mel, SHA-256, PNG, Side/Mid, LUFS | test contro oracoli indipendenti e vettori di riferimento; parità numerica documentata | non autorizzata |
 | 5c | stem per ruolo, ricostruzione del mix dei bus, calibrazione e verifica AC-AO-02 | risultati misurati, soglie proposte, generalizzazione dimostrata oppure esplicitamente inconcludente | non autorizzata |
 | 5d | evaluation pack, controllo degli hash, separazione della ground truth, checker delle affermazioni | nessun leakage; test positivi e negativi del checker superati | non autorizzata |
@@ -941,7 +941,7 @@ Il dossier è [M2_4_Inc5_Entry_Research.md](research/M2_4_Inc5_Entry_Research.md
 
 ### Fase 5a — catena O3, hash JIT e fingerprint del contenuto (2026-10-26, chiusa)
 
-La review di chiusura di 5.0 (verdetto **OK**, 2026-10-26) ha autorizzato soltanto 5a, chiedendo di registrare in ADR-0006 le precisazioni operative. La review di 5a del titolare (2026-10-26) è **OK**: la fase è committata e chiusa. 5b non è autorizzata.
+La review di chiusura di 5.0 (verdetto **OK**, 2026-10-26) ha autorizzato soltanto 5a, chiedendo di registrare in ADR-0006 le precisazioni operative. La fase è implementata e committata in `8f3dfab`. Il titolare ha dato l'ok al commit («Review di 5a OK: committa e fermati prima di 5b»). La review indipendente successiva ha dato **NON OK** (DIF-5a-01..03, sotto). Dopo la micro-remediation la review mirata è **OK** (comunicata dal titolare il 2026-10-26): la fase è chiusa. 5b non è autorizzata.
 
 **Precisazioni registrate in [ADR-0006](adr/0006-m2-4-inc5-entry-decisions.md) D-M2-12:**
 
@@ -1002,3 +1002,45 @@ In D-M2-15 è registrata la nota per 5d su `exact_silence` e `below_numerical_fl
 
 - L'insieme degli `Ignored` attesi è vuoto per la fixture v1. Un futuro contenuto con furti di voce richiederà di dichiararlo, o di giustificarlo con un registro dei furti.
 - I manifest del percorso con guasto non sono prodotti dalla CLI: li coprono i test.
+
+#### Review indipendente di 5a (`8f3dfab`, 2026-10-26) e micro-remediation
+
+La review conferma i punti seguenti, verificati sul codice:
+
+- il registro del motore è preallocato;
+- lo scheduler non confonde il backpressure con una cancellazione;
+- il riconciliatore lavora sulle identità;
+- l'hash JIT deriva dagli intent emessi;
+- il fingerprint esclude la provenienza;
+- la prova dell'epoch vecchia è fuori dalla contabilizzazione.
+
+**Verdetto: NON OK**, con un difetto bloccante e due minori. La CI su `8f3dfab` ([run 40403746012](https://github.com/naturewhisp/cymatica/actions/runs/40403746012)) aveva il job Release `success` e il Debug ancora in esecuzione al momento della review; ricontrollata dall'agente con `gh run view` il 2026-10-26, è conclusa con `success` per entrambi i job.
+
+| ID | Sev. | Rilievo | Verifica dell'agente | Correzione |
+|---|---|---|---|---|
+| DIF-5a-01 | HIGH | Sul percorso con guasto la riconciliazione accettava qualunque cancellazione con ragione diversa da `None`, anche causalmente impossibile. Controesempio: un NoteOn al frame 100 dichiarato `Revoked` per un guasto a 10.000. | Confermato: `reconcileEventChain` controllava solo `reason != None`. | I record di cancellazione portano il contesto (confine della revoca o frame dello `Stop`). Il Coordinator dichiara il confine fallito e il frame dello `Stop` applicato. La riconciliazione verifica `Revoked` (confine, frame ≥ confine, NoteOff solo con il proprio NoteOn revocato) e `ClearedAtStop` (frame dello `Stop`, evento non già dovuto). `clear()` senza contesto registra `Cleared`, mai ammesso; lo `Stop` del Coordinator usa `clearAtStop(frame)`. Regole in ADR-0006 D-M2-12. |
+| DIF-5a-02 | MED | `progress.md` dichiarava 5a chiusa con review OK prima della review indipendente. | Confermato. La dichiarazione derivava dall'ok al commit del titolare, che non è il verdetto della review indipendente. | Stato corretto: 5a committata in `8f3dfab`, review NON OK, micro-remediation in review mirata. La chiusura si registrerà solo dopo il verdetto definitivo. Da qui il checkpoint torna prima del commit. |
+| DIF-5a-03 | LOW | `quantizeMilli` non verificava che l'arrotondamento fosse rappresentabile in `int32_t`. | Confermato. | `roundToInt32`: un valore finito fuori dall'intervallo `[INT32_MIN + 1, INT32_MAX]` produce un fingerprint non valido (`INT32_MIN` resta riservato alla sentinella dell'altezza). Si applica a velocity, timbro e centesimi. |
+
+**Nuovi test di falsificazione** ([test_event_chain.cpp](../tests/unit/test_event_chain.cpp), caso «rejects causally impossible cancellations»):
+
+- il controesempio della review: un NoteOn al frame 100 revocato per un guasto a 10.000;
+- una revoca a un confine diverso da quello fallito, oppure senza confine dichiarato;
+- il NoteOff di una nota inviata revocato invece di essere conservato;
+- un NoteOff revocato da solo mentre il suo NoteOn è stato inviato;
+- `Cleared` senza contesto, `ClearedAtStop` con frame sbagliato o senza `Stop` dichiarato, un evento già dovuto prima dello `Stop` cancellato;
+- ragioni `None` e sconosciuta.
+
+Il caso del percorso con guasto è riscritto con revoche e cancellazioni causalmente corrette. Il test dello scheduler reale verifica `contextFrame` di `Revoked` e `ClearedAtStop`, e che `clear()` registri `Cleared`. Il fingerprint rifiuta velocity 3·10⁹, timbro −3·10⁹ e 2,2·10⁶, mentre accetta 2,0·10⁶ e un'altezza al massimo del `float`.
+
+**Verifica della micro-remediation** (working tree su `8f3dfab`):
+
+| Check | Comando | Esito |
+|---|---|---|
+| Release + headless | `scripts/build.ps1 -Config Release -Test -Headless` | **152/152 PASS**, 0 `warning C`. Un C4702 nel test, emerso al primo tentativo, è stato corretto. |
+| Debug + headless | `scripts/build.ps1 -Config Debug -Test -Headless` | **152/152 PASS**, 0 `warning C` |
+| Benchmark Release | `ctest --test-dir build/x64-release -L perf` | **2/2 PASS** |
+| `fixture_test` (Release) | `cymatica_game --cacp-run fixture_test` | **PASS**: hash JIT = golden, fingerprint invariato (1197742024240268652), 2.784 eventi riconciliati, 0 cancellazioni, 0 discordanze; hash PCM 15126969907236845529 invariato |
+| Percorso con guasto reale | `[fixture_safe_stop]` (`LateTempoMap`, `InvalidTempoMap`) | Riconciliazione PASS con le nuove regole causali: le cancellazioni reali del Coordinator (revoca al confine B, svuotamento allo `Stop`) rispettano confine, ordine e associazione dei NoteOff |
+
+**Esito della review mirata (2026-10-26):** OK, comunicato dal titolare («Review mirata di 5a OK: committa la micro-remediation e fermati prima di 5b»). La micro-remediation è committata su `main`; 5b resta non autorizzata.

@@ -114,7 +114,7 @@ std::size_t AudioScheduler::revokeFromFrame(std::uint64_t boundaryFrame) {
     };
     for (const auto& ev : stagedEvents_) {
         if (isRevoked(ev)) {
-            logEvent(ev, SchedulerEventKind::Canceled, EventCancelReason::Revoked);
+            logEvent(ev, SchedulerEventKind::Canceled, EventCancelReason::Revoked, boundaryFrame);
         }
     }
 
@@ -171,8 +171,16 @@ void AudioScheduler::setLookaheadFrames(std::uint64_t frames) noexcept {
 }
 
 void AudioScheduler::clear() noexcept {
+    clearWithReason(EventCancelReason::Cleared, 0);
+}
+
+void AudioScheduler::clearAtStop(std::uint64_t stopFrame) noexcept {
+    clearWithReason(EventCancelReason::ClearedAtStop, stopFrame);
+}
+
+void AudioScheduler::clearWithReason(EventCancelReason reason, std::uint64_t contextFrame) noexcept {
     for (const auto& ev : stagedEvents_) {
-        logEvent(ev, SchedulerEventKind::Canceled, EventCancelReason::ClearedAtStop);
+        logEvent(ev, SchedulerEventKind::Canceled, reason, contextFrame);
     }
     stagedEvents_.clear();
 }
