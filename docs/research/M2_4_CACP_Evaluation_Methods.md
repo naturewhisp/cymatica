@@ -196,3 +196,5 @@ Il titolare ha approvato R1–R6 senza modifiche. Dove sono registrate:
 | R2 `evaluation_pack_v1`, R3 risultato strutturato v0, R4 AC-AO-02 per ruolo (O1 + O3), R5 strumenti (T3), R6 calibrazione | deliverable di Inc-5 nel piano di [progress.md](../progress.md) |
 
 Parametri, formati e schemi di R2–R4 restano da definire nell'implementazione di Inc-5, con test e versione. Nessun valore è `validated`.
+
+**Aggiornamento del 2026-10-26:** i contratti d'ingresso di Inc-5 che attuano R2–R6 sono in [ADR-0006](../adr/0006-m2-4-inc5-entry-decisions.md) (D-M2-12..16), con le correzioni della revisione del piano INC5-REV-01..05. Gli approfondimenti relativi sono nel [dossier di ricerca d'ingresso di Inc-5](M2_4_Inc5_Entry_Research.md).
