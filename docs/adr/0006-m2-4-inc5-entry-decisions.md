@@ -12,7 +12,7 @@
   - la definizione normativa di AC-AO-02 (agent_control_observability §10).
 - **Perimetro:** sono fissati solo i contratti di cui hanno bisogno le fasi 5a–5e. I dettagli implementativi (nomi, layout interni, scelte locali reversibili) si approvano nella review di ciascuna fase (regola di avanzamento in [progress.md](../progress.md#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26)).
 - **Ricerca a supporto:** [M2_4_Inc5_Entry_Research.md](../research/M2_4_Inc5_Entry_Research.md) (2026-10-26).
-- **Precisazioni della review di 5.0 (2026-10-26, verdetto NON OK):** DIF-5.0-01 cardinalità della catena O3 (D-M2-12); DIF-5.0-02 rilasci nel fingerprint (D-M2-12); DIF-5.0-03 modalità `blind` e `diagnostic` (D-M2-15); DIF-5.0-04 affermazioni tipizzate (D-M2-15); DIF-5.0-05 esiti della misura di diversità (D-M2-16). Registro in [progress.md](../progress.md#revisione-della-fase-50-dif-50-2026-10-26).
+- **Precisazioni della review di 5.0 (2026-10-26, verdetto NON OK):** DIF-5.0-01 cardinalità della catena O3 (D-M2-12); DIF-5.0-02 rilasci nel fingerprint (D-M2-12); DIF-5.0-03 modalità `blind` e `diagnostic` (D-M2-15); DIF-5.0-04 affermazioni tipizzate (D-M2-15); DIF-5.0-05 esiti della misura di diversità (D-M2-16). Review mirata (verdetto NON OK): DIF-5.0-R2-01 eventi cancellati prima dell'invio (D-M2-12); DIF-5.0-R2-02 presenza del segnale, attacco e udibilità (D-M2-15); codifica del fingerprint (D-M2-12). Registro in [progress.md](../progress.md#revisione-della-fase-50-dif-50-2026-10-26).
 
 ## 1. Contesto
 
@@ -65,7 +65,12 @@ Il registro completo è nel [progress](../progress.md#revisione-del-piano-inc-5-
    - *Ordine canonico:* ordinamento lessicografico totale dei record di nota su (`sampleFrame`, ruolo, altezza quantizzata, velocity quantizzata, timbro quantizzato, `durationFrames`, rilasci espliciti), seguito dai rilasci orfani ordinati per (frame, ruolo). È indipendente dall'ordine di emissione e dagli `eventId`. Due note identiche in tutti i campi sono indistinguibili anche musicalmente, quindi il loro ordine relativo non conta.
    - *Esclusioni:* seed, `eventId`, `tick`, epoch, `decisionId`, candidati, punteggi, tie-break e ogni altro metadato che può variare senza cambiare la musica.
    - *Valori speciali:* un'altezza 0 o non applicabile usa una sentinella esplicita; lo zero negativo vale 0; un valore non finito è un errore e non produce fingerprint (come nella canonicalizzazione di RFC 8785).
-   - *Serializzazione:* intestazione con versione del formato, sample rate e numero di eventi; record a larghezza fissa little-endian; hash FNV-1a a 64 bit, come `canonicalPlanHash`. Il numero di eventi viene confrontato insieme all'hash. Con le poche decine di seed previste la probabilità di collisione è trascurabile (dossier di ricerca §2.3).
+   - *Serializzazione* (codifica deterministica non ambigua, precisata dopo la review del 2026-10-26). Tutti gli interi sono little-endian a larghezza fissa e ogni lista è preceduta dalla propria lunghezza:
+     1. intestazione: versione del formato (`u32`), sample rate (`u32`), numero di note (`u64`), numero di rilasci orfani (`u64`);
+     2. per ogni nota, in ordine canonico: ruolo (`u8`), `sampleFrame` (`u64`), altezza (`i32`), velocity (`i32`), timbro (`i32`), `durationFrames` (`u32`), numero di rilasci espliciti (`u32`), poi i frame dei rilasci espliciti in ordine crescente (`u64` ciascuno);
+     3. per ogni rilascio orfano, in ordine canonico: ruolo (`u8`), frame (`u64`).
+
+     La lunghezza esplicita delle liste rende la codifica iniettiva. L'hash è FNV-1a a 64 bit, come `canonicalPlanHash`. I numeri di note e di rilasci si confrontano insieme all'hash. Con le poche decine di seed previste la probabilità di collisione è trascurabile (dossier di ricerca §2.3).
    - *Varianti:* fingerprint per ruolo e per frase, usati dalle metriche di diversità.
    - *Uso:* rilevare duplicati e misurare la diversità (D-M2-16). È l'identità con cui 5c sceglie i seed di verifica.
 
@@ -92,24 +97,47 @@ Il registro completo è nel [progress](../progress.md#revisione-del-piano-inc-5-
 
 **Controllo esatto di catena (O3).** Esito PASS/FAIL, vincolante per lo scenario:
 
-*Cardinalità distinte* (precisazione DIF-5.0-01 del 2026-10-26). Intent ed eventi audio non sono la stessa unità.
+*Cardinalità distinte* (precisazioni DIF-5.0-01 e DIF-5.0-R2-01 del 2026-10-26). Intent ed eventi audio non sono la stessa unità, e un evento cancellato prima dell'invio non arriva mai al motore.
 
 | Simbolo | Grandezza | Origine |
 |---|---|---|
 | `I` | intent musicali generati dal Coordinator JIT | intent registrati in `planNext` |
 | `E_exp` | eventi audio **attesi**, derivati dal piano: un NoteOn per intent, un NoteOff derivato per ogni intent con `durationFrames > 0`, un NoteOff per ogni rilascio esplicito del planner | funzione pura del piano JIT |
-| `E_sent` | eventi effettivamente inviati alla SPSC dallo scheduler | contatore dello scheduler |
+| `E_canceled` | eventi attesi rimossi dallo staging **prima** dell'invio alla SPSC | registro delle cancellazioni dello scheduler (sotto) |
+| `E_sent` | eventi effettivamente inviati alla SPSC dallo scheduler | registro degli invii dello scheduler (sotto) |
 | `E_cons` | record consumati dal motore (`Applied` + `Ignored` + `Dropped`) | applied-event log |
 
-Per la fixture v1, nella quale ogni intent ha esattamente un NoteOff (derivato oppure esplicito), vale `E_exp = 2 × I`, cioè 2.784 = 2 × 1.392. La formula generale resta quella della tabella.
+**Partizione per identità.** Ogni evento è identificato da (tipo, `eventId`, ruolo, `sampleFrame`, epoch). Valgono:
+
+- `E_exp = E_sent ⊎ E_canceled`: ogni evento atteso è stato inviato oppure cancellato, mai entrambe le cose e mai nessuna delle due;
+- dopo il drain completo della SPSC (coda vuota verificata in quiescenza), `E_sent = E_cons` per identità.
+
+Le uguaglianze dei conteggi sono solo una conseguenza; non sostituiscono il confronto per identità.
+
+**Registro delle cancellazioni.** Lo scheduler gira nel thread del Coordinator, non nella callback. Registra ogni evento che rimuove dallo staging, con identità e ragione:
+
+| Ragione | Operazione nel codice (alla data) |
+|---|---|
+| `Revoked` | `AudioScheduler::revokeFromFrame`: NoteOn con frame ≥ confine, NoteOff delle note revocate, eventi non di nota oltre il confine |
+| `ClearedAtStop` | `AudioScheduler::clear` sullo `Stop` del Coordinator |
+
+Il sink è opzionale, come per gli eventi applicati, e l'overflow rende la catena FAIL. Lo stesso registro annota gli invii riusciti, quindi `E_sent` non dipende dal solo contatore `totalDispatched`.
+
+Il contatore `revokedEvents` già esistente resta come diagnostica: da solo non basta per un controllo d'identità. Un tentativo respinto per backpressure non è una cancellazione, perché l'evento resta in staging e viene ritentato.
+
+Per la fixture v1, nella quale ogni intent ha esattamente un NoteOff (derivato oppure esplicito), vale `|E_exp| = 2 × I`, cioè 2.784 = 2 × 1.392. Nel percorso nominale `E_canceled = ∅`. La formula generale resta quella della tabella.
 
 1. `hash(offline) == hash(JIT) == golden`.
-2. **Confronto per identità, non per contatori.** L'insieme atteso `E_exp` si costruisce dal piano: per ogni evento (tipo, `eventId`, ruolo, `sampleFrame`, epoch). Ogni elemento deve corrispondere a esattamente un record consumato. I contatori osservati (`E_sent`, `E_cons`) si confrontano con `|E_exp|` solo come controllo aggiuntivo. Un evento perso o duplicato fa fallire il confronto con il piano atteso e non viene compensato dall'uguaglianza fra contatori osservati.
-3. Ogni NoteOn dell'insieme atteso ha esattamente un record `Applied`, con stesso `eventId`, ruolo e `sampleFrame`, e frame consumato uguale a quello pianificato.
-4. Ogni NoteOff atteso, derivato o esplicito, è associato al proprio NoteOn tramite `eventId` e ruolo. Ha un record `Applied`, oppure un `Ignored` previsto e giustificato (es. la voce era già stata rubata). Un NoteOff `Ignored` non previsto è FAIL.
-5. Nessun record consumato fuori dall'insieme atteso, salvo i `ParameterChange` del tono diagnostico, esclusi dal controllo.
-6. Nessuno scarto è contato come applicazione. Nella fixture nominale `Dropped` = 0.
-7. Nei casi di arresto d'emergenza (D-INC4-R3-01) l'insieme atteso include gli scarti già classificati come invalidati dal probe, con la disposizione `Dropped` e la ragione attesa. Il controllo li riconcilia uno a uno.
+2. **Confronto per identità, non per contatori.** L'insieme atteso `E_exp` si costruisce dal piano. Deve valere la partizione `E_exp = E_sent ⊎ E_canceled`, e ogni elemento di `E_sent` deve corrispondere a esattamente un record consumato. I contatori osservati si confrontano solo come controllo aggiuntivo. Un evento perso, duplicato, o cancellato senza ragione ammessa fa fallire il confronto con il piano atteso e non viene compensato dall'uguaglianza fra contatori osservati.
+3. Ogni NoteOn atteso **inviato** ha esattamente un record `Applied`, con stesso `eventId`, ruolo e `sampleFrame`, e frame consumato uguale a quello pianificato.
+4. Ogni NoteOff atteso, derivato o esplicito, è associato al proprio NoteOn tramite `eventId` e ruolo. Se è inviato, ha un record `Applied`, oppure un `Ignored` previsto e giustificato (es. la voce era già stata rubata). Un NoteOff `Ignored` non previsto è FAIL.
+5. Nessun record consumato fuori da `E_sent`, salvo i `ParameterChange` del tono diagnostico, esclusi dal controllo.
+6. Nessuno scarto e nessuna cancellazione sono contati come applicazione. Nella fixture nominale `Dropped` = 0 ed `E_canceled = ∅`.
+7. **Arresto d'emergenza (D-INC4-R3-01).** Si tengono separate due categorie:
+   - eventi **cancellati prima dell'invio** (`Revoked` dal confine, `ClearedAtStop`): stanno in `E_canceled` e non devono comparire nell'applied-event log;
+   - eventi **già committed** nella SPSC e invalidati dallo `Stop`: stanno in `E_sent` e compaiono come `Dropped` con ragione `StopDrain` o `StaleFrameOrEpoch`, e corrispondono uno a uno a quelli che il probe classifica come invalidati.
+
+   Ogni cancellazione deve avere una ragione ammessa nel percorso di guasto previsto. Le NoteOff delle note già consegnate, che `revokeFromFrame` conserva, restano in `E_sent`.
 
 **Verifica (5a):**
 
@@ -120,7 +148,12 @@ Per la fixture v1, nella quale ogni intent ha esattamente un NoteOff (derivato o
   - un evento duplicato.
 
   Ognuno deve produrre FAIL sul confronto con l'insieme atteso, anche quando i contatori osservati sono coerenti fra loro.
-- test dell'overflow con capacità ridotta;
+- test dell'arresto d'emergenza, con due casi separati (DIF-5.0-R2-01):
+  - eventi revocati prima dell'invio, che finiscono in `E_canceled` e sono assenti dall'applied-event log;
+  - eventi già committed e invalidati dallo `Stop`, che finiscono in `E_sent` come `Dropped`.
+
+  Entrambi passano la catena quando le cancellazioni e gli scarti hanno le ragioni ammesse. Una cancellazione senza ragione ammessa dà FAIL;
+- test dell'overflow con capacità ridotta, sia dell'applied-event log sia del registro delle cancellazioni;
 - test della cardinalità: sulla fixture nominale `|E_exp| = 2 × I` e la catena passa (nessun falso FAIL);
 - test del fingerprint:
   - due piani che differiscono solo per seed ed `eventId` producono lo stesso fingerprint e hash di provenienza diversi;
@@ -295,33 +328,49 @@ Il tempo musicale e i ruoli udibili nell'audio restano percepibili per costruzio
 - `claimed_value`;
 - `text`, solo descrittivo e mai usato come input del controllo.
 
-**Predicati di `claims_v0`:**
+**Predicati di `claims_v0`** (precisazione DIF-5.0-R2-02 del 2026-10-26: presenza del segnale, attacco e udibilità sono predicati distinti):
 
 | Predicato | Argomenti e valore | Base di verità nel checker |
 |---|---|---|
-| `role_audible` | `role`; `claimed_value`: booleano | **presenza acusticamente misurata** del ruolo nella finestra (sotto) |
+| `role_signal_present` | `role`; `claimed_value`: booleano | **presenza energetica** dello stem nella finestra: energia dello stem sopra un livello assoluto e rapporto stem/mix sopra una soglia, entrambi calibrati in 5c. Vale anche senza nuovi attacchi, ad esempio per un pad sostenuto che entra nella finestra |
+| `role_onset_detected` | `role`; `claimed_value`: booleano | almeno un nuovo attacco rilevato sullo stem nella finestra, con il rilevatore di D-M2-14 |
+| `role_audible` | `role`; `claimed_value`: booleano | **giudizio percettivo**: nessuna misura lo rende vero. Il checker può solo contraddirlo, o dichiararlo compatibile con le misure (regola sotto) |
 | `role_planned` | `role`; `claimed_value`: booleano | presenza pianificata (intent); ammesso solo con `method = code`, perché non è una percezione |
 | `stereo_wider_than` | `window_id_other`; `claimed_value`: booleano | Side/Mid delle due finestre; `not_attributable` se il canale dichiarato è mono |
 | `artifact_present` | `kind` ∈ {`click`, `clipping`, `dropout`}; `claimed_value`: booleano | descrittori di integrità del PCM della finestra; `unverifiable` se il descrittore per quel tipo non esiste |
 | `observation` | nessun valore | nessuna; sempre `unverifiable` |
 
-**Tre livelli di verità per la presenza di un ruolo** nella finestra:
+**Livelli di verità per un ruolo** nella finestra, tenuti distinti:
 
-1. *pianificata:* esistono intent del ruolo;
+1. *pianificata:* esistono intent del ruolo che suonano nella finestra;
 2. *applicata:* esistono NoteOn `Applied` del ruolo (D-M2-12);
-3. *acusticamente misurata:* lo stem del ruolo ha onset rilevati nella finestra e un rapporto d'energia stem/mix sopra una soglia calibrata in 5c (D-M2-16).
+3. *segnale presente:* `role_signal_present` misurato sullo stem;
+4. *attacco rilevato:* `role_onset_detected` misurato sullo stem.
 
-Un'affermazione di udibilità (`role_audible`) riceve `supported` **solo** se coincide con la presenza misurata. Non basta che il ruolo sia pianificato o applicato. Se la misura non è disponibile o è `INCONCLUSIVE` (es. ruolo presente nello stem ma sotto la soglia nel mix), l'esito è `unverifiable`.
+Un pad sostenuto che attraversa l'inizio della finestra ha il segnale presente senza alcun attacco rilevato.
+
+**Regola per `role_audible`.** L'udibilità nel mix dipende dal mascheramento e dall'ascoltatore, e le misure sugli stem non la dimostrano.
+
+| Dichiarazione | Misura | Esito |
+|---|---|---|
+| `role_audible = true` | segnale dello stem assente (sotto il livello assoluto) | `contradicted`: un segnale assente non può essere udito |
+| `role_audible = true` | segnale presente | `compatible`: non contraddetta dalle misure; l'udibilità non è verificata |
+| `role_audible = false` | segnale assente | `compatible` |
+| `role_audible = false` | segnale presente | `unverifiable`: il ruolo potrebbe essere mascherato nel mix |
+| qualsiasi | misura non disponibile o `INCONCLUSIVE` | `unverifiable` |
+
+L'esito di `role_audible` riporta sempre il limite: «verifica percettiva indipendente assente». La conferma dell'udibilità resta all'ascolto umano (M2.5).
 
 **Esiti del checker** (`--cacp-check-evaluation`), per affermazione:
 
 | Esito | Significato |
 |---|---|
-| `supported` | il valore dichiarato coincide con la base di verità del predicato |
-| `contradicted` | il valore dichiarato è opposto alla base di verità (es. `role_audible = true` per un ruolo assente e non misurato) |
+| `supported` | il valore dichiarato coincide con la base di verità misurata del predicato (`role_signal_present`, `role_onset_detected`, `stereo_wider_than`, `artifact_present`; `role_planned` con `method = code`) |
+| `compatible` | solo per `role_audible`: non contraddetta dalle misure, ma senza verifica percettiva indipendente |
+| `contradicted` | il valore dichiarato è opposto alla base di verità (es. `role_onset_detected = true` senza attacchi rilevati; `role_audible = true` con segnale assente) |
 | `not_attributable` | il metodo dichiarato non può produrla: stereo da un canale mono; fenomeno sotto la risoluzione temporale del canale (~31 ms a 32 token/s); `role_planned` o affermazioni da `code` presentate come percezione |
 | `inadmissible` | violazione delle regole di D-M2-11 o della modalità: spettrogramma letto senza riferimenti, input da `sealed/`, pacchetto `diagnostic` dichiarato `blind`, finestra o predicato non validi |
-| `unverifiable` | `observation`, base di verità non disponibile o `INCONCLUSIVE` |
+| `unverifiable` | `observation`, base di verità non disponibile o `INCONCLUSIVE`, `role_audible = false` con segnale presente |
 
 L'esito aggregato è riportato separatamente dai gate e non decide mai un verdetto (D-M2-11).
 
@@ -329,7 +378,8 @@ L'esito aggregato è riportato separatamente dai gate e non decide mai un verdet
 
 - due run nella stessa build producono gli stessi hash dei file pubblici di ciascuna modalità;
 - test del checker con affermazioni prefabbricate, almeno una per esito e per predicato;
-- `role_audible = true` su un ruolo pianificato e applicato ma sotto la soglia di presenza misurata dà `unverifiable`, non `supported`;
+- **nota sostenuta:** un pad che attraversa l'inizio della finestra, senza NoteOn al suo interno, dà `role_signal_present = true` → `supported`, `role_onset_detected = true` → `contradicted` e `role_audible = true` → `compatible`;
+- `role_audible = true` con lo stem del ruolo in silenzio dà `contradicted`; `role_audible = true` non dà mai `supported`;
 - test di leakage della modalità `blind`:
   - nessun file di `public/` contiene ruoli, intent, battute o frame assoluti, sezione, epoch, eventId, chiave o seed in chiaro (scansione dei campi, dei metadati WAV/PNG e dei nomi dei file);
   - tutte le finestre hanno la stessa durata;
