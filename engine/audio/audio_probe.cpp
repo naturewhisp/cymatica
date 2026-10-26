@@ -5,6 +5,8 @@
 #include "music_planner.h"
 #include "plan_canonical_hash.h"
 #include "unsigned_math.h"
+#include "event_chain.h"
+#include "plan_content_fingerprint.h"
 
 #if defined(_WIN32)
 #ifndef WIN32_LEAN_AND_MEAN
@@ -1968,7 +1970,11 @@ public:
         const SectionPlan& last = form_.sections[form_.sectionCount - 1];
         contentEndFrame_ = clock_.frameAtBar(static_cast<std::uint64_t>(last.startBar) + last.barCount);
         stopSendFrame_ = clock_.frameAtBar(static_cast<std::uint64_t>(last.startBar) + last.barCount - 1);
+        scheduler_.setEventLog(&schedulerLog_); // O3 sends and cancellations (ADR-0006 D-M2-12)
     }
+
+    FixtureCoordinator(const FixtureCoordinator&) = delete;
+    FixtureCoordinator& operator=(const FixtureCoordinator&) = delete;
 
     void start(AudioEngine& engine) {
         planNext(0); // phrase 0
@@ -1979,10 +1985,12 @@ public:
     // Coordinator work before rendering the block [currentFrame, currentFrame + frames).
     void beforeBlock(std::uint64_t currentFrame, std::uint32_t frames, AudioEngine& engine) {
         droppedAtBlockStart_ = engine.droppedScheduledEvents();
+        lastBlockStartFrame_ = currentFrame;
         lastBlockEndFrame_ = currentFrame + frames;
         for (std::size_t i = 0; i < 2; ++i) {
             if (!boundaryBlockSeen_[i] && currentFrame + frames > tempoBoundary_[i]) {
                 droppedAtBoundaryBlock_[i] = droppedAtBlockStart_;
+                boundaryBlockStartFrame_[i] = currentFrame;
                 boundaryBlockSeen_[i] = true;
             }
         }
@@ -2076,6 +2084,17 @@ public:
         return (std::min)(cut, totalDrops);
     }
 
+    // Frame form of unexpectedDrops (ADR-0006 D-M2-12, precisions of 5a): on the fault path a Dropped record is an
+    // invalidation only from the start of the failed boundary block or of the failure block, whichever is first.
+    [[nodiscard]] std::uint64_t faultCutFrame() const noexcept {
+        if (!failed()) return 0;
+        std::uint64_t cut = failureBlockStartFrame_;
+        if (boundaryBlockSeen_[failedTransition_]) cut = (std::min)(cut, boundaryBlockStartFrame_[failedTransition_]);
+        return cut;
+    }
+    [[nodiscard]] const std::vector<std::vector<MusicIntentEvent>>& jitIntents() const noexcept { return jitIntents_; }
+    [[nodiscard]] const SchedulerEventLog& schedulerLog() const noexcept { return schedulerLog_; }
+
     [[nodiscard]] State state() const noexcept { return state_; }
     [[nodiscard]] bool failed() const noexcept { return failedTransition_ <= 1; }
     [[nodiscard]] std::uint64_t failedCommandId() const noexcept {
@@ -2108,6 +2127,7 @@ private:
         state_ = State::Failed;
         failedTransition_ = transition;
         dropsAtFailureBlockStart_ = droppedAtBlockStart_;
+        failureBlockStartFrame_ = lastBlockStartFrame_;
         failureDetectedAtFrame_ = lastBlockEndFrame_; // first block boundary still executable
         const AudioCommandAck& a = ackTempo_[transition];
         failureReason_ = "SetTempoMap " + std::to_string(kTempoBCommandId + transition) + " ack " +
@@ -2124,6 +2144,7 @@ private:
         const PhrasePlan& p = phrases_[next_];
         std::vector<MusicIntentEvent> out;
         planner_.planPhrase(p, clock_, horizon, fixtureEpochForSection(p.sectionIndex), out, &scheduler_);
+        jitIntents_.push_back(std::move(out)); // intents actually emitted, for the JIT plan hash (R3 residual note)
         ++next_;
     }
 
@@ -2148,9 +2169,12 @@ private:
     std::string failureReason_{};
     std::uint64_t failureDetectedAtFrame_{0};
     std::uint64_t droppedAtBlockStart_{0};
+    std::uint64_t lastBlockStartFrame_{0};
     std::uint64_t lastBlockEndFrame_{0};
+    std::uint64_t failureBlockStartFrame_{0};
     std::uint64_t dropsAtFailureBlockStart_{0};
     std::array<std::uint64_t, 2> droppedAtBoundaryBlock_{};
+    std::array<std::uint64_t, 2> boundaryBlockStartFrame_{};
     std::array<bool, 2> boundaryBlockSeen_{};
     std::uint64_t droppedAtStopAck_{0};
     AudioCommandAck ackStart_{};
@@ -2161,6 +2185,8 @@ private:
     std::size_t revokedEvents_{0};
     std::vector<PhraseDecisionTrace> tracesAtStop_{};
     std::vector<PlannedNoteOff> noteOffsAtStop_{};
+    std::vector<std::vector<MusicIntentEvent>> jitIntents_{};
+    SchedulerEventLog schedulerLog_{kEventChainLogCapacity};
 };
 
 std::string cpuBrandString() {
@@ -2222,7 +2248,7 @@ const char* workloadName(ProfileWorkload w) noexcept {
 std::string FixtureProbeResult::toJson() const {
     std::ostringstream ss;
     ss << "{\n";
-    ss << "  \"manifest_version\": \"1.1\",\n";
+    ss << "  \"manifest_version\": \"1.2\",\n";
     ss << "  \"scenario\": \"fixture_probe_v1\",\n";
     ss << "  \"build_id\": \"" << escapeJsonString(buildId) << "\",\n";
     ss << "  \"verdict\": \"" << (passed ? "PASS" : "FAIL") << "\",\n";
@@ -2274,6 +2300,28 @@ std::string FixtureProbeResult::toJson() const {
     ss << "  \"canonical_plan_hash\": " << canonicalPlanHash << ",\n";
     ss << "  \"golden_canonical_plan_hash\": " << kFixtureProbeV1GoldenPlanHash << ",\n";
     ss << "  \"pcm_content_hash\": " << pcmContentHash << ",\n";
+    ss << "  \"jit_plan_hash\": " << jitPlanHash << ",\n";
+    ss << "  \"jit_golden_status\": \"" << jitGoldenStatus << "\",\n";
+    ss << "  \"content_fingerprint_format\": " << kMusicalContentFingerprintFormatVersion << ",\n";
+    ss << "  \"content_fingerprint\": " << contentFingerprint << ",\n";
+    ss << "  \"content_fingerprint_notes\": " << contentFingerprintNotes << ",\n";
+    ss << "  \"content_fingerprint_explicit_releases\": " << contentFingerprintExplicitReleases << ",\n";
+    ss << "  \"content_fingerprint_jit_match\": " << (contentFingerprintJitMatch ? "true" : "false") << ",\n";
+    ss << "  \"event_chain\": {\n";
+    ss << "    \"path\": \"" << (coordinatorFailed ? "injected_fault" : "nominal") << "\",\n";
+    ss << "    \"expected_events\": " << chainExpectedEvents << ",\n";
+    ss << "    \"sent_events\": " << chainSentEvents << ",\n";
+    ss << "    \"canceled_events\": " << chainCanceledEvents << ",\n";
+    ss << "    \"consumed_events\": " << chainConsumedEvents << ",\n";
+    ss << "    \"applied_events\": " << chainAppliedEvents << ",\n";
+    ss << "    \"ignored_events\": " << chainIgnoredEvents << ",\n";
+    ss << "    \"dropped_events\": " << chainDroppedEvents << ",\n";
+    ss << "    \"fault_cut_frame\": " << chainFaultCutFrame << ",\n";
+    ss << "    \"spsc_drained\": " << (chainSpscDrained ? "true" : "false") << ",\n";
+    ss << "    \"mismatches\": " << chainMismatches << ",\n";
+    ss << "    \"first_mismatch\": \"" << escapeJsonString(chainFirstMismatch) << "\",\n";
+    ss << "    \"passed\": " << (eventChainPassed ? "true" : "false") << "\n";
+    ss << "  },\n";
     ss << "  \"checks\": {\n";
     ss << "    \"capture_complete_passed\": " << (captureCompletePassed ? "true" : "false") << ",\n";
     ss << "    \"transport_ack_passed\": " << (tempoAckPassed ? "true" : "false") << ",\n";
@@ -2468,6 +2516,8 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     engine.attachAudioProbe(&probe);
 
     FixtureCoordinator coordinator(clock, form, phrases, fault);
+    AppliedEventLog appliedLog(kEventChainLogCapacity);
+    (void)engine.setAppliedEventLog(&appliedLog); // offline engine: quiescent by construction
     result.contentEndFrame = coordinator.contentEndFrame();
     result.lookaheadFrames = coordinator.lookaheadFrames();
     result.simulationTicks = (result.contentEndFrame + kFixturePostStopFrames + kFramesPerTick - 1) / kFramesPerTick;
@@ -2524,6 +2574,10 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     result.unexpectedDroppedEvents = coordinator.unexpectedDrops(result.droppedScheduledEvents);
     result.invalidatedDroppedEvents = result.droppedScheduledEvents - result.unexpectedDroppedEvents;
 
+    // Close the O3 accounting before the stale-event probe below, which bypasses the scheduler (5a precision)
+    result.chainSpscDrained = engine.scheduledEventQueueEmpty();
+    (void)engine.setAppliedEventLog(nullptr);
+
     // A NoteOn of the terminated run delivered after the Stop must never sound (old epoch < minValidEpoch).
     // Probe-only check on the stopped engine, outside the recorded capture.
     {
@@ -2557,6 +2611,50 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     result.schedulerBackpressureDrops = coordinator.backpressureDrops();
     result.revokedStagedEvents = coordinator.revokedEvents();
     result.stagedEventsAtStop = coordinator.stagedAtStop();
+
+    // O3 chain (ADR-0006 D-M2-12): JIT plan identity, musical content, identity reconciliation
+    {
+        result.jitPlanHash = canonicalPlanHash(coordinator.jitIntents(), coordinator.noteOffsAtStop(), coordinator.tracesAtStop());
+        if (coordinator.failed()) {
+            result.jitGoldenStatus = "NOT_APPLICABLE"; // planning stopped at the failure: partial plan by construction
+        } else {
+            result.jitGoldenStatus = (result.jitPlanHash == result.canonicalPlanHash &&
+                                      result.jitPlanHash == kFixtureProbeV1GoldenPlanHash) ? "PASS" : "FAIL";
+        }
+
+        const MusicalContentFingerprint offlineFp = musicalContentFingerprint(run1.intents, run1.noteOffs, kInc4SampleRate);
+        const MusicalContentFingerprint jitFp =
+            musicalContentFingerprint(coordinator.jitIntents(), coordinator.noteOffsAtStop(), kInc4SampleRate);
+        result.contentFingerprint = offlineFp.hash;
+        result.contentFingerprintNotes = offlineFp.noteCount;
+        result.contentFingerprintExplicitReleases = offlineFp.explicitReleaseCount;
+        result.contentFingerprintJitMatch = offlineFp.sameContent(jitFp);
+
+        const std::vector<EventIdentity> expected = expectedAudioEvents(coordinator.jitIntents(), coordinator.noteOffsAtStop());
+        const ChainReconcileResult chain = reconcileEventChain(ChainReconcileInput{
+            .expected = expected,
+            .schedulerLog = coordinator.schedulerLog().records(),
+            .schedulerLogOverflow = coordinator.schedulerLog().overflow(),
+            .appliedLog = appliedLog.records(),
+            .appliedLogOverflow = appliedLog.overflow(),
+            .expectedIgnored = {}, // fixture v1: no NoteOff is expected to be ignored
+            .path = coordinator.failed() ? ChainPath::InjectedFault : ChainPath::Nominal,
+            .faultCutFrame = coordinator.faultCutFrame(),
+            .spscDrained = result.chainSpscDrained,
+        });
+        result.chainExpectedEvents = chain.expected;
+        result.chainSentEvents = chain.sent;
+        result.chainCanceledEvents = chain.canceled;
+        result.chainConsumedEvents = chain.consumed;
+        result.chainAppliedEvents = chain.applied;
+        result.chainIgnoredEvents = chain.ignored;
+        result.chainDroppedEvents = chain.dropped;
+        result.chainFaultCutFrame = coordinator.faultCutFrame();
+        result.chainMismatches = chain.mismatches;
+        result.chainFirstMismatch = chain.firstMismatch;
+        result.eventChainPassed = chain.passed &&
+                                  (coordinator.failed() || (result.jitGoldenStatus == "PASS" && result.contentFingerprintJitMatch));
+    }
 
     // Rendered plan == offline plan (the live Coordinator plans the same decisions just in time)
     result.determinismPassed = offlineDeterminism && coordinator.stopped() &&
@@ -2659,6 +2757,7 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
                     (result.clippedSamples == 0) &&
                     result.dspAnomaliesPassed &&
                     result.safeStopPassed &&
+                    result.eventChainPassed &&
                     !result.coordinatorFailed;
 
     if (!result.passed) {
@@ -2688,6 +2787,8 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
         if (result.coordinatorFailed) err << "coordinator failed: " << result.coordinatorFailureReason
                                           << "; emergency stop at " << result.emergencyStopFrame << "; ";
         if (!result.safeStopPassed) err << "safe stop check failed; ";
+        if (!result.eventChainPassed) err << "O3 event chain failed (JIT golden " << result.jitGoldenStatus << ", "
+                                          << result.chainMismatches << " mismatches: " << result.chainFirstMismatch << "); ";
         result.failureReason = err.str();
     }
 

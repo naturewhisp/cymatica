@@ -1,6 +1,7 @@
 #pragma once
 
 #include "audio_engine.h"
+#include "event_chain_log.h"
 #include "music_intent.h"
 
 #include <cstddef>
@@ -66,12 +67,24 @@ public:
     void clear() noexcept;
     void resetDiagnosticCounters() noexcept;
 
+    // O3 scheduler log (ADR-0006 D-M2-12): one record per event sent to the engine SPSC (Sent) or removed from
+    // the staging before being sent (Canceled: Revoked, ClearedAtStop). Optional, null by default; Coordinator
+    // thread only. A rejected push under backpressure is not a cancellation: the event stays staged.
+    void setEventLog(SchedulerEventLog* log) noexcept;
+
 private:
     AudioSchedulerConfig config_{};
     std::uint64_t currentEpoch_{1};
     std::vector<ScheduledAudioEvent> stagedEvents_{};
     std::uint64_t totalDispatched_{0};
     std::uint64_t backpressureDrops_{0};
+    SchedulerEventLog* eventLog_{nullptr};
+
+    void logEvent(const ScheduledAudioEvent& e, SchedulerEventKind kind, EventCancelReason reason) noexcept {
+        if (eventLog_ != nullptr) {
+            eventLog_->push(SchedulerEventRecord{.id = EventIdentity::of(e), .kind = kind, .reason = reason});
+        }
+    }
 };
 
 } // namespace cymatica::audio

@@ -336,6 +336,25 @@ struct FixtureProbeResult {
     std::uint64_t canonicalPlanHash{0};
     bool goldenPlanPassed{false};
     std::uint64_t expectedEngineEvents{0}; // 2 x generatedEvents: one NoteOn and one NoteOff per intent
+    // O3 chain and plan identities (ADR-0006 D-M2-12, Inc-5 phase 5a)
+    std::uint64_t jitPlanHash{0};             // canonicalPlanHash of the intents the Coordinator planned just in time
+    std::string jitGoldenStatus{"NOT_RUN"};   // PASS / FAIL (nominal), NOT_APPLICABLE (injected fault: partial plan)
+    std::uint64_t contentFingerprint{0};      // musicalContentFingerprint of the offline plan
+    std::uint64_t contentFingerprintNotes{0};
+    std::uint64_t contentFingerprintExplicitReleases{0};
+    bool contentFingerprintJitMatch{false};   // the JIT plan has the same musical content (nominal run)
+    std::uint64_t chainExpectedEvents{0};     // |E_exp| of the JIT plan
+    std::uint64_t chainSentEvents{0};
+    std::uint64_t chainCanceledEvents{0};
+    std::uint64_t chainConsumedEvents{0};
+    std::uint64_t chainAppliedEvents{0};
+    std::uint64_t chainIgnoredEvents{0};
+    std::uint64_t chainDroppedEvents{0};
+    std::uint64_t chainFaultCutFrame{0};
+    std::uint64_t chainMismatches{0};
+    bool chainSpscDrained{false};
+    std::string chainFirstMismatch{};
+    bool eventChainPassed{false};             // identity reconciliation E_exp = E_sent (+) E_canceled, E_sent = E_cons
     // Terminal fail-closed safe stop (D-INC4-R3-01); populated in every run, exercised by injected faults
     FixtureInjectedFault injectedFault{FixtureInjectedFault::None};
     bool coordinatorFailed{false};

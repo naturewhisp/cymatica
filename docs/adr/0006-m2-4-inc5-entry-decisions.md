@@ -157,6 +157,15 @@ Per la fixture v1, nella quale ogni intent ha esattamente un NoteOff (derivato o
 
    Nessuna regola colloca un NoteOff in `E_sent` solo perché la revoca lo ha conservato.
 
+**Precisazioni operative di 5a** (richieste dalla review di chiusura di 5.0, 2026-10-26):
+
+- **Disposizioni ammesse per percorso.** I punti 3 e 4 si applicano per percorso, il punto 7 ne regola l'eccezione.
+  - *Percorso nominale:* ogni NoteOn inviato è `Applied`. Ogni NoteOff inviato è `Applied`, oppure `Ignored` solo se appartiene a un insieme di ignorati attesi dichiarato in anticipo (vuoto per la fixture v1). Nessun `Dropped`.
+  - *Percorso con guasto:* oltre alle disposizioni nominali è ammesso `Dropped`, ma solo per eventi di `E_sent` consumati a un frame non anteriore al **frame di taglio del guasto**, con ragione `StaleFrameOrEpoch`, `FutureEpochUnmatchable` o `StopDrain`. Un `Dropped` anteriore al taglio, o senza ragione ammessa, è una perdita arbitraria e rende la riconciliazione FAIL.
+  - Il frame di taglio è il minimo fra l'inizio del blocco audio che contiene il confine della transizione fallita (se raggiunto) e l'inizio del blocco in cui il Coordinator rileva l'ack non valido. È la stessa regola del contatore `unexpectedDrops` di Inc-4, espressa per frame invece che per contatore.
+- **Ambito della contabilizzazione.** Il registro degli eventi consumati si stacca dal motore, e la catena si chiude, **prima** della prova dell'evento d'epoch vecchia di `fixture_probe_v1`. Quella prova inietta un NoteOn direttamente nel motore, senza scheduler: è un controllo di fault injection separato, fuori da `E_exp`, e non produce record nel registro.
+- **Drain della SPSC.** L'uguaglianza `E_sent = E_cons` si verifica dopo il drain completo della coda. In quiescenza un'API di sola lettura del motore conferma che la coda degli eventi programmati è vuota.
+
 **Verifica (5a):**
 
 - test di fault injection:
@@ -380,7 +389,7 @@ Un pad sostenuto che attraversa l'inizio della finestra ha il segnale presente s
 | `role_audible = false` | segnale presente | `unverifiable`: il ruolo potrebbe essere mascherato nel mix |
 | qualsiasi | misura non disponibile o `INCONCLUSIVE` | `unverifiable` |
 
-**Assenza dimostrata** (precisazione del 2026-10-26, terza review): il picco dello stem del ruolo nella finestra è sotto un pavimento numerico dichiarato. Profilo iniziale: −120 dBFS, ben oltre la gamma dinamica di un convertitore a 20 bit; il valore si fissa nella review di 5d. Una misura sotto la soglia calibrata di `role_signal_present`, ma sopra questo pavimento, non prova l'assenza. Diventerebbe una contraddizione solo dopo una validazione percettiva specifica di quella soglia, che oggi non esiste.
+**Assenza dimostrata** (precisazione del 2026-10-26, terza review): il picco dello stem del ruolo nella finestra è sotto un pavimento numerico dichiarato. Profilo iniziale: −120 dBFS, ben oltre la gamma dinamica di un convertitore a 20 bit; il valore si fissa nella review di 5d. Una misura sotto la soglia calibrata di `role_signal_present`, ma sopra questo pavimento, non prova l'assenza. Diventerebbe una contraddizione solo dopo una validazione percettiva specifica di quella soglia, che oggi non esiste. **Nota per 5d** (review di chiusura di 5.0): si distinguono `exact_silence` (tutti i campioni dello stem nella finestra sono nulli) e `below_numerical_floor` (picco sotto il pavimento ma non nullo). Solo `exact_silence` è assenza dimostrata in senso matematico. Per `below_numerical_floor` si evita una contraddizione categorica dell'udibilità senza una validazione percettiva; la scelta definitiva si fissa nella review di 5d.
 
 L'esito di `role_audible` riporta sempre il limite: «verifica percettiva indipendente assente». La conferma dell'udibilità resta all'ascolto umano (M2.5).
 

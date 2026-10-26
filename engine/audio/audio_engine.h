@@ -2,6 +2,7 @@
 
 #include "audio_control.h"
 #include "audio_telemetry.h"
+#include "event_chain_log.h"
 #include "master_limiter.h"
 #include "music_intent.h"
 #include "realtime_exchange.h"
@@ -156,6 +157,13 @@ public:
     [[nodiscard]] std::uint64_t droppedScheduledEvents() const noexcept;
     [[nodiscard]] std::uint64_t totalScheduledEventsProcessed() const noexcept;
     [[nodiscard]] std::uint64_t deferredScheduledEvents() const noexcept;
+
+    // O3 applied-event log (ADR-0006 D-M2-12): one bounded record per event consumed from the SPSC
+    // (Applied / Ignored / Dropped with reason). Diagnostic and offline only, null by default. Install, remove
+    // and read only in quiescence (offline engine, or device not started): returns false while the device runs.
+    bool setAppliedEventLog(AppliedEventLog* log) noexcept;
+    // Quiescence only: true when the scheduled-event SPSC is empty (E_sent = E_cons is checked after the drain).
+    [[nodiscard]] bool scheduledEventQueueEmpty() const noexcept;
 
     // AudioProbe tap API (Spec §31.5, ADR-0003 D-AO-02)
     // Returns false (probe not attached) when the probe channel count differs from the engine (stereo).

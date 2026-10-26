@@ -71,6 +71,18 @@ struct AudioEngine::Impl {
     // Callback profiling histogram (ADR-0005 D-M2-10, INC4-R06)
     CallbackProfileHistogram profileHistogram{};
 
+    // O3 applied-event log (ADR-0006 D-M2-12): null in the realtime path, set only in quiescence
+    AppliedEventLog* appliedLog_{nullptr};
+
+    void logConsumed(const ScheduledAudioEvent& e, std::uint64_t frame, EventDisposition disposition,
+                     EventDropReason reason, int slot = -1) noexcept {
+        if (appliedLog_ != nullptr) {
+            appliedLog_->push(AppliedEventRecord{.id = EventIdentity::of(e), .consumedFrame = frame,
+                                                 .disposition = disposition, .reason = reason,
+                                                 .slot = static_cast<std::int16_t>(slot)});
+        }
+    }
+
     void renderWaveformSlice(float* pOut, std::uint32_t offset, std::uint32_t count, std::uint64_t logicalFrame) noexcept {
         if (pOut == nullptr || count == 0) return;
         float* dest = pOut + (static_cast<std::size_t>(offset) * channels);
@@ -176,6 +188,7 @@ struct AudioEngine::Impl {
                     for (std::uint32_t i = 0; i < AudioEngine::kMaxScheduledEventsPerBlock && scheduledEventQueue.tryPop(discardedEvt); ++i) {
                         droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
                         totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+                        logConsumed(discardedEvt, effectiveFrame, EventDisposition::Dropped, EventDropReason::StopDrain);
                     }
                 } else {
                     status = AudioCommandStatus::Rejected;
@@ -317,6 +330,7 @@ struct AudioEngine::Impl {
                 for (std::uint32_t i = 0; i < AudioEngine::kMaxScheduledEventsPerBlock && scheduledEventQueue.tryPop(discardedEvt); ++i) {
                     droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
                     totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
+                    logConsumed(discardedEvt, blockStartFrame, EventDisposition::Dropped, EventDropReason::StopDrain);
                 }
             }
             if (pOutput != nullptr && frameCount > 0) {
@@ -392,6 +406,7 @@ struct AudioEngine::Impl {
                         droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
                         totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
                         ++eventsExaminedInBlock;
+                        logConsumed(schedEvt, currentLogicalFrame, EventDisposition::Dropped, EventDropReason::StaleFrameOrEpoch);
                         continue;
                     }
 
@@ -403,6 +418,7 @@ struct AudioEngine::Impl {
                         droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
                         totalScheduledEventsProcessed.fetch_add(1, std::memory_order_relaxed);
                         ++eventsExaminedInBlock;
+                        logConsumed(schedEvt, currentLogicalFrame, EventDisposition::Dropped, EventDropReason::FutureEpochUnmatchable);
                         continue;
                     }
 
@@ -500,19 +516,30 @@ struct AudioEngine::Impl {
 
                             if (schedEvt.sampleFrame < blockStartFrame || schedEvt.transportEpoch < minValidEpoch_) {
                                 droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+                                logConsumed(schedEvt, nowLogicalFrame, EventDisposition::Dropped, EventDropReason::StaleFrameOrEpoch);
                             } else if (schedEvt.transportEpoch > transportEpoch &&
                                        schedEvt.sampleFrame <= nowLogicalFrameEnd &&
                                        (!hasCmd || pendingScheduledCommands_[0].targetSampleFrame > schedEvt.sampleFrame)) {
                                 droppedScheduledEvents.fetch_add(1, std::memory_order_relaxed);
+                                logConsumed(schedEvt, nowLogicalFrame, EventDisposition::Dropped, EventDropReason::FutureEpochUnmatchable);
                             } else {
                                 switch (schedEvt.type) {
-                                    case AudioEventType::NoteOn:
-                                        voiceAllocator.onNoteOn(schedEvt);
+                                    case AudioEventType::NoteOn: {
+                                        const int slot = voiceAllocator.onNoteOn(schedEvt);
+                                        logConsumed(schedEvt, nowLogicalFrame,
+                                                    slot >= 0 ? EventDisposition::Applied : EventDisposition::Ignored,
+                                                    EventDropReason::None, slot);
                                         break;
-                                    case AudioEventType::NoteOff:
-                                        voiceAllocator.onNoteOff(schedEvt);
+                                    }
+                                    case AudioEventType::NoteOff: {
+                                        const int slot = voiceAllocator.onNoteOff(schedEvt);
+                                        logConsumed(schedEvt, nowLogicalFrame,
+                                                    slot >= 0 ? EventDisposition::Applied : EventDisposition::Ignored,
+                                                    EventDropReason::None, slot);
                                         break;
+                                    }
                                     case AudioEventType::ParameterChange:
+                                        logConsumed(schedEvt, nowLogicalFrame, EventDisposition::Applied, EventDropReason::None);
                                         if (schedEvt.valueA > 0.0f) {
                                             ma_waveform_set_frequency(&waveform, schedEvt.valueA);
                                         }
@@ -851,6 +878,21 @@ std::uint64_t AudioEngine::totalScheduledEventsProcessed() const noexcept {
 
 std::uint64_t AudioEngine::deferredScheduledEvents() const noexcept {
     return pImpl_ ? pImpl_->deferredScheduledEvents.load(std::memory_order_relaxed) : 0;
+}
+
+bool AudioEngine::setAppliedEventLog(AppliedEventLog* log) noexcept {
+    if (!pImpl_) return false;
+    // Quiescence contract: the callback reads the pointer without synchronization, so it may change only
+    // while no callback can run (offline engine, or device not started).
+    if (pImpl_->deviceStarted.load(std::memory_order_acquire)) return false;
+    pImpl_->appliedLog_ = log;
+    return true;
+}
+
+bool AudioEngine::scheduledEventQueueEmpty() const noexcept {
+    if (!pImpl_) return true;
+    ScheduledAudioEvent e{};
+    return !pImpl_->scheduledEventQueue.peek(e);
 }
 
 bool AudioEngine::attachAudioProbe(AudioProbe* probe) noexcept {

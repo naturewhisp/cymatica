@@ -99,23 +99,27 @@ std::size_t AudioScheduler::revokeFromFrame(std::uint64_t boundaryFrame) {
     // - NoteOffs whose eventId matches a revoked NoteOn
     // - Non-note events with sampleFrame >= boundaryFrame
     // Staged NoteOffs whose NoteOn was already committed (not in revokedNoteOnIds) are strictly preserved.
-    const std::size_t originalCount = stagedEvents_.size();
-    stagedEvents_.erase(
-        std::remove_if(stagedEvents_.begin(), stagedEvents_.end(), [&](const ScheduledAudioEvent& ev) {
-            if (ev.sampleFrame >= boundaryFrame) {
-                if (ev.type == AudioEventType::NoteOn) {
-                    return true;
-                }
-                if (ev.type == AudioEventType::NoteOff) {
-                    const auto it = std::find(revokedNoteOnIds.begin(), revokedNoteOnIds.end(), ev.eventId);
-                    return it != revokedNoteOnIds.end();
-                }
+    const auto isRevoked = [&](const ScheduledAudioEvent& ev) {
+        if (ev.sampleFrame >= boundaryFrame) {
+            if (ev.type == AudioEventType::NoteOn) {
                 return true;
             }
-            return false;
-        }),
-        stagedEvents_.end()
-    );
+            if (ev.type == AudioEventType::NoteOff) {
+                const auto it = std::find(revokedNoteOnIds.begin(), revokedNoteOnIds.end(), ev.eventId);
+                return it != revokedNoteOnIds.end();
+            }
+            return true;
+        }
+        return false;
+    };
+    for (const auto& ev : stagedEvents_) {
+        if (isRevoked(ev)) {
+            logEvent(ev, SchedulerEventKind::Canceled, EventCancelReason::Revoked);
+        }
+    }
+
+    const std::size_t originalCount = stagedEvents_.size();
+    stagedEvents_.erase(std::remove_if(stagedEvents_.begin(), stagedEvents_.end(), isRevoked), stagedEvents_.end());
 
     return originalCount - stagedEvents_.size();
 }
@@ -130,6 +134,7 @@ std::size_t AudioScheduler::dispatchDueEvents(std::uint64_t currentRenderCursor,
             if (audioEngine.scheduleAudioEvent(*it)) {
                 ++dispatched;
                 ++totalDispatched_;
+                logEvent(*it, SchedulerEventKind::Sent, EventCancelReason::None);
                 it = stagedEvents_.erase(it);
             } else {
                 // Backpressure: AudioEngine SPSC queue full (Spec §20.7)
@@ -166,7 +171,14 @@ void AudioScheduler::setLookaheadFrames(std::uint64_t frames) noexcept {
 }
 
 void AudioScheduler::clear() noexcept {
+    for (const auto& ev : stagedEvents_) {
+        logEvent(ev, SchedulerEventKind::Canceled, EventCancelReason::ClearedAtStop);
+    }
     stagedEvents_.clear();
+}
+
+void AudioScheduler::setEventLog(SchedulerEventLog* log) noexcept {
+    eventLog_ = log;
 }
 
 void AudioScheduler::resetDiagnosticCounters() noexcept {

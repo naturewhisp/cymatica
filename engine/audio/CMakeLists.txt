@@ -7,6 +7,9 @@ add_library(cymatica_audio STATIC
     audio_scheduler.cpp
     audio_scheduler.h
     audio_telemetry.h
+    event_chain.cpp
+    event_chain.h
+    event_chain_log.h
     music_clock.cpp
     music_clock.h
     music_intent.h
@@ -15,6 +18,8 @@ add_library(cymatica_audio STATIC
     music_position.h
     plan_canonical_hash.cpp
     plan_canonical_hash.h
+    plan_content_fingerprint.cpp
+    plan_content_fingerprint.h
     master_limiter.cpp
     master_limiter.h
     realtime_exchange.h

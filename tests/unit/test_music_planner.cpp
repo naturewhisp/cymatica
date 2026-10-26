@@ -876,6 +876,24 @@ TEST_CASE("Offline CACP fixture_probe_v1 validation", "[music_planner][fixture_p
     CHECK(res.transportAcks[1].transportEpoch == 2);
     CHECK(res.transportAcks[2].sampleFrame == 5705142ULL);
     CHECK(res.transportAcks[2].transportEpoch == 3);
+
+    // O3 chain (ADR-0006 D-M2-12): JIT plan == offline plan == golden, same musical content, identity reconciliation
+    INFO(res.chainFirstMismatch);
+    CHECK(res.jitGoldenStatus == "PASS");
+    CHECK(res.jitPlanHash == kFixtureProbeV1GoldenPlanHash);
+    CHECK(res.contentFingerprintJitMatch);
+    CHECK(res.contentFingerprintNotes == res.generatedEvents);
+    CHECK(res.contentFingerprintExplicitReleases == res.plannerNoteOffs);
+    CHECK(res.eventChainPassed);
+    CHECK(res.chainSpscDrained);
+    CHECK(res.chainExpectedEvents == 2ULL * res.generatedEvents); // fixture v1: one release per intent (DIF-5.0-01)
+    CHECK(res.chainSentEvents == res.chainExpectedEvents);
+    CHECK(res.chainCanceledEvents == 0);
+    CHECK(res.chainConsumedEvents == res.chainSentEvents);
+    CHECK(res.chainAppliedEvents == res.chainConsumedEvents);
+    CHECK(res.chainIgnoredEvents == 0);
+    CHECK(res.chainDroppedEvents == 0);
+    CHECK(res.chainMismatches == 0);
 }
 
 namespace {
@@ -1152,6 +1170,21 @@ TEST_CASE("fixture_probe_v1: rejected SetTempoMap leads to a terminal fail-close
         CHECK(res.staleEventRejected);
         CHECK(res.dspAnomaliesPassed);
         CHECK(res.safeStopPassed);
+
+        // O3 on the fault path (D-M2-12, DIF-5.0-R2-01, DIF-5.0-R3-02): the full-plan golden does not apply to a
+        // partial plan, the reconciliation of the events generated until the interruption passes, the run stays FAIL
+        INFO(res.chainFirstMismatch);
+        CHECK(res.jitGoldenStatus == "NOT_APPLICABLE");
+        CHECK(res.eventChainPassed);
+        CHECK(res.chainSpscDrained);
+        CHECK(res.chainSentEvents + res.chainCanceledEvents == res.chainExpectedEvents);
+        CHECK(res.chainCanceledEvents > 0);
+        CHECK(res.chainSentEvents == res.dispatchedEvents);
+        CHECK(res.chainConsumedEvents == res.chainSentEvents);
+        CHECK(res.chainDroppedEvents == res.droppedScheduledEvents);
+        CHECK(res.chainIgnoredEvents == 0);
+        CHECK(res.chainFaultCutFrame > 0);
+        CHECK(res.chainFaultCutFrame <= res.failureDetectedAtFrame);
     }
 
     // Late rejection: the failure is detected after the B boundary, with epoch-2 events already committed
