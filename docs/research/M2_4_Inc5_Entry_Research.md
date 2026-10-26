@@ -86,19 +86,21 @@ Questo dossier **parte** dalla documentazione già raccolta nel repository, senz
 | M3 | Cardinality score per ruolo | `1 − cs(q,r)` su punti (onset su griglia, semitono) | F4 | crolla con piccole differenze non rigide (F4); tratta trasposizioni e traslazioni come identità, il che qui è voluto |
 | M4 | Distanza d'edit normalizzata per ruolo | Levenshtein su token (Δonset su griglia, intervallo, classe di durata), divisa per la lunghezza massima, con costi dichiarati prima della misura | F3 (AM) e inferenza | pesi arbitrari da dichiarare; F3 non letto per intero |
 
-**Regola INCONCLUSIVE** (inferenza; fissata prima della misura):
+**Esiti della misura di diversità** (inferenza; fissati prima della misura; precisazione DIF-5.0-05 del 2026-10-26). Si tengono separate due conclusioni: la **diversità osservata** sul campione, che è sempre una misura, e la **generalizzazione** della calibrazione degli onset ad altri contenuti, che può essere inconcludente.
 
 - **Precondizioni:**
   - il controllo positivo del fingerprint passa;
   - le pianificazioni sono valide;
-  - il numero minimo di seed N è dichiarato prima della misura.
-- **Esito `INCONCLUSIVE` sulla diversità indotta dal seed**, in uno di questi casi:
-  - tutti gli N seed producono lo stesso fingerprint;
-  - i fingerprint distinti sono meno di k;
-  - una quota di frasi identiche supera una soglia dichiarata.
-
-  In questi casi M2–M4 sono nulle per costruzione e non misurano nulla. L'unica conclusione lecita è che «nelle condizioni X il seed non cambia il contenuto».
-- **Esito misurabile:** con almeno k fingerprint distinti si riportano le distribuzioni di M2–M4, senza soglie di qualità. Le fonti non danno soglie (F5).
+  - il numero minimo di seed N e il numero minimo k di fingerprint distinti sono dichiarati prima della misura.
+- **Tutti gli N seed producono lo stesso fingerprint:**
+  - la diversità osservata è `MEASURED` e **nulla**: un **risultato negativo significativo**, registrato come finding sulla varietà del generatore («nelle condizioni X il seed non cambia il contenuto»), non nascosto dietro un esito inconcludente;
+  - la generalizzazione della calibrazione a contenuti diversi (D-M2-16, insieme di verifica 1) è `INCONCLUSIVE`, perché il campione non offre contenuti diversi;
+  - M2–M4 sono nulle per costruzione e si riportano come tali.
+- **Almeno due fingerprint distinti, ma meno di k:**
+  - le distanze M1–M4 sono `MEASURED` e possono essere diverse da zero; si riportano per intero, con il flag «campione insufficiente per una conclusione robusta»;
+  - la generalizzazione della calibrazione si valuta sui soli seed distinti, con lo stesso flag.
+- **Una quota di frasi identiche oltre la soglia dichiarata:** la diversità è `MEASURED` e bassa; la quota si riporta, anche come possibile effetto di confine della quantizzazione.
+- **Almeno k fingerprint distinti:** si riportano le distribuzioni di M1–M4, senza soglie di qualità. Le fonti non danno soglie (F5).
 - **N, k, griglia e pesi** si fissano nella review di 5e, prima di eseguire la misura.
 - **Riproducibilità separata:** stesso seed → stesso hash di provenienza. Un fingerprint uguale fra seed diversi non è una prova di determinismo.
 
@@ -290,18 +292,18 @@ Integra lo stato dell'arte già raccolto (§0: Just Shapes & Beats, Audiosurf, F
 
 | Decisione | Ricaduta | Fonti |
 |---|---|---|
-| D-M2-12 | Due identità (provenienza e contenuto). Fingerprint con campi, quantizzazione, valori speciali e ordine definiti. Controlli positivi e negativi. Disposizioni `Applied`/`Ignored`/`Dropped`. | §2.3; F6; codice verificato |
+| D-M2-12 | Due identità (provenienza e contenuto). Fingerprint su note complete, con il rilascio esplicito associato a ciascun NoteOn (DIF-5.0-02); campi, quantizzazione, valori speciali e ordine definiti. Controlli positivi e negativi. Disposizioni `Applied`/`Ignored`/`Dropped`. | §2.3; F6; codice verificato |
 | D-M2-12 | La catena O3 esatta non ha un equivalente pubblicato: la prassi è una riconciliazione con tolleranza. Si presenta come controllo più forte della prassi, non come prassi standard. | §5.2; G6, G7, G10 |
 | D-M2-13 | Stem stereo; ricostruzione confrontata con il mix dei bus. | INC5-REV-04; E3 |
 | D-M2-14 | Abbinamento a cardinalità massima; tolleranza ±50 ms primaria e ±25 ms diagnostica; fusione dei riferimenti entro 30 ms; profilo per ruolo con varianti solo se calibrate; latenza intrinseca misurata su segnali sintetici. | §4.3; O2–O7 |
-| D-M2-15 | `public/` e `sealed/`; limite procedurale dichiarato. Controlli aggiuntivi da fissare nella review di 5d: negativi bilanciati, duplicati nascosti, catch trial, item a verità alterata, esito «non determinabile», registro degli accessi, pulizia dei metadati, baseline banale. | §3.3; S4–S13, G23 |
+| D-M2-15 | Modalità `blind` e `diagnostic` con visibilità dei metadati diversa (DIF-5.0-03); `public/` e `sealed/`; affermazioni tipizzate `claims_v0` con tre livelli di verità (DIF-5.0-04); limite procedurale dichiarato. Controlli aggiuntivi da fissare nella review di 5d: negativi bilanciati, duplicati nascosti, catch trial, item a verità alterata, esito «non determinabile», registro degli accessi, pulizia dei metadati, baseline banale. | §3.3; S4–S13, G23 |
 | D-M2-15 (proposta per 5d) | Controllo di discriminazione per ablazione: confronto in cieco fra piano completo e varianti ablate. Se l'agente non le distingue, il suo giudizio di qualità non è informativo. | G17 |
 | D-M2-15 (proposta per 5d) | Vista «a pentagramma» con intent, eventi `Applied` e onset rilevati per ruolo, da ispezionare in modo multimodale. Completa i manifest, non li sostituisce. | G6, G8 |
-| D-M2-16 | Diversità esplorativa in stile *expressive range*: descrittori fissati prima, insieme di seed dichiarato, distribuzioni e istogrammi invece di un solo numero; regola INCONCLUSIVE. La diversità non è un gate e non va massimizzata. | §2.3; G20, G21, G22; F5 |
+| D-M2-16 | Diversità esplorativa in stile *expressive range*: descrittori fissati prima, insieme di seed dichiarato, distribuzioni e istogrammi invece di un solo numero; diversità nulla registrata come risultato negativo, generalizzazione `INCONCLUSIVE` (DIF-5.0-05). La diversità non è un gate e non va massimizzata. | §2.3; G20, G21, G22; F5 |
 | D-M2-16 | FAD escluso da Inc-5: richiede embedding e riferimenti, e la correlazione percettiva è moderata. | G24 |
 
 ## 7. Limiti
 
 - **Fonti umane come analogie:** le fonti sui test d'ascolto umani (S7–S9) sono analogie di metodo, non norme applicabili agli agenti.
 - **Fonti non lette per intero:** F3 è verificato solo su abstract e metadati; S1–S3 e S10–S12 pure.
-- **Definizioni proposte:** fingerprint, metriche e regola INCONCLUSIVE sono proposte, non decisioni validate. I parametri (N, k, griglia, pesi) si fissano prima della misura, nella review della fase che li usa.
+- **Definizioni proposte:** fingerprint, metriche ed esiti della misura di diversità sono proposte, non decisioni validate. I parametri (N, k, griglia, pesi) si fissano prima della misura, nella review della fase che li usa.

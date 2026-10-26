@@ -12,6 +12,7 @@
   - la definizione normativa di AC-AO-02 (agent_control_observability §10).
 - **Perimetro:** sono fissati solo i contratti di cui hanno bisogno le fasi 5a–5e. I dettagli implementativi (nomi, layout interni, scelte locali reversibili) si approvano nella review di ciascuna fase (regola di avanzamento in [progress.md](../progress.md#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26)).
 - **Ricerca a supporto:** [M2_4_Inc5_Entry_Research.md](../research/M2_4_Inc5_Entry_Research.md) (2026-10-26).
+- **Precisazioni della review di 5.0 (2026-10-26, verdetto NON OK):** DIF-5.0-01 cardinalità della catena O3 (D-M2-12); DIF-5.0-02 rilasci nel fingerprint (D-M2-12); DIF-5.0-03 modalità `blind` e `diagnostic` (D-M2-15); DIF-5.0-04 affermazioni tipizzate (D-M2-15); DIF-5.0-05 esiti della misura di diversità (D-M2-16). Registro in [progress.md](../progress.md#revisione-della-fase-50-dif-50-2026-10-26).
 
 ## 1. Contesto
 
@@ -51,11 +52,17 @@ Il registro completo è nel [progress](../progress.md#revisione-del-piano-inc-5-
    - *Uso:* golden, replay e l'invariante `hash(offline) == hash(JIT) == golden`.
    - *Hash JIT:* `FixtureCoordinator::planNext` conserva, per frase, gli intent che emette (oggi il vettore `out` viene scartato). L'hash JIT si calcola con la stessa funzione sugli intent JIT, sui NoteOff e sulle trace registrati durante la riproduzione.
 2. **Fingerprint del contenuto musicale:** `musicalContentFingerprint`, formato v1. Nuovo.
-   - *Contenuto:* solo ciò che determina la musica. Per ogni NoteOn conta la tupla (ruolo, `sampleFrame`, `durationFrames`, altezza, velocity, `timbreParam`). Per ogni NoteOff del planner conta la coppia (ruolo, `sampleFrame`).
+   - *Contenuto:* solo ciò che determina la musica, rappresentato come **note complete**, non come eventi separati (precisazione DIF-5.0-02 del 2026-10-26).
+     - Ogni NoteOn produce un **record di nota** con: ruolo, `sampleFrame` d'attacco, altezza, velocity, `timbreParam`, `durationFrames` e il **rilascio esplicito** associato.
+     - Il rilascio esplicito è il frame del NoteOff del planner che porta lo stesso `eventId` (oggi solo per i pad aperti con `durationFrames == 0`), oppure «nessuno». Se una nota ha più NoteOff espliciti, conta la lista ordinata dei loro frame.
+     - Il rilascio derivato da `durationFrames > 0` resta nel campo `durationFrames`; il rilascio esplicito ha un campo distinto. Una nota con entrambi conserva entrambe le informazioni.
+     - L'`eventId` serve solo come chiave di unione fra NoteOn e NoteOff nel momento della costruzione. Non entra nella serializzazione.
+     - Un NoteOff esplicito senza NoteOn corrispondente nel piano produce un record separato di **rilascio orfano** (ruolo, frame).
+     - Così lo scambio dei rilasci fra due note diverse (es. Corpo a 220 e 330 Hz rilasciate a frame diversi) cambia i record e quindi il fingerprint. Lo scambio fra due note identiche non lo cambia, perché le due musiche sono identiche.
    - *Quantizzazione* (prima della serializzazione, per non far dipendere l'identità da differenze float non udibili):
      - altezza → intero in centesimi di semitono relativi a 440 Hz, cioè `round(1200·log2(f/440))`;
      - velocity e `timbreParam` → `round(x·1000)`.
-   - *Ordine canonico:* (`sampleFrame`, ruolo, altezza quantizzata, `durationFrames`), indipendente dall'ordine di emissione e dagli `eventId`.
+   - *Ordine canonico:* ordinamento lessicografico totale dei record di nota su (`sampleFrame`, ruolo, altezza quantizzata, velocity quantizzata, timbro quantizzato, `durationFrames`, rilasci espliciti), seguito dai rilasci orfani ordinati per (frame, ruolo). È indipendente dall'ordine di emissione e dagli `eventId`. Due note identiche in tutti i campi sono indistinguibili anche musicalmente, quindi il loro ordine relativo non conta.
    - *Esclusioni:* seed, `eventId`, `tick`, epoch, `decisionId`, candidati, punteggi, tie-break e ogni altro metadato che può variare senza cambiare la musica.
    - *Valori speciali:* un'altezza 0 o non applicabile usa una sentinella esplicita; lo zero negativo vale 0; un valore non finito è un errore e non produce fingerprint (come nella canonicalizzazione di RFC 8785).
    - *Serializzazione:* intestazione con versione del formato, sample rate e numero di eventi; record a larghezza fissa little-endian; hash FNV-1a a 64 bit, come `canonicalPlanHash`. Il numero di eventi viene confrontato insieme all'hash. Con le poche decine di seed previste la probabilità di collisione è trascurabile (dossier di ricerca §2.3).
@@ -85,13 +92,24 @@ Il registro completo è nel [progress](../progress.md#revisione-del-piano-inc-5-
 
 **Controllo esatto di catena (O3).** Esito PASS/FAIL, vincolante per lo scenario:
 
-1. `hash(offline) == hash(JIT) == golden`;
-2. eventi JIT generati = eventi inviati alla SPSC = eventi consumati dal motore = `Applied` + `Ignored` + `Dropped`;
-3. ogni NoteOn degli intent JIT ha esattamente un record `Applied`, con stesso `eventId`, ruolo e `sampleFrame`, e frame consumato uguale al frame pianificato;
-4. ogni NoteOff pianificato ha un record `Applied` o un `Ignored` atteso e giustificato;
-5. nessun record `Applied` senza intent corrispondente;
-6. nessuno scarto è contato come applicazione. Nella fixture nominale `Dropped` = 0;
-7. nei casi di arresto d'emergenza (D-INC4-R3-01) gli scarti attesi sono quelli già classificati come invalidati dal probe, e il controllo li riconcilia uno a uno.
+*Cardinalità distinte* (precisazione DIF-5.0-01 del 2026-10-26). Intent ed eventi audio non sono la stessa unità.
+
+| Simbolo | Grandezza | Origine |
+|---|---|---|
+| `I` | intent musicali generati dal Coordinator JIT | intent registrati in `planNext` |
+| `E_exp` | eventi audio **attesi**, derivati dal piano: un NoteOn per intent, un NoteOff derivato per ogni intent con `durationFrames > 0`, un NoteOff per ogni rilascio esplicito del planner | funzione pura del piano JIT |
+| `E_sent` | eventi effettivamente inviati alla SPSC dallo scheduler | contatore dello scheduler |
+| `E_cons` | record consumati dal motore (`Applied` + `Ignored` + `Dropped`) | applied-event log |
+
+Per la fixture v1, nella quale ogni intent ha esattamente un NoteOff (derivato oppure esplicito), vale `E_exp = 2 × I`, cioè 2.784 = 2 × 1.392. La formula generale resta quella della tabella.
+
+1. `hash(offline) == hash(JIT) == golden`.
+2. **Confronto per identità, non per contatori.** L'insieme atteso `E_exp` si costruisce dal piano: per ogni evento (tipo, `eventId`, ruolo, `sampleFrame`, epoch). Ogni elemento deve corrispondere a esattamente un record consumato. I contatori osservati (`E_sent`, `E_cons`) si confrontano con `|E_exp|` solo come controllo aggiuntivo. Un evento perso o duplicato fa fallire il confronto con il piano atteso e non viene compensato dall'uguaglianza fra contatori osservati.
+3. Ogni NoteOn dell'insieme atteso ha esattamente un record `Applied`, con stesso `eventId`, ruolo e `sampleFrame`, e frame consumato uguale a quello pianificato.
+4. Ogni NoteOff atteso, derivato o esplicito, è associato al proprio NoteOn tramite `eventId` e ruolo. Ha un record `Applied`, oppure un `Ignored` previsto e giustificato (es. la voce era già stata rubata). Un NoteOff `Ignored` non previsto è FAIL.
+5. Nessun record consumato fuori dall'insieme atteso, salvo i `ParameterChange` del tono diagnostico, esclusi dal controllo.
+6. Nessuno scarto è contato come applicazione. Nella fixture nominale `Dropped` = 0.
+7. Nei casi di arresto d'emergenza (D-INC4-R3-01) l'insieme atteso include gli scarti già classificati come invalidati dal probe, con la disposizione `Dropped` e la ragione attesa. Il controllo li riconcilia uno a uno.
 
 **Verifica (5a):**
 
@@ -99,8 +117,16 @@ Il registro completo è nel [progress](../progress.md#revisione-del-piano-inc-5-
   - un evento perso fra scheduler e SPSC;
   - un evento in ritardo, che diventa `Dropped`;
   - un NoteOff non corrispondente, che diventa `Ignored`;
+  - un evento duplicato.
+
+  Ognuno deve produrre FAIL sul confronto con l'insieme atteso, anche quando i contatori osservati sono coerenti fra loro.
 - test dell'overflow con capacità ridotta;
-- test del fingerprint: due piani che differiscono solo per seed ed `eventId` producono lo stesso fingerprint e hash di provenienza diversi; una sola nota diversa cambia il fingerprint;
+- test della cardinalità: sulla fixture nominale `|E_exp| = 2 × I` e la catena passa (nessun falso FAIL);
+- test del fingerprint:
+  - due piani che differiscono solo per seed ed `eventId` producono lo stesso fingerprint e hash di provenienza diversi;
+  - una sola nota diversa cambia il fingerprint;
+  - **due test sui rilasci:** due piani identici salvo l'associazione dei NoteOff espliciti fra note diverse producono fingerprint diversi; lo scambio fra due note identiche non cambia il fingerprint;
+  - una nota con rilascio derivato e una con lo stesso frame di rilascio ma esplicito producono fingerprint diversi. All'ascolto nominale sono uguali, ma il contratto è diverso: lease aperta con failsafe `audioMaxLeaseDeadline` contro durata fissata. Il fingerprint resta quindi conservativo;
 - `fixture_probe_v1` con hash JIT = golden;
 - test `perf`.
 
@@ -209,60 +235,105 @@ Altri casi propri:
 
 *Rilievo: INC5-REV-03. Fase: 5d.*
 
-Il pacchetto prodotto da `--cacp-run evaluation_pack_v1` ha due parti fisicamente separate.
+Il pacchetto prodotto da `--cacp-run evaluation_pack_v1` ha **due modalità** con visibilità dei metadati diversa (precisazione DIF-5.0-03 del 2026-10-26). Le modalità condividono i descrittori, non i metadati visibili.
+
+| | `blind` — valutazione alla cieca | `diagnostic` — valutazione esplicativa |
+|---|---|---|
+| Scopo | misurare che cosa il valutatore percepisce dall'audio o dalle immagini | spiegare e ispezionare la run, ad esempio per trovare difetti |
+| Identificazione delle finestre | ID opachi, in ordine permutato | battute e frame assoluti, sezione, frase |
+| Tempi | relativi all'inizio della finestra; nessun indice assoluto (battuta, frame, sezione, frase) che riveli la maschera dei ruoli | assoluti |
+| Durata delle finestre | uguale per tutte le finestre: un estratto della frase con durata comune non superiore alla frase più breve (4 battute a 140 BPM ≈ 6,857 s), dichiarata nella review di 5d, con fade dichiarati. La durata non deve rivelare la sezione. | frase intera |
+| Ground truth | assente; solo in `sealed/` | intent, eventi `Applied`, onset per ruolo e viste esplicative (es. la vista «a pentagramma») sono visibili |
+| Seed di selezione e permutazione | stream RNG isolato, distinto dal seed musicale; il valore sta in `sealed/`, mentre `public/` contiene solo il suo hash (impegno) | dichiarato in chiaro |
+| Qualifica del giudizio | può essere qualificato «alla cieca» solo se il valutatore dichiara di non aver avuto accesso a repository, `sealed/` o pacchetti `diagnostic` della stessa run | **mai** qualificato «alla cieca» |
+
+Il tempo musicale e i ruoli udibili nell'audio restano percepibili per costruzione. Riconoscerli ascoltando è proprio la percezione che la modalità `blind` vuole misurare, non una fuga di metadati.
+
+**Contenuto della modalità `blind`:**
 
 | `public/` — consegnata al valutatore | `sealed/` — riservata al checker |
 |---|---|
-| WAV e PNG mel Mid/Side per ciascuna finestra di prova, con ID opachi e ordine mescolato da un seed dichiarato | ruoli presenti per finestra, ricavati dagli intent |
-| intervalli temporali (battute e frame) e metadati tecnici non rivelatori (sample rate, durata, versione dei descrittori) | intent, epoch ed eventi applicati delle finestre |
-| riferimenti etichettati autorizzati: spettrogrammi degli stem per ruolo e sezione, tratti **da finestre diverse** da quelle di prova | chiave fra ID opachi e finestre |
+| WAV e PNG mel Mid/Side per ciascuna finestra di prova, con ID opachi | ruoli pianificati, eventi applicati e presenza misurata per finestra |
+| metadati tecnici non rivelatori: sample rate, durata comune, versione dei descrittori, hash del seed | chiave fra ID opachi e finestre, con battute, frame, sezione ed epoch |
+| riferimenti etichettati autorizzati: spettrogrammi degli stem per ruolo e sezione, tratti **da finestre diverse** da quelle di prova | seed di selezione e permutazione |
 | `SHA256SUMS` dei file pubblici | regole di verifica, risultati attesi, `SHA256SUMS` dei file sigillati |
 
 **Selezione delle finestre:**
 
-- unità di una frase, cioè 4 battute;
+- unità di una frase, cioè 4 battute, ritagliata nella modalità `blind` alla durata comune;
 - per ogni sezione almeno una finestra di prova con un ruolo presente e una di controllo con lo stesso ruolo assente, quando la maschera lo consente. Esempio: Trama assente nelle frasi 0–3 di A e presente nelle frasi 4–7;
 - i controlli aggiuntivi si fissano nella review di 5d, sulla base del dossier di ricerca d'ingresso §3.3 e §6:
   - negativi bilanciati, duplicati nascosti, catch trial, item a verità alterata, esito «non determinabile»;
   - registro degli accessi, pulizia dei metadati, confronto con una baseline banale;
   - controllo di discriminazione per ablazione (piano completo contro varianti ablate, come in MetaCompose);
-  - vista «a pentagramma» con intent, eventi `Applied` e onset per ruolo, sul modello delle debug UI di Hi-Fi Rush.
+  - vista «a pentagramma» con intent, eventi `Applied` e onset per ruolo (sul modello delle debug UI di Hi-Fi Rush), **solo** nella modalità `diagnostic`.
 
 **Protocollo di separazione:**
 
 - **Consegna:** il valutatore riceve soltanto `public/`, copiato in una directory separata o allegato al client.
 - **Collocazione di `sealed/`:** viene scritto in un percorso scelto da chi lancia lo scenario. Per default sta fuori da `artifacts/cacp/`, così non si trova accanto ai file pubblici.
-- **Hash degli input:** il risultato v0 dichiara gli hash dei file effettivamente ricevuti. Il checker rifiuta un risultato i cui input includono file di `sealed/` o file sconosciuti.
+- **Hash degli input:** il risultato v0 dichiara la modalità del pacchetto e gli hash dei file effettivamente ricevuti. Il checker rifiuta un risultato i cui input includono file di `sealed/`, file sconosciuti o file `diagnostic` presentati come `blind`.
 - **Limite dichiarato:** un agente con accesso al repository può rieseguire il planner e ricostruire la ground truth. La separazione è quindi procedurale, non crittografica. Ogni risultato v0 registra gli strumenti e gli accessi del valutatore (filesystem, esecuzione di codice); un valutatore con accesso al repository non produce evidenza percettiva «alla cieca».
 
 **`evaluation_result_v0`** (JSON, sottoinsieme della proposta D-AO-04 di agent_control_observability §13.2):
 
-- versione dello schema;
+- versione dello schema e versione dell'insieme di predicati (`claims_v0`);
+- modalità del pacchetto (`blind` o `diagnostic`);
 - valutatore: tipo, modello e versione;
 - capacità dichiarate del canale: canali, sample rate o bitrate, token/s, risoluzione delle immagini;
 - strumenti e accessi;
 - hash degli input ricevuti;
 - timestamp;
-- lista di affermazioni `{window_id, method ∈ {listening, spectrogram, descriptor, code}, kind, role?, text}`.
+- lista di affermazioni **tipizzate** (precisazione DIF-5.0-04 del 2026-10-26).
+
+**Affermazioni tipizzate.** Ogni affermazione ha questi campi:
+
+- `window_id`;
+- `method` ∈ {`listening`, `spectrogram`, `descriptor`, `code`};
+- `predicate`, da un insieme chiuso e versionato;
+- argomenti tipizzati;
+- `claimed_value`;
+- `text`, solo descrittivo e mai usato come input del controllo.
+
+**Predicati di `claims_v0`:**
+
+| Predicato | Argomenti e valore | Base di verità nel checker |
+|---|---|---|
+| `role_audible` | `role`; `claimed_value`: booleano | **presenza acusticamente misurata** del ruolo nella finestra (sotto) |
+| `role_planned` | `role`; `claimed_value`: booleano | presenza pianificata (intent); ammesso solo con `method = code`, perché non è una percezione |
+| `stereo_wider_than` | `window_id_other`; `claimed_value`: booleano | Side/Mid delle due finestre; `not_attributable` se il canale dichiarato è mono |
+| `artifact_present` | `kind` ∈ {`click`, `clipping`, `dropout`}; `claimed_value`: booleano | descrittori di integrità del PCM della finestra; `unverifiable` se il descrittore per quel tipo non esiste |
+| `observation` | nessun valore | nessuna; sempre `unverifiable` |
+
+**Tre livelli di verità per la presenza di un ruolo** nella finestra:
+
+1. *pianificata:* esistono intent del ruolo;
+2. *applicata:* esistono NoteOn `Applied` del ruolo (D-M2-12);
+3. *acusticamente misurata:* lo stem del ruolo ha onset rilevati nella finestra e un rapporto d'energia stem/mix sopra una soglia calibrata in 5c (D-M2-16).
+
+Un'affermazione di udibilità (`role_audible`) riceve `supported` **solo** se coincide con la presenza misurata. Non basta che il ruolo sia pianificato o applicato. Se la misura non è disponibile o è `INCONCLUSIVE` (es. ruolo presente nello stem ma sotto la soglia nel mix), l'esito è `unverifiable`.
 
 **Esiti del checker** (`--cacp-check-evaluation`), per affermazione:
 
 | Esito | Significato |
 |---|---|
-| `supported` | coerente con `sealed/` |
-| `contradicted` | incoerente con `sealed/` (es. ruolo dichiarato presente ma assente negli intent della finestra) |
-| `not_attributable` | il metodo dichiarato non può produrla: stereo da un canale mono; fenomeno sotto la risoluzione temporale del canale (~31 ms a 32 token/s); affermazione da `code` presentata come percezione |
-| `inadmissible` | violazione delle regole di D-M2-11: spettrogramma letto senza riferimenti, input da `sealed/`, finestra non indicata |
-| `unverifiable` | testo libero senza controparte verificabile |
+| `supported` | il valore dichiarato coincide con la base di verità del predicato |
+| `contradicted` | il valore dichiarato è opposto alla base di verità (es. `role_audible = true` per un ruolo assente e non misurato) |
+| `not_attributable` | il metodo dichiarato non può produrla: stereo da un canale mono; fenomeno sotto la risoluzione temporale del canale (~31 ms a 32 token/s); `role_planned` o affermazioni da `code` presentate come percezione |
+| `inadmissible` | violazione delle regole di D-M2-11 o della modalità: spettrogramma letto senza riferimenti, input da `sealed/`, pacchetto `diagnostic` dichiarato `blind`, finestra o predicato non validi |
+| `unverifiable` | `observation`, base di verità non disponibile o `INCONCLUSIVE` |
 
 L'esito aggregato è riportato separatamente dai gate e non decide mai un verdetto (D-M2-11).
 
 **Verifica (5d):**
 
-- due run nella stessa build producono gli stessi hash dei file pubblici;
-- test del checker con affermazioni prefabbricate, almeno una per esito;
-- test di leakage: nessun file di `public/` contiene ruoli attesi, intent, chiave o identificatori che permettano di risalire alla finestra (scansione dei campi e dei nomi dei file);
-- un risultato che dichiara un input sigillato produce `inadmissible`.
+- due run nella stessa build producono gli stessi hash dei file pubblici di ciascuna modalità;
+- test del checker con affermazioni prefabbricate, almeno una per esito e per predicato;
+- `role_audible = true` su un ruolo pianificato e applicato ma sotto la soglia di presenza misurata dà `unverifiable`, non `supported`;
+- test di leakage della modalità `blind`:
+  - nessun file di `public/` contiene ruoli, intent, battute o frame assoluti, sezione, epoch, eventId, chiave o seed in chiaro (scansione dei campi, dei metadati WAV/PNG e dei nomi dei file);
+  - tutte le finestre hanno la stessa durata;
+- un risultato che dichiara un input sigillato, o un pacchetto `diagnostic` come `blind`, produce `inadmissible`.
 
 ### D-M2-16 — Calibrazione (R6), AC-AO-02 proposto, multi-seed, LUFS e CI
 
@@ -276,7 +347,10 @@ L'esito aggregato è riportato separatamente dai gate e non decide mai un verdet
   1. seed della fixture con fingerprint di contenuto (D-M2-12) diverso da quello del seed 1337, presi da una scansione dichiarata (insieme di seed e criterio fissati prima della misura);
   2. contenuto di `planner_probe_v1`;
   3. segnali sintetici per ruolo con tempi, densità e altezze diversi dalla fixture, generati in modo deterministico nei test.
-- *Esiti:* se la scansione non trova seed con contenuto diverso, la generalizzazione multi-seed è `INCONCLUSIVE`, con la misura di diversità allegata. Gli insiemi 2 e 3 restano validi. Se le metriche di verifica peggiorano oltre il margine dichiarato in 5c, i parametri non vengono ritoccati: si registra il risultato e si riapre la decisione (regola §6.9).
+- *Esiti* (precisazione DIF-5.0-05 del 2026-10-26):
+  - se la scansione non trova seed con contenuto diverso, la **generalizzazione della calibrazione** all'insieme 1 è `INCONCLUSIVE`, mentre la **diversità osservata** è `MEASURED` e nulla, ed è registrata come risultato negativo (sotto, «Multi-seed»);
+  - con fingerprint distinti ma meno di k, la generalizzazione si valuta sui soli seed distinti, con il flag «campione insufficiente»;
+  - gli insiemi 2 e 3 restano validi in ogni caso. Se le metriche di verifica peggiorano oltre il margine dichiarato in 5c, i parametri non vengono ritoccati: si registra il risultato e si riapre la decisione (regola §6.9).
 
 **AC-AO-02 in Inc-5:**
 
@@ -289,6 +363,10 @@ L'esito aggregato è riportato separatamente dai gate e non decide mai un verdet
 
 - *Riproducibilità:* stesso seed, due pianificazioni → stesso hash di provenienza e stesso fingerprint.
 - *Diversità:* fra seed diversi si confrontano il fingerprint, per i duplicati esatti, e le metriche M1–M4 sulla sequenza di eventi (dossier di ricerca d'ingresso §2.3). L'analisi segue l'*expressive range* della generazione procedurale: descrittori fissati prima, insieme di seed dichiarato, distribuzioni invece di un solo numero. N, k, griglia e pesi si fissano nella review di 5e, prima della misura.
+- *Interpretazione degli esiti* (dossier di ricerca d'ingresso §2.3):
+  - **fingerprint tutti uguali:** diversità osservata `MEASURED` e nulla. È un risultato negativo significativo sulla varietà del generatore, da registrare come finding, non un esito inconcludente;
+  - **fingerprint distinti, ma meno di k:** distanze `MEASURED`, anche non nulle, con il flag «campione insufficiente per una conclusione robusta»;
+  - **almeno k fingerprint distinti:** distribuzioni complete.
 - La diversità non è un gate e non va massimizzata: nel gioco la variazione è meno percepita, e la ripetizione ha funzione di feedback (dossier di ricerca d'ingresso §5.2). Il criterio della ricerca approfondita resta prevalente: musica che ricorda, sviluppa, sorprende e ritorna.
 - **Nessuna modifica del generatore in Inc-5 per forzare la diversità.** Eventuali sorgenti di variazione guidate dal seed richiedono una decisione successiva basata su queste misure (nota di ADR-0005).
 
