@@ -445,9 +445,11 @@ struct ProfileProbeResult {
 // recovery and every phrase planned. Pure function so that negative cases can be tested directly.
 [[nodiscard]] bool fixtureSchedulingAccountingPassed(const FixtureProbeResult& r, std::size_t expectedPhrases) noexcept;
 
+// capturedStereoOut (optional) receives the recorded interleaved stereo PCM, e.g. for offline CACP analysis
 FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
                                            bool writeFiles = true,
-                                           FixtureInjectedFault fault = FixtureInjectedFault::None);
+                                           FixtureInjectedFault fault = FixtureInjectedFault::None,
+                                           std::vector<float>* capturedStereoOut = nullptr);
 
 ProfileWorkloadRun runProfileWorkload(ProfileWorkload workload, bool cacpEnabled);
 

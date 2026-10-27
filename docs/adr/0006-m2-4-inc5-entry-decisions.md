@@ -164,6 +164,8 @@ Per la fixture v1, nella quale ogni intent ha esattamente un NoteOff (derivato o
 
    Nessuna regola colloca un NoteOff in `E_sent` solo perché la revoca lo ha conservato.
 
+   **Limite noto** (review di 5a, 2026-10-26): l'associazione fra un NoteOff revocato e il proprio NoteOn usa la coppia (`eventId`, ruolo) senza epoch. È adeguata finché gli `eventId` sono unici nella run, come nella fixture. Va rivalutata se il runtime ammetterà il riuso degli identificativi fra epoch.
+
 **Precisazioni operative di 5a** (richieste dalla review di chiusura di 5.0, 2026-10-26):
 
 - **Disposizioni ammesse per percorso.** I punti 3 e 4 si applicano per percorso, il punto 7 ne regola l'eccezione.
@@ -299,6 +301,8 @@ Altri casi propri:
 - Side/Mid su L = R e su L = −R;
 - casi LUFS della tabella;
 - parità con E1 del dossier CACP sul WAV della fixture, documentata ma non usata come gate.
+
+**Esito dell'implementazione (5b, 2026-10-27):** nuovo target offline `cymatica_cacp` (`engine/cacp/`), mai linkato al percorso realtime. Lo scenario `--cacp-run onset_parity_v1` riproduce E1 sullo stesso ingresso: rilevati, precisione e richiamo coincidono con E1 a tutte e tre le δ (991/730/464), così come scarti e richiami per ruolo. Sulla fixture l'abbinamento a cardinalità massima e quello greedy di E1 danno gli stessi abbinamenti. Dati in `docs/research/experiments/cacp_methods/onset_parity_v1_2026-10-27.json`.
 
 ### D-M2-15 — `evaluation_pack_v1`, separazione della ground truth e `evaluation_result_v0`
 
@@ -471,7 +475,7 @@ L'esito aggregato è riportato separatamente dai gate e non decide mai un verdet
 
 - **Fasi:** ogni decisione indica la fase che la implementa. Le fasi si eseguono una alla volta, con review obbligatoria del titolare prima del commit e dell'autorizzazione della fase successiva ([progress.md](../progress.md#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26)).
 - **Interfacce interne nuove:** sink degli eventi applicati e degli stem, fingerprint del contenuto, target `cymatica_cacp`, scenari CLI. Nessuna ABI pubblica cambia.
-- **Dipendenze:** il target `cymatica_cacp` usa nlohmann/json, già fissata in `docs/dependencies.md` per `cymatica_replay`. L'estensione d'uso si registra in quel file nella fase 5b. Nessuna nuova dipendenza.
+- **Dipendenze:** il target `cymatica_cacp` usa nlohmann/json, già fissata in `docs/dependencies.md` per `cymatica_replay`. In 5b il target non ne ha ancora bisogno e non la linka: l'estensione d'uso si registra in quel file nella fase 5d, con il checker dei risultati v0. Nessuna nuova dipendenza.
 - **Ricerca e documentazione:**
   - il dossier sui metodi CACP §9 e agent_control_observability §12 rimandano a questo ADR;
   - ADR-0005 (D-M2-11 e nota multi-seed) rimanda a D-M2-12, D-M2-15 e D-M2-16.
@@ -501,5 +505,5 @@ Fonti nuove, consultate il 2026-10-26. Le fonti già citate dal [dossier sui met
   - *Usati:* `BTYPE = 00` «no compression»; LEN/NLEN; blocchi non compressi limitati a 65.535 byte.
 - **PNG:** W3C, «Portable Network Graphics (PNG) Specification (Third Edition)», Recommendation, 24 giugno 2025. [W3C](https://www.w3.org/TR/png-3/).
   - *Verifica:* intestazione, stato e indice letti.
-  - *Riportati da un estratto della pagina e da verificare sul testo in 5b:* metodo di compressione 0 = deflate; byte di filtro per riga; algoritmo CRC del §5.5.
+  - *Verificati sul testo HTML completo il 2026-10-27 (fase 5b):* firma `89 50 4E 47 0D 0A 1A 0A`; layout dei chunk con CRC su tipo e dati; CRC con polinomiale di ISO 3309 / ITU-T V.42, registro inizializzato a 1 e complemento finale; campi di IHDR e tipo colore 2 «Truecolor» con profondità 8 o 16; «Only filter method 0 is defined», filtro 0 «None», byte di filtro per riga; compressione 0 con datastream zlib e blocchi «raw (uncompressed)»; confini fra IDAT arbitrari; IEND con dati vuoti.
   - Lo stato del documento precisa che non è ancora uno standard internazionale; il rapporto con ISO/IEC 15948 non è verificato.

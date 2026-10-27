@@ -3,13 +3,13 @@
 Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa resta nella specifica (§32); questo file registra solo stato, decisioni ed evidenze.
 
 
-> **Stato M2.4 (2026-10-21):** Inc-1..Inc-4 implementati, committati su `main` fino a [`b0f466f`](https://github.com/naturewhisp/cymatica/commit/b0f466f) e verificati in CI ([run 39674430446](https://github.com/naturewhisp/cymatica/actions/runs/39674430446), Release e Debug PASS). La revisione post-Inc-4 interna (R2, rilievi DIF-INC4-R2-01..07) è chiusa: vedi [«Revisione post-Inc-4»](#revisione-post-inc-4-2026-10-21). Una revisione esterna successiva (R3, 2026-10-21) ha aperto 5 rilievi: R3-01 (opzione B del titolare, arresto terminale fail-closed), R3-02, R3-03 e R3-04 sono corretti nel commit `b0f466f`, con CI verde; per R3-05 la scadenza proposta è M2.5. Due precisazioni residue non bloccanti sono registrate nella stessa sezione: l'hash del piano JIT è assegnato a Inc-5, lo stato del registro è aggiornato. Vedi [«Revisione esterna R3»](#revisione-esterna-r3-post-inc-4-2026-10-21). Le decisioni di [ADR-0005](adr/0005-m2-4-inc4-entry-decisions.md) restano `accepted for implementation` e la ratifica del titolare è richiesta prima della chiusura di M2.4. Le raccomandazioni R1–R6 del dossier sui metodi CACP sono approvate per Inc-5. **Inc-5 è avviato a fasi (2026-10-26):** la fase 5.0, decisioni d'ingresso in [ADR-0006](adr/0006-m2-4-inc5-entry-decisions.md), è chiusa con review OK su `1d39e88`; la fase 5a (catena O3, hash JIT, fingerprint del contenuto) è committata in `8f3dfab`, con review indipendente NON OK (DIF-5a-01..03); la micro-remediation è committata e la review mirata è OK (titolare, 2026-10-26): 5a è chiusa; 5b non è autorizzata. Vedi [«M2.4 Inc-5 — piano a fasi»](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26). Questa riga e la tabella «Stato corrente» sono l'unico record dello stato; le sezioni successive sono registri storici e alcune affermazioni sono corrette da errata espliciti.
+> **Stato M2.4 (2026-10-21):** Inc-1..Inc-4 implementati, committati su `main` fino a [`b0f466f`](https://github.com/naturewhisp/cymatica/commit/b0f466f) e verificati in CI ([run 39674430446](https://github.com/naturewhisp/cymatica/actions/runs/39674430446), Release e Debug PASS). La revisione post-Inc-4 interna (R2, rilievi DIF-INC4-R2-01..07) è chiusa: vedi [«Revisione post-Inc-4»](#revisione-post-inc-4-2026-10-21). Una revisione esterna successiva (R3, 2026-10-21) ha aperto 5 rilievi: R3-01 (opzione B del titolare, arresto terminale fail-closed), R3-02, R3-03 e R3-04 sono corretti nel commit `b0f466f`, con CI verde; per R3-05 la scadenza proposta è M2.5. Due precisazioni residue non bloccanti sono registrate nella stessa sezione: l'hash del piano JIT è assegnato a Inc-5, lo stato del registro è aggiornato. Vedi [«Revisione esterna R3»](#revisione-esterna-r3-post-inc-4-2026-10-21). Le decisioni di [ADR-0005](adr/0005-m2-4-inc4-entry-decisions.md) restano `accepted for implementation` e la ratifica del titolare è richiesta prima della chiusura di M2.4. Le raccomandazioni R1–R6 del dossier sui metodi CACP sono approvate per Inc-5. **Inc-5 è avviato a fasi (2026-10-26):** le fasi 5.0 ([ADR-0006](adr/0006-m2-4-inc5-entry-decisions.md)) e 5a (catena O3, hash JIT, fingerprint; `be91198`) sono chiuse con review indipendente OK; la fase 5b (primitive di analisi `cymatica_cacp`) è committata su approvazione del titolare, con la review indipendente in attesa; 5c non è autorizzata. Vedi [«M2.4 Inc-5 — piano a fasi»](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26). Questa riga e la tabella «Stato corrente» sono l'unico record dello stato; le sezioni successive sono registri storici e alcune affermazioni sono corrette da errata espliciti.
 
 ## Stato corrente
 
 | Campo | Valore |
 |---|---|
-| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse; **M2.4: Inc-1..Inc-4 implementati e committati (CI verde su `8ba772e`); remediation R2 chiusa; revisione esterna R3 con R3-01..04 corretti in `b0f466f` (CI verde), R3-05 proposto per M2.5** ([Revisione esterna R3](#revisione-esterna-r3-post-inc-4-2026-10-21)); Inc-5 avviato a fasi: 5.0 chiusa (review OK su `1d39e88`), 5a chiusa dopo micro-remediation (review mirata OK), 5b non autorizzata ([piano a fasi](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26)); M2.5 gate d'integrazione finale. M2 complessiva non conclusa. |
+| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse; **M2.4: Inc-1..Inc-4 implementati e committati (CI verde su `8ba772e`); remediation R2 chiusa; revisione esterna R3 con R3-01..04 corretti in `b0f466f` (CI verde), R3-05 proposto per M2.5** ([Revisione esterna R3](#revisione-esterna-r3-post-inc-4-2026-10-21)); Inc-5 avviato a fasi: 5.0 e 5a chiuse (review indipendente OK; 5a su `be91198`), 5b committata, review indipendente in attesa, 5c non autorizzata ([piano a fasi](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26)); M2.5 gate d'integrazione finale. M2 complessiva non conclusa. |
 | Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
 | Stato M1 | **Completata: review indipendente OK, zero difetti residui, gate round 3 passati** |
 | Specifica | Versione **0.8.3**, roadmap §32 invariata; ADR-0003, ADR-0004 (emendamento §4.3 del 2026-10-20) e ADR-0005 (ingresso Inc-4) specificano i contratti di M2.4 senza modificare i requisiti di milestone. |
@@ -18,7 +18,7 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 | Ultima CI Headless verificata | [`b0f466f`](https://github.com/naturewhisp/cymatica/commit/b0f466f): [GitHub Actions run 39674430446](https://github.com/naturewhisp/cymatica/actions/runs/39674430446) «Windows CI», job Release (windows-2025) e Debug (windows-2025) `success`, verificato con `gh run view` il 2026-10-21. Precedente: `8ba772e`, [run 39671112436](https://github.com/naturewhisp/cymatica/actions/runs/39671112436); il dettaglio dei suoi log (140/140 headless per configurazione, CACP `tone_test` PASS) viene dalla revisione esterna R3. La CI esclude i test `perf`, valutati sulle misure locali archiviate. Non sostituisce collaudo hardware o giudizio artistico. |
 | Integrazione documentale M2.4 | Contratti D-M2-04..07 (ADR-0003); AUD-D-01..04 ed emendamento §4.3 (ADR-0004); D-M2-08..11 d'ingresso Inc-4 (ADR-0005); D-M2-12..16 d'ingresso Inc-5 (ADR-0006, in review); tutti `accepted for implementation`; nessun profilo sperimentale `validated`. |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_core` (static lib), `cymatica_replay` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
-| Ultimo aggiornamento | 2026-10-26 (Inc-5: 5.0 chiusa con review OK; 5a in `8f3dfab`, review NON OK, micro-remediation DIF-5a-01..03 con 152/152 Release e Debug headless, review mirata OK: 5a chiusa; 5b non autorizzata). Precedente, stesso giorno (Inc-5 fase 5.0: ADR-0006 con D-M2-12..16, piano a fasi con review obbligatoria, registro INC5-REV-01..05; non committato). Precedente: 2026-10-21 (micro-remediation R3 committata in `b0f466f` con CI verde: R3-01 arresto sicuro fail-closed (D-INC4-R3-01), R3-02 contabilità eventi, R3-03 hash canonico condiviso, R3-04 stato documentale; R3-05 proposto per M2.5; hash del piano JIT assegnato a Inc-5) |
+| Ultimo aggiornamento | 2026-10-27 (Inc-5: 5a chiusa con review indipendente OK su `be91198`; 5b committata su approvazione del titolare, 161/161 Release e Debug headless, parità esatta con E1; review indipendente in attesa). Precedente, stesso giorno (Inc-5 fase 5.0: ADR-0006 con D-M2-12..16, piano a fasi con review obbligatoria, registro INC5-REV-01..05; non committato). Precedente: 2026-10-21 (micro-remediation R3 committata in `b0f466f` con CI verde: R3-01 arresto sicuro fail-closed (D-INC4-R3-01), R3-02 contabilità eventi, R3-03 hash canonico condiviso, R3-04 stato documentale; R3-05 proposto per M2.5; hash del piano JIT assegnato a Inc-5) |
 
 ## Decisioni d'ingresso M0
 
@@ -855,8 +855,8 @@ L'ordine 5a → 5b → 5c → 5d → 5e è invariato. Inc-5 non introduce nuove 
 | Fase | Oggetto della review | Condizione per procedere | Stato |
 |---|---|---|---|
 | 5.0 | ADR-0006, decisioni D-M2-12..16, confini realtime/offline, definizioni delle metriche | decisioni coerenti e documentate; review OK | **chiusa**: review OK il 2026-10-26 su [`1d39e88`](https://github.com/naturewhisp/cymatica/commit/1d39e881ea3858161ca78cc47845503d69e54ef4), dopo tre cicli di correzione (`431b03f`, `1624142`, `a235997`, `1d39e88`) |
-| 5a | registro degli eventi applicati, confronto JIT/offline, catena O3, fault injection, overflow, profilazione | eventi verificati esattamente; nessun difetto di concorrenza o regressione | autorizzata il 2026-10-26; implementata e committata in [`8f3dfab`](https://github.com/naturewhisp/cymatica/commit/8f3dfab4a165add6ac78bbf7b5a694a44bdc9f29); review indipendente **NON OK** (DIF-5a-01..03); micro-remediation committata nel commit successivo; **chiusa**: review mirata OK comunicata dal titolare il 2026-10-26 («Review mirata di 5a OK») |
-| 5b | FFT/STFT, onset, mel, SHA-256, PNG, Side/Mid, LUFS | test contro oracoli indipendenti e vettori di riferimento; parità numerica documentata | non autorizzata |
+| 5a | registro degli eventi applicati, confronto JIT/offline, catena O3, fault injection, overflow, profilazione | eventi verificati esattamente; nessun difetto di concorrenza o regressione | **chiusa**: `8f3dfab` + micro-remediation [`be91198`](https://github.com/naturewhisp/cymatica/commit/be9119812ea9bb4e9f4df0640a2fcf7d49c30594); review indipendente OK il 2026-10-26; CI verde su `be91198` (run 40405902875) |
+| 5b | FFT/STFT, onset, mel, SHA-256, PNG, Side/Mid, LUFS | test contro oracoli indipendenti e vettori di riferimento; parità numerica documentata | autorizzata il 2026-10-26 (subordinata alla CI di `be91198`, verde); implementata e **committata** su approvazione del titolare del 2026-10-27 («Review di 5b OK: committa»); esito della review indipendente **in attesa** |
 | 5c | stem per ruolo, ricostruzione del mix dei bus, calibrazione e verifica AC-AO-02 | risultati misurati, soglie proposte, generalizzazione dimostrata oppure esplicitamente inconcludente | non autorizzata |
 | 5d | evaluation pack, controllo degli hash, separazione della ground truth, checker delle affermazioni | nessun leakage; test positivi e negativi del checker superati | non autorizzata |
 | 5e | suite completa, LUFS esplorativo, multi-seed, evidenze percettive, handoff | dossier riproducibile, tutti i gate obbligatori superati e review tecnica OK | non autorizzata |
@@ -1044,3 +1044,80 @@ Il caso del percorso con guasto è riscritto con revoche e cancellazioni causalm
 | Percorso con guasto reale | `[fixture_safe_stop]` (`LateTempoMap`, `InvalidTempoMap`) | Riconciliazione PASS con le nuove regole causali: le cancellazioni reali del Coordinator (revoca al confine B, svuotamento allo `Stop`) rispettano confine, ordine e associazione dei NoteOff |
 
 **Esito della review mirata (2026-10-26):** OK, comunicato dal titolare («Review mirata di 5a OK: committa la micro-remediation e fermati prima di 5b»). La micro-remediation è committata su `main`; 5b resta non autorizzata.
+
+**Chiusura di 5a (review indipendente di `be91198`, 2026-10-26):** verdetto **OK** sul piano tecnico. I rilievi DIF-5a-01..03 sono risolti; la CI su `be91198` ([run 40405902875](https://github.com/naturewhisp/cymatica/actions/runs/40405902875)) è verde in Release e Debug, verificato con `gh run view`. Limite non bloccante registrato in ADR-0006 D-M2-12: l'associazione NoteOff/NoteOn nelle revoche non include l'epoch. La review ha autorizzato 5b, subordinata alla CI verde.
+
+### Fase 5b — primitive di analisi offline `cymatica_cacp` (2026-10-27, committata, review indipendente in attesa)
+
+Lo stato è **implementata e committata** su approvazione del titolare del 2026-10-27 («Review di 5b OK: committa e fermati prima di 5c»). L'esito della review indipendente si registrerà quando sarà disponibile, come richiesto da DIF-5a-02. 5c non è autorizzata.
+
+**Codice** (nuovo target statico `cymatica_cacp` in [engine/cacp/](../engine/cacp/); dipende da `cymatica_audio`, mai il contrario, e non entra nel percorso realtime):
+
+| Modulo | Contenuto | Riferimento |
+|---|---|---|
+| `fft` | FFT radix-2 iterativa con tabella di twiddle precalcolata | — |
+| `stft` | Hann simmetrico, frame senza padding, tempo al centro del frame, mono (L+R)/2 | Dixon 2006; script E1 |
+| `onset` | flux di `log1p(100|X|)`, soglia a media mobile ±100 ms + δ, distanza minima 30 ms; abbinamento a cardinalità massima con tolleranza inclusiva; abbinamento greedy di E1 solo per la parità | D-M2-14; Raffel et al. 2014 |
+| `mel` | banco HTK a 128 bande 30 Hz–16 kHz, dB normalizzati sugli 80 dB superiori | D-M2-14; script E1 |
+| `stereo` | Side/Mid in dB, indefinito (nullopt) con energia nulla | D-M2-14; E3 |
+| `loudness` | K-weighting BS.1770-5 a 48 kHz; Momentary 0,4 s e Short-term 3 s scorrevoli; Integrated con blocchi da 400 ms al 75 %, gate −70 LUFS e −10 LU; valori indefiniti come nullopt | BS.1770-5; EBU Tech 3341 v4.0 |
+| `png_writer` | RGB 8 bit, filtro 0, zlib con blocchi deflate *stored*, CRC-32 e Adler-32 | RFC 1950/1951; PNG W3C 3ª ed. |
+| `sha256` | SHA-256 in streaming e su file | FIPS 180-4 |
+| `onset_parity` | scenario `--cacp-run onset_parity_v1` (alias `onset_parity`): parità con E1, esito `MEASURED`, mai gate | dossier CACP §3.2 |
+
+Modifica minima a `runFixtureProbeV1Offline`: un parametro opzionale restituisce il PCM registrato, per l'analisi in processo. Il verdetto e i file della fixture non cambiano.
+
+**Test contro oracoli indipendenti** ([test_cacp_analysis.cpp](../tests/unit/test_cacp_analysis.cpp), 9 casi, tag `[cacp_analysis]`):
+
+- **FFT:** confronto con una DFT diretta per N = 1…2.048 (errore < 10⁻⁹·N) e inversione < 10⁻¹²; N non potenza di due rifiutato.
+- **STFT:** conteggio dei frame, tempo al centro del frame, finestra simmetrica, picco di una sinusoide sul bin 100.
+- **Onset:**
+  - 6 attacchi sintetici (1 ms) rilevati tutti, con precisione 1 ed errore ≤ 25 ms;
+  - silenzio → nessun onset; fusione entro 30 ms.
+- **Abbinamento:**
+  - cardinalità massima uguale alla ricerca esaustiva su 400 istanze casuali;
+  - un controesempio in cui il greedy di E1 trova 1 abbinamento e il massimo 2;
+  - estremo della tolleranza incluso, con valori esattamente rappresentabili.
+- **Mel:** formula HTK, andata e ritorno Hz↔mel, centri crescenti, pesi in [0, 1] e nulli fuori banda, picco a 1 kHz sulla banda più vicina, normalizzazione [0, 1].
+- **Side/Mid:** 0 dB per L=1, R=0; 10·log10(1/9) per L=1, R=0,5; indefinito per L=R e L=−R.
+- **Loudness:**
+  - casi EBU 3341 n. 1–2 (−23 e −33 LUFS su M, S e I, tutti i valori della serie);
+  - n. 3–4 (gate relativo e assoluto);
+  - n. 5;
+  - n. 9 (S costante dopo 3 s) e n. 12 (M costante dopo 1 s), tutti entro ±0,1;
+  - silenzio, segnale più corto di un blocco, 44,1 kHz e NaN → valori indefiniti, mai un numero.
+- **PNG:**
+  - CRC-32 di «123456789» = `0xCBF43926`, Adler-32 di «Wikipedia» = `0x11E60398` (valori di `zlib`);
+  - un lettore indipendente nel test verifica firma, CRC di ogni chunk, IHDR, intestazione zlib, LEN/NLEN, BFINAL e Adler-32, anche su più blocchi (200×200);
+  - output deterministico; dimensioni non valide rifiutate.
+- **SHA-256:**
+  - esempi NIST («abc» e il messaggio di 448 bit, letti dal PDF ufficiale);
+  - confini di padding (0, 55, 56, 63, 64 e 10⁶ «a») contro un'implementazione indipendente (`hashlib`, OpenSSL);
+  - aggiornamenti a blocchi irregolari.
+
+**Parità con E1** (`cymatica_game --cacp-run onset_parity_v1`, dati in [onset_parity_v1_2026-10-27.json](research/experiments/cacp_methods/onset_parity_v1_2026-10-27.json)):
+
+| δ | Rilevati | P | R | Scarto mediano [p5, p95] | Richiamo Pulso / Corpo / Trama / Vettore | Uguale a E1 |
+|---|---|---|---|---|---|---|
+| 0,05 | 991 | 0,920 | 0,905 | −7,33 ms [−11,13; +10,33] | 1,00 / 0,99 / 0,76 / 1,00 | sì |
+| 0,10 | 730 | 1,000 | 0,724 | −8,26 ms [−11,23; −2,67] | 1,00 / 0,99 / 0,31 / 0,98 | sì |
+| 0,20 | 464 | 1,000 | 0,460 | −9,13 ms [−11,60; −6,38] | 1,00 / 0,42 / 0,02 / 0,29 | sì |
+
+Sono parametri identici sullo stesso ingresso: 34.278 frame STFT, 1.008 onset unici, hash PCM 15126969907236845529. L'abbinamento a cardinalità massima coincide con il greedy su questa fixture. Tempi della STFT e della novelty: 0,65 s e 0,48 s in C++ (Release), contro 0,59 s e 0,24 s di numpy in E1.
+
+**Verifica** (working tree su `be91198`):
+
+| Check | Comando | Esito |
+|---|---|---|
+| Release + headless | `scripts/build.ps1 -Config Release -Test -Headless` | **161/161 PASS** (152 + 9), 0 `warning C` |
+| Debug + headless | `scripts/build.ps1 -Config Debug -Test -Headless` | **161/161 PASS**, 0 `warning C` |
+| Benchmark Release | `ctest --test-dir build/x64-release -L perf` | **2/2 PASS** |
+| `fixture_test` (Release) | `cymatica_game --cacp-run fixture_test` | **PASS**; hash PCM, golden JIT e catena O3 invariati |
+| `onset_parity_v1` | `cymatica_game --cacp-run onset_parity_v1` | **MEASURED**, `all_match_e1` true |
+
+**Fonti verificate in questa fase:** PNG W3C 3ª edizione sul testo HTML completo (firma, chunk, CRC, IHDR, filtro 0, compressione 0, IEND); i dettagli sono in ADR-0006 §4.
+
+**Note:**
+
+- **Primo test sugli onset:** è fallito con 12 rilevazioni su 6. Il segnale sintetico era troncato bruscamente a 0,25 s, e il troncamento produceva un secondo transiente. Era un difetto del test, non del rilevatore. Ora il segnale decade a circa −87 dB prima del taglio.
+- **nlohmann/json:** non è linkata in 5b perché non serve. Si registrerà in `docs/dependencies.md` in 5d, con il checker.

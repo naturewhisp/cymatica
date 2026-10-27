@@ -7,6 +7,7 @@ target_link_libraries(cymatica_game
         raylib
         cymatica_core
         cymatica_audio
+        cymatica_cacp
         cymatica_replay
         cymatica_compile_options
 )

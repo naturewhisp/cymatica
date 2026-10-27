@@ -2436,7 +2436,8 @@ bool fixtureSchedulingAccountingPassed(const FixtureProbeResult& r, std::size_t 
            r.engineProcessedEvents == r.expectedEngineEvents;
 }
 
-FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool writeFiles, FixtureInjectedFault fault) {
+FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool writeFiles, FixtureInjectedFault fault,
+                                            std::vector<float>* capturedStereoOut) {
     FixtureProbeResult result;
     result.injectedFault = fault;
     result.buildId = CYMATICA_BUILD_ID;
@@ -2834,6 +2835,9 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
         }
     }
 
+    if (capturedStereoOut != nullptr) {
+        *capturedStereoOut = std::move(recordedStereo);
+    }
     return result;
 }
 

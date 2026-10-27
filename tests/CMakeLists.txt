@@ -13,6 +13,7 @@ add_executable(cymatica_tests
     unit/test_music_planner.cpp
     unit/test_realtime_profile.cpp
     unit/test_event_chain.cpp
+    unit/test_cacp_analysis.cpp
 )
 
 target_link_libraries(cymatica_tests
@@ -20,6 +21,7 @@ target_link_libraries(cymatica_tests
         Catch2::Catch2WithMain
         cymatica_core
         cymatica_audio
+        cymatica_cacp
         cymatica_replay
         cymatica_compile_options
 )

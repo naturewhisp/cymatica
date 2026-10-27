@@ -1,0 +1,23 @@
+{
+  "manifest_version": "1.0",
+  "scenario": "onset_parity_v1",
+  "build_id": "be91198",
+  "verdict": "MEASURED",
+  "gate": false,
+  "descriptors_version": "descriptors_v1",
+  "reference_experiment": "E1, docs/research/experiments/cacp_methods/onset_report_2026-10-21.json",
+  "fixture_passed": true,
+  "pcm_content_hash": 15126969907236845529,
+  "analysed_frames": 8777142,
+  "planned_noteons": 1392,
+  "unique_onset_frames": 1008,
+  "role_unique_onsets": {"pulso": 416, "corpo": 96, "trama": 400, "vettore": 384},
+  "stft_frames": 34278,
+  "timing_s": {"stft": 0.6451918, "novelty": 0.4785057},
+  "deltas": [
+    {"delta": 0.05, "detected": 991, "greedy": {"precision": 0.9202825429, "recall": 0.9047619048, "f": 0.9124562281}, "max_cardinality": {"precision": 0.9202825429, "recall": 0.9047619048, "f": 0.9124562281}, "offset_ms": {"median": -7.333333333, "p05": -11.125, "p95": 10.33333333}, "role_recall": {"pulso": 1, "corpo": 0.9895833333, "trama": 0.7625, "vettore": 0.9973958333}, "e1": {"detected": 991, "precision": 0.92, "recall": 0.905}, "matches_e1": true},
+    {"delta": 0.1, "detected": 730, "greedy": {"precision": 1, "recall": 0.7242063492, "f": 0.8400460299}, "max_cardinality": {"precision": 1, "recall": 0.7242063492, "f": 0.8400460299}, "offset_ms": {"median": -8.260416667, "p05": -11.22916667, "p95": -2.666666667}, "role_recall": {"pulso": 1, "corpo": 0.9895833333, "trama": 0.31, "vettore": 0.984375}, "e1": {"detected": 730, "precision": 1, "recall": 0.724}, "matches_e1": true},
+    {"delta": 0.2, "detected": 464, "greedy": {"precision": 1, "recall": 0.4603174603, "f": 0.6304347826}, "max_cardinality": {"precision": 1, "recall": 0.4603174603, "f": 0.6304347826}, "offset_ms": {"median": -9.125, "p05": -11.60416667, "p95": -6.383333333}, "role_recall": {"pulso": 1, "corpo": 0.4166666667, "trama": 0.0225, "vettore": 0.2916666667}, "e1": {"detected": 464, "precision": 1, "recall": 0.46}, "matches_e1": true}
+  ],
+  "all_match_e1": true
+}

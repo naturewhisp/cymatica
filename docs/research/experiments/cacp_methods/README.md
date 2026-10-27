@@ -12,3 +12,4 @@ Dati del dossier [M2_4_CACP_Evaluation_Methods.md](../../M2_4_CACP_Evaluation_Me
 - `blind_key_round1.json`, `blind_key_round2.json`, `blind_judgements_2026-10-21.md`: test E2 alla cieca.
 - `png_sha256_2026-10-21.txt`: hash dei PNG generati. I PNG non sono versionati e si rigenerano con lo script.
 - WAV d'ingresso: `fixture_probe_v1.wav` da `cymatica_game --cacp-run fixture_test` (build `9def52c`, `pcm_content_hash` 15126969907236845529, SHA-256 `dcb667ea…36ec`).
+- `onset_parity_v1_2026-10-27.json`: parità del descrittore C++ `descriptors_v1` (Inc-5, fase 5b) con E1 sullo stesso ingresso (fixture renderizzata in processo, quantizzata come il WAV a 16 bit, solo frame di contenuto). Rilevati, P, R, scarti e richiami per ruolo coincidono con `onset_report_2026-10-21.json` alle tre δ. Si rigenera con `cymatica_game --cacp-run onset_parity_v1`.

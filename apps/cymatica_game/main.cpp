@@ -3,6 +3,7 @@
 #include "audio_probe.h"
 #include "fixed_step.h"
 #include "input_dispatcher.h"
+#include "onset_parity.h"
 #include "raylib.h"
 #include "run_record.h"
 
@@ -86,9 +87,17 @@ int main(int argc, char** argv) {
                 std::printf("[cacp] Verdict: %s\n", res.passed ? "PASS" : "FAIL");
                 std::printf("%s\n", res.toJson().c_str());
                 return res.passed ? 0 : 1;
+            } else if (std::strcmp(scenario, "onset_parity") == 0 ||
+                       std::strcmp(scenario, "onset_parity_v1") == 0) {
+                std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5b onset_parity_v1, not a gate)...\n", scenario);
+                auto res = cymatica::cacp::runOnsetParityV1("artifacts/cacp", true);
+                std::printf("[cacp] Verdict: %s\n", res.completed ? "MEASURED" : "NOT_RUN");
+                std::printf("%s\n", res.toJson().c_str());
+                return res.completed ? 0 : 1;
             } else {
                 std::fprintf(stderr, "[cacp] ERROR: unknown scenario '%s' (known: tone_test, voice_test, "
-                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test and their *_probe_v* aliases)\n",
+                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, onset_parity "
+                                     "and their *_v* aliases)\n",
                              scenario);
                 return 2;
             }

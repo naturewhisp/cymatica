@@ -75,6 +75,7 @@ FetchContent_MakeAvailable(nlohmann_json)
 add_subdirectory(engine/core)
 add_subdirectory(engine/audio)
 add_subdirectory(engine/replay)
+add_subdirectory(engine/cacp)
 
 if(CYMATICA_BUILD_GAME)
     add_subdirectory(apps/cymatica_game)
