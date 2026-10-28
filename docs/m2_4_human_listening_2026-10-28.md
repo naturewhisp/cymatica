@@ -61,6 +61,35 @@ L'esperto ha precisato l'osservazione sul kick con due brevi clip audio inviate 
 
 Questo è un caso del rischio di «varietà fittizia» indicato dal titolare. La domanda di F1 diventa quindi: **quando e perché Pulso deve ancorare il metro, e quando spostarlo intenzionalmente?** Per esempio: stabilire il tempo forte, spostarlo per creare tensione, poi ritornare. È coerente con il criterio «ricordi, sviluppi, sorprenda e ritorni» ed è un compito naturale del direttore musicale (F5).
 
+### 3ter. Proposta dell'esperto: ancorare il metro senza togliere lo spostamento
+
+Con altre quattro clip di 8 s (4 battute a 120 BPM), costruite sulla «base» del brano, l'esperto mostra un'alternativa alla correzione del kick:
+
+- `dritto+base`: kick atteso sulla base;
+- `dritto+base+snare`: con uno snare;
+- `storto+base+snare`: kick spostato, snare sul 2 e sul 4 (5° e 13° sedicesimo), senza il charleston usato prima per mostrare la griglia;
+- `storto+base+snare+gn`: in più, ghost notes sincopate (snare a basso volume).
+
+Secondo l'esperto lo snare sul 2 e sul 4 dà un riferimento temporale fisso, e il risultato è un ritmo «interessante, ma ancorato». Le ghost notes aggiungono varietà senza perdere il riferimento.
+
+**Misure dell'agente sulle clip.** Le misure usano lo stesso strumento temporaneo di §3bis, con picchi d'energia per banda sulla griglia dei sedicesimi.
+
+- *Clip senza base:*
+  - il kick di `dritto` cade sui sedicesimi 0, 3, 5, 8, 11, 13;
+  - quello di `storto` su 1, 4, 6, 9, 12, 15: un sedicesimo dopo, l'ultimo due;
+  - il generatore, nella prima metà di A, suona su 2, 5, 7, 10, 13, 15, cioè due sedicesimi dopo in modo uniforme.
+
+  La ricostruzione dell'esperto si avvicina al generatore ma non coincide: senza un kick sul tempo forte, anche a un ascoltatore esperto l'inizio della battuta risulta ambiguo.
+- *Clip con la base:* in `storto+base+snare` la banda 1,5–5 kHz ha picchi sui sedicesimi 4 e 12 delle battute, cioè sul 2 e sul 4, compatibili con lo snare dichiarato.
+- *Cosa le misure non distinguono:* lo strumento è un rilevatore semplice e non separa lo snare dal charleston o dai transitori della base. Non separa nemmeno in modo affidabile le ghost notes: ne vede al più una, debole (−16 dB), nella quarta battuta. Queste misure **non** verificano la proposta in dettaglio: ne confermano la struttura principale (kick spostato, backbeat sul 2 e sul 4).
+
+**Rilevanza per CYMATICA (inferenza dell'agente, da valutare in F1/F5):** l'idea separa due funzioni oggi confuse in Pulso. Il **riferimento metrico** può venire da un backbeat stabile, mentre lo **spostamento** del kick diventa un colore intenzionale. Ci sono già alcuni elementi utili:
+
+- ogni ruolo ha due voci (budget di 8), quindi un backbeat potrebbe essere una seconda voce di Pulso con un timbro distinto;
+- le ghost notes richiedono solo variazioni di `velocity`, già presente nel Music Intent.
+
+È una delle opzioni da confrontare nella decisione F1, con misure e ascolto, non una scelta fatta.
+
 ## 4. Limiti
 
 - **Campione:** un solo ascoltatore, condizioni d'ascolto non controllate e non documentate, nessuna randomizzazione né confronto A/B.
