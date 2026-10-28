@@ -91,9 +91,9 @@ int main(int argc, char** argv) {
                        std::strcmp(scenario, "onset_parity_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5b onset_parity_v1, not a gate)...\n", scenario);
                 auto res = cymatica::cacp::runOnsetParityV1("artifacts/cacp", true);
-                std::printf("[cacp] Verdict: %s\n", res.completed ? "MEASURED" : "NOT_RUN");
+                std::printf("[cacp] Verdict: %s\n", res.status.c_str());
                 std::printf("%s\n", res.toJson().c_str());
-                return res.completed ? 0 : 1;
+                return (res.completed && res.inputValid) ? 0 : 1;
             } else {
                 std::fprintf(stderr, "[cacp] ERROR: unknown scenario '%s' (known: tone_test, voice_test, "
                                      "synth_test, timbre_test, planner_test, fixture_test, profile_test, onset_parity "

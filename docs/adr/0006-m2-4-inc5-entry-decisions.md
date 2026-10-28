@@ -292,6 +292,15 @@ Altri casi propri:
 
 **Valori non definiti** (silenzio, durata insufficiente, risultato non finito): si serializzano come `null` con stato `INCONCLUSIVE`. Non si producono mai JSON non validi né PASS impliciti. La regola vale per tutti i descrittori.
 
+**Contratto di validità delle primitive** (DIF-5b-01/02, review di 5b del 2026-10-28). Ogni primitiva restituisce uno stato esplicito accanto al valore: `OK`, `NON_FINITE_INPUT`, `EXACT_SILENCE`, `BELOW_NUMERICAL_FLOOR` o `INVALID_CONFIG`. Uno stato diverso da `OK` vale `null` / `INCONCLUSIVE`.
+
+- **Ingressi non finiti** (NaN, ±∞) in STFT, novelty, peak picking, abbinamento, mel, Side/Mid e loudness danno `NON_FINITE_INPUT`, senza alcun valore. In particolare, una lista di onset vuota è un «nessun onset» valido solo con stato `OK`.
+- **Mel:** il silenzio non si rappresenta mai come energia.
+  - Matrice tutta nulla → `EXACT_SILENCE`; massimo non superiore al pavimento di ampiezza 10⁻¹⁰ → `BELOW_NUMERICAL_FLOOR`. In entrambi i casi tutte le celle normalizzate valgono 0.
+  - Per i contenuti validi la normalizzazione resta relativa al massimo, sugli 80 dB superiori, e il livello assoluto del massimo si riporta in `maxDb`.
+  - Il banco HTK e la normalizzazione non cambiano.
+- Silenzio e segnale troppo corto restano `OK` per la loudness, con valori `null`, perché BS.1770 li lascia indefiniti.
+
 **Verifica (5b):**
 
 - FFT confrontata con una DFT diretta;
@@ -302,7 +311,15 @@ Altri casi propri:
 - casi LUFS della tabella;
 - parità con E1 del dossier CACP sul WAV della fixture, documentata ma non usata come gate.
 
-**Esito dell'implementazione (5b, 2026-10-27):** nuovo target offline `cymatica_cacp` (`engine/cacp/`), mai linkato al percorso realtime. Lo scenario `--cacp-run onset_parity_v1` riproduce E1 sullo stesso ingresso: rilevati, precisione e richiamo coincidono con E1 a tutte e tre le δ (991/730/464), così come scarti e richiami per ruolo. Sulla fixture l'abbinamento a cardinalità massima e quello greedy di E1 danno gli stessi abbinamenti. Dati in `docs/research/experiments/cacp_methods/onset_parity_v1_2026-10-27.json`.
+**Esito dell'implementazione (5b, 2026-10-27):** nuovo target offline `cymatica_cacp` (`engine/cacp/`), mai linkato al percorso realtime. Lo scenario `--cacp-run onset_parity_v1` riproduce E1 sullo stesso ingresso: rilevati, precisione e richiamo coincidono con E1 a tutte e tre le δ (991/730/464), così come scarti e richiami per ruolo. Sulla fixture l'abbinamento a cardinalità massima e quello greedy di E1 danno gli stessi abbinamenti.
+
+**Dopo DIF-5b-03** (2026-10-28) il confronto è automatico campo per campo, su tutti i valori pubblicati da E1:
+
+- conteggi esatti;
+- P, R, F, P/R/F per sezione e richiamo per ruolo entro 0,0005;
+- scarto mediano, p05 e p95 entro 0,005 ms.
+
+Le tolleranze valgono metà dell'ultima cifra stampata da E1. Lo scenario dà `MEASURED` solo se la fixture ha superato il proprio verdetto e il PCM è finito; altrimenti dà `INCONCLUSIVE`, con codice d'uscita diverso da zero. Dati in `docs/research/experiments/cacp_methods/onset_parity_v1_2026-10-28.json` (la prima esecuzione è in `…_2026-10-27.json`).
 
 ### D-M2-15 — `evaluation_pack_v1`, separazione della ground truth e `evaluation_result_v0`
 

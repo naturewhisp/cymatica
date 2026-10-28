@@ -36,8 +36,15 @@ LoudnessResult measureLoudnessStereo(std::span<const float> interleavedStereo, s
                                      const LoudnessConfig& cfg) {
     LoudnessResult r;
     r.seriesStepS = cfg.seriesStepS;
-    if (sampleRate != 48000) return r; // coefficients are specified at 48 kHz only
+    if (sampleRate != 48000) { // coefficients are specified at 48 kHz only
+        r.status = AnalysisStatus::InvalidConfig;
+        return r;
+    }
     r.supported = true;
+    if (!allFinite(interleavedStereo)) {
+        r.status = AnalysisStatus::NonFiniteInput;
+        return r;
+    }
 
     const std::size_t frames = interleavedStereo.size() / 2;
     if (frames == 0) return r;

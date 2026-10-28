@@ -1,5 +1,7 @@
 #pragma once
 
+#include "analysis_status.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -25,6 +27,9 @@ struct LoudnessConfig {
 };
 
 struct LoudnessResult {
+    // Ok, NonFiniteInput (NaN/inf sample: no value at all), InvalidConfig (unsupported sample rate). Silence or
+    // a too-short signal stay Ok with null values, as BS.1770 leaves them undefined.
+    AnalysisStatus status{AnalysisStatus::Ok};
     bool supported{false};                   // only 48 kHz stereo is implemented (coefficients of BS.1770-5)
     std::optional<double> integratedLufs{};
     std::optional<double> maxMomentaryLufs{};

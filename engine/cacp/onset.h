@@ -19,18 +19,35 @@ struct OnsetParams {
 };
 
 // Spectral flux of log(1 + gamma |X|): per frame, sum over bins of the half-wave rectified frame difference;
-// frame 0 is 0; normalised to max 1 (all-zero novelty stays zero).
-[[nodiscard]] std::vector<double> spectralFluxNovelty(const MagnitudeSpectrogram& mag, double logGamma);
+// frame 0 is 0; normalised to max 1 (all-zero novelty stays zero). The status of the spectrogram propagates:
+// an invalid spectrogram gives no values, never an empty curve presented as valid.
+struct NoveltyCurve {
+    AnalysisStatus status{AnalysisStatus::Ok};
+    std::vector<double> values{};
+};
+
+[[nodiscard]] NoveltyCurve spectralFluxNovelty(const MagnitudeSpectrogram& mag, double logGamma);
 
 // Peak picking: local maximum (n[i] > n[i-1] and n[i] >= n[i+1]) above the zero-padded centred moving average
 // of 2w+1 frames plus delta, w = round(halfWindow * fs / hop); detections closer than minSeparation merged.
-// Returns frame indices.
-[[nodiscard]] std::vector<std::size_t> pickOnsetFrames(std::span<const double> novelty, const OnsetParams& p,
-                                                       const StftConfig& cfg, std::uint32_t sampleRate);
+// Returns frame indices; a non-finite novelty value gives NonFiniteInput and no frame.
+struct OnsetFrames {
+    AnalysisStatus status{AnalysisStatus::Ok};
+    std::vector<std::size_t> frames{};
+};
 
-// Detected onset times (frame centres, seconds) of a mono signal
-[[nodiscard]] std::vector<double> detectOnsetsSeconds(std::span<const float> mono, const OnsetParams& p,
-                                                      std::uint32_t sampleRate, const StftConfig& cfg = kDescriptorsV1Stft);
+[[nodiscard]] OnsetFrames pickOnsetFrames(std::span<const double> novelty, const OnsetParams& p, const StftConfig& cfg,
+                                          std::uint32_t sampleRate);
+
+// Detected onset times (frame centres, seconds) of a mono signal. An empty list is a valid "no onset" only with
+// status Ok (e.g. silence); NaN/inf input gives NonFiniteInput (DIF-5b-02).
+struct OnsetDetection {
+    AnalysisStatus status{AnalysisStatus::Ok};
+    std::vector<double> timesS{};
+};
+
+[[nodiscard]] OnsetDetection detectOnsetsSeconds(std::span<const float> mono, const OnsetParams& p,
+                                                 std::uint32_t sampleRate, const StftConfig& cfg = kDescriptorsV1Stft);
 
 struct OnsetMatch {
     std::size_t reference{0};
@@ -39,6 +56,7 @@ struct OnsetMatch {
 };
 
 struct OnsetScore {
+    AnalysisStatus status{AnalysisStatus::Ok}; // NonFiniteInput when a time is NaN/inf: no pair, P = R = F = 0
     std::size_t references{0};
     std::size_t estimates{0};
     std::size_t matches{0};

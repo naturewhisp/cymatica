@@ -1,5 +1,7 @@
 #pragma once
 
+#include "analysis_status.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -20,8 +22,10 @@ inline constexpr StftConfig kDescriptorsV1Stft{};
 // Symmetric Hann window w[n] = 0.5 - 0.5 cos(2 pi n / (N - 1)) (numpy.hanning)
 [[nodiscard]] std::vector<double> hannSymmetric(std::size_t n);
 
-// Magnitude spectrogram |X[k][b]|, b in [0, N/2], row-major [frame][bin]
+// Magnitude spectrogram |X[k][b]|, b in [0, N/2], row-major [frame][bin]. status != Ok means no frames
+// (NonFiniteInput for NaN/inf samples, InvalidConfig for a non power-of-two size or a zero hop).
 struct MagnitudeSpectrogram {
+    AnalysisStatus status{AnalysisStatus::Ok};
     std::size_t frames{0};
     std::size_t bins{0};
     std::vector<float> data{};

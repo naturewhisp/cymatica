@@ -25,7 +25,14 @@ std::size_t stftFrameCount(std::size_t length, const StftConfig& cfg) noexcept {
 MagnitudeSpectrogram stftMagnitude(std::span<const float> mono, const StftConfig& cfg) {
     MagnitudeSpectrogram out;
     const FftPlan plan(cfg.fftSize);
-    if (!plan.valid()) return out;
+    if (!plan.valid() || cfg.hop == 0) {
+        out.status = AnalysisStatus::InvalidConfig;
+        return out;
+    }
+    if (!allFinite(mono)) {
+        out.status = AnalysisStatus::NonFiniteInput; // never a spectrogram of NaN
+        return out;
+    }
     out.frames = stftFrameCount(mono.size(), cfg);
     out.bins = cfg.fftSize / 2 + 1;
     out.data.resize(out.frames * out.bins);

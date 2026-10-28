@@ -15,6 +15,14 @@ OnsetScore finalize(OnsetScore s) {
     return s;
 }
 
+OnsetScore invalidScore(std::span<const double> referenceS, std::span<const double> estimateS) {
+    OnsetScore s;
+    s.status = AnalysisStatus::NonFiniteInput;
+    s.references = referenceS.size();
+    s.estimates = estimateS.size();
+    return s; // no pair; P = R = F = 0 and the status says why
+}
+
 std::vector<double> sorted(std::span<const double> v) {
     std::vector<double> out(v.begin(), v.end());
     std::sort(out.begin(), out.end());
@@ -23,9 +31,17 @@ std::vector<double> sorted(std::span<const double> v) {
 
 } // namespace
 
-std::vector<double> spectralFluxNovelty(const MagnitudeSpectrogram& mag, double logGamma) {
-    std::vector<double> nov(mag.frames, 0.0);
-    if (mag.frames == 0) return nov;
+NoveltyCurve spectralFluxNovelty(const MagnitudeSpectrogram& mag, double logGamma) {
+    NoveltyCurve curve;
+    curve.status = mag.status;
+    if (mag.status != AnalysisStatus::Ok) return curve;
+    if (!std::isfinite(logGamma)) {
+        curve.status = AnalysisStatus::InvalidConfig;
+        return curve;
+    }
+    std::vector<double>& nov = curve.values;
+    nov.assign(mag.frames, 0.0);
+    if (mag.frames == 0) return curve;
     std::vector<double> prev(mag.bins), cur(mag.bins);
     for (std::size_t b = 0; b < mag.bins; ++b) prev[b] = std::log1p(logGamma * static_cast<double>(mag.at(0, b)));
     double maxV = 0.0;
@@ -42,14 +58,28 @@ std::vector<double> spectralFluxNovelty(const MagnitudeSpectrogram& mag, double 
     }
     const double norm = (std::max)(maxV, 1e-12);
     for (auto& v : nov) v /= norm;
-    return nov;
+    if (!allFinite(std::span<const double>(nov))) { // defensive: overflow of a finite but huge magnitude
+        curve.status = AnalysisStatus::NonFiniteInput;
+        curve.values.clear();
+    }
+    return curve;
 }
 
-std::vector<std::size_t> pickOnsetFrames(std::span<const double> nov, const OnsetParams& p, const StftConfig& cfg,
-                                         std::uint32_t sampleRate) {
-    std::vector<std::size_t> out;
+OnsetFrames pickOnsetFrames(std::span<const double> nov, const OnsetParams& p, const StftConfig& cfg,
+                            std::uint32_t sampleRate) {
+    OnsetFrames result;
+    std::vector<std::size_t>& out = result.frames;
+    if (cfg.hop == 0 || sampleRate == 0 || !std::isfinite(p.delta) || !std::isfinite(p.thresholdHalfWindowS) ||
+        !std::isfinite(p.minSeparationS)) {
+        result.status = AnalysisStatus::InvalidConfig;
+        return result;
+    }
+    if (!allFinite(nov)) {
+        result.status = AnalysisStatus::NonFiniteInput; // never a false "no onset"
+        return result;
+    }
     const std::size_t n = nov.size();
-    if (n < 3 || cfg.hop == 0 || sampleRate == 0) return out;
+    if (n < 3) return result;
     const double framesPerSecond = static_cast<double>(sampleRate) / static_cast<double>(cfg.hop);
     const auto w = static_cast<std::ptrdiff_t>(std::llround(p.thresholdHalfWindowS * framesPerSecond));
     const auto sep = static_cast<std::size_t>(std::llround(p.minSeparationS * framesPerSecond));
@@ -74,21 +104,27 @@ std::vector<std::size_t> pickOnsetFrames(std::span<const double> nov, const Onse
         }
         out.push_back(i);
     }
-    return out;
+    return result;
 }
 
-std::vector<double> detectOnsetsSeconds(std::span<const float> mono, const OnsetParams& p, std::uint32_t sampleRate,
-                                        const StftConfig& cfg) {
+OnsetDetection detectOnsetsSeconds(std::span<const float> mono, const OnsetParams& p, std::uint32_t sampleRate,
+                                   const StftConfig& cfg) {
+    OnsetDetection out;
     const MagnitudeSpectrogram mag = stftMagnitude(mono, cfg);
-    const std::vector<double> nov = spectralFluxNovelty(mag, p.logGamma);
-    const std::vector<std::size_t> frames = pickOnsetFrames(nov, p, cfg, sampleRate);
-    std::vector<double> out;
-    out.reserve(frames.size());
-    for (const auto f : frames) out.push_back(frameCentreSeconds(f, cfg, sampleRate));
+    const NoveltyCurve nov = spectralFluxNovelty(mag, p.logGamma);
+    if (nov.status != AnalysisStatus::Ok) {
+        out.status = nov.status;
+        return out;
+    }
+    const OnsetFrames frames = pickOnsetFrames(nov.values, p, cfg, sampleRate);
+    out.status = frames.status;
+    out.timesS.reserve(frames.frames.size());
+    for (const auto f : frames.frames) out.timesS.push_back(frameCentreSeconds(f, cfg, sampleRate));
     return out;
 }
 
 OnsetScore matchOnsetsMaxCardinality(std::span<const double> referenceS, std::span<const double> estimateS, double toleranceS) {
+    if (!allFinite(referenceS) || !allFinite(estimateS) || !std::isfinite(toleranceS)) return invalidScore(referenceS, estimateS);
     const std::vector<double> ref = sorted(referenceS);
     const std::vector<double> est = sorted(estimateS);
     OnsetScore s;
@@ -106,6 +142,7 @@ OnsetScore matchOnsetsMaxCardinality(std::span<const double> referenceS, std::sp
 }
 
 OnsetScore matchOnsetsGreedyNearest(std::span<const double> referenceS, std::span<const double> estimateS, double toleranceS) {
+    if (!allFinite(referenceS) || !allFinite(estimateS) || !std::isfinite(toleranceS)) return invalidScore(referenceS, estimateS);
     const std::vector<double> ref = sorted(referenceS);
     const std::vector<double> est = sorted(estimateS);
     OnsetScore s;

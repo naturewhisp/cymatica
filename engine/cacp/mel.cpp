@@ -39,26 +39,50 @@ MelFilterbank melFilterbank(const MelConfig& mel, const StftConfig& stft, std::u
 
 MelSpectrogram melSpectrogramNormalized(const MagnitudeSpectrogram& mag, const MelFilterbank& fb, double dbRange) {
     MelSpectrogram out;
-    if (mag.bins != fb.bins || fb.bands == 0 || !(dbRange > 0.0)) return out;
+    if (mag.status != AnalysisStatus::Ok) {
+        out.status = mag.status;
+        return out;
+    }
+    if (mag.bins != fb.bins || fb.bands == 0 || !(dbRange > 0.0) || !std::isfinite(dbRange)) {
+        out.status = AnalysisStatus::InvalidConfig;
+        return out;
+    }
     out.frames = mag.frames;
     out.bands = fb.bands;
-    std::vector<double> db(out.frames * out.bands);
-    double maxDb = -std::numeric_limits<double>::infinity();
+    std::vector<double> acc(out.frames * out.bands, 0.0);
+    double maxAcc = 0.0;
+    bool nonFinite = false;
     for (std::size_t k = 0; k < mag.frames; ++k) {
         for (std::size_t m = 0; m < fb.bands; ++m) {
-            double acc = 0.0;
+            double a = 0.0;
             const double* w = &fb.weights[m * fb.bins];
             for (std::size_t b = 0; b < fb.bins; ++b) {
-                if (w[b] != 0.0) acc += w[b] * static_cast<double>(mag.at(k, b));
+                if (w[b] != 0.0) a += w[b] * static_cast<double>(mag.at(k, b));
             }
-            const double v = 20.0 * std::log10((std::max)(acc, 1e-10));
-            db[k * out.bands + m] = v;
-            maxDb = (std::max)(maxDb, v);
+            acc[k * out.bands + m] = a;
+            if (!std::isfinite(a)) nonFinite = true; // std::max would silently skip a NaN
+            maxAcc = (std::max)(maxAcc, a);
         }
     }
-    out.normalized.resize(db.size());
-    for (std::size_t i = 0; i < db.size(); ++i) {
-        out.normalized[i] = static_cast<float>(std::clamp((db[i] - (maxDb - dbRange)) / dbRange, 0.0, 1.0));
+    if (nonFinite || !std::isfinite(maxAcc)) {
+        out.status = AnalysisStatus::NonFiniteInput;
+        out.frames = 0;
+        return out;
+    }
+    out.normalized.assign(acc.size(), 0.0f);
+    if (maxAcc == 0.0) {
+        out.status = AnalysisStatus::ExactSilence; // no energy: all cells stay 0, never the maximum
+        return out;
+    }
+    if (maxAcc <= kMelMagnitudeFloor) {
+        out.status = AnalysisStatus::BelowNumericalFloor; // indistinguishable from the floor of the dB scale
+        return out;
+    }
+    const double maxDb = 20.0 * std::log10(maxAcc);
+    out.maxDb = maxDb;
+    for (std::size_t i = 0; i < acc.size(); ++i) {
+        const double v = 20.0 * std::log10((std::max)(acc[i], kMelMagnitudeFloor));
+        out.normalized[i] = static_cast<float>(std::clamp((v - (maxDb - dbRange)) / dbRange, 0.0, 1.0));
     }
     return out;
 }

@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include "analysis_status.h"
 #include "fft.h"
 #include "loudness.h"
 #include "mel.h"
@@ -220,7 +221,9 @@ TEST_CASE("Onset detection finds synthetic attacks at known frames (D-M2-14)", "
             mono[start + i] += static_cast<float>(0.5 * env * std::sin(2.0 * std::numbers::pi * 660.0 * t));
         }
     }
-    const auto est = detectOnsetsSeconds(mono, OnsetParams{}, fs);
+    const auto detection = detectOnsetsSeconds(mono, OnsetParams{}, fs);
+    REQUIRE(detection.status == AnalysisStatus::Ok);
+    const auto& est = detection.timesS;
     const auto score = matchOnsetsMaxCardinality(onsets, est, 0.025);
     std::string detectedList;
     for (const double t : est) detectedList += std::to_string(t) + " ";
@@ -229,18 +232,83 @@ TEST_CASE("Onset detection finds synthetic attacks at known frames (D-M2-14)", "
     CHECK(score.precision == 1.0);
     for (const auto& pair : score.pairs) CHECK(std::abs(pair.errorS) <= 0.025);
 
-    // Silence gives no onset and a zero novelty curve
+    // Silence gives a valid "no onset": status Ok and an empty list
     const std::vector<float> silence(fs, 0.0f);
-    CHECK(detectOnsetsSeconds(silence, OnsetParams{}, fs).empty());
+    const auto silent = detectOnsetsSeconds(silence, OnsetParams{}, fs);
+    CHECK(silent.status == AnalysisStatus::Ok);
+    CHECK(silent.timesS.empty());
 
     // Two detections closer than the minimum separation are merged into the larger peak
     std::vector<double> nov(400, 0.0);
     nov[100] = 0.8; nov[103] = 1.0; // 3 hops = 16 ms < 30 ms
     nov[300] = 0.9;
-    const auto frames = pickOnsetFrames(nov, OnsetParams{}, kDescriptorsV1Stft, fs);
-    REQUIRE(frames.size() == 2);
-    CHECK(frames[0] == 103);
-    CHECK(frames[1] == 300);
+    const auto picked = pickOnsetFrames(nov, OnsetParams{}, kDescriptorsV1Stft, fs);
+    REQUIRE(picked.status == AnalysisStatus::Ok);
+    REQUIRE(picked.frames.size() == 2);
+    CHECK(picked.frames[0] == 103);
+    CHECK(picked.frames[1] == 300);
+}
+
+TEST_CASE("Non-finite inputs never yield a valid descriptor (DIF-5b-02)", "[cacp_analysis][non_finite]") {
+    constexpr std::uint32_t fs = 48000;
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    const float inf = std::numeric_limits<float>::infinity();
+
+    std::vector<float> mono(fs / 2, 0.0f);
+    for (std::size_t i = 0; i < mono.size(); ++i) mono[i] = static_cast<float>(0.3 * std::sin(0.05 * static_cast<double>(i)));
+    for (const float bad : {nan, inf, -inf}) {
+        auto x = mono;
+        x[12345] = bad;
+        const auto mag = stftMagnitude(x);
+        CHECK(mag.status == AnalysisStatus::NonFiniteInput);
+        CHECK(mag.frames == 0);
+        CHECK(mag.data.empty());
+
+        const auto nov = spectralFluxNovelty(mag, 100.0);
+        CHECK(nov.status == AnalysisStatus::NonFiniteInput);
+        CHECK(nov.values.empty());
+
+        // Not a false "no onset": the status says the input was invalid
+        const auto det = detectOnsetsSeconds(x, OnsetParams{}, fs);
+        CHECK(det.status == AnalysisStatus::NonFiniteInput);
+        CHECK(det.timesS.empty());
+
+        const auto fb = melFilterbank(kDescriptorsV1Mel, kDescriptorsV1Stft, fs);
+        const auto mel = melSpectrogramNormalized(mag, fb, 80.0);
+        CHECK(mel.status == AnalysisStatus::NonFiniteInput);
+        CHECK(mel.normalized.empty());
+        CHECK_FALSE(mel.maxDb.has_value());
+
+        std::vector<float> stereo(2 * mono.size());
+        for (std::size_t i = 0; i < mono.size(); ++i) { stereo[2 * i] = mono[i]; stereo[2 * i + 1] = 0.5f * mono[i]; }
+        stereo[777] = bad;
+        CHECK_FALSE(sideMidDb(stereo).has_value());
+        const auto loud = measureLoudnessStereo(stereo, fs);
+        CHECK(loud.status == AnalysisStatus::NonFiniteInput);
+        CHECK_FALSE(loud.integratedLufs.has_value());
+        CHECK(loud.momentaryLufs.empty());
+    }
+
+    // A NaN in a novelty curve given directly to the peak picker
+    std::vector<double> nov(200, 0.0);
+    nov[50] = 1.0;
+    nov[120] = std::numeric_limits<double>::quiet_NaN();
+    const auto picked = pickOnsetFrames(nov, OnsetParams{}, kDescriptorsV1Stft, fs);
+    CHECK(picked.status == AnalysisStatus::NonFiniteInput);
+    CHECK(picked.frames.empty());
+
+    // Non-finite onset times in matching
+    const std::vector<double> ref{0.1, 0.2};
+    const std::vector<double> est{0.1, std::numeric_limits<double>::quiet_NaN()};
+    const auto score = matchOnsetsMaxCardinality(ref, est);
+    CHECK(score.status == AnalysisStatus::NonFiniteInput);
+    CHECK(score.matches == 0);
+    CHECK(matchOnsetsGreedyNearest(ref, est).status == AnalysisStatus::NonFiniteInput);
+
+    // Invalid configuration is reported as such
+    const auto badCfg = stftMagnitude(mono, StftConfig{.fftSize = 1000, .hop = 256});
+    CHECK(badCfg.status == AnalysisStatus::InvalidConfig);
+    CHECK(measureLoudnessStereo(std::vector<float>(96000, 0.1f), 44100).status == AnalysisStatus::InvalidConfig);
 }
 
 TEST_CASE("Onset matching: maximum cardinality, inclusive tolerance, P/R/F (mir_eval convention)", "[cacp_analysis][onset_matching]") {
@@ -319,6 +387,53 @@ TEST_CASE("Mel filterbank (HTK) and normalised mel spectrogram (D-M2-14)", "[cac
     const auto [mn, mx] = std::minmax_element(mel.normalized.begin(), mel.normalized.end());
     CHECK(*mn >= 0.0f);
     CHECK(*mx == 1.0f);
+    CHECK(mel.status == AnalysisStatus::Ok);
+    REQUIRE(mel.maxDb.has_value());
+    CHECK(std::isfinite(*mel.maxDb));
+}
+
+TEST_CASE("Mel spectrogram never renders silence as energy (DIF-5b-01)", "[cacp_analysis][mel_silence]") {
+    const auto fb = melFilterbank(kDescriptorsV1Mel, kDescriptorsV1Stft, 48000);
+    auto melOf = [&](const std::vector<float>& mono) { return melSpectrogramNormalized(stftMagnitude(mono), fb, 80.0); };
+    auto sine = [](double amplitude) {
+        std::vector<float> m(24000);
+        for (std::size_t i = 0; i < m.size(); ++i) {
+            m[i] = static_cast<float>(amplitude * std::sin(2.0 * std::numbers::pi * 1000.0 * static_cast<double>(i) / 48000.0));
+        }
+        return m;
+    };
+
+    // Total silence: every cell 0 (was 1.0 with max normalisation), explicit status, no level
+    const auto silent = melOf(std::vector<float>(24000, 0.0f));
+    CHECK(silent.status == AnalysisStatus::ExactSilence);
+    REQUIRE_FALSE(silent.normalized.empty());
+    CHECK(std::all_of(silent.normalized.begin(), silent.normalized.end(), [](float v) { return v == 0.0f; }));
+    CHECK_FALSE(silent.maxDb.has_value());
+
+    // Energy under the 1e-10 magnitude floor: indistinguishable from the floor, rendered as 0 with its own status
+    const auto floor = melOf(sine(1e-16));
+    CHECK(floor.status == AnalysisStatus::BelowNumericalFloor);
+    CHECK(std::all_of(floor.normalized.begin(), floor.normalized.end(), [](float v) { return v == 0.0f; }));
+    CHECK_FALSE(floor.maxDb.has_value());
+
+    // Very weak but measurable content: valid, normalised relative to its own maximum, absolute level reported
+    const auto weak = melOf(sine(1e-6));
+    const auto normal = melOf(sine(0.5));
+    REQUIRE(weak.status == AnalysisStatus::Ok);
+    REQUIRE(normal.status == AnalysisStatus::Ok);
+    REQUIRE(weak.maxDb.has_value());
+    REQUIRE(normal.maxDb.has_value());
+    // 0.5 / 1e-6 = 5e5, i.e. about 114 dB of level difference visible in maxDb, not in the normalised image
+    CHECK(std::abs((*normal.maxDb - *weak.maxDb) - 20.0 * std::log10(5e5)) < 0.5);
+    CHECK(*std::max_element(weak.normalized.begin(), weak.normalized.end()) == 1.0f);
+    CHECK(*std::max_element(normal.normalized.begin(), normal.normalized.end()) == 1.0f);
+
+    // Size mismatch is a configuration error
+    MagnitudeSpectrogram odd;
+    odd.frames = 1;
+    odd.bins = 10;
+    odd.data.assign(10, 1.0f);
+    CHECK(melSpectrogramNormalized(odd, fb, 80.0).status == AnalysisStatus::InvalidConfig);
 }
 
 TEST_CASE("Side/Mid descriptor on analytic signals (D-M2-14)", "[cacp_analysis][side_mid]") {
@@ -417,6 +532,7 @@ TEST_CASE("Loudness: EBU Tech 3341 minimum-requirement signals (BS.1770-5 gating
         appendSine(withNan, 2.0, -23.0);
         withNan[1000] = std::numeric_limits<float>::quiet_NaN();
         const auto rNan = measureLoudnessStereo(withNan, 48000);
+        CHECK(rNan.status == AnalysisStatus::NonFiniteInput);
         CHECK_FALSE(rNan.integratedLufs.has_value());
     }
 }

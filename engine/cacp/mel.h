@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 namespace cymatica::cacp {
@@ -35,9 +36,17 @@ struct MelFilterbank {
 
 // Mel spectrogram in dB, normalised to [0, 1] over the top dbRange dB of the whole matrix ([frame][band]);
 // 20 log10(max(value, 1e-10)) as in the research script.
+// Silence is never rendered as energy (DIF-5b-01): if every mel value is exactly 0 the status is ExactSilence,
+// if the maximum does not exceed the 1e-10 floor it is BelowNumericalFloor; in both cases every normalised cell
+// is 0 and maxDb is empty. A non-Ok spectrogram status propagates with an empty matrix. For Ok inputs the
+// normalisation is relative to the matrix maximum, whose absolute level is reported in maxDb.
+inline constexpr double kMelMagnitudeFloor = 1e-10;
+
 struct MelSpectrogram {
+    AnalysisStatus status{AnalysisStatus::Ok};
     std::size_t frames{0};
     std::size_t bands{0};
+    std::optional<double> maxDb{};   // absolute level of the brightest cell (dB re magnitude 1), Ok only
     std::vector<float> normalized{};
 };
 

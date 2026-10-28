@@ -1,6 +1,7 @@
 # Offline CACP analysis tools (ADR-0006 D-M2-14, R5 option T3): descriptors, PNG, hashes and analysis scenarios.
 # Never linked into the realtime audio path: it depends on cymatica_audio, not the other way round.
 add_library(cymatica_cacp STATIC
+    analysis_status.h
     fft.cpp
     fft.h
     loudness.cpp

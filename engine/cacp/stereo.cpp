@@ -1,10 +1,13 @@
 #include "stereo.h"
 
+#include "analysis_status.h"
+
 #include <cmath>
 
 namespace cymatica::cacp {
 
 std::optional<double> sideMidDb(std::span<const float> interleavedStereo) noexcept {
+    if (!allFinite(interleavedStereo)) return std::nullopt; // non-finite input: undefined, explicitly
     double side = 0.0;
     double mid = 0.0;
     for (std::size_t i = 0; i + 1 < interleavedStereo.size(); i += 2) {
