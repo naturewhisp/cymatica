@@ -44,10 +44,22 @@
 
 ## 3. Finding e proposte (non decisioni)
 
-- **F1 — Pulso senza appoggio metrico (rilevante).** Il ruolo dichiarato di Pulso è «Rhythmic anchor» ([music_intent.h](../engine/audio/music_intent.h)), ma in 80 battute su 96 il kick non suona sul tempo forte. Il generatore sceglie la rotazione senza un vincolo o un punteggio sul downbeat. Correggerlo è una modifica del generatore: richiede una decisione documentata, oltre il perimetro di Inc-5, che non modifica il generatore. Il momento naturale è l'ingresso di M2.5 o M2-F.
+- **F1 — Pulso senza appoggio metrico (rilevante; riformulato nel §3bis).** Il ruolo dichiarato di Pulso è «Rhythmic anchor» ([music_intent.h](../engine/audio/music_intent.h)), ma in 80 battute su 96 il kick non suona sul tempo forte. Il generatore sceglie la rotazione senza un vincolo o un punteggio sul downbeat. Correggerlo è una modifica del generatore: richiede una decisione documentata, oltre il perimetro di Inc-5, che non modifica il generatore. Il momento naturale è l'ingresso di M2.5 o M2-F.
 - **F2 — Lateralizzazione della Trama.** Il delay asimmetrico fisso produce una sorgente stabilmente a sinistra. È una candidata al tuning di M2.5: ritardi più vicini fra loro, alternanza o modulazione dei ritardi, mix wet più basso. Il Side/Mid di 5b la rende misurabile.
 - **F3 — Ripetitività e transizioni.** Il giudizio conferma con un ascoltatore umano il limite già noto: poche ricette, seed poco influente, cambi di tempo istantanei. Le metriche multi-seed di 5e misureranno la diversità; rampe di tempo e variazioni ritmiche di transizione richiederebbero un'estensione di `MusicClock` e del planner, da decidere dopo Inc-5.
 - **F4 — Mix e timbro (H4, suggerimenti di mixaggio, FM «dissonante»).** Sono proposte di tuning per M2.5. Riverberi, chorus, flanger, saturazione ed effetti con feedback hanno costo DSP e vanno valutati contro il budget della callback (D-M2-10) e la protezione del master (ADR-0004). Nessuna è adottata ora.
+
+## 3bis. Seguito sul punto F1 (2026-10-28, sera)
+
+L'esperto ha precisato l'osservazione sul kick con due brevi clip audio inviate al titolare: `dritto.mp3`, lo schema atteso, e `storto.mp3`, lo schema del generatore, di circa 4 s ciascuna. Le clip non sono nel repository (provenienza esterna, nessuna licenza dichiarata). L'agente non le ha ascoltate: in questo ambiente non può ingerire audio e non decodifica MP3 senza una dipendenza non approvata.
+
+- **Osservazione:** il generatore sposta il pattern rispetto allo schema atteso. Nel piano lo spostamento è di due sedicesimi, verificato in H3. Il risultato «non è tecnicamente errato», è «abbastanza interessante inserito nel giusto contesto», ma «molto strano». Con un riferimento temporale forte, cioè il kick sul tempo forte, il metro è più chiaro.
+- **Il titolare:** «strano non vuol dire sempre sbagliato nella musica: è da valutare».
+- **Riferimento d'ascolto suggerito** dall'esperto per uno spostamento ritmico usato intenzionalmente: «The Woven Web» degli Animals As Leaders. Non è stato verificato né analizzato dall'agente.
+
+**Riformulazione di F1.** Lo spostamento metrico in sé non è un difetto: è un dispositivo espressivo (sincope, displacement) che funziona quando l'ascoltatore ha prima un riferimento. Il problema osservato è un altro: oggi lo spostamento **non è una scelta**. Deriva dalla rotazione della ricetta del candidato (`k % 4`) e dal punteggio che non considera il metro, e resta costante per sezioni intere, senza stabilire il riferimento né tornarvi.
+
+Questo è un caso del rischio di «varietà fittizia» indicato dal titolare. La domanda di F1 diventa quindi: **quando e perché Pulso deve ancorare il metro, e quando spostarlo intenzionalmente?** Per esempio: stabilire il tempo forte, spostarlo per creare tensione, poi ritornare. È coerente con il criterio «ricordi, sviluppi, sorprenda e ritorni» ed è un compito naturale del direttore musicale (F5).
 
 ## 4. Limiti
 
