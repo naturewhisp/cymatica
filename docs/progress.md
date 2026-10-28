@@ -105,7 +105,18 @@ Suddivisione richiesta dal titolare il 2026-10-07; roadmap e criteri autoritativ
 | M2.2 — Controllo e osservazione del tono | **Completata (remediation validata)** | AC-AO-01A superato (modalità offline `initOffline` priva di callback fisica WASAPI concorrente, quiescence garantita su `detachAudioProbe`, manifest JSON completo con correlation fields ed export gate vincolante, frequenze 220 $\to$ 440 $\to$ 220 Hz $\pm 2$ Hz verificate, prova fisica OS SPACE documentata distintamente dallo smoke sintetico); AC-AO-01B superato (capacità multimodale verificata su modello `antigravity-gemini-2.5-pro`, artefatto WAV `0A1F68A...` ascoltato e giudizio percettivo registrato in [m2_tone_probe_evidence.md](m2_tone_probe_evidence.md)). |
 | M2.3 — Transport e scheduler | **Completata (remediation validata)** | Canale `SetTempoMap` sample-accurate con trattenimento comandi futuri fino al blocco di competenza (`peek`), ancore `TempoSegment` per continuità esatta di battute/fasi senza salti (DIF-M2-02). Applicazione degli eventi `ScheduledAudioEvent` agli offset campionari esatti intra-blocco (`[sample_accurate]`), congelamento del consumo durante `Paused`/`Stopped` (`[pause]`), conversione coerente coordinate 44.1/48 kHz (DIF-M2-03). Metrica musicale razionale esatta per 3/8 (36.000 frame/battuta a 120 BPM), 6/8, 5/4, 2/2 (DIF-M2-04). Protezione overflow uint64 in `scheduleIntent`. Ordinamento causale intra-blocco comandi/eventi, quantizzazione comandi tempo a confini musicali, gestione 3-way degli epoch, conservazione voci attive con micro-fadeout anti-click (DIF-M2-R4-01) e budget deterministico hard-realtime per callback (DIF-M2-R4-02). 75/75 test superati (Release, Debug), 74/74 Headless. |
 | M2.4 — Musica procedurale v1 | **Inc-1..Inc-4 implementati; revisione post-Inc-4 con remediation applicata, DIF-INC4-R2-01..07 chiusi ([ADR-0005](adr/0005-m2-4-inc4-entry-decisions.md), [Revisione post-Inc-4](#revisione-post-inc-4-2026-10-21))**. Il testo seguente è il record storico di Inc-1/Inc-2, corretto dagli errata della revisione post-Inc-3 | Inc-1 Voice Allocator & Lifecycle (91/91 CTest, CACP `voice_probe_v1` PASS). Inc-2 Sintesi 4 Ruoli & 4 Bus, Micro-ducking, Trama stereo micro-delay, terminale `MasterLimiter` zero-latency $L = 0$ con detector ibrido causale (soglia $-1,50\text{ dBFS}$, ceiling $-1,0\text{ dBFS}$) e meter true-peak offline ITU-R BS.1770-5 Annex 2 Table 3 a 48 tap ($\le -1,0\text{ dBTP}$ verificato su suite avversaria `T-ADV-01..06`), CACP scenario `timbre_bus_probe_v1` PASS con ascolto multimodale; 98/98 CTest Release/Debug; zero allocazioni RT; zero warning `/W4`. D-M2-04..07 e AUD-D-01/02/04 pienamente soddisfatti. |
-| M2.5 — Integrazione e verifica finale | **Da eseguire** | AC-AO-02, criteri originali M2 e review indipendente iterativa; record di build/profilo/procedura ed evidenza per ogni mandatory. |
+| M2.5 — Integrazione e verifica finale | **Da eseguire** | AC-AO-02, criteri originali M2 e review indipendente iterativa; record di build/profilo/procedura ed evidenza per ogni mandatory. Questioni d'ingresso aperte: [sotto](#questioni-dingresso-m25-proposed). |
+
+#### Questioni d'ingresso M2.5 (*proposed*)
+
+Da riesaminare all'ingresso di M2.5 (AGENTS §1.1). Si valutano con il metodo della regola document-driven §6: alternative, misure e fonti. Il dettaglio è solo nei documenti collegati; qui c'è l'elenco.
+
+| ID | Questione | Tipo | Origine |
+|---|---|---|---|
+| F1 | Pulso senza appoggio metrico: il kick suona sul tempo forte solo in 16 battute su 96 (rotazione del pattern euclideo scelta senza criterio sul downbeat), in contrasto con il ruolo di «Rhythmic anchor» | **decisione sul generatore** richiesta (M2.5 o M2-F); fuori dal perimetro di Inc-5 | [ascolto esperto 2026-10-28](m2_4_human_listening_2026-10-28.md) §3 |
+| F2 | Trama lateralizzata a sinistra dal delay 11/17 ms (effetto di precedenza), fastidiosa in cuffia | tuning | idem |
+| F3 | Ripetitività (7/7) e transizioni brusche: loop di 4 battute e cambi di tempo istantanei. Rampe di tempo e variazioni di transizione richiederebbero un'estensione di `MusicClock` e del planner. | tuning e possibile decisione, da leggere insieme alle misure multi-seed di Inc-5 (5e) | idem |
+| F4 | Mix e timbro: kick percepito troppo basso, FM «dissonante»; proposte di riverberi, modulazioni, saturazione ed effetti, ciascuna con il proprio costo DSP rispetto a D-M2-10 e ADR-0004 | tuning | idem |
 
 La tabella traccia l'esecuzione e rinvia alla specifica per dipendenze e criteri. Aggiornare gli stati solo su evidenze: il passaggio interno non chiude M2 o autorizza M3. Nessun gate esistente viene rimosso; le capacità esterne supplementari restano distinte dai mandatory del progetto.
 
@@ -1181,3 +1192,13 @@ La review considera risolti DIF-5b-01..03. La CI su `85bbc4f` ([run 40747818854]
 | `fixture_test` (Release) | `cymatica_game --cacp-run fixture_test` | **PASS**; hash PCM, golden JIT e catena O3 invariati |
 
 **Stato (2026-10-28):** correzione DIF-5b-R2-01/02 committata su approvazione del titolare («OK, commit»). L'esito della review mirata si registrerà quando sarà comunicato (DIF-5a-02). 5c non è autorizzata.
+
+### Ascolto umano esplorativo della fixture (2026-10-28, supplementare)
+
+Un esperto di musica esterno ha ascoltato `fixture_probe_v1.wav` con la scheda di 12 domande. Il registro, con il riscontro dell'agente su piano, codice e misure, è in [m2_4_human_listening_2026-10-28.md](m2_4_human_listening_2026-10-28.md). È un'evidenza qualitativa supplementare, non un gate.
+
+- **Sezioni:** le 4 parti percepite corrispondono ai confini del piano. Sono A1, A2 (entrata della Trama a 00:32), B (01:04) e A′ (01:58): la distinguibilità delle sezioni è supportata.
+- **Valutazioni:** coerenza 6/7, interesse 4/7, ripetitività 7/7.
+- **Finding F1, aperto:** il «primo colpo di kick mancante» non è un difetto di rendering (la catena O3 lo esclude). È il generatore: il pattern di Pulso ha rotazione 2, e il kick cade sul tempo forte solo in 16 battute su 96, contro il ruolo dichiarato di «Rhythmic anchor». Richiede una decisione sul generatore, fuori dal perimetro di Inc-5.
+- **Altri finding, proposte per il tuning di M2.5 senza decisione:** lateralizzazione della Trama a sinistra per il delay 11/17 ms (F2); ripetitività e transizioni brusche (F3); mix e timbro (F4).
+- I quattro finding sono riportati come questioni d'ingresso *proposed* nella [sezione M2.5](#questioni-dingresso-m25-proposed).
