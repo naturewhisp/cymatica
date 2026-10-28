@@ -17,6 +17,16 @@ std::vector<double> hannSymmetric(std::size_t n) {
     return w;
 }
 
+AnalysisStatus validateSpectrogram(const MagnitudeSpectrogram& mag) noexcept {
+    if (mag.status != AnalysisStatus::Ok) return mag.status;
+    if ((mag.frames > 0 && mag.bins == 0) || mag.data.size() != mag.frames * mag.bins) return AnalysisStatus::InvalidConfig;
+    for (const float v : mag.data) {
+        if (!std::isfinite(v)) return AnalysisStatus::NonFiniteInput;
+        if (v < 0.0f) return AnalysisStatus::InvalidConfig;
+    }
+    return AnalysisStatus::Ok;
+}
+
 std::size_t stftFrameCount(std::size_t length, const StftConfig& cfg) noexcept {
     if (cfg.hop == 0 || cfg.fftSize == 0 || length < cfg.fftSize) return 0;
     return 1 + (length - cfg.fftSize) / cfg.hop;

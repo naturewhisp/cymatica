@@ -311,6 +311,109 @@ TEST_CASE("Non-finite inputs never yield a valid descriptor (DIF-5b-02)", "[cacp
     CHECK(measureLoudnessStereo(std::vector<float>(96000, 0.1f), 44100).status == AnalysisStatus::InvalidConfig);
 }
 
+TEST_CASE("Parameter domains and intermediate data are validated by every primitive (DIF-5b-R2-01/02)", "[cacp_analysis][domain]") {
+    constexpr std::uint32_t fs = 48000;
+
+    // A curve that exercises threshold() from its first indices: peak at index 1
+    std::vector<double> nov(200, 0.0);
+    nov[1] = 1.0;
+    nov[100] = 0.7;
+    {
+        OnsetParams ok{};
+        const auto valid = pickOnsetFrames(nov, ok, kDescriptorsV1Stft, fs);
+        REQUIRE(valid.status == AnalysisStatus::Ok);
+        CHECK(valid.frames.size() == 2);
+        // Zero half window and zero separation are inside the domain
+        ok.thresholdHalfWindowS = 0.0;
+        ok.minSeparationS = 0.0;
+        CHECK(pickOnsetFrames(nov, ok, kDescriptorsV1Stft, fs).status == AnalysisStatus::Ok);
+    }
+    for (const double bad : {-0.1, -1e-9, 3601.0, std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN()}) {
+        OnsetParams pHalf{};
+        pHalf.thresholdHalfWindowS = bad; // negative: would give w < 0 and an out-of-bounds prefix index
+        const auto r1 = pickOnsetFrames(nov, pHalf, kDescriptorsV1Stft, fs);
+        CHECK(r1.status == AnalysisStatus::InvalidConfig);
+        CHECK(r1.frames.empty());
+        OnsetParams pSep{};
+        pSep.minSeparationS = bad;
+        CHECK(pickOnsetFrames(nov, pSep, kDescriptorsV1Stft, fs).status == AnalysisStatus::InvalidConfig);
+    }
+    {
+        OnsetParams pDelta{};
+        pDelta.delta = std::numeric_limits<double>::quiet_NaN();
+        CHECK(pickOnsetFrames(nov, pDelta, kDescriptorsV1Stft, fs).status == AnalysisStatus::InvalidConfig);
+    }
+
+    // logGamma must be > 0 and finite
+    std::vector<float> mono(8192);
+    for (std::size_t i = 0; i < mono.size(); ++i) mono[i] = static_cast<float>(0.2 * std::sin(0.03 * static_cast<double>(i)));
+    const auto mag = stftMagnitude(mono);
+    REQUIRE(mag.status == AnalysisStatus::Ok);
+    CHECK(spectralFluxNovelty(mag, 100.0).status == AnalysisStatus::Ok);
+    for (const double g : {0.0, -1.0, std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN()}) {
+        const auto c = spectralFluxNovelty(mag, g);
+        CHECK(c.status == AnalysisStatus::InvalidConfig);
+        CHECK(c.values.empty());
+    }
+    OnsetParams negGamma{};
+    negGamma.logGamma = -5.0;
+    CHECK(detectOnsetsSeconds(mono, negGamma, fs).status == AnalysisStatus::InvalidConfig);
+
+    // Matching tolerance outside [0, 3600] s
+    const std::vector<double> ref{0.1, 0.2};
+    const std::vector<double> est{0.1, 0.2};
+    CHECK(matchOnsetsMaxCardinality(ref, est, 0.0).status == AnalysisStatus::Ok);
+    for (const double tol : {-0.01, 3601.0, std::numeric_limits<double>::quiet_NaN()}) {
+        const auto sc = matchOnsetsMaxCardinality(ref, est, tol);
+        CHECK(sc.status == AnalysisStatus::InvalidConfig);
+        CHECK(sc.matches == 0);
+        CHECK(matchOnsetsGreedyNearest(ref, est, tol).status == AnalysisStatus::InvalidConfig);
+    }
+
+    // A spectrogram built by hand with status Ok is validated by the primitive itself
+    MagnitudeSpectrogram hand;
+    hand.frames = 2;
+    hand.bins = 1;
+    hand.data = {std::numeric_limits<float>::quiet_NaN(), 0.0f};
+    const auto handNov = spectralFluxNovelty(hand, 100.0);
+    CHECK(handNov.status == AnalysisStatus::NonFiniteInput); // was an all-zero curve with status Ok
+    CHECK(handNov.values.empty());
+    hand.data = {1.0f};                                       // size != frames * bins
+    CHECK(spectralFluxNovelty(hand, 100.0).status == AnalysisStatus::InvalidConfig);
+    hand.data = {1.0f, -2.0f};                                // a magnitude is never negative
+    CHECK(spectralFluxNovelty(hand, 100.0).status == AnalysisStatus::InvalidConfig);
+
+    // NaN in a bin that no mel filter covers (bin 0 = 0 Hz < 30 Hz) is still detected
+    const auto fb = melFilterbank(kDescriptorsV1Mel, kDescriptorsV1Stft, fs);
+    for (std::size_t m = 0; m < fb.bands; ++m) REQUIRE(fb.weights[m * fb.bins + 0] == 0.0);
+    auto poisoned = mag;
+    poisoned.data[0] = std::numeric_limits<float>::quiet_NaN();
+    const auto melPoisoned = melSpectrogramNormalized(poisoned, fb, 80.0);
+    CHECK(melPoisoned.status == AnalysisStatus::NonFiniteInput);
+    CHECK(melPoisoned.normalized.empty());
+    CHECK(melSpectrogramNormalized(mag, fb, 80.0).status == AnalysisStatus::Ok);
+
+    // Side/Mid: structured status distinguishes mono, anti-phase, silence, invalid input and invalid size
+    const std::vector<float> monoLr{0.3f, 0.3f, -0.2f, -0.2f};
+    const auto rMono = sideMid(monoLr);
+    CHECK(rMono.status == AnalysisStatus::Ok);
+    CHECK(rMono.sideIsZero);
+    CHECK_FALSE(rMono.midIsZero);
+    CHECK_FALSE(rMono.db.has_value());
+    const auto rAnti = sideMid(std::vector<float>{0.3f, -0.3f});
+    CHECK(rAnti.status == AnalysisStatus::Ok);
+    CHECK(rAnti.midIsZero);
+    CHECK_FALSE(rAnti.db.has_value());
+    CHECK(sideMid(std::vector<float>{0.0f, 0.0f, 0.0f, 0.0f}).status == AnalysisStatus::ExactSilence);
+    CHECK(sideMid(std::vector<float>{0.3f, std::numeric_limits<float>::quiet_NaN()}).status == AnalysisStatus::NonFiniteInput);
+    CHECK(sideMid(std::vector<float>{}).status == AnalysisStatus::InvalidConfig);
+    CHECK(sideMid(std::vector<float>{0.1f, 0.2f, 0.3f}).status == AnalysisStatus::InvalidConfig);
+    const auto rDef = sideMid(std::vector<float>{1.0f, 0.5f});
+    CHECK(rDef.status == AnalysisStatus::Ok);
+    REQUIRE(rDef.db.has_value());
+    CHECK(std::abs(*rDef.db - 10.0 * std::log10(1.0 / 9.0)) < 1e-9);
+}
+
 TEST_CASE("Onset matching: maximum cardinality, inclusive tolerance, P/R/F (mir_eval convention)", "[cacp_analysis][onset_matching]") {
     // Greedy nearest assignment is sub-optimal here; maximum cardinality is not
     const std::vector<double> ref{0.00, 0.04};

@@ -11,6 +11,8 @@ namespace cymatica::cacp {
 
 // Onset detection of descriptors_v1 (ADR-0006 D-M2-14; Bello et al. 2005, Dixon 2006). Parameters fixed a priori
 // in the CACP methods dossier §3.2; delta and the constant offset are calibrated per role in 5c, never here.
+// Admitted domain (DIF-5b-R2-01; outside it the primitives return InvalidConfig, never undefined behaviour):
+// logGamma > 0 and finite; thresholdHalfWindowS and minSeparationS in [0, 3600] s; delta finite.
 struct OnsetParams {
     double logGamma{100.0};          // log(1 + gamma |X|) compression
     double thresholdHalfWindowS{0.100}; // moving-average threshold half window
@@ -56,7 +58,9 @@ struct OnsetMatch {
 };
 
 struct OnsetScore {
-    AnalysisStatus status{AnalysisStatus::Ok}; // NonFiniteInput when a time is NaN/inf: no pair, P = R = F = 0
+    // NonFiniteInput when a time is NaN/inf, InvalidConfig when the tolerance is outside [0, 3600] s:
+    // no pair, P = R = F = 0
+    AnalysisStatus status{AnalysisStatus::Ok};
     std::size_t references{0};
     std::size_t estimates{0};
     std::size_t matches{0};

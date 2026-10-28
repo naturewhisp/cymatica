@@ -39,8 +39,13 @@ MelFilterbank melFilterbank(const MelConfig& mel, const StftConfig& stft, std::u
 
 MelSpectrogram melSpectrogramNormalized(const MagnitudeSpectrogram& mag, const MelFilterbank& fb, double dbRange) {
     MelSpectrogram out;
-    if (mag.status != AnalysisStatus::Ok) {
-        out.status = mag.status;
+    // Validate every input value, including bins outside all filters (DIF-5b-R2-02)
+    if (const AnalysisStatus st = validateSpectrogram(mag); st != AnalysisStatus::Ok) {
+        out.status = st;
+        return out;
+    }
+    if (fb.weights.size() != fb.bands * fb.bins || !allFinite(std::span<const double>(fb.weights))) {
+        out.status = AnalysisStatus::InvalidConfig;
         return out;
     }
     if (mag.bins != fb.bins || fb.bands == 0 || !(dbRange > 0.0) || !std::isfinite(dbRange)) {

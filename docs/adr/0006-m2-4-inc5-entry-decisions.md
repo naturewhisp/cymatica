@@ -300,6 +300,13 @@ Altri casi propri:
   - Per i contenuti validi la normalizzazione resta relativa al massimo, sugli 80 dB superiori, e il livello assoluto del massimo si riporta in `maxDb`.
   - Il banco HTK e la normalizzazione non cambiano.
 - Silenzio e segnale troppo corto restano `OK` per la loudness, con valori `null`, perché BS.1770 li lascia indefiniti.
+- **Dominio dei parametri** (DIF-5b-R2-01, 2026-10-28): fuori dal dominio l'esito è `INVALID_CONFIG`, prima di qualunque conversione a intero:
+  - semi-finestra della soglia e separazione minima in [0, 3600] s;
+  - δ finita;
+  - `logGamma` > 0 e finita;
+  - tolleranza dell'abbinamento in [0, 3600] s.
+- **Validazione autonoma dei dati intermedi** (DIF-5b-R2-02): novelty e mel validano lo spettrogramma ricevuto (stato, dimensioni, finitezza e non negatività di ogni valore) invece di fidarsi dello stato a monte.
+- **Side/Mid strutturato:** restituisce stato, valore opzionale e i flag `sideIsZero` / `midIsZero`, così mono, controfase, silenzio esatto, ingresso non finito e dimensione non valida sono distinguibili.
 
 **Verifica (5b):**
 

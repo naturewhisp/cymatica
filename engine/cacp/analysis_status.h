@@ -36,4 +36,12 @@ template <typename T>
     return true;
 }
 
+// Admitted range of a time parameter in seconds: finite, 0 <= v <= kMaxAnalysisTimeParamS. The upper bound keeps
+// every conversion to frame counts far from integer overflow (DIF-5b-R2-01).
+inline constexpr double kMaxAnalysisTimeParamS = 3600.0;
+
+[[nodiscard]] constexpr bool validTimeParam(double v) noexcept {
+    return v >= 0.0 && v <= kMaxAnalysisTimeParamS; // false for NaN
+}
+
 } // namespace cymatica::cacp

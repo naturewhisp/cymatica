@@ -15,9 +15,9 @@ OnsetScore finalize(OnsetScore s) {
     return s;
 }
 
-OnsetScore invalidScore(std::span<const double> referenceS, std::span<const double> estimateS) {
+OnsetScore invalidScore(std::span<const double> referenceS, std::span<const double> estimateS, AnalysisStatus why) {
     OnsetScore s;
-    s.status = AnalysisStatus::NonFiniteInput;
+    s.status = why;
     s.references = referenceS.size();
     s.estimates = estimateS.size();
     return s; // no pair; P = R = F = 0 and the status says why
@@ -33,9 +33,10 @@ std::vector<double> sorted(std::span<const double> v) {
 
 NoveltyCurve spectralFluxNovelty(const MagnitudeSpectrogram& mag, double logGamma) {
     NoveltyCurve curve;
-    curve.status = mag.status;
-    if (mag.status != AnalysisStatus::Ok) return curve;
-    if (!std::isfinite(logGamma)) {
+    // The public primitive validates its own input, not only the upstream status (DIF-5b-R2-02)
+    curve.status = validateSpectrogram(mag);
+    if (curve.status != AnalysisStatus::Ok) return curve;
+    if (!(logGamma > 0.0) || !std::isfinite(logGamma)) { // log1p(gamma |X|) needs gamma > 0
         curve.status = AnalysisStatus::InvalidConfig;
         return curve;
     }
@@ -69,8 +70,10 @@ OnsetFrames pickOnsetFrames(std::span<const double> nov, const OnsetParams& p, c
                             std::uint32_t sampleRate) {
     OnsetFrames result;
     std::vector<std::size_t>& out = result.frames;
-    if (cfg.hop == 0 || sampleRate == 0 || !std::isfinite(p.delta) || !std::isfinite(p.thresholdHalfWindowS) ||
-        !std::isfinite(p.minSeparationS)) {
+    // Domain checks before any conversion to integers (DIF-5b-R2-01): a negative half window would give w < 0 and
+    // an out-of-bounds prefix-sum index
+    if (cfg.hop == 0 || sampleRate == 0 || !std::isfinite(p.delta) || !validTimeParam(p.thresholdHalfWindowS) ||
+        !validTimeParam(p.minSeparationS)) {
         result.status = AnalysisStatus::InvalidConfig;
         return result;
     }
@@ -81,7 +84,7 @@ OnsetFrames pickOnsetFrames(std::span<const double> nov, const OnsetParams& p, c
     const std::size_t n = nov.size();
     if (n < 3) return result;
     const double framesPerSecond = static_cast<double>(sampleRate) / static_cast<double>(cfg.hop);
-    const auto w = static_cast<std::ptrdiff_t>(std::llround(p.thresholdHalfWindowS * framesPerSecond));
+    const auto w = static_cast<std::ptrdiff_t>(std::llround(p.thresholdHalfWindowS * framesPerSecond)); // >= 0
     const auto sep = static_cast<std::size_t>(std::llround(p.minSeparationS * framesPerSecond));
     const double kernelLen = static_cast<double>(2 * w + 1);
 
@@ -124,7 +127,8 @@ OnsetDetection detectOnsetsSeconds(std::span<const float> mono, const OnsetParam
 }
 
 OnsetScore matchOnsetsMaxCardinality(std::span<const double> referenceS, std::span<const double> estimateS, double toleranceS) {
-    if (!allFinite(referenceS) || !allFinite(estimateS) || !std::isfinite(toleranceS)) return invalidScore(referenceS, estimateS);
+    if (!validTimeParam(toleranceS)) return invalidScore(referenceS, estimateS, AnalysisStatus::InvalidConfig);
+    if (!allFinite(referenceS) || !allFinite(estimateS)) return invalidScore(referenceS, estimateS, AnalysisStatus::NonFiniteInput);
     const std::vector<double> ref = sorted(referenceS);
     const std::vector<double> est = sorted(estimateS);
     OnsetScore s;
@@ -142,7 +146,8 @@ OnsetScore matchOnsetsMaxCardinality(std::span<const double> referenceS, std::sp
 }
 
 OnsetScore matchOnsetsGreedyNearest(std::span<const double> referenceS, std::span<const double> estimateS, double toleranceS) {
-    if (!allFinite(referenceS) || !allFinite(estimateS) || !std::isfinite(toleranceS)) return invalidScore(referenceS, estimateS);
+    if (!validTimeParam(toleranceS)) return invalidScore(referenceS, estimateS, AnalysisStatus::InvalidConfig);
+    if (!allFinite(referenceS) || !allFinite(estimateS)) return invalidScore(referenceS, estimateS, AnalysisStatus::NonFiniteInput);
     const std::vector<double> ref = sorted(referenceS);
     const std::vector<double> est = sorted(estimateS);
     OnsetScore s;

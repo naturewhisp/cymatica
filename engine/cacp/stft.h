@@ -33,6 +33,11 @@ struct MagnitudeSpectrogram {
     [[nodiscard]] float at(std::size_t frame, std::size_t bin) const noexcept { return data[frame * bins + bin]; }
 };
 
+// Contract check of a spectrogram received from any source (DIF-5b-R2-02): its own status if not Ok;
+// InvalidConfig when data.size() != frames * bins, frames > 0 with bins == 0, or a negative value (a magnitude is
+// never negative); NonFiniteInput when a value is NaN/inf; else Ok.
+[[nodiscard]] AnalysisStatus validateSpectrogram(const MagnitudeSpectrogram& mag) noexcept;
+
 [[nodiscard]] std::size_t stftFrameCount(std::size_t length, const StftConfig& cfg) noexcept;
 [[nodiscard]] MagnitudeSpectrogram stftMagnitude(std::span<const float> mono, const StftConfig& cfg = kDescriptorsV1Stft);
 [[nodiscard]] double frameCentreSeconds(std::size_t frame, const StftConfig& cfg, std::uint32_t sampleRate) noexcept;
