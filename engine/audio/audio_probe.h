@@ -1,6 +1,7 @@
 #pragma once
 
 #include "audio_control.h"
+#include "event_chain_log.h"
 #include "input_dispatcher.h"
 
 #include <array>
@@ -445,11 +446,21 @@ struct ProfileProbeResult {
 // recovery and every phrase planned. Pure function so that negative cases can be tested directly.
 [[nodiscard]] bool fixtureSchedulingAccountingPassed(const FixtureProbeResult& r, std::size_t expectedPhrases) noexcept;
 
-// capturedStereoOut (optional) receives the recorded interleaved stereo PCM, e.g. for offline CACP analysis
+struct RoleStemSink;
+
+// Optional offline capture for CACP analysis (ADR-0006 D-M2-13/16, Inc-5 phase 5c). Every pointer may be null.
+// The stem sink is installed for the scenario render only (removed before the probe-only stale-event check).
+struct ProbeAnalysisCapture {
+    std::uint64_t fixtureSeed{1337};                       // fixture planner seed; the goldens apply to 1337 only
+    RoleStemSink* stems{nullptr};                          // per-role stems + bus mix, frame-aligned with the PCM
+    std::vector<float>* stereo{nullptr};                   // recorded interleaved stereo PCM
+    std::vector<AppliedEventRecord>* applied{nullptr};     // records consumed by the engine during the scenario
+};
+
 FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
                                            bool writeFiles = true,
                                            FixtureInjectedFault fault = FixtureInjectedFault::None,
-                                           std::vector<float>* capturedStereoOut = nullptr);
+                                           const ProbeAnalysisCapture* capture = nullptr);
 
 ProfileWorkloadRun runProfileWorkload(ProfileWorkload workload, bool cacpEnabled);
 
@@ -458,6 +469,7 @@ ProfileProbeResult runProfileProbeV1Offline(const std::string& outputDir = "arti
 
 // Runs the authoritative planner_probe_v1 scenario offline in 120 Hz simulation ticks (Inc-3)
 PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
-                                           bool writeFiles = true);
+                                           bool writeFiles = true,
+                                           const ProbeAnalysisCapture* capture = nullptr);
 
 } // namespace cymatica::audio

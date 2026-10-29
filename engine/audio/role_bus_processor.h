@@ -9,6 +9,21 @@
 
 namespace cymatica::audio {
 
+// Offline per-role stem tap (ADR-0006 D-M2-13, Inc-5 phase 5c). Storage is allocated by the owner before the
+// render; the bus processor only writes bounded frames into it (no allocation, no lock). Each role stem is the
+// interleaved stereo bus output after bus gain, Corpo micro-ducking and the Trama delay, before the sum; busMix
+// is that sum, i.e. the mix of the buses before the transport ramp, the diagnostic tone and the master limiter.
+// Frames are written in render order: every output frame of the engine passes through exactly one
+// VoiceAllocator::renderBlock call, which writes either processed frames or explicit zeros (frozen silence), so
+// frame i of the sink is output frame i of the render. Install, remove and read only in quiescence.
+struct RoleStemSink {
+    std::array<float*, 4> stems{};    // per role, capacityFrames * 2 floats each
+    float* busMix{nullptr};           // capacityFrames * 2 floats
+    std::size_t capacityFrames{0};
+    std::size_t writtenFrames{0};
+    std::uint64_t overflowFrames{0};  // frames that did not fit: the capture is incomplete when > 0
+};
+
 // Preallocated 4-bus stereo processor with deterministic micro-ducking,
 // tempo-synced stereo micro-delay on Trama, and post-bus pre-master telemetry.
 // (Spec §16.8, §22.1, ADR-0003 D-M2-06, ADR-0004 AUD-D-01/02)
@@ -76,6 +91,12 @@ public:
                        const std::array<float, kRoleCount>& roleTimbreParam,
                        AudioTelemetryFrame& outTelemetry) noexcept;
 
+    // Offline stem tap (D-M2-13): null by default; set only in quiescence
+    void setStemSink(RoleStemSink* sink) noexcept { stemSink_ = sink; }
+    [[nodiscard]] RoleStemSink* stemSink() const noexcept { return stemSink_; }
+    // Frames rendered without bus processing (frozen pause/stop silence) are written to the sink as zeros
+    void appendSilentStemFrames(std::uint32_t frameCount) noexcept;
+
     // True while the stop-time echo extinction tail is still decaying
     [[nodiscard]] bool hasActiveTail() const noexcept { return delayTail_.active; }
 
@@ -93,6 +114,7 @@ public:
     [[nodiscard]] float currentTramaWet() const noexcept { return tramaWetSmoother_.current(); }
 
 private:
+    RoleStemSink* stemSink_{nullptr};
     std::uint32_t sampleRate_{48000};
     bool duckingEnabled_{true};
     bool delayBypassed_{false};

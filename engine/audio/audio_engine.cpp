@@ -889,6 +889,13 @@ bool AudioEngine::setAppliedEventLog(AppliedEventLog* log) noexcept {
     return true;
 }
 
+bool AudioEngine::setRoleStemSink(RoleStemSink* sink) noexcept {
+    if (!pImpl_) return false;
+    if (pImpl_->deviceStarted.load(std::memory_order_acquire)) return false; // quiescence contract
+    pImpl_->voiceAllocator.roleBusProcessor().setStemSink(sink);
+    return true;
+}
+
 bool AudioEngine::scheduledEventQueueEmpty() const noexcept {
     if (!pImpl_) return true;
     ScheduledAudioEvent e{};

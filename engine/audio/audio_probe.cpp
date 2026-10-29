@@ -1440,7 +1440,7 @@ std::string PlannerProbeResult::toJson() const {
     return ss.str();
 }
 
-PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool writeFiles) {
+PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool writeFiles, const ProbeAnalysisCapture* capture) {
     PlannerProbeResult result{};
     result.presentationQuality = "Estimated";
 
@@ -1686,6 +1686,12 @@ PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool w
     result.requestedSampleFrames = result.stopFrame + kPostStopFrames;
     result.simulationTicks = result.requestedSampleFrames / framesPerTick;
 
+    AppliedEventLog plannerAppliedLog(kEventChainLogCapacity);
+    if (capture != nullptr) {
+        (void)engine.setRoleStemSink(capture->stems);
+        if (capture->applied != nullptr) (void)engine.setAppliedEventLog(&plannerAppliedLog);
+    }
+
     engine.sendCommand(AudioCommand{.commandId = 1, .type = AudioCommandType::Start, .targetSampleFrame = 0});
 
     std::vector<float> recordedStereo;
@@ -1724,6 +1730,15 @@ PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool w
                 result.stopAckFrame = ack.sampleFrame;
             }
         }
+    }
+
+    if (capture != nullptr) {
+        (void)engine.setRoleStemSink(nullptr);
+        (void)engine.setAppliedEventLog(nullptr);
+        if (capture->applied != nullptr) {
+            capture->applied->assign(plannerAppliedLog.records().begin(), plannerAppliedLog.records().end());
+        }
+        if (capture->stereo != nullptr) *capture->stereo = recordedStereo;
     }
 
     result.committedEvents = static_cast<std::uint32_t>(scheduler.totalDispatchedEvents());
@@ -1954,9 +1969,9 @@ public:
     enum class State : std::uint8_t { Running, Failed, Stopped };
 
     FixtureCoordinator(const MusicClock& clock, const FormPlan& form, const std::array<PhrasePlan, 24>& phrases,
-                       FixtureInjectedFault fault = FixtureInjectedFault::None)
-        : clock_(clock), form_(form), phrases_(phrases), fault_(fault),
-          planner_({.runSeed = kFixtureSeed, .candidateCount = 8, .sampleRate = kInc4SampleRate,
+                       FixtureInjectedFault fault = FixtureInjectedFault::None, std::uint64_t seed = kFixtureSeed)
+        : clock_(clock), form_(form), phrases_(phrases), fault_(fault), seed_(seed),
+          planner_({.runSeed = seed, .candidateCount = 8, .sampleRate = kInc4SampleRate,
                     .lookaheadFrames = AudioSchedulerConfig{}.lookaheadFrames}) {
         planner_.setFormPlan(form_);
         for (std::size_t i = 0; i < 2; ++i) {
@@ -2054,7 +2069,7 @@ public:
                     droppedAtStopAck_ = engine.droppedScheduledEvents();
                     scheduler_.clearAtStop(ack.sampleFrame);
                     stopClearFrame_ = ack.sampleFrame;
-                    planner_.reset(kFixtureSeed);
+                    planner_.reset(seed_);
                     state_ = State::Stopped;
                 }
             }
@@ -2160,6 +2175,7 @@ private:
     const FormPlan& form_;
     const std::array<PhrasePlan, 24>& phrases_;
     FixtureInjectedFault fault_{FixtureInjectedFault::None};
+    std::uint64_t seed_{kFixtureSeed};
     MusicPlanner planner_;
     AudioScheduler scheduler_{};
     State state_{State::Running};
@@ -2437,7 +2453,8 @@ bool fixtureSchedulingAccountingPassed(const FixtureProbeResult& r, std::size_t 
 }
 
 FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool writeFiles, FixtureInjectedFault fault,
-                                            std::vector<float>* capturedStereoOut) {
+                                            const ProbeAnalysisCapture* capture) {
+    const std::uint64_t seed = (capture != nullptr) ? capture->fixtureSeed : kFixtureSeed;
     FixtureProbeResult result;
     result.injectedFault = fault;
     result.buildId = CYMATICA_BUILD_ID;
@@ -2461,7 +2478,7 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     };
 
     auto runPlanningPass = [&]() -> PlanRun {
-        MusicPlanner p({.runSeed = kFixtureSeed, .candidateCount = 8, .sampleRate = kInc4SampleRate,
+        MusicPlanner p({.runSeed = seed, .candidateCount = 8, .sampleRate = kInc4SampleRate,
                         .lookaheadFrames = AudioSchedulerConfig{}.lookaheadFrames});
         p.setFormPlan(form);
         PlanRun run;
@@ -2525,9 +2542,10 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     AudioProbe probe(AudioProbe::kDefaultCapacityFrames, 2, engine.sampleRate());
     engine.attachAudioProbe(&probe);
 
-    FixtureCoordinator coordinator(clock, form, phrases, fault);
+    FixtureCoordinator coordinator(clock, form, phrases, fault, seed);
     AppliedEventLog appliedLog(kEventChainLogCapacity);
     (void)engine.setAppliedEventLog(&appliedLog); // offline engine: quiescent by construction
+    if (capture != nullptr) (void)engine.setRoleStemSink(capture->stems);
     result.contentEndFrame = coordinator.contentEndFrame();
     result.lookaheadFrames = coordinator.lookaheadFrames();
     result.simulationTicks = (result.contentEndFrame + kFixturePostStopFrames + kFramesPerTick - 1) / kFramesPerTick;
@@ -2587,6 +2605,10 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     // Close the O3 accounting before the stale-event probe below, which bypasses the scheduler (5a precision)
     result.chainSpscDrained = engine.scheduledEventQueueEmpty();
     (void)engine.setAppliedEventLog(nullptr);
+    (void)engine.setRoleStemSink(nullptr); // the stale-event check below is outside the scenario capture
+    if (capture != nullptr && capture->applied != nullptr) {
+        capture->applied->assign(appliedLog.records().begin(), appliedLog.records().end());
+    }
 
     // A NoteOn of the terminated run delivered after the Stop must never sound (old epoch < minValidEpoch).
     // Probe-only check on the stopped engine, outside the recorded capture.
@@ -2835,8 +2857,8 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
         }
     }
 
-    if (capturedStereoOut != nullptr) {
-        *capturedStereoOut = std::move(recordedStereo);
+    if (capture != nullptr && capture->stereo != nullptr) {
+        *capture->stereo = std::move(recordedStereo);
     }
     return result;
 }

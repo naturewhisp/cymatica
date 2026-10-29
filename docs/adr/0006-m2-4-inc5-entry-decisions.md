@@ -476,6 +476,25 @@ L'esito aggregato è riportato separatamente dai gate e non decide mai un verdet
 - Il master resta misurato per confronto con E1. Non è un criterio per ruolo, perché la Trama non è osservabile dal master.
 - **Intent non è percezione:** questi controlli provano che un evento previsto è arrivato al segnale, non che sia udibile (dossier CACP §8).
 
+**Esito della fase 5c** (2026-10-29, scenario `acao02_v1`, [dossier di calibrazione](../research/M2_4_Inc5_AC-AO-02_Calibration.md)):
+
+- **Stem (D-M2-13):**
+  - ricostruzione del mix dei bus esatta al bit;
+  - memoria misurata 356 MB per la fixture intera;
+  - presenza misurata sul PCM degli stem (OSS-5b-01);
+  - i frame di silenzio «congelato» sono scritti come zeri, così gli stem restano allineati al rendering.
+- **Profilo congelato `stem_onset_profile_v1`:** SHA-256 `1ad44100…b8b3cd`. Valori per ruolo:
+  - Pulso: δ 0,30, scarto −11,67 ms;
+  - Corpo: δ 0,30, scarto −10,67 ms;
+  - Trama: δ 0,20, scarto +9,96 ms;
+  - Vettore: δ 0,20, scarto −9,33 ms.
+- **Verifica:**
+  - altri seed: `INCONCLUSIVE`, perché i seed 1–32 producono tutti lo stesso contenuto (diversità osservata nulla);
+  - `planner_probe_v1` e il set sintetico B sono misurati;
+  - ogni falso positivo cade sul rilascio di 2 ms di una nota (finding F6).
+- **Soglie AC-AO-02 proposte** (richiamo / precisione a ±50 ms): Pulso 0,90/0,95; Corpo 0,75/0,50; Trama 0,70/0,40; Vettore 0,90/0,45.
+  - *Alternativa da decidere al gate M2.5:* precisione senza le rilevazioni entro ±50 ms da un NoteOff applicato, che vale 1,000 ovunque.
+
 **Multi-seed** (esplorativo, non è un gate):
 
 - *Riproducibilità:* stesso seed, due pianificazioni → stesso hash di provenienza e stesso fingerprint.

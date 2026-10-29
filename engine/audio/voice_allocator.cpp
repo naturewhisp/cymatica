@@ -485,6 +485,7 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
     if (isTransportPaused && transportRamp_ == TransportRamp::None &&
         (transportRampLevel_ <= 0.0f || activeVoiceCount() == 0) &&
         !anyStealTailActive() && !roleBusProcessor_.hasActiveTail()) {
+        roleBusProcessor_.appendSilentStemFrames(frameCount); // keeps an offline stem tap frame-aligned
         return;
     }
 

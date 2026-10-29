@@ -3,13 +3,13 @@
 Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa resta nella specifica (§32); questo file registra solo stato, decisioni ed evidenze.
 
 
-> **Stato M2.4 (2026-10-21):** Inc-1..Inc-4 implementati, committati su `main` fino a [`b0f466f`](https://github.com/naturewhisp/cymatica/commit/b0f466f) e verificati in CI ([run 39674430446](https://github.com/naturewhisp/cymatica/actions/runs/39674430446), Release e Debug PASS). La revisione post-Inc-4 interna (R2, rilievi DIF-INC4-R2-01..07) è chiusa: vedi [«Revisione post-Inc-4»](#revisione-post-inc-4-2026-10-21). Una revisione esterna successiva (R3, 2026-10-21) ha aperto 5 rilievi: R3-01 (opzione B del titolare, arresto terminale fail-closed), R3-02, R3-03 e R3-04 sono corretti nel commit `b0f466f`, con CI verde; per R3-05 la scadenza proposta è M2.5. Due precisazioni residue non bloccanti sono registrate nella stessa sezione: l'hash del piano JIT è assegnato a Inc-5, lo stato del registro è aggiornato. Vedi [«Revisione esterna R3»](#revisione-esterna-r3-post-inc-4-2026-10-21). Le decisioni di [ADR-0005](adr/0005-m2-4-inc4-entry-decisions.md) restano `accepted for implementation` e la ratifica del titolare è richiesta prima della chiusura di M2.4. Le raccomandazioni R1–R6 del dossier sui metodi CACP sono approvate per Inc-5. **Inc-5 è avviato a fasi (2026-10-26):** le fasi 5.0 ([ADR-0006](adr/0006-m2-4-inc5-entry-decisions.md)) e 5a (catena O3, hash JIT, fingerprint; `be91198`) sono chiuse con review indipendente OK; la fase 5b (primitive di analisi `cymatica_cacp`) è committata in `a8c3fbe`, con review indipendente NON OK (DIF-5b-01..03): la micro-remediation è in `85bbc4f`; la seconda review è NON OK (DIF-5b-R2-01/02), la correzione è committata su approvazione del titolare, con l'esito della review mirata in attesa; 5c non è autorizzata. Vedi [«M2.4 Inc-5 — piano a fasi»](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26). Questa riga e la tabella «Stato corrente» sono l'unico record dello stato; le sezioni successive sono registri storici e alcune affermazioni sono corrette da errata espliciti.
+> **Stato M2.4 (2026-10-21):** Inc-1..Inc-4 implementati, committati su `main` fino a [`b0f466f`](https://github.com/naturewhisp/cymatica/commit/b0f466f) e verificati in CI ([run 39674430446](https://github.com/naturewhisp/cymatica/actions/runs/39674430446), Release e Debug PASS). La revisione post-Inc-4 interna (R2, rilievi DIF-INC4-R2-01..07) è chiusa: vedi [«Revisione post-Inc-4»](#revisione-post-inc-4-2026-10-21). Una revisione esterna successiva (R3, 2026-10-21) ha aperto 5 rilievi: R3-01 (opzione B del titolare, arresto terminale fail-closed), R3-02, R3-03 e R3-04 sono corretti nel commit `b0f466f`, con CI verde; per R3-05 la scadenza proposta è M2.5. Due precisazioni residue non bloccanti sono registrate nella stessa sezione: l'hash del piano JIT è assegnato a Inc-5, lo stato del registro è aggiornato. Vedi [«Revisione esterna R3»](#revisione-esterna-r3-post-inc-4-2026-10-21). Le decisioni di [ADR-0005](adr/0005-m2-4-inc4-entry-decisions.md) restano `accepted for implementation` e la ratifica del titolare è richiesta prima della chiusura di M2.4. Le raccomandazioni R1–R6 del dossier sui metodi CACP sono approvate per Inc-5. **Inc-5 è avviato a fasi (2026-10-26):** le fasi 5.0 ([ADR-0006](adr/0006-m2-4-inc5-entry-decisions.md)), 5a (catena O3, `be91198`) e 5b (primitive di analisi, `d86f6bb`) sono chiuse con review indipendente OK; la fase 5c (stem per ruolo e calibrazione di AC-AO-02) è committata su approvazione del titolare, con la review indipendente in attesa; 5d e 5e non sono autorizzate. Vedi [«M2.4 Inc-5 — piano a fasi»](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26). Questa riga e la tabella «Stato corrente» sono l'unico record dello stato; le sezioni successive sono registri storici e alcune affermazioni sono corrette da errata espliciti.
 
 ## Stato corrente
 
 | Campo | Valore |
 |---|---|
-| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse; **M2.4: Inc-1..Inc-4 implementati e committati (CI verde su `8ba772e`); remediation R2 chiusa; revisione esterna R3 con R3-01..04 corretti in `b0f466f` (CI verde), R3-05 proposto per M2.5** ([Revisione esterna R3](#revisione-esterna-r3-post-inc-4-2026-10-21)); Inc-5 avviato a fasi: 5.0 e 5a chiuse (review indipendente OK; 5a su `be91198`), 5b in micro-remediation dopo review NON OK, 5c non autorizzata ([piano a fasi](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26)); M2.5 gate d'integrazione finale. M2 complessiva non conclusa. |
+| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse; **M2.4: Inc-1..Inc-4 implementati e committati (CI verde su `8ba772e`); remediation R2 chiusa; revisione esterna R3 con R3-01..04 corretti in `b0f466f` (CI verde), R3-05 proposto per M2.5** ([Revisione esterna R3](#revisione-esterna-r3-post-inc-4-2026-10-21)); Inc-5 avviato a fasi: 5.0, 5a e 5b chiuse (review indipendente OK), 5c committata, review indipendente in attesa, 5d non autorizzata ([piano a fasi](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26)); M2.5 gate d'integrazione finale. M2 complessiva non conclusa. |
 | Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
 | Stato M1 | **Completata: review indipendente OK, zero difetti residui, gate round 3 passati** |
 | Specifica | Versione **0.8.3**, roadmap §32 invariata; ADR-0003, ADR-0004 (emendamento §4.3 del 2026-10-20) e ADR-0005 (ingresso Inc-4) specificano i contratti di M2.4 senza modificare i requisiti di milestone. |
@@ -18,7 +18,7 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 | Ultima CI Headless verificata | [`b0f466f`](https://github.com/naturewhisp/cymatica/commit/b0f466f): [GitHub Actions run 39674430446](https://github.com/naturewhisp/cymatica/actions/runs/39674430446) «Windows CI», job Release (windows-2025) e Debug (windows-2025) `success`, verificato con `gh run view` il 2026-10-21. Precedente: `8ba772e`, [run 39671112436](https://github.com/naturewhisp/cymatica/actions/runs/39671112436); il dettaglio dei suoi log (140/140 headless per configurazione, CACP `tone_test` PASS) viene dalla revisione esterna R3. La CI esclude i test `perf`, valutati sulle misure locali archiviate. Non sostituisce collaudo hardware o giudizio artistico. |
 | Integrazione documentale M2.4 | Contratti D-M2-04..07 (ADR-0003); AUD-D-01..04 ed emendamento §4.3 (ADR-0004); D-M2-08..11 d'ingresso Inc-4 (ADR-0005); D-M2-12..16 d'ingresso Inc-5 (ADR-0006, in review); tutti `accepted for implementation`; nessun profilo sperimentale `validated`. |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_core` (static lib), `cymatica_replay` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
-| Ultimo aggiornamento | 2026-10-28 (Inc-5 5b: seconda review NON OK su `85bbc4f` (DIF-5b-R2-01/02); correzione con 164/164 Release e Debug headless, committata su approvazione del titolare; review mirata in attesa). Precedente: stesso giorno, micro-remediation DIF-5b-01..03. Precedente: 2026-10-27 (5b committata su approvazione del titolare). Precedente, stesso giorno (Inc-5 fase 5.0: ADR-0006 con D-M2-12..16, piano a fasi con review obbligatoria, registro INC5-REV-01..05; non committato). Precedente: 2026-10-21 (micro-remediation R3 committata in `b0f466f` con CI verde: R3-01 arresto sicuro fail-closed (D-INC4-R3-01), R3-02 contabilità eventi, R3-03 hash canonico condiviso, R3-04 stato documentale; R3-05 proposto per M2.5; hash del piano JIT assegnato a Inc-5) |
+| Ultimo aggiornamento | 2026-10-29 (Inc-5: 5b chiusa con review OK su `d86f6bb`; 5c implementata, 169/169 Release e Debug headless, scenario `acao02_v1` MEASURED, committata su approvazione del titolare; review indipendente in attesa). Precedente: stesso giorno, micro-remediation DIF-5b-01..03. Precedente: 2026-10-27 (5b committata su approvazione del titolare). Precedente, stesso giorno (Inc-5 fase 5.0: ADR-0006 con D-M2-12..16, piano a fasi con review obbligatoria, registro INC5-REV-01..05; non committato). Precedente: 2026-10-21 (micro-remediation R3 committata in `b0f466f` con CI verde: R3-01 arresto sicuro fail-closed (D-INC4-R3-01), R3-02 contabilità eventi, R3-03 hash canonico condiviso, R3-04 stato documentale; R3-05 proposto per M2.5; hash del piano JIT assegnato a Inc-5) |
 
 ## Decisioni d'ingresso M0
 
@@ -117,6 +117,7 @@ Da riesaminare all'ingresso di M2.5 (AGENTS §1.1). Si valutano con il metodo de
 | F2 | Trama lateralizzata a sinistra dal delay 11/17 ms (effetto di precedenza), fastidiosa in cuffia | tuning | idem |
 | F3 | Ripetitività (7/7) e transizioni brusche: loop di 4 battute e cambi di tempo istantanei. Rampe di tempo e variazioni di transizione richiederebbero un'estensione di `MusicClock` e del planner. | tuning e possibile decisione, da leggere insieme alle misure multi-seed di Inc-5 (5e) | idem |
 | F4 | Mix e timbro: kick percepito troppo basso, FM «dissonante»; proposte di riverberi, modulazioni, saturazione ed effetti, ciascuna con il proprio costo DSP rispetto a D-M2-10 e ADR-0004 | tuning | idem |
+| F6 | **Rilascio di 2 ms**: ogni nota termina con una rampa lineare di 2 ms (`declickFrames_`) che produce un transitorio a banda larga misurabile a ogni NoteOff. Per la Trama il transitorio è forte quanto l'attacco. L'udibilità non è verificata. | tuning: stadio di release dell'ADSR per ruolo, misurato con `acao02_v1` e verificato con l'ascolto | [calibrazione 5c](research/M2_4_Inc5_AC-AO-02_Calibration.md) §4 |
 | F5 | **Direttore musicale** (proposta del titolare, 2026-10-28). Un livello fra la forma e il planner di frase che prende le decisioni oggi assenti sopra la singola frase: ancoraggio metrico (F1), transizioni e preparazione dei cambi di sezione (F3), arco orchestrale (entrate e uscite, densità), variazione delle ripetizioni, dinamica e mix nel tempo (F4). Vincoli: deterministico e versionato, sul thread di pianificazione e mai nella callback; ogni decisione nella decision trace e nel Music Intent, quindi verificabile con catena O3, fingerprint e metriche di diversità; subordinato al Pacing Director (specifica §9), con un nome distinto. | **decisione architetturale** (M2.5 o M2-F) con nuovo ADR e golden aggiornati. È preceduta da una ricerca approfondita: stato dell'arte dei «conductor» nella musica adattiva (sistemi multi-agente, segmenti di transizione Wwise/FMOD, gestione dell'intensità) e confronto con l'impalcatura gerarchica della [ricerca approfondita](research/M2_4_Deep_Research_Reviewed.md). | titolare; [ascolto esperto](m2_4_human_listening_2026-10-28.md) |
 
 **Principi del titolare per F1–F5 (2026-10-28):**
@@ -873,8 +874,8 @@ L'ordine 5a → 5b → 5c → 5d → 5e è invariato. Inc-5 non introduce nuove 
 |---|---|---|---|
 | 5.0 | ADR-0006, decisioni D-M2-12..16, confini realtime/offline, definizioni delle metriche | decisioni coerenti e documentate; review OK | **chiusa**: review OK il 2026-10-26 su [`1d39e88`](https://github.com/naturewhisp/cymatica/commit/1d39e881ea3858161ca78cc47845503d69e54ef4), dopo tre cicli di correzione (`431b03f`, `1624142`, `a235997`, `1d39e88`) |
 | 5a | registro degli eventi applicati, confronto JIT/offline, catena O3, fault injection, overflow, profilazione | eventi verificati esattamente; nessun difetto di concorrenza o regressione | **chiusa**: `8f3dfab` + micro-remediation [`be91198`](https://github.com/naturewhisp/cymatica/commit/be9119812ea9bb4e9f4df0640a2fcf7d49c30594); review indipendente OK il 2026-10-26; CI verde su `be91198` (run 40405902875) |
-| 5b | FFT/STFT, onset, mel, SHA-256, PNG, Side/Mid, LUFS | test contro oracoli indipendenti e vettori di riferimento; parità numerica documentata | `a8c3fbe` + micro-remediation `85bbc4f` (CI verde, run 40747818854); seconda review indipendente **NON OK** (DIF-5b-R2-01/02); correzione committata su approvazione del titolare (2026-10-28, «OK, commit»); esito della review mirata **in attesa** |
-| 5c | stem per ruolo, ricostruzione del mix dei bus, calibrazione e verifica AC-AO-02 | risultati misurati, soglie proposte, generalizzazione dimostrata oppure esplicitamente inconcludente | non autorizzata |
+| 5b | FFT/STFT, onset, mel, SHA-256, PNG, Side/Mid, LUFS | test contro oracoli indipendenti e vettori di riferimento; parità numerica documentata | **chiusa**: `a8c3fbe` + `85bbc4f` + [`d86f6bb`](https://github.com/naturewhisp/cymatica/commit/d86f6bbb61829d7ad2b84a346abdd9b5b8e2fffa); review indipendente OK (2026-10-29); CI verde su `d86f6bb` (run 40748864764) |
+| 5c | stem per ruolo, ricostruzione del mix dei bus, calibrazione e verifica AC-AO-02 | risultati misurati, soglie proposte, generalizzazione dimostrata oppure esplicitamente inconcludente | autorizzata il 2026-10-29 (subordinata alla CI di `d86f6bb`, verde); implementata e **committata** su approvazione del titolare (2026-10-29, «OK, commit»); esito della review indipendente **in attesa** |
 | 5d | evaluation pack, controllo degli hash, separazione della ground truth, checker delle affermazioni | nessun leakage; test positivi e negativi del checker superati | non autorizzata |
 | 5e | suite completa, LUFS esplorativo, multi-seed, evidenze percettive, handoff | dossier riproducibile, tutti i gate obbligatori superati e review tecnica OK | non autorizzata |
 
@@ -1208,3 +1209,54 @@ Un esperto di musica esterno ha ascoltato `fixture_probe_v1.wav` con la scheda d
 - **Finding F1, aperto:** il «primo colpo di kick mancante» non è un difetto di rendering (la catena O3 lo esclude). È il generatore: il pattern di Pulso ha rotazione 2, e il kick cade sul tempo forte solo in 16 battute su 96, contro il ruolo dichiarato di «Rhythmic anchor». Richiede una decisione sul generatore, fuori dal perimetro di Inc-5.
 - **Altri finding, proposte per il tuning di M2.5 senza decisione:** lateralizzazione della Trama a sinistra per il delay 11/17 ms (F2); ripetitività e transizioni brusche (F3); mix e timbro (F4).
 - I quattro finding sono riportati come questioni d'ingresso *proposed* nella [sezione M2.5](#questioni-dingresso-m25-proposed).
+
+**Chiusura di 5b (review indipendente di `d86f6bb`, 2026-10-29):** verdetto **OK**. I rilievi DIF-5b-01..03 e DIF-5b-R2-01/02 sono risolti. La CI su `d86f6bb` ([run 40748864764](https://github.com/naturewhisp/cymatica/actions/runs/40748864764)) è verde in Release e Debug, verificato con `gh run view`. Osservazione OSS-5b-01: in 5c la presenza del segnale negli stem va misurata sul PCM, non dedotta dallo stato del mel. 5c è autorizzata, subordinata alla CI verde.
+
+### Fase 5c — stem per ruolo e calibrazione di AC-AO-02 (2026-10-29, committata, review indipendente in attesa)
+
+Lo stato è **implementata e committata** su approvazione del titolare del 2026-10-29 («OK, commit»). L'esito della review indipendente si registrerà quando sarà comunicato (DIF-5a-02). 5d e 5e non sono autorizzate. Il dossier è [M2_4_Inc5_AC-AO-02_Calibration.md](research/M2_4_Inc5_AC-AO-02_Calibration.md), con i dati in [experiments/inc5_calibration/](research/experiments/inc5_calibration/).
+
+**Codice:**
+
+| File | Contenuto |
+|---|---|
+| [role_bus_processor.h](../engine/audio/role_bus_processor.h) / [.cpp](../engine/audio/role_bus_processor.cpp) | `RoleStemSink`: stem stereo per ruolo e mix dei bus, scritti in `processAndMix`; `appendSilentStemFrames` per i frame di silenzio «congelato» |
+| [voice_allocator.cpp](../engine/audio/voice_allocator.cpp) | sull'uscita anticipata del silenzio congelato scrive zeri nel sink, così gli stem restano allineati ai frame |
+| [audio_engine.h](../engine/audio/audio_engine.h) / [.cpp](../engine/audio/audio_engine.cpp) | `setRoleStemSink`, con lo stesso contratto di quiescenza del registro degli eventi applicati |
+| [audio_probe.h](../engine/audio/audio_probe.h) / [.cpp](../engine/audio/audio_probe.cpp) | `ProbeAnalysisCapture` (seed della fixture, stem, PCM, eventi applicati) per `fixture_probe_v1` e `planner_probe_v1`; seed del `FixtureCoordinator` parametrico; i golden valgono solo per il 1337 |
+| [stem_analysis.h](../engine/cacp/stem_analysis.h) / [.cpp](../engine/cacp/stem_analysis.cpp) | `StemCapture`; ricostruzione del mix; presenza sul PCM; ground truth e rilasci per ruolo; valutazione con diagnostica dei rilasci |
+| [acao02_calibration.h](../engine/cacp/acao02_calibration.h) / [.cpp](../engine/cacp/acao02_calibration.cpp) | scenario `--cacp-run acao02_v1`: latenza intrinseca, calibrazione, profilo congelato `stem_onset_profile_v1`, scansione dei seed, verifica, soglie proposte |
+
+**Risultati principali** (dettaglio nel dossier):
+
+- **Stem:** ricostruzione del mix dei bus esatta al bit; 0 overflow; 356 MB per la fixture intera. La presenza della Trama si misura sul PCM: silenzio esatto nelle frasi 0–3 di A, presente nelle 4–7.
+- **Latenza intrinseca:** −12 / −9,3 / +9,3 / −10,7 ms per Pulso, Corpo, Trama e Vettore. Coincide entro circa 1 ms con gli scarti calibrati.
+- **Profilo congelato prima della verifica:** Pulso δ 0,30 / −11,67 ms; Corpo 0,30 / −10,67 ms; Trama 0,20 / +9,96 ms; Vettore 0,20 / −9,33 ms. SHA-256 `1ad44100…b8b3cd`, bloccato da un test.
+- **Verifica:**
+  - altri seed `INCONCLUSIVE`: i 32 seed scansionati hanno lo stesso contenuto del 1337, cioè **diversità osservata nulla**, registrata come risultato negativo;
+  - `planner_probe_v1` e il set sintetico B misurati. **Ogni falso positivo è una rilevazione sul rilascio di una nota**: la precisione senza i rilasci vale 1,000 ovunque.
+- **Soglie proposte** (richiamo / precisione, ±50 ms): Pulso 0,90/0,95; Corpo 0,75/0,50; Trama 0,70/0,40; Vettore 0,90/0,45. Per il gate M2.5 resta da decidere l'alternativa con la precisione senza i rilasci.
+- **Finding F6:** rilascio lineare di 2 ms a ogni NoteOff, aggiunto alle questioni d'ingresso M2.5.
+- **Aperto:** il richiamo della Trama nel set B (0,75) non è spiegato.
+
+**Test** ([test_stem_analysis.cpp](../tests/unit/test_stem_analysis.cpp), 5 casi):
+
+- stem allineati ai frame, ricostruzione esatta al bit, isolamento dei ruoli;
+- allineamento attraverso la pausa e conteggio dell'overflow;
+- presenza sul PCM: silenzio esatto, segnale minuscolo presente, NaN, intervallo non valido;
+- ground truth con fusione entro 30 ms, NoteOn non applicati esclusi, rilasci;
+- diagnostica dei rilasci su un rendering reale;
+- hash del profilo congelato;
+- cattura di `planner_probe_v1` (stem allineati al PCM, ricostruzione, eventi applicati).
+
+**Verifica** (working tree su `83529f0`):
+
+| Check | Comando | Esito |
+|---|---|---|
+| Release + headless | `scripts/build.ps1 -Config Release -Test -Headless` | **169/169 PASS** (164 + 5), 0 `warning C` |
+| Debug + headless | `scripts/build.ps1 -Config Debug -Test -Headless` | **169/169 PASS**, 0 `warning C` |
+| Benchmark Release | `ctest --test-dir build/x64-release -L perf` | **2/2 PASS** |
+| `profile_test` (Release) | `cymatica_game --cacp-run profile_test` | **PASS**, p99.9 peggiore 0,24 ms, max 0,58 ms: il sink nullo nella callback non mostra regressioni |
+| `fixture_test` (Release) | `cymatica_game --cacp-run fixture_test` | **PASS**; hash PCM 15126969907236845529, golden JIT e catena O3 invariati |
+| `onset_parity_v1` | `cymatica_game --cacp-run onset_parity_v1` | **MEASURED**, parità con E1 completa |
+| `acao02_v1` | `cymatica_game --cacp-run acao02_v1` | **MEASURED**: profilo congelato uguale al calibrato, circa 10 s |

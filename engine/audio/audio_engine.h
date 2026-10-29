@@ -162,6 +162,8 @@ public:
     // (Applied / Ignored / Dropped with reason). Diagnostic and offline only, null by default. Install, remove
     // and read only in quiescence (offline engine, or device not started): returns false while the device runs.
     bool setAppliedEventLog(AppliedEventLog* log) noexcept;
+    // Offline per-role stem tap (ADR-0006 D-M2-13): same quiescence contract as the applied-event log.
+    bool setRoleStemSink(RoleStemSink* sink) noexcept;
     // Quiescence only: true when the scheduled-event SPSC is empty (E_sent = E_cons is checked after the drain).
     [[nodiscard]] bool scheduledEventQueueEmpty() const noexcept;
 

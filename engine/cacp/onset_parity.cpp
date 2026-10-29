@@ -94,7 +94,9 @@ OnsetParityResult runOnsetParityV1(const std::string& outputDir, bool writeFiles
 
     // Input: fixture rendered in-process, same PCM as fixture_probe_v1.wav
     std::vector<float> stereo;
-    const auto fixture = audio::runFixtureProbeV1Offline(outputDir, false, audio::FixtureInjectedFault::None, &stereo);
+    audio::ProbeAnalysisCapture capture{};
+    capture.stereo = &stereo;
+    const auto fixture = audio::runFixtureProbeV1Offline(outputDir, false, audio::FixtureInjectedFault::None, &capture);
     r.fixturePassed = fixture.passed;
     r.pcmContentHash = fixture.pcmContentHash;
     const std::uint64_t contentEnd = fixture.contentEndFrame;

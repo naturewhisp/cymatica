@@ -121,6 +121,22 @@ void RoleBusProcessor::beginTelemetryWindow() noexcept {
     windowMinDuckingGain_ = 1.0f;
 }
 
+void RoleBusProcessor::appendSilentStemFrames(std::uint32_t frameCount) noexcept {
+    if (stemSink_ == nullptr) return;
+    RoleStemSink& sink = *stemSink_;
+    for (std::uint32_t f = 0; f < frameCount; ++f) {
+        if (sink.writtenFrames < sink.capacityFrames) {
+            const std::size_t o = sink.writtenFrames * 2;
+            for (float* stem : sink.stems) { stem[o] = 0.0f; stem[o + 1] = 0.0f; }
+            sink.busMix[o] = 0.0f;
+            sink.busMix[o + 1] = 0.0f;
+            ++sink.writtenFrames;
+        } else {
+            ++sink.overflowFrames;
+        }
+    }
+}
+
 void RoleBusProcessor::processAndMix(float* pDestInterleaved,
                                      std::uint32_t frameCount,
                                      const std::array<float, kRoleCount>& rolePitchHz,
@@ -253,6 +269,21 @@ void RoleBusProcessor::processAndMix(float* pDestInterleaved,
 
         pDestInterleaved[iL] = mixL;
         pDestInterleaved[iR] = mixR;
+
+        if (stemSink_ != nullptr) {
+            RoleStemSink& sink = *stemSink_;
+            if (sink.writtenFrames < sink.capacityFrames) {
+                const std::size_t o = sink.writtenFrames * 2;
+                sink.stems[kP][o] = outL_pulso;   sink.stems[kP][o + 1] = outR_pulso;
+                sink.stems[kC][o] = outL_corpo;   sink.stems[kC][o + 1] = outR_corpo;
+                sink.stems[kT][o] = outL_trama;   sink.stems[kT][o + 1] = outR_trama;
+                sink.stems[kV][o] = outL_vettore; sink.stems[kV][o + 1] = outR_vettore;
+                sink.busMix[o] = mixL;            sink.busMix[o + 1] = mixR;
+                ++sink.writtenFrames;
+            } else {
+                ++sink.overflowFrames;
+            }
+        }
 
         inputNonZero[kP] = inputNonZero[kP] || (inL_pulso != 0.0f) || (inR_pulso != 0.0f);
         inputNonZero[kC] = inputNonZero[kC] || (inL_corpo != 0.0f) || (inR_corpo != 0.0f);
