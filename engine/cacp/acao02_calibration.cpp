@@ -231,9 +231,28 @@ std::string captureInvalidReason(const CaptureCheck& c) {
     return s.str();
 }
 
+std::string roleAnalysisInvalidReason(const RoleSetEvaluation& e) {
+    if (e.status == "MEASURED" || e.status == "NO_REFERENCES") return {};
+    return "analysis status " + e.status;
+}
+
+namespace {
+
+// Reasons of the invalid role analyses of a set, "" when every role is MEASURED or NO_REFERENCES
+std::string rolesInvalidReason(const std::array<RoleSetEvaluation, kRoleCount>& roles) {
+    std::string reasons;
+    for (std::size_t i = 0; i < kRoleCount; ++i) {
+        const std::string why = roleAnalysisInvalidReason(roles[i]);
+        if (!why.empty()) reasons += std::string(kRoleNames[i]) + ": " + why + "; ";
+    }
+    return reasons;
+}
+
+} // namespace
+
 VerificationSet verificationSetFromCaptures(std::string name, const std::vector<CaptureCheck>& checks,
                                             const std::array<RoleSetEvaluation, kRoleCount>& roles) {
-    VerificationSet vs{std::move(name), "MEASURED", "", roles, false};
+    VerificationSet vs{std::move(name), "MEASURED", "", roles, false, false};
     std::string reasons;
     for (const auto& c : checks) reasons += captureInvalidReason(c);
     if (checks.empty()) reasons = "no capture recorded; ";
@@ -242,6 +261,13 @@ VerificationSet verificationSetFromCaptures(std::string name, const std::vector<
         vs.note = "invalid capture: " + reasons;
         vs.invalidCapture = true;
         vs.roles = {}; // no usable scores
+        return vs;
+    }
+    const std::string analysis = rolesInvalidReason(roles);
+    if (!analysis.empty()) {
+        vs.status = "INCONCLUSIVE";
+        vs.note = "invalid analysis: " + analysis;
+        vs.invalidAnalysis = true; // role statuses kept as the recorded reason; no role contributes
     }
     return vs;
 }
@@ -255,10 +281,15 @@ void finalizeAcao02Status(Acao02Result& r) {
         const std::string why = captureInvalidReason(r.intrinsicCaptures[i]);
         if (!why.empty()) reason("intrinsic latency " + std::string(kRoleNames[i % kRoleCount]) + ": " + why);
     }
+    // Intrinsic-latency analyses, checked separately from their captures (DIF-5c-R2-01)
+    const std::string intrinsicWhy = rolesInvalidReason(r.intrinsic);
+    if (!intrinsicWhy.empty()) reason("intrinsic latency analysis: " + intrinsicWhy);
     const std::string calWhy = captureInvalidReason(r.calibrationCapture);
     if (!calWhy.empty()) reason("calibration capture (seed 1337): " + calWhy);
     if (!r.fixturePassed) reason("calibration fixture probe failed");
     if (!r.calibrationAnalysisOk) reason("calibration analysis failed: " + r.failureReason);
+    const std::string calScoresWhy = rolesInvalidReason(r.calibrationScores);
+    if (!calScoresWhy.empty()) reason("calibration scores (seed 1337): " + calScoresWhy);
     if (r.reconstructionStatus != "OK" || r.reconstructionMismatches != 0) {
         reason("bus-mix reconstruction " + r.reconstructionStatus + ", " + std::to_string(r.reconstructionMismatches) +
                " mismatched samples");
@@ -270,9 +301,18 @@ void finalizeAcao02Status(Acao02Result& r) {
                ": verification measures kept as diagnostic only");
     }
     bool anyMeasuredSet = false;
-    for (const auto& vs : r.verification) {
-        if (vs.invalidCapture) reason("verification set " + vs.name + ": " + vs.note);
-        if (vs.status == "MEASURED" && !vs.invalidCapture) anyMeasuredSet = true;
+    for (auto& vs : r.verification) {
+        // Re-check the role analyses of every MEASURED set: a set is never trusted on its status alone
+        if (vs.status == "MEASURED" && !vs.invalidCapture) {
+            const std::string analysis = rolesInvalidReason(vs.roles);
+            if (!analysis.empty()) {
+                vs.status = "INCONCLUSIVE";
+                vs.note = "invalid analysis: " + analysis;
+                vs.invalidAnalysis = true;
+            }
+        }
+        if (vs.invalidCapture || vs.invalidAnalysis) reason("verification set " + vs.name + ": " + vs.note);
+        if (vs.status == "MEASURED" && !vs.invalidCapture && !vs.invalidAnalysis) anyMeasuredSet = true;
     }
     if (r.profileFrozen && !anyMeasuredSet) reason("no verification set measured on valid data");
 
@@ -285,7 +325,10 @@ void finalizeAcao02Status(Acao02Result& r) {
         double minR = 2.0, minP = 2.0;
         if (r.status == "MEASURED") {
             for (const auto& vs : r.verification) {
-                if (vs.invalidCapture || vs.status != "MEASURED" || vs.roles[role].status != "MEASURED") continue;
+                if (vs.invalidCapture || vs.invalidAnalysis || vs.status != "MEASURED" ||
+                    vs.roles[role].status != "MEASURED") {
+                    continue; // NO_REFERENCES: no evidence for this role, never a zero score
+                }
                 minR = (std::min)(minR, vs.roles[role].recall50);
                 minP = (std::min)(minP, vs.roles[role].precision50);
             }
@@ -575,7 +618,8 @@ std::string Acao02Result::toJson() const {
     for (std::size_t i = 0; i < verification.size(); ++i) {
         const auto& v = verification[i];
         s << "    {\"set\": \"" << v.name << "\", \"status\": \"" << v.status << "\", \"invalid_capture\": "
-          << (v.invalidCapture ? "true" : "false") << ", \"note\": \"" << jsonEscape(v.note) << "\", \"roles\": ";
+          << (v.invalidCapture ? "true" : "false") << ", \"invalid_analysis\": " << (v.invalidAnalysis ? "true" : "false")
+          << ", \"note\": \"" << jsonEscape(v.note) << "\", \"roles\": ";
         writeRoles(s, v.roles, "    ");
         s << "}" << (i + 1 < verification.size() ? ",\n" : "\n");
     }

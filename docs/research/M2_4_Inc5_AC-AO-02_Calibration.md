@@ -40,6 +40,7 @@
 9. **Validità (aggiunta con la remediation DIF-5c-01/02, 2026-10-29):** si misura solo su catture valide.
    - Ogni rendering deve avere verdetto del probe positivo (per i sintetici: ogni NoteOn `Applied`), stem che coprono esattamente i frame renderizzati e nessun overflow degli stem o del registro degli eventi.
    - Una cattura non valida rende l'insieme `INCONCLUSIVE` senza punteggi.
+   - Anche ogni analisi per ruolo deve essere valida (DIF-5c-R2-01): `MEASURED`, oppure `NO_REFERENCES`, che indica assenza di evidenza e non un punteggio nullo. Qualunque altro stato rende l'insieme `INCONCLUSIVE`, con il motivo registrato.
    - L'esito complessivo è `MEASURED` solo con tutte le catture valide, ricostruzione esatta e profilo ricalibrato uguale al congelato; altrimenti è `INCONCLUSIVE` e le soglie non vengono proposte.
    - Con un seed diverso dal 1337 i golden fissi della fixture sono `NOT_APPLICABLE`; gli altri controlli del probe restano obbligatori.
    - La regola non cambia le misure del primo rendering: il manifest rigenerato coincide con quello archiviato, a parte i nuovi campi di validità.

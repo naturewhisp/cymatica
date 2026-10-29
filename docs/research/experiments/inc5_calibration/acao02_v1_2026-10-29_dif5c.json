@@ -1,7 +1,7 @@
 {
   "manifest_version": "1.0",
   "scenario": "acao02_v1",
-  "build_id": "2d0eaf2",
+  "build_id": "0a1af41",
   "verdict": "MEASURED",
   "inconclusive_reasons": [],
   "gate": false,
@@ -36,19 +36,19 @@
   "seed_scan": {"seeds": [1, "...", 32], "distinct_fingerprints": 1, "seeds_with_different_content": []},
   "verification_status": "MEASURED",
   "verification": [
-    {"set": "fixture_other_seeds", "status": "INCONCLUSIVE", "invalid_capture": false, "note": "no scanned seed produces a musical content different from seed 1337", "roles": {
+    {"set": "fixture_other_seeds", "status": "INCONCLUSIVE", "invalid_capture": false, "invalid_analysis": false, "note": "no scanned seed produces a musical content different from seed 1337", "roles": {
       "pulso": {"status": "NOT_RUN", "references": 0, "detections": 0, "p50": 0, "r50": 0, "f50": 0, "p25": 0, "r25": 0, "f25": 0, "err_median_ms": 0, "err_p05_ms": 0, "err_p95_ms": 0, "unmatched": 0, "release_detections": 0, "precision_excl_releases_50": 0, "unmatched_lag_ms": {"median": 0, "p05": 0, "p95": 0}},
       "corpo": {"status": "NOT_RUN", "references": 0, "detections": 0, "p50": 0, "r50": 0, "f50": 0, "p25": 0, "r25": 0, "f25": 0, "err_median_ms": 0, "err_p05_ms": 0, "err_p95_ms": 0, "unmatched": 0, "release_detections": 0, "precision_excl_releases_50": 0, "unmatched_lag_ms": {"median": 0, "p05": 0, "p95": 0}},
       "trama": {"status": "NOT_RUN", "references": 0, "detections": 0, "p50": 0, "r50": 0, "f50": 0, "p25": 0, "r25": 0, "f25": 0, "err_median_ms": 0, "err_p05_ms": 0, "err_p95_ms": 0, "unmatched": 0, "release_detections": 0, "precision_excl_releases_50": 0, "unmatched_lag_ms": {"median": 0, "p05": 0, "p95": 0}},
       "vettore": {"status": "NOT_RUN", "references": 0, "detections": 0, "p50": 0, "r50": 0, "f50": 0, "p25": 0, "r25": 0, "f25": 0, "err_median_ms": 0, "err_p05_ms": 0, "err_p95_ms": 0, "unmatched": 0, "release_detections": 0, "precision_excl_releases_50": 0, "unmatched_lag_ms": {"median": 0, "p05": 0, "p95": 0}}
     }},
-    {"set": "planner_probe_v1", "status": "MEASURED", "invalid_capture": false, "note": "", "roles": {
+    {"set": "planner_probe_v1", "status": "MEASURED", "invalid_capture": false, "invalid_analysis": false, "note": "", "roles": {
       "pulso": {"status": "MEASURED", "references": 40, "detections": 39, "p50": 1, "r50": 0.975, "f50": 0.9873417722, "p25": 1, "r25": 0.975, "f25": 0.9873417722, "err_median_ms": -0.1249999967, "err_p05_ms": -1.854166663, "err_p95_ms": 2.37291667, "unmatched": 0, "release_detections": 0, "precision_excl_releases_50": 1, "unmatched_lag_ms": {"median": 0, "p05": 0, "p95": 0}},
       "corpo": {"status": "MEASURED", "references": 5, "detections": 5, "p50": 0.8, "r50": 0.8, "f50": 0.8, "p25": 0.8, "r25": 0.8, "f25": 0.8, "err_median_ms": 3.333333609e-09, "err_p05_ms": 3.333333609e-09, "err_p95_ms": 3.334088561e-09, "unmatched": 1, "release_detections": 1, "precision_excl_releases_50": 1, "unmatched_lag_ms": {"median": 6858.666667, "p05": 6858.666667, "p95": 6858.666667}},
       "trama": {"status": "MEASURED", "references": 36, "detections": 57, "p50": 0.6315789474, "r50": 1, "f50": 0.7741935484, "p25": 0.6140350877, "r25": 0.9722222222, "f25": 0.752688172, "err_median_ms": -0.2916666663, "err_p05_ms": -24.35416667, "err_p95_ms": 1.375, "unmatched": 21, "release_detections": 21, "precision_excl_releases_50": 1, "unmatched_lag_ms": {"median": 102.375, "p05": 101.0416667, "p95": 106.375}},
       "vettore": {"status": "MEASURED", "references": 32, "detections": 32, "p50": 0.96875, "r50": 0.96875, "f50": 0.96875, "p25": 0.96875, "r25": 0.96875, "f25": 0.96875, "err_median_ms": 0.958333333, "err_p05_ms": -2.65625, "err_p95_ms": 4, "unmatched": 1, "release_detections": 1, "precision_excl_releases_50": 1, "unmatched_lag_ms": {"median": 423.4375, "p05": 423.4375, "p95": 423.4375}}
     }},
-    {"set": "synthetic_set_b", "status": "MEASURED", "invalid_capture": false, "note": "", "roles": {
+    {"set": "synthetic_set_b", "status": "MEASURED", "invalid_capture": false, "invalid_analysis": false, "note": "", "roles": {
       "pulso": {"status": "MEASURED", "references": 40, "detections": 40, "p50": 1, "r50": 1, "f50": 1, "p25": 1, "r25": 1, "f25": 1, "err_median_ms": 0.3333333367, "err_p05_ms": -2.366666663, "err_p95_ms": 2.333333337, "unmatched": 0, "release_detections": 0, "precision_excl_releases_50": 1, "unmatched_lag_ms": {"median": 0, "p05": 0, "p95": 0}},
       "corpo": {"status": "MEASURED", "references": 40, "detections": 69, "p50": 0.5797101449, "r50": 1, "f50": 0.7339449541, "p25": 0.5797101449, "r25": 1, "f25": 0.7339449541, "err_median_ms": 2.66666667, "err_p05_ms": -0.6666666633, "err_p95_ms": 6.033333337, "unmatched": 29, "release_detections": 29, "precision_excl_releases_50": 1, "unmatched_lag_ms": {"median": 188.6666667, "p05": 129.7333333, "p95": 418.4}},
       "trama": {"status": "MEASURED", "references": 40, "detections": 66, "p50": 0.4545454545, "r50": 0.75, "f50": 0.5660377358, "p25": 0.4545454545, "r25": 0.75, "f25": 0.5660377358, "err_median_ms": -2.625, "err_p05_ms": -5.625, "err_p95_ms": 1.708333334, "unmatched": 36, "release_detections": 36, "precision_excl_releases_50": 1, "unmatched_lag_ms": {"median": 186.0416667, "p05": 87.04166667, "p95": 397.5416667}},

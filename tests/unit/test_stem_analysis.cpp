@@ -239,6 +239,8 @@ Acao02Result validAcao02() {
     Acao02Result r;
     r.completed = true;
     for (std::size_t i = 0; i < kRoleCount; ++i) r.intrinsicCaptures.push_back(validCheck());
+    r.intrinsic = measuredRoles(1.0, 1.0);
+    r.calibrationScores = measuredRoles(1.0, 0.9);
     r.fixturePassed = true;
     r.calibrationCapture = validCheck(8'825'200);
     r.calibrationAnalysisOk = true;
@@ -247,7 +249,7 @@ Acao02Result validAcao02() {
     r.calibratedSha256 = "1ad44100";
     r.frozenSha256 = "1ad44100";
     r.calibratedEqualsFrozen = true;
-    r.verification.push_back(VerificationSet{"fixture_other_seeds", "INCONCLUSIVE", "no different content", {}, false});
+    r.verification.push_back(VerificationSet{"fixture_other_seeds", "INCONCLUSIVE", "no different content", {}, false, false});
     r.verification.push_back(verificationSetFromCaptures("planner_probe_v1", {validCheck()}, measuredRoles(0.95, 1.0)));
     r.verification.push_back(
         verificationSetFromCaptures("synthetic_set_b", {validCheck(), validCheck()}, measuredRoles(0.80, 0.50)));
@@ -384,5 +386,87 @@ TEST_CASE("acao02_v1 aggregate is fail-closed: MEASURED only on valid data (DIF-
         auto r = validAcao02();
         r.verification.resize(1);
         (void)expectInconclusive(r, "no measured set");
+    }
+}
+
+TEST_CASE("acao02_v1 validates every role analysis separately from its capture (DIF-5c-R2-01)", "[stem_analysis][validity]") {
+    CHECK(roleAnalysisInvalidReason(measuredRoles(1.0, 1.0)[0]).empty());
+    RoleSetEvaluation noRefs;
+    noRefs.status = "NO_REFERENCES";
+    CHECK(roleAnalysisInvalidReason(noRefs).empty()); // no evidence, not an analysis error
+    for (const char* bad : {"NON_FINITE_INPUT", "INVALID_CONFIG", "EXACT_SILENCE", "BELOW_NUMERICAL_FLOOR", "NOT_RUN"}) {
+        RoleSetEvaluation e;
+        e.status = bad;
+        INFO(bad);
+        CHECK(roleAnalysisInvalidReason(e).find(bad) != std::string::npos);
+    }
+
+    auto expectInconclusive = [](Acao02Result r, const char* what, const char* needle) {
+        finalizeAcao02Status(r);
+        INFO(what);
+        CHECK(r.status == "INCONCLUSIVE");
+        CHECK(r.thresholdsStatus == "NOT_PROPOSED");
+        bool found = false;
+        for (const auto& s : r.inconclusiveReasons) found = found || s.find(needle) != std::string::npos;
+        CHECK(found);
+        for (std::size_t i = 0; i < kRoleCount; ++i) CHECK(std::isnan(r.proposedRecall[i]));
+        return r;
+    };
+
+    // Reviewer counterexample: perfectly valid capture, one role analysis NON_FINITE_INPUT in a MEASURED set
+    {
+        auto r = validAcao02();
+        r.verification[1].roles[2].status = "NON_FINITE_INPUT";
+        const auto out = expectInconclusive(r, "verification role non-finite", "NON_FINITE_INPUT");
+        CHECK(out.verification[1].status == "INCONCLUSIVE");
+        CHECK(out.verification[1].invalidAnalysis);
+        CHECK_FALSE(out.verification[1].invalidCapture);
+    }
+    // Built through verificationSetFromCaptures: valid capture, INVALID_CONFIG analysis -> set INCONCLUSIVE
+    {
+        auto roles = measuredRoles(0.9, 0.9);
+        roles[0].status = "INVALID_CONFIG";
+        const auto vs = verificationSetFromCaptures("synthetic_set_b", {validCheck()}, roles);
+        CHECK(vs.status == "INCONCLUSIVE");
+        CHECK(vs.invalidAnalysis);
+        CHECK_FALSE(vs.invalidCapture);
+        CHECK(vs.note.find("pulso: analysis status INVALID_CONFIG") != std::string::npos);
+        CHECK(vs.roles[0].status == "INVALID_CONFIG"); // reason kept
+        auto r = validAcao02();
+        r.verification.push_back(vs);
+        (void)expectInconclusive(r, "verification set invalid analysis", "INVALID_CONFIG");
+    }
+    // A role never analysed (NOT_RUN) in a set declared MEASURED
+    {
+        auto r = validAcao02();
+        r.verification[2].roles[3] = RoleSetEvaluation{};
+        (void)expectInconclusive(r, "verification role NOT_RUN", "NOT_RUN");
+    }
+    // Intrinsic-latency analysis invalid while its four captures are valid
+    {
+        auto r = validAcao02();
+        r.intrinsic[1].status = "EXACT_SILENCE";
+        (void)expectInconclusive(r, "intrinsic analysis", "intrinsic latency analysis");
+    }
+    // Calibration scores invalid while the calibration capture is valid
+    {
+        auto r = validAcao02();
+        r.calibrationScores[0].status = "NON_FINITE_INPUT";
+        (void)expectInconclusive(r, "calibration scores", "calibration scores");
+    }
+    // NO_REFERENCES stays distinct from an error: the set stays MEASURED, the role gets no threshold from it
+    {
+        auto r = validAcao02();
+        r.verification[2].roles[1] = RoleSetEvaluation{};
+        r.verification[2].roles[1].status = "NO_REFERENCES";
+        finalizeAcao02Status(r);
+        INFO((r.inconclusiveReasons.empty() ? std::string{} : r.inconclusiveReasons.front()));
+        CHECK(r.status == "MEASURED");
+        CHECK(r.verification[2].status == "MEASURED");
+        // Corpo threshold from planner_probe_v1 only (0.95 / 1.0), not from a zero of set B
+        CHECK(std::abs(r.proposedRecall[1] - 0.90) < 1e-9);
+        CHECK(std::abs(r.proposedPrecision[1] - 0.95) < 1e-9);
+        // The other roles still take the minimum over both sets
+        CHECK(std::abs(r.proposedRecall[0] - 0.75) < 1e-9);
     }
 }

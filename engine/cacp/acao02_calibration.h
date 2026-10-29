@@ -80,9 +80,18 @@ struct VerificationSet {
     std::string note{};
     std::array<RoleSetEvaluation, kRoleCount> roles{};
     bool invalidCapture{false};           // a render of the set failed its CaptureCheck: no scores (DIF-5c-02)
+    bool invalidAnalysis{false};          // a role analysis returned an error status: not usable (DIF-5c-R2-01)
 };
 
-// Verification set from its captures: an invalid capture makes the set INCONCLUSIVE with no usable scores
+// Validity of one per-role analysis (DIF-5c-R2-01), separate from the capture validity. MEASURED is valid with
+// scores; NO_REFERENCES is valid without evidence (no scores, never read as precision or recall 0); any other
+// status (NON_FINITE_INPUT, INVALID_CONFIG, EXACT_SILENCE, BELOW_NUMERICAL_FLOOR, NOT_RUN, ...) is an analysis
+// failure. Empty when valid, otherwise the reason.
+[[nodiscard]] std::string roleAnalysisInvalidReason(const RoleSetEvaluation& e);
+
+// Verification set from its captures and role analyses: an invalid capture makes the set INCONCLUSIVE with no
+// usable scores; a valid capture with an invalid role analysis makes it INCONCLUSIVE too, keeping the role
+// statuses as the recorded reason (DIF-5c-R2-01)
 [[nodiscard]] VerificationSet verificationSetFromCaptures(std::string name, const std::vector<CaptureCheck>& checks,
                                                          const std::array<RoleSetEvaluation, kRoleCount>& roles);
 
@@ -133,9 +142,10 @@ struct Acao02Result {
     [[nodiscard]] std::string toJson() const;
 };
 
-// Aggregate verdict, verification status and proposed thresholds from the recorded checks (DIF-5c-02). Pure:
-// reads the captures, reconstruction, profile and verification sets of r and writes status, reasons,
-// verificationStatus, thresholdsStatus and the thresholds. Thresholds use only MEASURED role scores of valid sets.
+// Aggregate verdict, verification status and proposed thresholds from the recorded checks (DIF-5c-02,
+// DIF-5c-R2-01). Pure: reads the captures, the per-role analyses (intrinsic, calibration scores, verification
+// sets), reconstruction and profile of r and writes status, reasons, verificationStatus, thresholdsStatus and the
+// thresholds. Thresholds use only MEASURED role scores of sets with valid captures and valid analyses.
 void finalizeAcao02Status(Acao02Result& r);
 
 [[nodiscard]] Acao02Result runAcao02V1(const std::string& outputDir = "artifacts/cacp", bool writeFiles = true);
