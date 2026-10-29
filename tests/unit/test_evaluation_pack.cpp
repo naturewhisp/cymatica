@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <iterator>
 #include <memory>
 #include <regex>
 #include <string>
@@ -389,9 +390,11 @@ TEST_CASE("claims_v0 checker: every outcome for every predicate (D-M2-15)", "[ev
     CHECK(outcomeOf(t, claim("w0000000a", "listening", "role_audible", role("pulso"), false)) == "compatible");
     CHECK(outcomeOf(t, claim("w0000000a", "code", "role_audible", role("trama"), true)) == "not_attributable");
     CHECK(outcomeOf(t, claim("w0000000b", "listening", "role_audible", role("corpo"), true)) == "unverifiable");   // unavailable
-    // role_planned
-    CHECK(outcomeOf(t, claim("w0000000a", "code", "role_planned", role("trama"), true)) == "supported");
-    CHECK(outcomeOf(t, claim("w0000000a", "code", "role_planned", role("pulso"), true)) == "contradicted");
+    // role_planned (from code, with the repository access it needs in blind mode)
+    json repoAccess = resultBase(t);
+    repoAccess["access"]["repository"] = true;
+    CHECK(outcomeOf(t, claim("w0000000a", "code", "role_planned", role("trama"), true), repoAccess) == "supported");
+    CHECK(outcomeOf(t, claim("w0000000a", "code", "role_planned", role("pulso"), true), repoAccess) == "contradicted");
     CHECK(outcomeOf(t, claim("w0000000a", "listening", "role_planned", role("trama"), true)) == "not_attributable");
     // stereo_wider_than
     json other = {{"window_id_other", "w0000000a"}};
@@ -591,7 +594,9 @@ TEST_CASE("claims_v0 checker: repeated claims and undeclared inputs are inadmiss
     CHECK(outcomeOf(t, claim("w0000000b", "spectrogram", "stereo_wider_than", {{"window_id_other", "w0000000a"}}, true), partial) ==
           "inadmissible");
     // A claim from code needs no audio input
-    CHECK(outcomeOf(t, claim("w0000000a", "code", "role_planned", role("trama"), true), partial) == "supported");
+    json partialRepo = partial;
+    partialRepo["access"]["repository"] = true;
+    CHECK(outcomeOf(t, claim("w0000000a", "code", "role_planned", role("trama"), true), partialRepo) == "supported");
 }
 
 TEST_CASE("Unavailable measures are null, never zero (AG-5d-05)", "[evaluation_pack][checker]") {
@@ -630,8 +635,19 @@ TEST_CASE("claims_v0 checker: acoustic predicates are never supported from code 
     // Audibility from a spectrogram or a descriptor is not a perception of audibility
     CHECK(outcomeOf(t, claim("w0000000a", "spectrogram", "role_audible", role("trama"), true)) == "not_attributable");
     CHECK(outcomeOf(t, claim("w0000000a", "descriptor", "role_audible", role("trama"), true)) == "not_attributable");
-    // role_planned keeps its diagnostic path from code
-    CHECK(outcomeOf(t, claim("w0000000a", "code", "role_planned", role("trama"), true), onlyPack) == "supported");
+    // DIF-5d-R2-02: in blind mode a plan claim from code needs declared repository access, which also removes the
+    // blind qualification; the reviewer's combination (blind, no repository, no code execution, only pack.json) fails
+    CHECK(outcomeOf(t, claim("w0000000a", "code", "role_planned", role("trama"), true), onlyPack) == "not_attributable");
+    {
+        json withRepo = onlyPack;
+        withRepo["access"]["repository"] = true;
+        withRepo["claims"] = json::array({claim("w0000000a", "code", "role_planned", role("trama"), true)});
+        const auto rep = checkEvaluation(t, withRepo.dump(), kSealedHashes);
+        CHECK(rep.claims[0].outcome == "supported");
+        CHECK_FALSE(rep.blindQualified);
+    }
+    // The diagnostic pack exposes the plan: role_planned from code keeps its diagnostic path there
+    CHECK(outcomeOf(t, claim("p00", "code", "role_planned", role("trama"), true), resultBase(t, "diagnostic")) == "supported");
     // A code claim never enters the presence sample; descriptors neither (not a perception)
     json r = resultBase(t);
     r["claims"].push_back(claim("w0000000a", "code", "role_signal_present", role("trama"), true));
@@ -720,11 +736,15 @@ TEST_CASE("Pack output directories are isolated and never removed blindly (DIF-5
     const fs::path foreign = base / "foreign";
     fs::create_directories(foreign);
     std::ofstream(foreign / "keep.txt") << "user data";
-    std::map<std::string, std::vector<std::uint8_t>> files{{"a.bin", {1, 2, 3}}};
-    files["SHA256SUMS"] = {};
+    // A minimal pack: identifier pack.json, one payload file, SHA256SUMS over both
+    const std::string packJson = R"({"pack_version": "evaluation_pack_v1", "mode": "blind"})";
+    std::map<std::string, std::vector<std::uint8_t>> files{{"a.bin", {1, 2, 3}},
+                                                           {"pack.json", std::vector<std::uint8_t>(packJson.begin(), packJson.end())}};
     {
-        std::map<std::string, std::vector<std::uint8_t>> listed{{"a.bin", {1, 2, 3}}};
-        const std::string sums = sha256Hex(std::span<const std::uint8_t>(listed["a.bin"].data(), 3)) + "  a.bin\n";
+        std::string sums;
+        for (const auto& [name, bytes] : files) {
+            sums += sha256Hex(std::span<const std::uint8_t>(bytes.data(), bytes.size())) + "  " + name + "\n";
+        }
         files["SHA256SUMS"] = std::vector<std::uint8_t>(sums.begin(), sums.end());
     }
     CHECK_FALSE(writePackDirectory(foreign.string(), files).empty());
@@ -737,6 +757,58 @@ TEST_CASE("Pack output directories are isolated and never removed blindly (DIF-5
     std::ofstream(own / "stray.txt") << "x";
     CHECK_FALSE(writePackDirectory(own.string(), files).empty());
     CHECK(fs::exists(own / "stray.txt"));
+    fs::remove(own / "stray.txt");
+    CHECK(writePackDirectory(own.string(), files).empty());
+
+    // DIF-5d-R2-01: a manifest is trusted only if intact. Each case must be refused and leave the files untouched.
+    auto expectUntouched = [&](const fs::path& dir, const std::map<std::string, std::string>& content, const char* what) {
+        fs::remove_all(dir);
+        fs::create_directories(dir);
+        for (const auto& [name, text] : content) std::ofstream(dir / name, std::ios::binary) << text;
+        INFO(what);
+        CHECK_FALSE(writePackDirectory(dir.string(), files).empty());
+        for (const auto& [name, text] : content) {
+            std::ifstream in(dir / name, std::ios::binary);
+            const std::string now((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+            CHECK(now == text);
+        }
+        std::size_t n = 0;
+        for ([[maybe_unused]] const auto& e : fs::directory_iterator(dir)) ++n;
+        CHECK(n == content.size());
+    };
+    const fs::path victim = base / "victim";
+    const std::string userData = "user data";
+    const std::string realDigest = sha256Hex(std::string_view(userData));
+    const std::string packDigest = sha256Hex(std::string_view(packJson));
+    // The reviewer's counterexample: keep.txt listed with a wrong digest
+    expectUntouched(victim, {{"keep.txt", userData}, {"pack.json", packJson},
+                             {"SHA256SUMS", std::string(64, '0') + "  keep.txt\n" + packDigest + "  pack.json\n"}},
+                    "listed with a wrong digest");
+    // Correct digests but no pack identifier
+    expectUntouched(victim, {{"keep.txt", userData}, {"SHA256SUMS", realDigest + "  keep.txt\n"}}, "no identifier");
+    // Identifier of another kind of directory
+    const std::string otherJson = R"({"pack_version": "something_else"})";
+    expectUntouched(victim, {{"keep.txt", userData}, {"pack.json", otherJson},
+                             {"SHA256SUMS", realDigest + "  keep.txt\n" + sha256Hex(std::string_view(otherJson)) + "  pack.json\n"}},
+                    "foreign identifier");
+    // Malformed SHA256SUMS: bad hex, one space, path in the name, duplicate entries, listed file missing
+    expectUntouched(victim, {{"keep.txt", userData}, {"SHA256SUMS", "zz" + std::string(62, '0') + "  keep.txt\n"}}, "bad hex");
+    expectUntouched(victim, {{"keep.txt", userData}, {"SHA256SUMS", realDigest + " keep.txt\n"}}, "one space");
+    expectUntouched(victim, {{"keep.txt", userData}, {"SHA256SUMS", realDigest + "  ../keep.txt\n"}}, "path in the name");
+    expectUntouched(victim, {{"keep.txt", userData}, {"pack.json", packJson},
+                             {"SHA256SUMS", realDigest + "  keep.txt\n" + realDigest + "  keep.txt\n" + packDigest + "  pack.json\n"}},
+                    "duplicate entry");
+    expectUntouched(victim, {{"keep.txt", userData}, {"pack.json", packJson},
+                             {"SHA256SUMS", realDigest + "  keep.txt\n" + packDigest + "  pack.json\n" + realDigest + "  gone.txt\n"}},
+                    "listed file missing");
+    // Altered content of an owned pack: refused, nothing removed
+    fs::remove_all(own);
+    CHECK(writePackDirectory(own.string(), files).empty());
+    std::ofstream(own / "a.bin", std::ios::binary) << "altered";
+    CHECK_FALSE(writePackDirectory(own.string(), files).empty());
+    CHECK(fs::exists(own / "a.bin"));
+    CHECK(fs::exists(own / "pack.json"));
+
     // A regular file in place of the directory is refused
     std::ofstream(base / "plainfile") << "x";
     CHECK_FALSE(writePackDirectory((base / "plainfile").string(), files).empty());

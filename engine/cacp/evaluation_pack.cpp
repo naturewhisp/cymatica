@@ -1030,6 +1030,13 @@ CheckReport checkEvaluation(const TruthBundle& truth, std::string_view resultJso
             finish("not_attributable", why);
             continue;
         }
+        // Provenance of a plan claim (DIF-5d-R2-02): the blind pack holds no plan, so role_planned from code needs
+        // declared repository access there, which by itself removes the blind qualification. The diagnostic pack
+        // exposes the plan (truth.json) and keeps this path.
+        if (o.predicate == "role_planned" && blindMode && !accessFlag("repository").value_or(false)) {
+            finish("not_attributable", "plan read from code in blind mode without declared repository access");
+            continue;
+        }
         if (o.method == "listening" && audioChannels < 1) {
             finish("not_attributable", "listening declared without an audio channel");
             continue;
@@ -1188,6 +1195,57 @@ std::optional<std::string> readText(const std::filesystem::path& p) {
     return s.str();
 }
 
+// Empty when d is empty or an intact evaluation_pack_v1 directory written by this generator, otherwise the reason
+// (DIF-5d-R2-01): well-formed SHA256SUMS ("<64 lowercase hex>  <plain name>", no duplicates), exactly the
+// listed files plus SHA256SUMS, every digest matching the content, and a pack identifier (pack.json or
+// evaluation_truth.json with pack_version evaluation_pack_v1).
+std::string ownedPackDirectoryProblem(const std::filesystem::path& d) {
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    std::set<std::string> entries;
+    for (const auto& e : fs::directory_iterator(d, ec)) {
+        const std::string name = e.path().filename().string();
+        if (e.is_symlink(ec) || !e.is_regular_file(ec)) return "entry " + name + " is not a regular file";
+        entries.insert(name);
+    }
+    if (ec) return "cannot list the directory";
+    if (entries.empty()) return {};
+    const auto sums = readText(d / "SHA256SUMS");
+    if (!sums) return "not empty and without SHA256SUMS";
+    std::map<std::string, std::string> listed;
+    std::istringstream lines(*sums);
+    std::string line;
+    while (std::getline(lines, line)) {
+        if (!line.empty() && line.back() == '\r') line.pop_back();
+        const bool hexOk = line.size() > 66 &&
+                           std::all_of(line.begin(), line.begin() + 64, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
+        const std::string name = hexOk ? line.substr(66) : std::string{};
+        if (!hexOk || line[64] != ' ' || line[65] != ' ' || name.empty() || name == "SHA256SUMS" || name == "." || name == ".." ||
+            name.find_first_of("/\\:") != std::string::npos) {
+            return "malformed SHA256SUMS line";
+        }
+        if (!listed.emplace(name, line.substr(0, 64)).second) return "duplicate entry " + name + " in SHA256SUMS";
+    }
+    std::set<std::string> expected;
+    for (const auto& [name, digest] : listed) expected.insert(name);
+    expected.insert("SHA256SUMS");
+    if (entries != expected) return "the files on disk differ from those listed in SHA256SUMS";
+    for (const auto& [name, digest] : listed) {
+        const auto text = readText(d / name);
+        if (!text || sha256Hex(std::string_view(*text)) != digest) return "content of " + name + " does not match SHA256SUMS";
+    }
+    for (const char* id : {"pack.json", "evaluation_truth.json"}) {
+        if (!listed.contains(id)) continue;
+        try {
+            const json j = json::parse(*readText(d / id));
+            if (j.is_object() && j.contains("pack_version") && j["pack_version"] == kEvaluationPackVersion) return {};
+        } catch (const std::exception&) {
+        }
+        return std::string(id) + " does not identify an evaluation_pack_v1 directory";
+    }
+    return "no pack identifier (pack.json or evaluation_truth.json)";
+}
+
 struct FixtureRender {
     std::vector<AppliedEventRecord> applied;
     std::vector<audio::MusicIntentEvent> intents;
@@ -1285,34 +1343,16 @@ std::string writePackDirectory(const std::string& dir, const std::map<std::strin
     if (fs::is_symlink(d, ec)) return dir + " is a symbolic link";
     if (fs::exists(d, ec)) {
         if (!fs::is_directory(d, ec)) return dir + " exists and is not a directory";
-        // Only a directory written by this generator is replaced: every entry is a regular file listed in its
-        // SHA256SUMS (or SHA256SUMS itself). Anything else is left untouched and the write is refused.
-        std::set<std::string> listed;
-        bool any = false;
-        if (const auto sums = readText(d / "SHA256SUMS")) {
-            std::istringstream lines(*sums);
-            std::string line;
-            while (std::getline(lines, line)) {
-                if (!line.empty() && line.back() == '\r') line.pop_back();
-                if (line.size() > 66) listed.insert(line.substr(66));
-            }
+        // Only an intact directory written by this generator is replaced (DIF-5d-01, DIF-5d-R2-01). Every check
+        // runs before the first removal; any inconsistency refuses the write and leaves the directory untouched.
+        if (const std::string why = ownedPackDirectoryProblem(d); !why.empty()) {
+            return dir + ": " + why + ": refused, directory left untouched";
         }
         std::vector<fs::path> owned;
-        for (const auto& e : fs::directory_iterator(d, ec)) {
-            any = true;
-            const std::string name = e.path().filename().string();
-            if (e.is_symlink(ec) || !e.is_regular_file(ec) || (name != "SHA256SUMS" && !listed.contains(name))) {
-                return dir + " is not empty and not a pack directory written by this generator (" + name + "): refused";
-            }
-            owned.push_back(e.path());
-        }
+        for (const auto& e : fs::directory_iterator(d, ec)) owned.push_back(e.path());
         if (ec) return "cannot list " + dir;
-        if (any && !listed.empty()) {
-            for (const auto& p : owned) {
-                if (!fs::remove(p, ec) || ec) return "cannot remove " + p.string();
-            }
-        } else if (any) {
-            return dir + " is not empty and has no SHA256SUMS: refused";
+        for (const auto& p : owned) {
+            if (!fs::remove(p, ec) || ec) return "cannot remove " + p.string();
         }
     }
     fs::create_directories(d, ec);
