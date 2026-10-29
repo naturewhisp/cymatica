@@ -59,20 +59,46 @@ struct RoleSetEvaluation {
     std::string status{"NOT_RUN"};
 };
 
+// Validity of one captured render (DIF-5c-02). MEASURED means "measured on valid data": a capture is valid only
+// when the render ran, its own verdict passed (scenario probe, or every synthetic NoteOn Applied), the stems cover
+// exactly the rendered frames without overflow and the applied-event log did not overflow.
+struct CaptureCheck {
+    bool rendered{false};
+    bool probePassed{false};
+    std::string probeFailure{};
+    std::size_t expectedFrames{0};
+    std::size_t stemFrames{0};
+    std::uint64_t stemOverflowFrames{0};
+    std::uint64_t appliedOverflow{0};
+};
+// Empty when the capture is valid, otherwise the reasons it is not
+[[nodiscard]] std::string captureInvalidReason(const CaptureCheck& c);
+
 struct VerificationSet {
     std::string name;
     std::string status{"NOT_RUN"};        // MEASURED, INCONCLUSIVE (with reason) or NOT_RUN
     std::string note{};
     std::array<RoleSetEvaluation, kRoleCount> roles{};
+    bool invalidCapture{false};           // a render of the set failed its CaptureCheck: no scores (DIF-5c-02)
 };
+
+// Verification set from its captures: an invalid capture makes the set INCONCLUSIVE with no usable scores
+[[nodiscard]] VerificationSet verificationSetFromCaptures(std::string name, const std::vector<CaptureCheck>& checks,
+                                                         const std::array<RoleSetEvaluation, kRoleCount>& roles);
 
 struct Acao02Result {
     bool completed{false};
+    // MEASURED only when every capture is valid, the reconstruction is exact and the calibrated profile equals
+    // the frozen one; otherwise INCONCLUSIVE with the reasons (DIF-5c-02). Never a gate (D-M2-16).
     std::string status{"NOT_RUN"};
+    std::vector<std::string> inconclusiveReasons{};
     // a. intrinsic latency (set A), default delta 0.10, no offset
     std::array<RoleSetEvaluation, kRoleCount> intrinsic{};
+    std::vector<CaptureCheck> intrinsicCaptures{};
     // b. calibration on seed 1337
     bool fixturePassed{false};
+    CaptureCheck calibrationCapture{};
+    bool calibrationAnalysisOk{false};
     std::array<std::vector<CalibrationGridPoint>, kRoleCount> grid{};
     std::array<RoleOnsetProfile, kRoleCount> calibrated{};
     std::string calibratedSha256{};
@@ -86,15 +112,18 @@ struct Acao02Result {
     std::vector<std::uint64_t> distinctSeeds{};      // fingerprint != seed 1337
     std::size_t distinctFingerprints{0};             // among the scanned seeds, 1337 included
     std::vector<VerificationSet> verification{};
+    std::string verificationStatus{"NOT_RUN"};       // MEASURED or INCONCLUSIVE (frozen != calibrated, invalid data)
     // e. reconstruction and presence
     std::size_t stemFrames{0};
     std::uint64_t stemOverflowFrames{0};
     std::size_t stemBytes{0};
+    std::string reconstructionStatus{"NOT_RUN"};
     std::size_t reconstructionMismatches{0};
     double reconstructionMaxAbsError{0.0};
     std::array<std::string, 8> tramaPresenceA{};     // Trama stem presence per phrase of section A (0..7)
     std::array<double, 8> tramaPeakDbfsA{};
-    // proposed thresholds (D-M2-16)
+    // proposed thresholds (D-M2-16): PROPOSED only when status is MEASURED, else NOT_PROPOSED (NaN values)
+    std::string thresholdsStatus{"NOT_PROPOSED"};
     std::array<double, kRoleCount> proposedRecall{};
     std::array<double, kRoleCount> proposedPrecision{};
     std::string failureReason{};
@@ -103,6 +132,11 @@ struct Acao02Result {
 
     [[nodiscard]] std::string toJson() const;
 };
+
+// Aggregate verdict, verification status and proposed thresholds from the recorded checks (DIF-5c-02). Pure:
+// reads the captures, reconstruction, profile and verification sets of r and writes status, reasons,
+// verificationStatus, thresholdsStatus and the thresholds. Thresholds use only MEASURED role scores of valid sets.
+void finalizeAcao02Status(Acao02Result& r);
 
 [[nodiscard]] Acao02Result runAcao02V1(const std::string& outputDir = "artifacts/cacp", bool writeFiles = true);
 

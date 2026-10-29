@@ -37,6 +37,12 @@
    - (2) `planner_probe_v1`;
    - (3) set sintetico B: 40 note per ruolo, intervalli irregolari 0,18–0,70 s, altezze su due ottave, velocity 0,5–1,0, timbro 0,2–0,9, durate pari al 60 % dell'intervallo.
 8. **Soglie proposte:** per ogni ruolo, il valore minimo misurato sugli insiemi di verifica meno 0,05, arrotondato per difetto a 0,05.
+9. **Validità (aggiunta con la remediation DIF-5c-01/02, 2026-10-29):** si misura solo su catture valide.
+   - Ogni rendering deve avere verdetto del probe positivo (per i sintetici: ogni NoteOn `Applied`), stem che coprono esattamente i frame renderizzati e nessun overflow degli stem o del registro degli eventi.
+   - Una cattura non valida rende l'insieme `INCONCLUSIVE` senza punteggi.
+   - L'esito complessivo è `MEASURED` solo con tutte le catture valide, ricostruzione esatta e profilo ricalibrato uguale al congelato; altrimenti è `INCONCLUSIVE` e le soglie non vengono proposte.
+   - Con un seed diverso dal 1337 i golden fissi della fixture sono `NOT_APPLICABLE`; gli altri controlli del probe restano obbligatori.
+   - La regola non cambia le misure del primo rendering: il manifest rigenerato coincide con quello archiviato, a parte i nuovi campi di validità.
 
 ## 3. Risultati
 
@@ -120,6 +126,7 @@ Gli scarti calibrati coincidono con la latenza intrinseca del set A entro circa 
   - *Cosa produce:* un transitorio a banda larga misurabile a ogni NoteOff. Per la Trama (attacco di 20 ms) il transitorio di rilascio è forte quanto l'attacco: precisione 0,50 sulla fixture.
   - *Udibilità:* non è verificata e non va dedotta da questa misura. È plausibile su note sostenute e frequenze basse, ed è coerente con l'impressione di loop «giustapposti» dell'ascolto esperto.
   - *Proposta per il tuning M2.5:* uno stadio di release dell'ADSR proporzionato al ruolo (decine di ms), da misurare con questo stesso scenario e da verificare con l'ascolto. Collegata a F4.
+  - *Nesso causale non ancora dimostrato:* la vicinanza entro ±50 ms a un NoteOff è una corrispondenza temporale. Prima di modificare l'ADSR serve un confronto controllato con diverse durate di release e tutti gli altri parametri invariati (review indipendente di 5c).
 - **Diversità fra seed nulla (risultato negativo, D-M2-16).** I 32 seed scansionati producono lo stesso fingerprint di contenuto del seed 1337: la diversità osservata è `MEASURED` e **nulla**. È il limite già noto, il seed agisce solo sui pareggi, ora misurato. La generalizzazione della calibrazione ad altri seed è `INCONCLUSIVE`. Restano validi gli insiemi (2) e (3), che sono contenuti diversi. Collegato a F3 e F5.
 - **Richiamo della Trama nel set sintetico B: 0,75.** Mancano 10 attacchi su 40, con il profilo congelato (δ 0,20). La causa non è stata isolata in 5c. Ipotesi da verificare: attacco di 20 ms a velocity bassa sotto la soglia; vicinanza fra il rilascio di una nota e l'attacco della successiva negli intervalli brevi. La metrica non è stata ritoccata.
 - **Il master non basta per la Trama, gli stem sì.** Sul master E1 dava per la Trama un richiamo di 0,31 a δ 0,10; sullo stem il richiamo è 1,00 sulla fixture. È la conferma della scelta O1 (stem offline) del dossier CACP.

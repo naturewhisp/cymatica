@@ -493,7 +493,12 @@ L'esito aggregato è riportato separatamente dai gate e non decide mai un verdet
   - `planner_probe_v1` e il set sintetico B sono misurati;
   - ogni falso positivo cade sul rilascio di 2 ms di una nota (finding F6).
 - **Soglie AC-AO-02 proposte** (richiamo / precisione a ±50 ms): Pulso 0,90/0,95; Corpo 0,75/0,50; Trama 0,70/0,40; Vettore 0,90/0,45.
-  - *Alternativa da decidere al gate M2.5:* precisione senza le rilevazioni entro ±50 ms da un NoteOff applicato, che vale 1,000 ovunque.
+  - *Alternativa da decidere al gate M2.5:* precisione senza le rilevazioni entro ±50 ms da un NoteOff applicato, che vale 1,000 ovunque. Fino ad allora resta **diagnostica**.
+- **Validità della misura (DIF-5c-01/02, review indipendente di `a6f360a`):** `MEASURED` significa «misurato su dati validi», non PASS di un gate.
+  - *Golden per seed:* i golden fissi di `fixture_probe_v1` valgono solo per il seed 1337. Con un altro seed sono `NOT_APPLICABLE`; restano obbligatori determinismo, uguaglianza fra piano offline e JIT, riconciliazione O3 e controlli d'integrità. Il manifest riporta il seed effettivo.
+  - *Cattura valida:* ogni rendering (sintetico, fixture, `planner_probe_v1`) deve avere verdetto del probe positivo, stem che coprono esattamente i frame renderizzati, nessun overflow degli stem né del registro degli eventi applicati. Un rendering non valido rende il suo insieme `INCONCLUSIVE`, senza punteggi.
+  - *Verdetto aggregato:* `MEASURED` solo se tutte le catture sono valide, la ricostruzione del mix è esatta e il profilo ricalibrato coincide con quello congelato. Altrimenti `INCONCLUSIVE` con le ragioni, la verifica non è conclusiva (le misure restano come diagnostica) e le soglie non sono proposte. La CLI esce con 0 solo se l'esito è `MEASURED` e il manifest è scritto.
+  - *F6:* la vicinanza entro ±50 ms a un NoteOff non dimostra da sola il nesso causale. Prima di modificare l'ADSR in M2.5 serve un confronto controllato con diverse durate di release e gli altri parametri invariati.
 
 **Multi-seed** (esplorativo, non è un gate):
 

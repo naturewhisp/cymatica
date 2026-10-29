@@ -299,6 +299,10 @@ enum class FixtureInjectedFault : std::uint8_t {
 // Metrics of fixture_probe_v1 (ADR-0005 D-M2-08/09/11, Inc-4)
 struct FixtureProbeResult {
     bool passed{false};
+    std::uint64_t runSeed{1337};
+    // The fixed goldens describe seed 1337 only (DIF-5c-01). Another seed keeps every structural check
+    // (determinism, offline == JIT, O3 reconciliation, integrity) with the goldens NOT_APPLICABLE.
+    bool goldenApplicable{true};
     std::uint64_t totalCapturedFrames{0};
     std::uint64_t droppedFrames{0};
     std::uint64_t contentEndFrame{0};
@@ -339,7 +343,9 @@ struct FixtureProbeResult {
     std::uint64_t expectedEngineEvents{0}; // 2 x generatedEvents: one NoteOn and one NoteOff per intent
     // O3 chain and plan identities (ADR-0006 D-M2-12, Inc-5 phase 5a)
     std::uint64_t jitPlanHash{0};             // canonicalPlanHash of the intents the Coordinator planned just in time
-    std::string jitGoldenStatus{"NOT_RUN"};   // PASS / FAIL (nominal), NOT_APPLICABLE (injected fault: partial plan)
+    std::string jitGoldenStatus{"NOT_RUN"};   // PASS / FAIL (nominal, seed 1337), NOT_APPLICABLE (injected fault:
+                                              // partial plan; or a seed without golden)
+    bool jitOfflinePlanMatch{false};          // jitPlanHash == canonicalPlanHash (nominal path)
     std::uint64_t contentFingerprint{0};      // musicalContentFingerprint of the offline plan
     std::uint64_t contentFingerprintNotes{0};
     std::uint64_t contentFingerprintExplicitReleases{0};
@@ -455,6 +461,7 @@ struct ProbeAnalysisCapture {
     RoleStemSink* stems{nullptr};                          // per-role stems + bus mix, frame-aligned with the PCM
     std::vector<float>* stereo{nullptr};                   // recorded interleaved stereo PCM
     std::vector<AppliedEventRecord>* applied{nullptr};     // records consumed by the engine during the scenario
+    std::uint64_t* appliedOverflow{nullptr};               // overflow count of that applied-event log
 };
 
 FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir = "artifacts/cacp",

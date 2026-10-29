@@ -34,6 +34,21 @@ std::string num(double v, int precision = 10) {
     return s.str();
 }
 
+std::string jsonEscape(const std::string& in) {
+    std::string out;
+    for (const char c : in) {
+        if (c == '"' || c == '\\') {
+            out += '\\';
+            out += c;
+        } else if (static_cast<unsigned char>(c) < 0x20) {
+            out += ' ';
+        } else {
+            out += c;
+        }
+    }
+    return out;
+}
+
 struct SynthNote {
     double timeS;
     float pitchHz;
@@ -42,13 +57,19 @@ struct SynthNote {
     float timbre;
 };
 
-// Renders isolated notes of one role through the real engine (offline), capturing stems and applied events
-void renderSyntheticRole(audio::MusicRole role, const std::vector<SynthNote>& notes, StemCapture& cap,
-                         std::vector<AppliedEventRecord>& applied) {
-    audio::AudioEngine engine;
-    if (!engine.initOffline({kFs, 2, 220.0f})) return;
-    AppliedEventLog log(audio::kEventChainLogCapacity);
+// Renders isolated notes of one role through the real engine (offline), capturing stems and applied events.
+// Returns the validity of the capture: every NoteOn Applied, stems covering the rendered frames, no overflow.
+CaptureCheck renderSyntheticRole(audio::MusicRole role, const std::vector<SynthNote>& notes, StemCapture& cap,
+                                 std::vector<AppliedEventRecord>& applied) {
+    CaptureCheck check;
     cap.reset();
+    applied.clear();
+    audio::AudioEngine engine;
+    if (!engine.initOffline({kFs, 2, 220.0f})) {
+        check.probeFailure = "offline engine initialisation failed";
+        return check;
+    }
+    AppliedEventLog log(audio::kEventChainLogCapacity);
     (void)engine.setAppliedEventLog(&log);
     (void)engine.setRoleStemSink(cap.sink());
     audio::AudioScheduler scheduler({.lookaheadFrames = 7200, .sampleRate = kFs});
@@ -81,6 +102,38 @@ void renderSyntheticRole(audio::MusicRole role, const std::vector<SynthNote>& no
     (void)engine.setAppliedEventLog(nullptr);
     applied.assign(log.records().begin(), log.records().end());
     engine.shutdown();
+
+    std::size_t appliedNoteOns = 0;
+    for (const auto& rec : applied) {
+        if (rec.id.type == audio::AudioEventType::NoteOn && rec.id.role == role &&
+            rec.disposition == audio::EventDisposition::Applied) {
+            ++appliedNoteOns;
+        }
+    }
+    check.rendered = true;
+    check.probePassed = (appliedNoteOns == notes.size());
+    if (!check.probePassed) {
+        check.probeFailure = std::to_string(appliedNoteOns) + " of " + std::to_string(notes.size()) + " NoteOn applied";
+    }
+    check.expectedFrames = static_cast<std::size_t>(ticks * kTick);
+    check.stemFrames = cap.frames();
+    check.stemOverflowFrames = cap.overflowFrames();
+    check.appliedOverflow = log.overflow();
+    return check;
+}
+
+// Capture check of a scenario probe render (fixture or planner): the probe verdict plus the stem coverage
+CaptureCheck probeCaptureCheck(bool passed, const std::string& failure, std::uint64_t expectedFrames,
+                               const StemCapture& cap, std::uint64_t appliedOverflow) {
+    CaptureCheck check;
+    check.rendered = true;
+    check.probePassed = passed;
+    check.probeFailure = failure;
+    check.expectedFrames = static_cast<std::size_t>(expectedFrames);
+    check.stemFrames = cap.frames();
+    check.stemOverflowFrames = cap.overflowFrames();
+    check.appliedOverflow = appliedOverflow;
+    return check;
 }
 
 // Set A (intrinsic latency): 24 notes per role, every 0.5 s, fixed pitch, velocity and timbre
@@ -166,6 +219,82 @@ audio::MusicalContentFingerprint fixturePlanFingerprint(std::uint64_t seed) {
 
 } // namespace
 
+std::string captureInvalidReason(const CaptureCheck& c) {
+    std::ostringstream s;
+    if (!c.rendered) s << "render not executed" << (c.probeFailure.empty() ? "" : " (" + c.probeFailure + ")") << "; ";
+    if (c.rendered && !c.probePassed) s << "probe failed: " << c.probeFailure << "; ";
+    if (c.rendered && (c.expectedFrames == 0 || c.stemFrames != c.expectedFrames)) {
+        s << "stems cover " << c.stemFrames << " of " << c.expectedFrames << " frames; ";
+    }
+    if (c.stemOverflowFrames != 0) s << "stem overflow " << c.stemOverflowFrames << " frames; ";
+    if (c.appliedOverflow != 0) s << "applied-event log overflow " << c.appliedOverflow << "; ";
+    return s.str();
+}
+
+VerificationSet verificationSetFromCaptures(std::string name, const std::vector<CaptureCheck>& checks,
+                                            const std::array<RoleSetEvaluation, kRoleCount>& roles) {
+    VerificationSet vs{std::move(name), "MEASURED", "", roles, false};
+    std::string reasons;
+    for (const auto& c : checks) reasons += captureInvalidReason(c);
+    if (checks.empty()) reasons = "no capture recorded; ";
+    if (!reasons.empty()) {
+        vs.status = "INCONCLUSIVE";
+        vs.note = "invalid capture: " + reasons;
+        vs.invalidCapture = true;
+        vs.roles = {}; // no usable scores
+    }
+    return vs;
+}
+
+void finalizeAcao02Status(Acao02Result& r) {
+    r.inconclusiveReasons.clear();
+    auto reason = [&](std::string text) { r.inconclusiveReasons.push_back(std::move(text)); };
+
+    if (r.intrinsicCaptures.size() != kRoleCount) reason("intrinsic latency: missing captures");
+    for (std::size_t i = 0; i < r.intrinsicCaptures.size(); ++i) {
+        const std::string why = captureInvalidReason(r.intrinsicCaptures[i]);
+        if (!why.empty()) reason("intrinsic latency " + std::string(kRoleNames[i % kRoleCount]) + ": " + why);
+    }
+    const std::string calWhy = captureInvalidReason(r.calibrationCapture);
+    if (!calWhy.empty()) reason("calibration capture (seed 1337): " + calWhy);
+    if (!r.fixturePassed) reason("calibration fixture probe failed");
+    if (!r.calibrationAnalysisOk) reason("calibration analysis failed: " + r.failureReason);
+    if (r.reconstructionStatus != "OK" || r.reconstructionMismatches != 0) {
+        reason("bus-mix reconstruction " + r.reconstructionStatus + ", " + std::to_string(r.reconstructionMismatches) +
+               " mismatched samples");
+    }
+    if (!r.profileFrozen) {
+        reason("profile not frozen: verification not run");
+    } else if (!r.calibratedEqualsFrozen) {
+        reason("calibrated profile " + r.calibratedSha256 + " != frozen " + r.frozenSha256 +
+               ": verification measures kept as diagnostic only");
+    }
+    bool anyMeasuredSet = false;
+    for (const auto& vs : r.verification) {
+        if (vs.invalidCapture) reason("verification set " + vs.name + ": " + vs.note);
+        if (vs.status == "MEASURED" && !vs.invalidCapture) anyMeasuredSet = true;
+    }
+    if (r.profileFrozen && !anyMeasuredSet) reason("no verification set measured on valid data");
+
+    r.status = r.inconclusiveReasons.empty() ? "MEASURED" : "INCONCLUSIVE";
+    r.verificationStatus = r.status;
+
+    // Proposed thresholds: worst measured verification value minus 0.05, rounded down to 0.05 (D-M2-16)
+    r.thresholdsStatus = (r.status == "MEASURED") ? "PROPOSED" : "NOT_PROPOSED";
+    for (std::size_t role = 0; role < kRoleCount; ++role) {
+        double minR = 2.0, minP = 2.0;
+        if (r.status == "MEASURED") {
+            for (const auto& vs : r.verification) {
+                if (vs.invalidCapture || vs.status != "MEASURED" || vs.roles[role].status != "MEASURED") continue;
+                minR = (std::min)(minR, vs.roles[role].recall50);
+                minP = (std::min)(minP, vs.roles[role].precision50);
+            }
+        }
+        r.proposedRecall[role] = minR > 1.5 ? std::nan("") : (std::max)(0.0, std::floor((minR - 0.05) * 20.0) / 20.0);
+        r.proposedPrecision[role] = minP > 1.5 ? std::nan("") : (std::max)(0.0, std::floor((minP - 0.05) * 20.0) / 20.0);
+    }
+}
+
 std::optional<FrozenStemProfile> frozenStemProfileV1() noexcept {
     // Frozen 2026-10-29 from the first calibration run on seed 1337 (declared rule, no verification data seen):
     // per role {delta, offset in s}; SHA-256 of the canonical text recorded in the 5c dossier.
@@ -195,7 +324,8 @@ Acao02Result runAcao02V1(const std::string& outputDir, bool writeFiles) {
     {
         std::vector<AppliedEventRecord> applied;
         for (std::size_t role = 0; role < kRoleCount; ++role) {
-            renderSyntheticRole(static_cast<audio::MusicRole>(role), syntheticSetA(role), cap, applied);
+            r.intrinsicCaptures.push_back(renderSyntheticRole(static_cast<audio::MusicRole>(role), syntheticSetA(role), cap, applied));
+            if (!captureInvalidReason(r.intrinsicCaptures.back()).empty()) continue; // no scores on invalid data
             const auto refs = roleReferenceOnsetsS(applied, static_cast<audio::MusicRole>(role), kFs);
             const auto rel = roleReleaseTimesS(applied, static_cast<audio::MusicRole>(role), kFs);
             r.intrinsic[role] = toRoleSet(evaluateRoleOnsets(cap.stem(role), refs, RoleOnsetProfile{0.10, 0.0}, kFs, rel));
@@ -206,17 +336,22 @@ Acao02Result runAcao02V1(const std::string& outputDir, bool writeFiles) {
     std::vector<AppliedEventRecord> applied1337;
     {
         cap.reset();
+        std::uint64_t appliedOverflow = 0;
         audio::ProbeAnalysisCapture pc{};
         pc.fixtureSeed = kCalibrationSeed;
         pc.stems = cap.sink();
         pc.applied = &applied1337;
+        pc.appliedOverflow = &appliedOverflow;
         const auto fixture = audio::runFixtureProbeV1Offline(outputDir, false, audio::FixtureInjectedFault::None, &pc);
         r.fixturePassed = fixture.passed;
+        r.calibrationCapture = probeCaptureCheck(fixture.passed, fixture.failureReason, fixture.requestedSampleFrames, cap,
+                                                 appliedOverflow);
         r.stemFrames = cap.frames();
         r.stemOverflowFrames = cap.overflowFrames();
 
         // e. reconstruction and Trama presence per phrase of section A (measured on the stem PCM)
         const ReconstructionResult rec = reconstructBusMix(cap);
+        r.reconstructionStatus = analysisStatusName(rec.status);
         r.reconstructionMismatches = rec.mismatchedSamples;
         r.reconstructionMaxAbsError = rec.maxAbsError;
         for (std::size_t p = 0; p < 8; ++p) {
@@ -225,13 +360,16 @@ Acao02Result runAcao02V1(const std::string& outputDir, bool writeFiles) {
             r.tramaPeakDbfsA[p] = pres.exactSilence ? -1.0e9 : pres.peakDbfs;
         }
 
+        r.calibrationAnalysisOk = true;
         for (std::size_t role = 0; role < kRoleCount; ++role) {
             const auto refs = roleReferenceOnsetsS(applied1337, static_cast<audio::MusicRole>(role), kFs);
             const std::vector<float> mono = monoFromStereo(cap.stem(role));
             const MagnitudeSpectrogram mag = stftMagnitude(mono);
             const NoveltyCurve nov = spectralFluxNovelty(mag, OnsetParams{}.logGamma);
             if (nov.status != AnalysisStatus::Ok) {
-                r.failureReason = std::string("calibration novelty status ") + analysisStatusName(nov.status);
+                r.failureReason += std::string(kRoleNames[role]) + " calibration novelty status " +
+                                   analysisStatusName(nov.status) + "; ";
+                r.calibrationAnalysisOk = false;
                 continue;
             }
             CalibrationGridPoint best{};
@@ -291,60 +429,55 @@ Acao02Result runAcao02V1(const std::string& outputDir, bool writeFiles) {
         for (std::size_t i = 0; i < r.distinctSeeds.size() && i < kMaxVerificationSeeds; ++i) {
             cap.reset();
             std::vector<AppliedEventRecord> applied;
+            std::uint64_t appliedOverflow = 0;
             audio::ProbeAnalysisCapture pc{};
             pc.fixtureSeed = r.distinctSeeds[i];
             pc.stems = cap.sink();
             pc.applied = &applied;
-            (void)audio::runFixtureProbeV1Offline(outputDir, false, audio::FixtureInjectedFault::None, &pc);
-            VerificationSet vs{"fixture_seed_" + std::to_string(r.distinctSeeds[i]), "MEASURED", "", {}};
-            vs.roles = evaluateCapture(cap, applied, frozen->roles);
-            r.verification.push_back(vs);
+            pc.appliedOverflow = &appliedOverflow;
+            const auto probe = audio::runFixtureProbeV1Offline(outputDir, false, audio::FixtureInjectedFault::None, &pc);
+            const CaptureCheck check = probeCaptureCheck(probe.passed, probe.failureReason, probe.requestedSampleFrames,
+                                                         cap, appliedOverflow);
+            const bool valid = captureInvalidReason(check).empty();
+            r.verification.push_back(verificationSetFromCaptures(
+                "fixture_seed_" + std::to_string(r.distinctSeeds[i]), {check},
+                valid ? evaluateCapture(cap, applied, frozen->roles) : std::array<RoleSetEvaluation, kRoleCount>{}));
         }
         // (2) planner_probe_v1
         {
             cap.reset();
             std::vector<AppliedEventRecord> applied;
+            std::uint64_t appliedOverflow = 0;
             audio::ProbeAnalysisCapture pc{};
             pc.stems = cap.sink();
             pc.applied = &applied;
-            (void)audio::runPlannerProbeV1Offline(outputDir, false, &pc);
-            VerificationSet vs{"planner_probe_v1", "MEASURED", "", {}};
-            vs.roles = evaluateCapture(cap, applied, frozen->roles);
-            r.verification.push_back(vs);
+            pc.appliedOverflow = &appliedOverflow;
+            const auto probe = audio::runPlannerProbeV1Offline(outputDir, false, &pc);
+            const CaptureCheck check = probeCaptureCheck(probe.passed, probe.failureReason, probe.totalCapturedFrames,
+                                                         cap, appliedOverflow);
+            const bool valid = captureInvalidReason(check).empty();
+            r.verification.push_back(verificationSetFromCaptures(
+                "planner_probe_v1", {check},
+                valid ? evaluateCapture(cap, applied, frozen->roles) : std::array<RoleSetEvaluation, kRoleCount>{}));
         }
         // (3) synthetic set B
         {
-            VerificationSet vs{"synthetic_set_b", "MEASURED", "", {}};
+            std::array<RoleSetEvaluation, kRoleCount> roles{};
+            std::vector<CaptureCheck> checks;
             std::vector<AppliedEventRecord> applied;
             for (std::size_t role = 0; role < kRoleCount; ++role) {
-                renderSyntheticRole(static_cast<audio::MusicRole>(role), syntheticSetB(role), cap, applied);
+                checks.push_back(renderSyntheticRole(static_cast<audio::MusicRole>(role), syntheticSetB(role), cap, applied));
+                if (!captureInvalidReason(checks.back()).empty()) continue;
                 const auto refs = roleReferenceOnsetsS(applied, static_cast<audio::MusicRole>(role), kFs);
                 const auto rel = roleReleaseTimesS(applied, static_cast<audio::MusicRole>(role), kFs);
-                vs.roles[role] = toRoleSet(evaluateRoleOnsets(cap.stem(role), refs, frozen->roles[role], kFs, rel));
+                roles[role] = toRoleSet(evaluateRoleOnsets(cap.stem(role), refs, frozen->roles[role], kFs, rel));
             }
-            r.verification.push_back(vs);
-        }
-        // Proposed thresholds: worst measured verification value minus 0.05, rounded down to 0.05 (D-M2-16)
-        for (std::size_t role = 0; role < kRoleCount; ++role) {
-            double minR = 2.0, minP = 2.0;
-            for (const auto& vs : r.verification) {
-                if (vs.roles[role].status != "MEASURED") continue;
-                minR = (std::min)(minR, vs.roles[role].recall50);
-                minP = (std::min)(minP, vs.roles[role].precision50);
-            }
-            r.proposedRecall[role] = minR > 1.5 ? std::nan("") : (std::max)(0.0, std::floor((minR - 0.05) * 20.0) / 20.0);
-            r.proposedPrecision[role] = minP > 1.5 ? std::nan("") : (std::max)(0.0, std::floor((minP - 0.05) * 20.0) / 20.0);
-        }
-    } else {
-        for (std::size_t role = 0; role < kRoleCount; ++role) {
-            r.proposedRecall[role] = std::nan("");
-            r.proposedPrecision[role] = std::nan("");
+            r.verification.push_back(verificationSetFromCaptures("synthetic_set_b", checks, roles));
         }
     }
 
     r.completed = true;
-    r.status = (r.fixturePassed && r.profileFrozen && r.stemOverflowFrames == 0) ? "MEASURED" : "INCONCLUSIVE";
-    if (!r.profileFrozen && r.failureReason.empty()) r.failureReason = "profile not frozen: verification not run";
+    finalizeAcao02Status(r);
 
     if (writeFiles) {
         std::error_code ec;
@@ -392,6 +525,11 @@ std::string Acao02Result::toJson() const {
     s << "  \"scenario\": \"acao02_v1\",\n";
     s << "  \"build_id\": \"" << CYMATICA_BUILD_ID << "\",\n";
     s << "  \"verdict\": \"" << status << "\",\n";
+    s << "  \"inconclusive_reasons\": [";
+    for (std::size_t i = 0; i < inconclusiveReasons.size(); ++i) {
+        s << "\"" << jsonEscape(inconclusiveReasons[i]) << "\"" << (i + 1 < inconclusiveReasons.size() ? ", " : "");
+    }
+    s << "],\n";
     s << "  \"gate\": false,\n";
     s << "  \"descriptors_version\": \"descriptors_v1\",\n";
     s << "  \"tolerances_ms\": {\"primary\": 50, \"diagnostic\": 25, \"calibration_window\": 100},\n";
@@ -400,7 +538,13 @@ std::string Acao02Result::toJson() const {
     s << "],\n";
     s << "  \"intrinsic_latency_set_a\": ";
     writeRoles(s, intrinsic, "  ");
-    s << ",\n  \"calibration\": {\n    \"seed\": 1337, \"fixture_passed\": " << (fixturePassed ? "true" : "false") << ",\n";
+    s << ",\n  \"intrinsic_captures_valid\": " << (intrinsicCaptures.size() == kRoleCount &&
+                                                   std::all_of(intrinsicCaptures.begin(), intrinsicCaptures.end(),
+                                                               [](const CaptureCheck& c) { return captureInvalidReason(c).empty(); })
+                                                   ? "true" : "false");
+    s << ",\n  \"calibration\": {\n    \"seed\": 1337, \"fixture_passed\": " << (fixturePassed ? "true" : "false")
+      << ", \"capture_valid\": " << (captureInvalidReason(calibrationCapture).empty() ? "true" : "false")
+      << ", \"analysis_ok\": " << (calibrationAnalysisOk ? "true" : "false") << ",\n";
     s << "    \"grid\": {\n";
     for (std::size_t r = 0; r < kRoleCount; ++r) {
         s << "      \"" << kRoleNames[r] << "\": [";
@@ -426,14 +570,17 @@ std::string Acao02Result::toJson() const {
       << "], \"distinct_fingerprints\": " << distinctFingerprints << ", \"seeds_with_different_content\": [";
     for (std::size_t i = 0; i < distinctSeeds.size(); ++i) s << distinctSeeds[i] << (i + 1 < distinctSeeds.size() ? ", " : "");
     s << "]},\n";
+    s << "  \"verification_status\": \"" << verificationStatus << "\",\n";
     s << "  \"verification\": [\n";
     for (std::size_t i = 0; i < verification.size(); ++i) {
         const auto& v = verification[i];
-        s << "    {\"set\": \"" << v.name << "\", \"status\": \"" << v.status << "\", \"note\": \"" << v.note << "\", \"roles\": ";
+        s << "    {\"set\": \"" << v.name << "\", \"status\": \"" << v.status << "\", \"invalid_capture\": "
+          << (v.invalidCapture ? "true" : "false") << ", \"note\": \"" << jsonEscape(v.note) << "\", \"roles\": ";
         writeRoles(s, v.roles, "    ");
         s << "}" << (i + 1 < verification.size() ? ",\n" : "\n");
     }
     s << "  ],\n";
+    s << "  \"proposed_thresholds_status\": \"" << thresholdsStatus << "\",\n";
     s << "  \"proposed_thresholds_50ms\": {";
     for (std::size_t r = 0; r < kRoleCount; ++r) {
         s << "\"" << kRoleNames[r] << "\": {\"recall\": " << num(proposedRecall[r]) << ", \"precision\": "
@@ -441,7 +588,8 @@ std::string Acao02Result::toJson() const {
     }
     s << "},\n";
     s << "  \"stems\": {\"frames\": " << stemFrames << ", \"overflow_frames\": " << stemOverflowFrames
-      << ", \"bytes_allocated\": " << stemBytes << ", \"reconstruction_mismatched_samples\": " << reconstructionMismatches
+      << ", \"bytes_allocated\": " << stemBytes << ", \"reconstruction_status\": \"" << reconstructionStatus
+      << "\", \"reconstruction_mismatched_samples\": " << reconstructionMismatches
       << ", \"reconstruction_max_abs_error\": " << num(reconstructionMaxAbsError) << "},\n";
     s << "  \"trama_presence_section_a\": [";
     for (std::size_t p = 0; p < 8; ++p) {
@@ -449,7 +597,7 @@ std::string Acao02Result::toJson() const {
           << num(tramaPeakDbfsA[p] < -1e8 ? std::nan("") : tramaPeakDbfsA[p]) << "}" << (p < 7 ? ", " : "");
     }
     s << "]";
-    if (!failureReason.empty()) s << ",\n  \"failure_reason\": \"" << failureReason << "\"";
+    if (!failureReason.empty()) s << ",\n  \"failure_reason\": \"" << jsonEscape(failureReason) << "\"";
     s << "\n}\n";
     return s.str();
 }

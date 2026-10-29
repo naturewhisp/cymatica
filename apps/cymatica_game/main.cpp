@@ -93,7 +93,8 @@ int main(int argc, char** argv) {
                 auto res = cymatica::cacp::runAcao02V1("artifacts/cacp", true);
                 std::printf("[cacp] Verdict: %s\n", res.status.c_str());
                 std::printf("%s\n", res.toJson().c_str());
-                return res.completed ? 0 : 1;
+                // 0 only for a measurement on valid data with its manifest written (DIF-5c-02); never a gate
+                return (res.completed && res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
             } else if (std::strcmp(scenario, "onset_parity") == 0 ||
                        std::strcmp(scenario, "onset_parity_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5b onset_parity_v1, not a gate)...\n", scenario);

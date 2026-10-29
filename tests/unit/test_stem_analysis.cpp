@@ -178,3 +178,211 @@ TEST_CASE("planner_probe_v1 analysis capture: stems aligned with the PCM and app
     for (const auto& r : applied) if (r.id.type == cymatica::audio::AudioEventType::NoteOn) ++noteOns;
     CHECK(noteOns == res.generatedEvents);
 }
+
+TEST_CASE("fixture_probe_v1 on another seed: goldens NOT_APPLICABLE, structural checks kept, fail-closed (DIF-5c-01)",
+          "[stem_analysis][seed_probe]") {
+    using cymatica::audio::FixtureInjectedFault;
+    using cymatica::audio::ProbeAnalysisCapture;
+    using cymatica::audio::runFixtureProbeV1Offline;
+
+    // Seed 2: same musical content as 1337 (declared scan, 5c) but a different provenance hash, so the 1337 goldens
+    // cannot match. The probe must still pass on determinism, offline == JIT, O3 and integrity.
+    ProbeAnalysisCapture pc{};
+    pc.fixtureSeed = 2;
+    const auto res = runFixtureProbeV1Offline("artifacts/cacp", false, FixtureInjectedFault::None, &pc);
+    INFO(res.failureReason);
+    CHECK(res.passed);
+    CHECK(res.runSeed == 2);
+    CHECK_FALSE(res.goldenApplicable);
+    CHECK(res.canonicalPlanHash != cymatica::audio::kFixtureProbeV1GoldenPlanHash);
+    CHECK(res.jitGoldenStatus == "NOT_APPLICABLE");
+    CHECK(res.jitOfflinePlanMatch);
+    CHECK(res.contentFingerprintJitMatch);
+    CHECK(res.determinismPassed);
+    CHECK(res.eventChainPassed);
+    const std::string json = res.toJson();
+    CHECK(json.find("\"run_seed\": 2,") != std::string::npos);
+    CHECK(json.find("\"golden_applicable\": false") != std::string::npos);
+    CHECK(json.find("\"golden_plan_passed\": \"NOT_APPLICABLE\"") != std::string::npos);
+
+    // The same seed with an injected fault still fails: NOT_APPLICABLE goldens never turn a failure into a pass
+    const auto failed = runFixtureProbeV1Offline("artifacts/cacp", false, FixtureInjectedFault::InvalidTempoMap, &pc);
+    CHECK_FALSE(failed.passed);
+    CHECK(failed.coordinatorFailed);
+    CHECK_FALSE(failed.failureReason.empty());
+}
+
+namespace {
+
+CaptureCheck validCheck(std::size_t frames = 1000) {
+    CaptureCheck c;
+    c.rendered = true;
+    c.probePassed = true;
+    c.expectedFrames = frames;
+    c.stemFrames = frames;
+    return c;
+}
+
+std::array<RoleSetEvaluation, kRoleCount> measuredRoles(double recall, double precision) {
+    std::array<RoleSetEvaluation, kRoleCount> roles{};
+    for (auto& r : roles) {
+        r.status = "MEASURED";
+        r.references = 10;
+        r.recall50 = recall;
+        r.precision50 = precision;
+    }
+    return roles;
+}
+
+// A result whose every recorded check is valid: the aggregate must be MEASURED with proposed thresholds
+Acao02Result validAcao02() {
+    Acao02Result r;
+    r.completed = true;
+    for (std::size_t i = 0; i < kRoleCount; ++i) r.intrinsicCaptures.push_back(validCheck());
+    r.fixturePassed = true;
+    r.calibrationCapture = validCheck(8'825'200);
+    r.calibrationAnalysisOk = true;
+    r.reconstructionStatus = "OK";
+    r.profileFrozen = true;
+    r.calibratedSha256 = "1ad44100";
+    r.frozenSha256 = "1ad44100";
+    r.calibratedEqualsFrozen = true;
+    r.verification.push_back(VerificationSet{"fixture_other_seeds", "INCONCLUSIVE", "no different content", {}, false});
+    r.verification.push_back(verificationSetFromCaptures("planner_probe_v1", {validCheck()}, measuredRoles(0.95, 1.0)));
+    r.verification.push_back(
+        verificationSetFromCaptures("synthetic_set_b", {validCheck(), validCheck()}, measuredRoles(0.80, 0.50)));
+    return r;
+}
+
+} // namespace
+
+TEST_CASE("Capture validity: render, probe verdict, stem coverage and overflow (DIF-5c-02)", "[stem_analysis][validity]") {
+    CHECK(captureInvalidReason(validCheck()).empty());
+
+    const CaptureCheck notRendered{};
+    CHECK_FALSE(captureInvalidReason(notRendered).empty());
+
+    auto failedProbe = validCheck();
+    failedProbe.probePassed = false;
+    failedProbe.probeFailure = "golden mismatch";
+    CHECK(captureInvalidReason(failedProbe).find("golden mismatch") != std::string::npos);
+
+    auto shortStems = validCheck();
+    shortStems.stemFrames = 999;
+    CHECK_FALSE(captureInvalidReason(shortStems).empty());
+
+    auto overflow = validCheck();
+    overflow.stemOverflowFrames = 1;
+    CHECK(captureInvalidReason(overflow).find("overflow") != std::string::npos);
+
+    auto logOverflow = validCheck();
+    logOverflow.appliedOverflow = 3;
+    CHECK(captureInvalidReason(logOverflow).find("applied-event log") != std::string::npos);
+
+    // Real overflow on a scenario render: a stem capture too small for planner_probe_v1
+    StemCapture small(1000);
+    cymatica::audio::ProbeAnalysisCapture pc{};
+    pc.stems = small.sink();
+    const auto res = cymatica::audio::runPlannerProbeV1Offline("artifacts/cacp", false, &pc);
+    CaptureCheck real;
+    real.rendered = true;
+    real.probePassed = res.passed;
+    real.expectedFrames = res.totalCapturedFrames;
+    real.stemFrames = small.frames();
+    real.stemOverflowFrames = small.overflowFrames();
+    CHECK(small.overflowFrames() > 0);
+    CHECK_FALSE(captureInvalidReason(real).empty());
+
+    // An invalid capture makes the set INCONCLUSIVE with no usable scores
+    const auto vs = verificationSetFromCaptures("planner_probe_v1", {real}, measuredRoles(0.9, 0.9));
+    CHECK(vs.status == "INCONCLUSIVE");
+    CHECK(vs.invalidCapture);
+    for (const auto& role : vs.roles) CHECK(role.status == "NOT_RUN");
+    // One invalid render among several (synthetic set B is one render per role) is enough
+    CHECK(verificationSetFromCaptures("synthetic_set_b", {validCheck(), overflow}, measuredRoles(0.9, 0.9)).invalidCapture);
+    CHECK(verificationSetFromCaptures("empty", {}, measuredRoles(0.9, 0.9)).status == "INCONCLUSIVE");
+}
+
+TEST_CASE("acao02_v1 aggregate is fail-closed: MEASURED only on valid data (DIF-5c-02)", "[stem_analysis][validity]") {
+    auto expectInconclusive = [](Acao02Result r, const char* what) {
+        finalizeAcao02Status(r);
+        INFO(what);
+        CHECK(r.status == "INCONCLUSIVE");
+        CHECK(r.verificationStatus == "INCONCLUSIVE");
+        CHECK(r.thresholdsStatus == "NOT_PROPOSED");
+        CHECK_FALSE(r.inconclusiveReasons.empty());
+        for (std::size_t i = 0; i < kRoleCount; ++i) {
+            CHECK(std::isnan(r.proposedRecall[i]));
+            CHECK(std::isnan(r.proposedPrecision[i]));
+        }
+        return r;
+    };
+
+    // Nominal: MEASURED; thresholds from the valid MEASURED sets only (min - 0.05, floored to 0.05)
+    {
+        auto r = validAcao02();
+        finalizeAcao02Status(r);
+        INFO((r.inconclusiveReasons.empty() ? std::string{} : r.inconclusiveReasons.front()));
+        CHECK(r.status == "MEASURED");
+        CHECK(r.verificationStatus == "MEASURED");
+        CHECK(r.thresholdsStatus == "PROPOSED");
+        CHECK(std::abs(r.proposedRecall[0] - 0.75) < 1e-9);
+        CHECK(std::abs(r.proposedPrecision[0] - 0.45) < 1e-9);
+    }
+    // Calibrated profile differs from the frozen one: verification measures kept as diagnostic, not conclusive
+    {
+        auto r = validAcao02();
+        r.calibratedSha256 = "different";
+        r.calibratedEqualsFrozen = false;
+        const auto out = expectInconclusive(r, "profile mismatch");
+        CHECK(out.verification[1].status == "MEASURED");
+        CHECK(out.verification[1].roles[0].recall50 > 0.9);
+    }
+    // Stem overflow in the calibration capture
+    {
+        auto r = validAcao02();
+        r.calibrationCapture.stemOverflowFrames = 10;
+        (void)expectInconclusive(r, "calibration overflow");
+    }
+    // Failed calibration fixture probe
+    {
+        auto r = validAcao02();
+        r.fixturePassed = false;
+        r.calibrationCapture.probePassed = false;
+        (void)expectInconclusive(r, "calibration probe failed");
+    }
+    // Bus-mix reconstruction mismatch
+    {
+        auto r = validAcao02();
+        r.reconstructionMismatches = 1;
+        (void)expectInconclusive(r, "reconstruction mismatch");
+    }
+    // A verification probe that failed (e.g. an alternative seed): the set and the aggregate are INCONCLUSIVE
+    {
+        auto r = validAcao02();
+        auto bad = validCheck();
+        bad.probePassed = false;
+        bad.probeFailure = "probe FAIL";
+        r.verification.push_back(verificationSetFromCaptures("fixture_seed_7", {bad}, measuredRoles(0.99, 0.99)));
+        (void)expectInconclusive(r, "verification probe failed");
+    }
+    // Invalid intrinsic-latency render
+    {
+        auto r = validAcao02();
+        r.intrinsicCaptures[2].stemOverflowFrames = 5;
+        (void)expectInconclusive(r, "intrinsic overflow");
+    }
+    // Profile not frozen
+    {
+        auto r = validAcao02();
+        r.profileFrozen = false;
+        r.calibratedEqualsFrozen = false;
+        (void)expectInconclusive(r, "not frozen");
+    }
+    // No verification set measured on valid data
+    {
+        auto r = validAcao02();
+        r.verification.resize(1);
+        (void)expectInconclusive(r, "no measured set");
+    }
+}

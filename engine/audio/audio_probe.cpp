@@ -1739,6 +1739,7 @@ PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool w
             capture->applied->assign(plannerAppliedLog.records().begin(), plannerAppliedLog.records().end());
         }
         if (capture->stereo != nullptr) *capture->stereo = recordedStereo;
+        if (capture->appliedOverflow != nullptr) *capture->appliedOverflow = plannerAppliedLog.overflow();
     }
 
     result.committedEvents = static_cast<std::uint32_t>(scheduler.totalDispatchedEvents());
@@ -2277,7 +2278,8 @@ std::string FixtureProbeResult::toJson() const {
     ss << "  \"scenario\": \"fixture_probe_v1\",\n";
     ss << "  \"build_id\": \"" << escapeJsonString(buildId) << "\",\n";
     ss << "  \"verdict\": \"" << (passed ? "PASS" : "FAIL") << "\",\n";
-    ss << "  \"run_seed\": " << kFixtureSeed << ",\n";
+    ss << "  \"run_seed\": " << runSeed << ",\n";
+    ss << "  \"golden_applicable\": " << (goldenApplicable ? "true" : "false") << ",\n";
     ss << "  \"sample_rate\": " << kInc4SampleRate << ",\n";
     ss << "  \"lookahead_frames\": " << lookaheadFrames << ",\n";
     ss << "  \"content_end_frame\": " << contentEndFrame << ",\n";
@@ -2327,6 +2329,7 @@ std::string FixtureProbeResult::toJson() const {
     ss << "  \"pcm_content_hash\": " << pcmContentHash << ",\n";
     ss << "  \"jit_plan_hash\": " << jitPlanHash << ",\n";
     ss << "  \"jit_golden_status\": \"" << jitGoldenStatus << "\",\n";
+    ss << "  \"jit_offline_plan_match\": " << (jitOfflinePlanMatch ? "true" : "false") << ",\n";
     ss << "  \"content_fingerprint_format\": " << kMusicalContentFingerprintFormatVersion << ",\n";
     ss << "  \"content_fingerprint\": " << contentFingerprint << ",\n";
     ss << "  \"content_fingerprint_notes\": " << contentFingerprintNotes << ",\n";
@@ -2356,8 +2359,13 @@ std::string FixtureProbeResult::toJson() const {
     ss << "    \"role_activity_passed\": " << (roleActivityPassed ? "true" : "false") << ",\n";
     ss << "    \"silence_boundary_passed\": " << (silenceBoundaryPassed ? "true" : "false") << ",\n";
     ss << "    \"determinism_passed\": " << (determinismPassed ? "true" : "false") << ",\n";
-    ss << "    \"golden_trace_passed\": " << (goldenTracePassed ? "true" : "false") << ",\n";
-    ss << "    \"golden_plan_passed\": " << (goldenPlanPassed ? "true" : "false") << ",\n";
+    if (goldenApplicable) {
+        ss << "    \"golden_trace_passed\": " << (goldenTracePassed ? "true" : "false") << ",\n";
+        ss << "    \"golden_plan_passed\": " << (goldenPlanPassed ? "true" : "false") << ",\n";
+    } else {
+        ss << "    \"golden_trace_passed\": \"NOT_APPLICABLE\",\n";
+        ss << "    \"golden_plan_passed\": \"NOT_APPLICABLE\",\n";
+    }
     ss << "    \"true_peak_passed\": " << (truePeakPassed ? "true" : "false") << ",\n";
     ss << "    \"sample_ceiling_passed\": " << (sampleCeilingPassed ? "true" : "false") << ",\n";
     ss << "    \"zero_clipping_passed\": " << (clippedSamples == 0 ? "true" : "false") << ",\n";
@@ -2458,6 +2466,8 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     FixtureProbeResult result;
     result.injectedFault = fault;
     result.buildId = CYMATICA_BUILD_ID;
+    result.runSeed = seed;
+    result.goldenApplicable = (seed == kFixtureSeed);
 
     const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
     if (!optClock.has_value()) {
@@ -2497,10 +2507,10 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
                                      run1.noteOffs == run2.noteOffs && run1.traces.size() == phrases.size());
 
     result.decisionTraceHash = fixtureTraceHash(run1.traces);
-    result.goldenTracePassed = (result.decisionTraceHash == kFixtureProbeV1GoldenTraceHash);
+    result.goldenTracePassed = result.goldenApplicable && (result.decisionTraceHash == kFixtureProbeV1GoldenTraceHash);
     // Full canonical plan (events + NoteOffs + decisions), shared with the golden tests (DIF-INC4-R3-03)
     result.canonicalPlanHash = canonicalPlanHash(run1.intents, run1.noteOffs, run1.traces);
-    result.goldenPlanPassed = (result.canonicalPlanHash == kFixtureProbeV1GoldenPlanHash);
+    result.goldenPlanPassed = result.goldenApplicable && (result.canonicalPlanHash == kFixtureProbeV1GoldenPlanHash);
 
     for (const auto& phraseIntents : run1.intents) {
         result.generatedEvents += static_cast<std::uint32_t>(phraseIntents.size());
@@ -2609,6 +2619,7 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     if (capture != nullptr && capture->applied != nullptr) {
         capture->applied->assign(appliedLog.records().begin(), appliedLog.records().end());
     }
+    if (capture != nullptr && capture->appliedOverflow != nullptr) *capture->appliedOverflow = appliedLog.overflow();
 
     // A NoteOn of the terminated run delivered after the Stop must never sound (old epoch < minValidEpoch).
     // Probe-only check on the stopped engine, outside the recorded capture.
@@ -2647,10 +2658,12 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     // O3 chain (ADR-0006 D-M2-12): JIT plan identity, musical content, identity reconciliation
     {
         result.jitPlanHash = canonicalPlanHash(coordinator.jitIntents(), coordinator.noteOffsAtStop(), coordinator.tracesAtStop());
-        if (coordinator.failed()) {
-            result.jitGoldenStatus = "NOT_APPLICABLE"; // planning stopped at the failure: partial plan by construction
+        result.jitOfflinePlanMatch = (result.jitPlanHash == result.canonicalPlanHash);
+        if (coordinator.failed() || !result.goldenApplicable) {
+            // injected fault: planning stopped at the failure (partial plan); other seed: no golden (DIF-5c-01)
+            result.jitGoldenStatus = "NOT_APPLICABLE";
         } else {
-            result.jitGoldenStatus = (result.jitPlanHash == result.canonicalPlanHash &&
+            result.jitGoldenStatus = (result.jitOfflinePlanMatch &&
                                       result.jitPlanHash == kFixtureProbeV1GoldenPlanHash) ? "PASS" : "FAIL";
         }
 
@@ -2686,8 +2699,9 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
         result.chainFaultCutFrame = coordinator.faultCutFrame();
         result.chainMismatches = chain.mismatches;
         result.chainFirstMismatch = chain.firstMismatch;
-        result.eventChainPassed = chain.passed &&
-                                  (coordinator.failed() || (result.jitGoldenStatus == "PASS" && result.contentFingerprintJitMatch));
+        const bool jitGoldenOk = !result.goldenApplicable || result.jitGoldenStatus == "PASS";
+        result.eventChainPassed = chain.passed && (coordinator.failed() || (result.jitOfflinePlanMatch && jitGoldenOk &&
+                                                                            result.contentFingerprintJitMatch));
     }
 
     // Rendered plan == offline plan (the live Coordinator plans the same decisions just in time)
@@ -2778,8 +2792,7 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
 
     result.passed = result.captureCompletePassed &&
                     result.determinismPassed &&
-                    result.goldenTracePassed &&
-                    result.goldenPlanPassed &&
+                    (!result.goldenApplicable || (result.goldenTracePassed && result.goldenPlanPassed)) &&
                     result.noteOffPairingPassed &&
                     result.tempoAckPassed &&
                     result.schedulingAccountingPassed &&
@@ -2800,9 +2813,9 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
                                                << " of " << result.requestedSampleFrames << " frames, dropped "
                                                << result.droppedFrames << "); ";
         if (!result.determinismPassed) err << "determinism check failed (offline passes or rendered plan differ); ";
-        if (!result.goldenTracePassed) err << "decision trace hash " << result.decisionTraceHash << " != golden "
+        if (result.goldenApplicable && !result.goldenTracePassed) err << "decision trace hash " << result.decisionTraceHash << " != golden "
                                            << kFixtureProbeV1GoldenTraceHash << "; ";
-        if (!result.goldenPlanPassed) err << "canonical plan hash " << result.canonicalPlanHash << " != golden "
+        if (result.goldenApplicable && !result.goldenPlanPassed) err << "canonical plan hash " << result.canonicalPlanHash << " != golden "
                                           << kFixtureProbeV1GoldenPlanHash << "; ";
         if (!result.noteOffPairingPassed) err << "NoteOn/NoteOff pairing failed; ";
         if (!result.tempoAckPassed) err << "transport ack check failed (revoked " << result.revokedStagedEvents << "); ";
