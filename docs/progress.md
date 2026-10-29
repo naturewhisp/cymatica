@@ -120,6 +120,16 @@ Da riesaminare all'ingresso di M2.5 (AGENTS §1.1). Si valutano con il metodo de
 | F6 | **Rilascio di 2 ms**: ogni nota termina con una rampa lineare di 2 ms (`declickFrames_`) che produce un transitorio a banda larga misurabile a ogni NoteOff. Per la Trama il transitorio è forte quanto l'attacco. L'udibilità non è verificata. | tuning: stadio di release dell'ADSR per ruolo, misurato con `acao02_v1` e verificato con l'ascolto | [calibrazione 5c](research/M2_4_Inc5_AC-AO-02_Calibration.md) §4 |
 | F5 | **Direttore musicale** (proposta del titolare, 2026-10-28). Un livello fra la forma e il planner di frase che prende le decisioni oggi assenti sopra la singola frase: ancoraggio metrico (F1), transizioni e preparazione dei cambi di sezione (F3), arco orchestrale (entrate e uscite, densità), variazione delle ripetizioni, dinamica e mix nel tempo (F4). Vincoli: deterministico e versionato, sul thread di pianificazione e mai nella callback; ogni decisione nella decision trace e nel Music Intent, quindi verificabile con catena O3, fingerprint e metriche di diversità; subordinato al Pacing Director (specifica §9), con un nome distinto. | **decisione architetturale** (M2.5 o M2-F) con nuovo ADR e golden aggiornati. È preceduta da una ricerca approfondita: stato dell'arte dei «conductor» nella musica adattiva (sistemi multi-agente, segmenti di transizione Wwise/FMOD, gestione dell'intensità) e confronto con l'impalcatura gerarchica della [ricerca approfondita](research/M2_4_Deep_Research_Reviewed.md). | titolare; [ascolto esperto](m2_4_human_listening_2026-10-28.md) |
 
+**Revisione qualitativa dell'esperto (decisione del titolare, 2026-10-29).**
+
+- **Quando:** a fine Inc-5, prima dell'ingresso in M2.5. Si anticipa solo se una fase si rivela bisognosa di un gate qualitativo bloccante.
+- **Contenuto previsto:**
+  - ascolto A/B per F6: stessa frase con il rilascio attuale di 2 ms e con un rilascio più lungo per ruolo (per esempio 30–80 ms), clip prodotte dal motore;
+  - riascolto dei punti F1–F4, incluso il backbeat proposto per F1.
+- **Agenti con ingestione audio (es. Gemini/Antigravity):** solo dopo 5d, attraverso il pacchetto in cieco e il checker dei risultati v0, e mai come gate.
+  - Il motivo è documentato: canale mono a 16 Kbps e 32 token/s, quindi nessuna affermazione su fenomeni sotto ~31 ms come il rilascio di 2 ms (D-M2-11).
+  - Le domande sì/no sulla presenza di un suono sono poco affidabili (dossier sui metodi CACP §3.1).
+
 **Principi del titolare per F1–F5 (2026-10-28):**
 
 - **Contratti in evoluzione.** CYMATICA è in costante evoluzione: un ADR o un contratto si può cambiare, purché ogni variazione sia sostenuta da evidenze e ricerche approfondite (regola document-driven §6).
