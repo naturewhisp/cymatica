@@ -1,0 +1,20 @@
+{
+  "blind_windows": 11,
+  "build_id": "3f026c2",
+  "default_seed": false,
+  "diagnostic_windows": 8,
+  "errors": [],
+  "gate": false,
+  "manifest_version": "1.0",
+  "note": "hand only public_blind/ to a blind evaluator; sealed/ is for the checker (D-M2-15)",
+  "public_blind_dir": "artifacts\\cacp\\evaluation_pack_v1\\public_blind",
+  "public_blind_files": 47,
+  "public_diagnostic_dir": "artifacts\\cacp\\evaluation_pack_v1\\public_diagnostic",
+  "public_diagnostic_files": 59,
+  "references": 12,
+  "repeat_identical": true,
+  "scenario": "evaluation_pack_v1",
+  "sealed_dir": "artifacts\\sealed\\evaluation_pack_v1",
+  "seed_commitment_sha256": "7bc45132de09e7a342761685f31df85021e43fe7add56abb1a789d901102e305",
+  "verdict": "GENERATED"
+}

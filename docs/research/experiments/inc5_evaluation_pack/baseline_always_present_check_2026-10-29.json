@@ -1,0 +1,38 @@
+{
+  "report": "evaluation_check_v0",
+  "gate": false,
+  "checked": true,
+  "pack_mode": "blind",
+  "result_admissible": true,
+  "blind_qualified": true,
+  "outcome_counts": {
+    "contradicted": 7,
+    "supported": 37
+  },
+  "controls": {
+    "altered_plan_following_claims": 1,
+    "catch_trial_failed": true,
+    "duplicate_pairs_agreeing": 4,
+    "duplicate_pairs_compared": 4
+  },
+  "role_signal_present_scoring": {
+    "above_trivial_baseline": false,
+    "sensitivity": {
+      "successes": 37,
+      "trials": 37,
+      "value": null,
+      "wilson95_high": null,
+      "wilson95_low": null
+    },
+    "specificity": {
+      "successes": 0,
+      "trials": 3,
+      "value": null,
+      "wilson95_high": null,
+      "wilson95_low": null
+    },
+    "status": "EXCLUDED_BY_CATCH_RULE"
+  },
+  "evaluator": "trivial baseline: role_signal_present = true for every role of every blind window (44 claims)",
+  "note": "aggregate only: the per-claim list would reveal the key of this pack"
+}

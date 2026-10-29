@@ -15,6 +15,7 @@ add_executable(cymatica_tests
     unit/test_event_chain.cpp
     unit/test_cacp_analysis.cpp
     unit/test_stem_analysis.cpp
+    unit/test_evaluation_pack.cpp
 )
 
 target_link_libraries(cymatica_tests
@@ -24,6 +25,7 @@ target_link_libraries(cymatica_tests
         cymatica_audio
         cymatica_cacp
         cymatica_replay
+        nlohmann_json::nlohmann_json
         cymatica_compile_options
 )
 

@@ -4,6 +4,8 @@ add_library(cymatica_cacp STATIC
     acao02_calibration.cpp
     acao02_calibration.h
     analysis_status.h
+    evaluation_pack.cpp
+    evaluation_pack.h
     fft.cpp
     fft.h
     loudness.cpp
@@ -28,5 +30,6 @@ add_library(cymatica_cacp STATIC
 
 target_include_directories(cymatica_cacp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(cymatica_cacp PUBLIC cymatica_audio cymatica_core)
-target_link_libraries(cymatica_cacp PRIVATE cymatica_compile_options)
+# nlohmann/json (pinned, ADR-0002) reads and writes the evaluation pack truth and results (D-M2-15, Inc-5 5d)
+target_link_libraries(cymatica_cacp PRIVATE cymatica_compile_options nlohmann_json::nlohmann_json)
 target_compile_features(cymatica_cacp PUBLIC cxx_std_20)

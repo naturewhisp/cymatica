@@ -2,6 +2,7 @@
 
 #include "audio_control.h"
 #include "event_chain_log.h"
+#include "music_intent.h"
 #include "input_dispatcher.h"
 
 #include <array>
@@ -453,6 +454,7 @@ struct ProfileProbeResult {
 [[nodiscard]] bool fixtureSchedulingAccountingPassed(const FixtureProbeResult& r, std::size_t expectedPhrases) noexcept;
 
 struct RoleStemSink;
+struct PlannedNoteOff;
 
 // Optional offline capture for CACP analysis (ADR-0006 D-M2-13/16, Inc-5 phase 5c). Every pointer may be null.
 // The stem sink is installed for the scenario render only (removed before the probe-only stale-event check).
@@ -462,6 +464,8 @@ struct ProbeAnalysisCapture {
     std::vector<float>* stereo{nullptr};                   // recorded interleaved stereo PCM
     std::vector<AppliedEventRecord>* applied{nullptr};     // records consumed by the engine during the scenario
     std::uint64_t* appliedOverflow{nullptr};               // overflow count of that applied-event log
+    std::vector<MusicIntentEvent>* intents{nullptr};       // planned intents of the scenario (JIT plan for the fixture)
+    std::vector<PlannedNoteOff>* noteOffs{nullptr};        // planner NoteOffs of the open pads
 };
 
 FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir = "artifacts/cacp",

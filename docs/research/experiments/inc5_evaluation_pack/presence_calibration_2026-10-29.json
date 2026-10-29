@@ -1,0 +1,863 @@
+{
+  "source": "fixture_probe_v1 seed 1337",
+  "presence_profile": {
+    "absolute_rms_dbfs": -60.0,
+    "numerical_floor_dbfs": -120.0,
+    "stem_to_mix_db": -30.0,
+    "version": "presence_profile_v1"
+  },
+  "config": {
+    "blind_window_s": 6.0,
+    "click_resolution_s": 0.01,
+    "duplicate_gain_db": -0.1,
+    "duplicate_shift_s": 0.007,
+    "fade_s": 0.01,
+    "onset_tolerance_s": 0.05,
+    "stereo_margin_db": 1.0,
+    "windows_per_mask_group": 2
+  },
+  "onset_profile_sha256": "1ad4410052efe85e0fb4d4ea00c7e77383da9a1cea05e4b49fc5fea93bd8b3cd",
+  "note": "blind excerpt (6.0 s from the phrase start, 10 ms fades) of every fixture phrase; no window id, no selection seed",
+  "phrases": [
+    {
+      "phrase": 0,
+      "section": 0,
+      "start_bar": 0,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -34.50393053899354,
+          "stem_to_mix_db": -10.9768693397792,
+          "peak_dbfs": -17.9618698584766
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.51134964215816,
+          "stem_to_mix_db": -3.9842884429438197,
+          "peak_dbfs": -15.867515117930285
+        },
+        "trama": {
+          "planned": false,
+          "signal": "EXACT_SILENCE",
+          "rms_dbfs": null,
+          "stem_to_mix_db": null,
+          "peak_dbfs": null
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.84253893258092,
+          "stem_to_mix_db": -3.3154777333665786,
+          "peak_dbfs": -17.89131219736096
+        }
+      }
+    },
+    {
+      "phrase": 1,
+      "section": 0,
+      "start_bar": 4,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -34.5083167629408,
+          "stem_to_mix_db": -10.589445798334388,
+          "peak_dbfs": -18.07492296240127
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.53246818203596,
+          "stem_to_mix_db": -3.613597217429551,
+          "peak_dbfs": -16.503248400356657
+        },
+        "trama": {
+          "planned": false,
+          "signal": "EXACT_SILENCE",
+          "rms_dbfs": null,
+          "stem_to_mix_db": null,
+          "peak_dbfs": null
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.84293713383442,
+          "stem_to_mix_db": -2.9240661692280123,
+          "peak_dbfs": -17.89131219736096
+        }
+      }
+    },
+    {
+      "phrase": 2,
+      "section": 0,
+      "start_bar": 8,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -34.50629012352136,
+          "stem_to_mix_db": -10.587837461180625,
+          "peak_dbfs": -18.069443604686903
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.532823199738367,
+          "stem_to_mix_db": -3.614370537397633,
+          "peak_dbfs": -16.503412820321557
+        },
+        "trama": {
+          "planned": false,
+          "signal": "EXACT_SILENCE",
+          "rms_dbfs": null,
+          "stem_to_mix_db": null,
+          "peak_dbfs": null
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.84293713383442,
+          "stem_to_mix_db": -2.924484471493685,
+          "peak_dbfs": -17.89131219736096
+        }
+      }
+    },
+    {
+      "phrase": 3,
+      "section": 0,
+      "start_bar": 12,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -34.50568554299955,
+          "stem_to_mix_db": -10.587716484440083,
+          "peak_dbfs": -17.800569074369882
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.532592057261155,
+          "stem_to_mix_db": -3.614622998701689,
+          "peak_dbfs": -16.50439421262984
+        },
+        "trama": {
+          "planned": false,
+          "signal": "EXACT_SILENCE",
+          "rms_dbfs": null,
+          "stem_to_mix_db": null,
+          "peak_dbfs": null
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.84293713383442,
+          "stem_to_mix_db": -2.924968075274953,
+          "peak_dbfs": -17.89131219736096
+        }
+      }
+    },
+    {
+      "phrase": 4,
+      "section": 0,
+      "start_bar": 16,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -36.147917611607845,
+          "stem_to_mix_db": -12.336751315781424,
+          "peak_dbfs": -16.628399293252162
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.37687138976167,
+          "stem_to_mix_db": -3.565705093935256,
+          "peak_dbfs": -17.633820159336867
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.41430260924179,
+          "stem_to_mix_db": -15.603136313415371,
+          "peak_dbfs": -24.73437759380183
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.844330406840783,
+          "stem_to_mix_db": -3.0331641110143623,
+          "peak_dbfs": -17.85258223466913
+        }
+      }
+    },
+    {
+      "phrase": 5,
+      "section": 0,
+      "start_bar": 20,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -36.14959956234563,
+          "stem_to_mix_db": -12.32416852375203,
+          "peak_dbfs": -16.98146393862504
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.37632836373049,
+          "stem_to_mix_db": -3.5508973251368907,
+          "peak_dbfs": -17.633507711963055
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.41483434432538,
+          "stem_to_mix_db": -15.589403305731777,
+          "peak_dbfs": -24.73437759380183
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.844159515971096,
+          "stem_to_mix_db": -3.018728477377495,
+          "peak_dbfs": -17.85258223466913
+        }
+      }
+    },
+    {
+      "phrase": 6,
+      "section": 0,
+      "start_bar": 24,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -36.14924118972657,
+          "stem_to_mix_db": -12.324308614718195,
+          "peak_dbfs": -15.721382905436293
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.376102788294787,
+          "stem_to_mix_db": -3.551170213286414,
+          "peak_dbfs": -17.63365358504798
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.41483434432538,
+          "stem_to_mix_db": -15.589901769317006,
+          "peak_dbfs": -24.73437759380183
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.844159515971096,
+          "stem_to_mix_db": -3.0192269409627235,
+          "peak_dbfs": -17.85258223466913
+        }
+      }
+    },
+    {
+      "phrase": 7,
+      "section": 0,
+      "start_bar": 28,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -36.15220832269833,
+          "stem_to_mix_db": -12.326684975066808,
+          "peak_dbfs": -16.968010709279433
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.37589624856437,
+          "stem_to_mix_db": -3.550372900932853,
+          "peak_dbfs": -17.6336003608007
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.41483434432538,
+          "stem_to_mix_db": -15.589310996693857,
+          "peak_dbfs": -24.73437759380183
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.844159515971096,
+          "stem_to_mix_db": -3.018636168339576,
+          "peak_dbfs": -17.85258223466913
+        }
+      }
+    },
+    {
+      "phrase": 8,
+      "section": 1,
+      "start_bar": 32,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -35.66671276620352,
+          "stem_to_mix_db": -11.86483458585071,
+          "peak_dbfs": -17.738993027833367
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.162407206807163,
+          "stem_to_mix_db": -3.3605290264543637,
+          "peak_dbfs": -15.3978976880068
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.28439757568387,
+          "stem_to_mix_db": -15.482519395331062,
+          "peak_dbfs": -24.847610539690752
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.7514808671175,
+          "stem_to_mix_db": -2.9496026867646985,
+          "peak_dbfs": -17.83202576072282
+        }
+      }
+    },
+    {
+      "phrase": 9,
+      "section": 1,
+      "start_bar": 36,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -35.66804034779797,
+          "stem_to_mix_db": -11.911847096715027,
+          "peak_dbfs": -18.091277389546825
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.27164519505567,
+          "stem_to_mix_db": -3.5154519439727245,
+          "peak_dbfs": -15.398390686860736
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.28428929963531,
+          "stem_to_mix_db": -15.528096048552374,
+          "peak_dbfs": -24.847610539690752
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.752198254059458,
+          "stem_to_mix_db": -2.996005002976512,
+          "peak_dbfs": -17.83202576072282
+        }
+      }
+    },
+    {
+      "phrase": 10,
+      "section": 1,
+      "start_bar": 40,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -35.66390076720267,
+          "stem_to_mix_db": -11.906517596101136,
+          "peak_dbfs": -17.40608200908171
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.271588281342808,
+          "stem_to_mix_db": -3.51420511024128,
+          "peak_dbfs": -15.398005886285924
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.28432844646035,
+          "stem_to_mix_db": -15.526945275358816,
+          "peak_dbfs": -24.847610539690752
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.752198225866675,
+          "stem_to_mix_db": -2.994815054765143,
+          "peak_dbfs": -17.83202576072282
+        }
+      }
+    },
+    {
+      "phrase": 11,
+      "section": 1,
+      "start_bar": 44,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -35.66707306175276,
+          "stem_to_mix_db": -11.912236057407997,
+          "peak_dbfs": -18.18839208875279
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.27155011969485,
+          "stem_to_mix_db": -3.5167131153500875,
+          "peak_dbfs": -15.398430310858302
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.28436699577363,
+          "stem_to_mix_db": -15.529529991428868,
+          "peak_dbfs": -24.847610539690752
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.75219825405947,
+          "stem_to_mix_db": -2.9973612497147037,
+          "peak_dbfs": -17.83202576072282
+        }
+      }
+    },
+    {
+      "phrase": 12,
+      "section": 1,
+      "start_bar": 48,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -35.66614617197132,
+          "stem_to_mix_db": -11.913338445025845,
+          "peak_dbfs": -17.519645373305973
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.271488901363213,
+          "stem_to_mix_db": -3.5186811744177424,
+          "peak_dbfs": -15.399108518840592
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.28426378463775,
+          "stem_to_mix_db": -15.531456057692278,
+          "peak_dbfs": -24.847610539690752
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.752198225866678,
+          "stem_to_mix_db": -2.999390498921205,
+          "peak_dbfs": -17.83202576072282
+        }
+      }
+    },
+    {
+      "phrase": 13,
+      "section": 1,
+      "start_bar": 52,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -35.66576901519139,
+          "stem_to_mix_db": -11.914366592696462,
+          "peak_dbfs": -17.499149655337156
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.27197311759604,
+          "stem_to_mix_db": -3.520570695101113,
+          "peak_dbfs": -15.398956869987256
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.28442146194265,
+          "stem_to_mix_db": -15.533019039447723,
+          "peak_dbfs": -24.847610539690752
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.752186365821828,
+          "stem_to_mix_db": -3.0007839433268995,
+          "peak_dbfs": -17.83202576072282
+        }
+      }
+    },
+    {
+      "phrase": 14,
+      "section": 1,
+      "start_bar": 56,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -35.66900732491484,
+          "stem_to_mix_db": -11.917849382693134,
+          "peak_dbfs": -17.98305439199425
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.27163388321239,
+          "stem_to_mix_db": -3.5204759409906936,
+          "peak_dbfs": -15.39878312480676
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.28423051370413,
+          "stem_to_mix_db": -15.533072571482432,
+          "peak_dbfs": -24.847610539690752
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.75218205812247,
+          "stem_to_mix_db": -3.001024115900778,
+          "peak_dbfs": -17.83202576072282
+        }
+      }
+    },
+    {
+      "phrase": 15,
+      "section": 1,
+      "start_bar": 60,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -35.66646600772708,
+          "stem_to_mix_db": -11.916807199428893,
+          "peak_dbfs": -17.344213892235107
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.271210890307792,
+          "stem_to_mix_db": -3.5215520820096007,
+          "peak_dbfs": -15.398454694946649
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.28439758814106,
+          "stem_to_mix_db": -15.534738779842872,
+          "peak_dbfs": -24.847610539690752
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.752186365821828,
+          "stem_to_mix_db": -3.002527557523633,
+          "peak_dbfs": -17.83202576072282
+        }
+      }
+    },
+    {
+      "phrase": 16,
+      "section": 2,
+      "start_bar": 64,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -36.26900438880551,
+          "stem_to_mix_db": -12.422189156368294,
+          "peak_dbfs": -17.642929440004508
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.407308216520395,
+          "stem_to_mix_db": -3.560492984083174,
+          "peak_dbfs": -16.086483449429075
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.415280619866294,
+          "stem_to_mix_db": -15.568465387429072,
+          "peak_dbfs": -24.73437759380183
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.808849898806745,
+          "stem_to_mix_db": -2.9620346663695267,
+          "peak_dbfs": -17.52845256476932
+        }
+      }
+    },
+    {
+      "phrase": 17,
+      "section": 2,
+      "start_bar": 68,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -36.27026643507435,
+          "stem_to_mix_db": -12.339104265854248,
+          "peak_dbfs": -18.006529254669697
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.328744129427413,
+          "stem_to_mix_db": -3.3975819602073125,
+          "peak_dbfs": -16.086123835842827
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.415280619866294,
+          "stem_to_mix_db": -15.484118450646193,
+          "peak_dbfs": -24.73437759380183
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.8064022264887,
+          "stem_to_mix_db": -2.875240057268601,
+          "peak_dbfs": -17.52845256476932
+        }
+      }
+    },
+    {
+      "phrase": 18,
+      "section": 2,
+      "start_bar": 72,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -36.2688307462482,
+          "stem_to_mix_db": -12.33773204573623,
+          "peak_dbfs": -17.803376831037372
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.328443894049812,
+          "stem_to_mix_db": -3.397345193537848,
+          "peak_dbfs": -16.085954756618975
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.415280619866294,
+          "stem_to_mix_db": -15.484181919354327,
+          "peak_dbfs": -24.73437759380183
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.8064022264887,
+          "stem_to_mix_db": -2.875303525976734,
+          "peak_dbfs": -17.52845256476932
+        }
+      }
+    },
+    {
+      "phrase": 19,
+      "section": 2,
+      "start_bar": 76,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -36.26997171557006,
+          "stem_to_mix_db": -12.338988076069308,
+          "peak_dbfs": -17.911625951672
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.328588987329244,
+          "stem_to_mix_db": -3.397605347828496,
+          "peak_dbfs": -16.086316837613733
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.415280619866294,
+          "stem_to_mix_db": -15.484296980365546,
+          "peak_dbfs": -24.73437759380183
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.8064022264887,
+          "stem_to_mix_db": -2.8754185869879527,
+          "peak_dbfs": -17.52845256476932
+        }
+      }
+    },
+    {
+      "phrase": 20,
+      "section": 2,
+      "start_bar": 80,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -36.27123950397036,
+          "stem_to_mix_db": -12.339870183653588,
+          "peak_dbfs": -18.15770410597849
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.328770211539243,
+          "stem_to_mix_db": -3.3974008912224685,
+          "peak_dbfs": -16.08554815517958
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.415280619866294,
+          "stem_to_mix_db": -15.483911299549522,
+          "peak_dbfs": -24.73437759380183
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.8064022264887,
+          "stem_to_mix_db": -2.875032906171928,
+          "peak_dbfs": -17.52845256476932
+        }
+      }
+    },
+    {
+      "phrase": 21,
+      "section": 2,
+      "start_bar": 84,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -36.26860310735799,
+          "stem_to_mix_db": -12.337689878529554,
+          "peak_dbfs": -17.596616520223943
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.328561741949912,
+          "stem_to_mix_db": -3.397648513121476,
+          "peak_dbfs": -16.086382822108874
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.415280619866294,
+          "stem_to_mix_db": -15.484367391037859,
+          "peak_dbfs": -24.73437759380183
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.8064022264887,
+          "stem_to_mix_db": -2.875488997660265,
+          "peak_dbfs": -17.52845256476932
+        }
+      }
+    },
+    {
+      "phrase": 22,
+      "section": 2,
+      "start_bar": 88,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -36.26558352926559,
+          "stem_to_mix_db": -12.334503528210849,
+          "peak_dbfs": -18.21321580742837
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.328710626933905,
+          "stem_to_mix_db": -3.3976306258791658,
+          "peak_dbfs": -16.085501970418655
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.415280619866294,
+          "stem_to_mix_db": -15.484200618811553,
+          "peak_dbfs": -24.73437759380183
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.8064022264887,
+          "stem_to_mix_db": -2.8753222254339605,
+          "peak_dbfs": -17.52845256476932
+        }
+      }
+    },
+    {
+      "phrase": 23,
+      "section": 2,
+      "start_bar": 92,
+      "roles": {
+        "pulso": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -36.267964923174965,
+          "stem_to_mix_db": -12.336770553667236,
+          "peak_dbfs": -17.634208516534326
+        },
+        "corpo": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -27.328411909046892,
+          "stem_to_mix_db": -3.3972175395391617,
+          "peak_dbfs": -16.085945684168298
+        },
+        "trama": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -39.415280619866294,
+          "stem_to_mix_db": -15.484086250358564,
+          "peak_dbfs": -24.73437759380183
+        },
+        "vettore": {
+          "planned": true,
+          "signal": "PRESENT",
+          "rms_dbfs": -26.8064022264887,
+          "stem_to_mix_db": -2.875207856980972,
+          "peak_dbfs": -17.52845256476932
+        }
+      }
+    }
+  ]
+}

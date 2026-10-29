@@ -4,13 +4,16 @@
 #include "fixed_step.h"
 #include "input_dispatcher.h"
 #include "acao02_calibration.h"
+#include "evaluation_pack.h"
 #include "onset_parity.h"
 #include "raylib.h"
 #include "run_record.h"
 
+#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -42,7 +45,44 @@ constexpr float kAmplitude = 0.08f;
 
 int main(int argc, char** argv) {
     double smokeSeconds = 0.0; // 0 = run until the window is closed
+    // Options of the evaluation pack and of its checker (ADR-0006 D-M2-15), read before any scenario runs.
+    // The sealed part defaults outside artifacts/cacp so that it never sits next to the public files.
+    std::uint64_t packSeed = cymatica::cacp::kDefaultPackSeed;
+    std::string sealedDir = "artifacts/sealed/evaluation_pack_v1";
+    std::string reportPath;
     for (int i = 1; i < argc; ++i) {
+        const bool valueOption = std::strcmp(argv[i], "--pack-seed") == 0 || std::strcmp(argv[i], "--sealed-dir") == 0 ||
+                                 std::strcmp(argv[i], "--report") == 0 || std::strcmp(argv[i], "--cacp-check-evaluation") == 0;
+        if (valueOption && i + 1 >= argc) {
+            std::fprintf(stderr, "[cacp] ERROR: %s requires a value\n", argv[i]);
+            return 2;
+        }
+        if (std::strcmp(argv[i], "--pack-seed") == 0) {
+            // Decimal digits only, within uint64 (AG-5d-06): a malformed seed never becomes 0 or a wrapped value
+            const std::string v = argv[i + 1];
+            errno = 0;
+            char* end = nullptr;
+            const unsigned long long parsed = std::strtoull(v.c_str(), &end, 10);
+            if (v.empty() || v.find_first_not_of("0123456789") != std::string::npos || errno == ERANGE || *end != '\0') {
+                std::fprintf(stderr, "[cacp] ERROR: --pack-seed needs an unsigned decimal integer, got '%s'\n", v.c_str());
+                return 2;
+            }
+            packSeed = parsed;
+        }
+        if (std::strcmp(argv[i], "--sealed-dir") == 0) sealedDir = argv[i + 1];
+        if (std::strcmp(argv[i], "--report") == 0) reportPath = argv[i + 1];
+    }
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--cacp-check-evaluation") == 0 && i + 1 < argc) {
+            const std::string resultPath = argv[++i];
+            if (reportPath.empty()) reportPath = resultPath + ".check.json";
+            std::printf("[cacp] Checking evaluation result '%s' against '%s' (claims_v0, not a gate)...\n", resultPath.c_str(),
+                        sealedDir.c_str());
+            const auto rep = cymatica::cacp::runEvaluationCheck(resultPath, sealedDir, reportPath);
+            std::printf("%s\n", rep.toJson().c_str());
+            std::printf("[cacp] Report: %s\n", reportPath.c_str());
+            return rep.checked ? 0 : 1;
+        }
         if (std::strcmp(argv[i], "--smoke-seconds") == 0 && i + 1 < argc) {
             smokeSeconds = std::atof(argv[++i]);
         } else if (std::strcmp(argv[i], "--cacp-run") == 0 && i + 1 < argc) {
@@ -95,6 +135,16 @@ int main(int argc, char** argv) {
                 std::printf("%s\n", res.toJson().c_str());
                 // 0 only for a measurement on valid data with its manifest written (DIF-5c-02); never a gate
                 return (res.completed && res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
+            } else if (std::strcmp(scenario, "evaluation_pack") == 0 || std::strcmp(scenario, "evaluation_pack_v1") == 0) {
+                std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5d evaluation_pack_v1, not a gate)...\n", scenario);
+                if (packSeed == cymatica::cacp::kDefaultPackSeed) {
+                    std::printf("[cacp] Default public selection seed: the pack is reproducible but never valid for a blind session "
+                                "(pass --pack-seed)\n");
+                }
+                auto res = cymatica::cacp::runEvaluationPackV1("artifacts/cacp/evaluation_pack_v1", sealedDir, packSeed);
+                std::printf("[cacp] Verdict: %s\n", res.status.c_str());
+                std::printf("%s\n", res.toJson().c_str());
+                return (res.ok && res.manifestWriteSuccess) ? 0 : 1;
             } else if (std::strcmp(scenario, "onset_parity") == 0 ||
                        std::strcmp(scenario, "onset_parity_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5b onset_parity_v1, not a gate)...\n", scenario);
@@ -104,7 +154,7 @@ int main(int argc, char** argv) {
                 return (res.completed && res.inputValid) ? 0 : 1;
             } else {
                 std::fprintf(stderr, "[cacp] ERROR: unknown scenario '%s' (known: tone_test, voice_test, "
-                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, onset_parity, acao02 "
+                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, onset_parity, acao02, evaluation_pack "
                                      "and their *_v* aliases)\n",
                              scenario);
                 return 2;

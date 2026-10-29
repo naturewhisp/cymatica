@@ -10,7 +10,7 @@ Ultimo aggiornamento: 2026-10-19 (Milestone 2 — M2.4 Inc-1 completato e Gate p
 | **miniaudio** | 0.11.25 | `9634bedb5b5a2ca38c1ee7108a9358a4e233f14d` | Vendored in `third_party/miniaudio/` | Public Domain / MIT No Attribution | `cymatica_audio` | `engine/audio` |
 | **raylib** | 6.0 | `dbc56a87da87d973a9c5baa4e7438a9d20121d28` | CMake `FetchContent` (pinned SHA) | Zlib | `cymatica_game` | `apps/cymatica_game` |
 | **Catch2** | v3.16.0 | `317ac1ed4c0bb6e6b91eafc817e05c488feffcb3` | CMake `FetchContent` (pinned SHA) | BSL-1.0 (Boost) | `cymatica_tests` | Test suite |
-| **nlohmann/json** | v3.11.3 | `9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03` | CMake `FetchContent` (pinned SHA) | MIT | `cymatica_replay` | `engine/replay` |
+| **nlohmann/json** | v3.11.3 | `9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03` | CMake `FetchContent` (pinned SHA) | MIT | `cymatica_replay`, `cymatica_cacp` | `engine/replay`, `engine/cacp` |
 
 ---
 
@@ -61,7 +61,7 @@ Ultimo aggiornamento: 2026-10-19 (Milestone 2 — M2.4 Inc-1 completato e Gate p
 - **Licenza:** MIT (permissiva, compatibile commerciale e open source).
 - **Piattaforme:** Tutte (C++ standard).
 - **Target CMake:** `nlohmann_json::nlohmann_json`.
-- **Vincoli architetturali:** Confinata al target `cymatica_replay` e ai relativi test. `engine/core` resta indipendente da JSON (ADR-0002).
+- **Vincoli architetturali:** Confinata ai target `cymatica_replay` e `cymatica_cacp` (dal 2026-10-29, Inc-5 fase 5d: verità sigillata, pacchetto di valutazione e checker di `evaluation_result_v0`, ADR-0006 D-M2-15) e ai relativi test. Stessa versione e stesso SHA, nessuna nuova dipendenza. `engine/core` e `engine/audio` restano indipendenti da JSON (ADR-0002).
 - **Configurazione CMake:** `JSON_BuildTests=OFF`, `JSON_Install=OFF`.
 
 ---

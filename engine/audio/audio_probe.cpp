@@ -1740,6 +1740,8 @@ PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool w
         }
         if (capture->stereo != nullptr) *capture->stereo = recordedStereo;
         if (capture->appliedOverflow != nullptr) *capture->appliedOverflow = plannerAppliedLog.overflow();
+        if (capture->intents != nullptr) *capture->intents = allIntents;
+        if (capture->noteOffs != nullptr) *capture->noteOffs = mainRun.noteOffs;
     }
 
     result.committedEvents = static_cast<std::uint32_t>(scheduler.totalDispatchedEvents());
@@ -2620,6 +2622,11 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
         capture->applied->assign(appliedLog.records().begin(), appliedLog.records().end());
     }
     if (capture != nullptr && capture->appliedOverflow != nullptr) *capture->appliedOverflow = appliedLog.overflow();
+    if (capture != nullptr && capture->intents != nullptr) {
+        capture->intents->clear();
+        for (const auto& v : coordinator.jitIntents()) capture->intents->insert(capture->intents->end(), v.begin(), v.end());
+    }
+    if (capture != nullptr && capture->noteOffs != nullptr) *capture->noteOffs = coordinator.noteOffsAtStop();
 
     // A NoteOn of the terminated run delivered after the Stop must never sound (old epoch < minValidEpoch).
     // Probe-only check on the stopped engine, outside the recorded capture.

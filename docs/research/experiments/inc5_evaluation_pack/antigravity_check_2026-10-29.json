@@ -1,0 +1,66 @@
+{
+  "report": "evaluation_check_v0",
+  "gate": false,
+  "checked": true,
+  "pack_mode": "blind",
+  "result_admissible": true,
+  "blind_qualified": false,
+  "blind_not_qualified_reasons": [
+    "access to repository"
+  ],
+  "outcome_counts": {
+    "abstained": 1,
+    "compatible": 44,
+    "supported": 103,
+    "unverifiable": 2
+  },
+  "controls": {
+    "altered_plan_following_claims": 0,
+    "catch_trial_failed": false,
+    "duplicate_pairs_agreeing": 13,
+    "duplicate_pairs_compared": 13
+  },
+  "role_signal_present_scoring": {
+    "above_trivial_baseline": true,
+    "sensitivity": {
+      "successes": 36,
+      "trials": 36,
+      "value": 1.0,
+      "wilson95_high": 1.0,
+      "wilson95_low": 0.9035781695514236
+    },
+    "specificity": {
+      "successes": 4,
+      "trials": 4,
+      "value": 1.0,
+      "wilson95_high": 1.0,
+      "wilson95_low": 0.5100999795960008
+    },
+    "status": "MEASURED"
+  },
+  "evaluator": {
+    "type": "agent",
+    "model": "Gemini 4 Argon (Medium)",
+    "version": "2026-10"
+  },
+  "channel": {
+    "audio_channels": 1,
+    "sample_rate_hz": 16000,
+    "bitrate_kbps": 16,
+    "tokens_per_s": 32,
+    "image_resolution": "1056x128"
+  },
+  "access": {
+    "repository": true,
+    "sealed": false,
+    "diagnostic_pack": false,
+    "code_execution": true,
+    "filesystem": true,
+    "network": false
+  },
+  "claims": 150,
+  "input_files": 45,
+  "pack_seed": "8675309 (public: recorded in progress.md; key also printed in the authoring session transcript)",
+  "checker_version": "5d before the AG-5d remediation",
+  "note": "aggregate only; not blind (repository and code access declared); supplementary evidence, never a gate"
+}

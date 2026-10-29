@@ -3,22 +3,22 @@
 Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa resta nella specifica (§32); questo file registra solo stato, decisioni ed evidenze.
 
 
-> **Stato M2.4 (2026-10-21):** Inc-1..Inc-4 implementati, committati su `main` fino a [`b0f466f`](https://github.com/naturewhisp/cymatica/commit/b0f466f) e verificati in CI ([run 39674430446](https://github.com/naturewhisp/cymatica/actions/runs/39674430446), Release e Debug PASS). La revisione post-Inc-4 interna (R2, rilievi DIF-INC4-R2-01..07) è chiusa: vedi [«Revisione post-Inc-4»](#revisione-post-inc-4-2026-10-21). Una revisione esterna successiva (R3, 2026-10-21) ha aperto 5 rilievi: R3-01 (opzione B del titolare, arresto terminale fail-closed), R3-02, R3-03 e R3-04 sono corretti nel commit `b0f466f`, con CI verde; per R3-05 la scadenza proposta è M2.5. Due precisazioni residue non bloccanti sono registrate nella stessa sezione: l'hash del piano JIT è assegnato a Inc-5, lo stato del registro è aggiornato. Vedi [«Revisione esterna R3»](#revisione-esterna-r3-post-inc-4-2026-10-21). Le decisioni di [ADR-0005](adr/0005-m2-4-inc4-entry-decisions.md) restano `accepted for implementation` e la ratifica del titolare è richiesta prima della chiusura di M2.4. Le raccomandazioni R1–R6 del dossier sui metodi CACP sono approvate per Inc-5. **Inc-5 è avviato a fasi (2026-10-26):** le fasi 5.0 ([ADR-0006](adr/0006-m2-4-inc5-entry-decisions.md)), 5a (catena O3, `be91198`) e 5b (primitive di analisi, `d86f6bb`) sono chiuse con review indipendente OK; la fase 5c (stem per ruolo e calibrazione di AC-AO-02) è committata in `a6f360a`: la review indipendente ha dato **NON OK** (DIF-5c-01/02) e la micro-remediation DIF-5c-01/02 è in `0a1af41` (CI verde); la review mirata ha aperto DIF-5c-R2-01 (MED), corretto e committato su approvazione del titolare, in attesa di review; 5d e 5e non sono autorizzate. Vedi [«M2.4 Inc-5 — piano a fasi»](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26). Questa riga e la tabella «Stato corrente» sono l'unico record dello stato; le sezioni successive sono registri storici e alcune affermazioni sono corrette da errata espliciti.
+> **Stato M2.4 (2026-10-21):** Inc-1..Inc-4 implementati, committati su `main` fino a [`b0f466f`](https://github.com/naturewhisp/cymatica/commit/b0f466f) e verificati in CI ([run 39674430446](https://github.com/naturewhisp/cymatica/actions/runs/39674430446), Release e Debug PASS). La revisione post-Inc-4 interna (R2, rilievi DIF-INC4-R2-01..07) è chiusa: vedi [«Revisione post-Inc-4»](#revisione-post-inc-4-2026-10-21). Una revisione esterna successiva (R3, 2026-10-21) ha aperto 5 rilievi: R3-01 (opzione B del titolare, arresto terminale fail-closed), R3-02, R3-03 e R3-04 sono corretti nel commit `b0f466f`, con CI verde; per R3-05 la scadenza proposta è M2.5. Due precisazioni residue non bloccanti sono registrate nella stessa sezione: l'hash del piano JIT è assegnato a Inc-5, lo stato del registro è aggiornato. Vedi [«Revisione esterna R3»](#revisione-esterna-r3-post-inc-4-2026-10-21). Le decisioni di [ADR-0005](adr/0005-m2-4-inc4-entry-decisions.md) restano `accepted for implementation` e la ratifica del titolare è richiesta prima della chiusura di M2.4. Le raccomandazioni R1–R6 del dossier sui metodi CACP sono approvate per Inc-5. **Inc-5 è avviato a fasi (2026-10-26):** le fasi 5.0 ([ADR-0006](adr/0006-m2-4-inc5-entry-decisions.md)), 5a (catena O3, `be91198`) e 5b (primitive di analisi, `d86f6bb`) sono chiuse con review indipendente OK; la fase 5c (stem per ruolo e calibrazione di AC-AO-02) è committata in `a6f360a`: la review indipendente ha dato **NON OK** (DIF-5c-01/02) e la micro-remediation DIF-5c-01/02 è in `0a1af41` e la correzione di DIF-5c-R2-01 in `3f026c2`. La fase è **chiusa** con review OK e CI verde su `3f026c2`. La fase 5d (evaluation pack e checker) è committata su approvazione del titolare, in attesa di review indipendente; 5e non è autorizzata. Vedi [«M2.4 Inc-5 — piano a fasi»](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26). Questa riga e la tabella «Stato corrente» sono l'unico record dello stato; le sezioni successive sono registri storici e alcune affermazioni sono corrette da errata espliciti.
 
 ## Stato corrente
 
 | Campo | Valore |
 |---|---|
-| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse; **M2.4: Inc-1..Inc-4 implementati e committati (CI verde su `8ba772e`); remediation R2 chiusa; revisione esterna R3 con R3-01..04 corretti in `b0f466f` (CI verde), R3-05 proposto per M2.5** ([Revisione esterna R3](#revisione-esterna-r3-post-inc-4-2026-10-21)); Inc-5 avviato a fasi: 5.0, 5a e 5b chiuse (review indipendente OK), 5c: DIF-5c-01/02 corretti in `0a1af41`, DIF-5c-R2-01 corretto e in review, 5d non autorizzata ([piano a fasi](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26)); M2.5 gate d'integrazione finale. M2 complessiva non conclusa. |
+| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse; **M2.4: Inc-1..Inc-4 implementati e committati (CI verde su `8ba772e`); remediation R2 chiusa; revisione esterna R3 con R3-01..04 corretti in `b0f466f` (CI verde), R3-05 proposto per M2.5** ([Revisione esterna R3](#revisione-esterna-r3-post-inc-4-2026-10-21)); Inc-5 avviato a fasi: 5.0, 5a e 5b chiuse (review indipendente OK), 5c chiusa (review OK, `3f026c2`), 5d committata, review indipendente in attesa, 5e non autorizzata ([piano a fasi](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26)); M2.5 gate d'integrazione finale. M2 complessiva non conclusa. |
 | Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
 | Stato M1 | **Completata: review indipendente OK, zero difetti residui, gate round 3 passati** |
 | Specifica | Versione **0.8.3**, roadmap §32 invariata; ADR-0003, ADR-0004 (emendamento §4.3 del 2026-10-20) e ADR-0005 (ingresso Inc-4) specificano i contratti di M2.4 senza modificare i requisiti di milestone. |
 | Design | 0.3.1 (baseline identità 0.3 approvata il 2026-10-06; osservazione agentica documentata il 2026-10-07) |
 | Evidenza storica M1 | `b39bddb46449ee0b203c7234746185ba241d9a42`; Release 41/41, Debug 41/41, Headless 40/40, smoke exit 0, `/W4` zero warning; [evidenze](m1_review_round3.md). Questi risultati appartengono al gate M1. |
-| Ultima CI Headless verificata | [`0a1af41`](https://github.com/naturewhisp/cymatica/commit/0a1af41ad5f98b4977dea5d29da593e982f148dc): [run 40935971879](https://github.com/naturewhisp/cymatica/actions/runs/40935971879), job Release e Debug (windows-2025) `success`, verificato con `gh run view` il 2026-10-29. Precedente: [`a6f360a`](https://github.com/naturewhisp/cymatica/commit/a6f360a8a4c60afc82df8a5e5a365d6245b81a89), [run 40933343552](https://github.com/naturewhisp/cymatica/actions/runs/40933343552). Precedente: [`b0f466f`](https://github.com/naturewhisp/cymatica/commit/b0f466f): [GitHub Actions run 39674430446](https://github.com/naturewhisp/cymatica/actions/runs/39674430446) «Windows CI», job Release (windows-2025) e Debug (windows-2025) `success`, verificato con `gh run view` il 2026-10-21. Precedente: `8ba772e`, [run 39671112436](https://github.com/naturewhisp/cymatica/actions/runs/39671112436); il dettaglio dei suoi log (140/140 headless per configurazione, CACP `tone_test` PASS) viene dalla revisione esterna R3. La CI esclude i test `perf`, valutati sulle misure locali archiviate. Non sostituisce collaudo hardware o giudizio artistico. |
+| Ultima CI Headless verificata | [`3f026c2`](https://github.com/naturewhisp/cymatica/commit/3f026c285c17cd9219eecb0168e048cf18cdb90b): [run 40937081552](https://github.com/naturewhisp/cymatica/actions/runs/40937081552), job Release e Debug (windows-2025) `success`, verificato con `gh run view` il 2026-10-29. Precedente: [`0a1af41`](https://github.com/naturewhisp/cymatica/commit/0a1af41ad5f98b4977dea5d29da593e982f148dc), [run 40935971879](https://github.com/naturewhisp/cymatica/actions/runs/40935971879). Precedente: [`a6f360a`](https://github.com/naturewhisp/cymatica/commit/a6f360a8a4c60afc82df8a5e5a365d6245b81a89), [run 40933343552](https://github.com/naturewhisp/cymatica/actions/runs/40933343552). Precedente: [`b0f466f`](https://github.com/naturewhisp/cymatica/commit/b0f466f): [GitHub Actions run 39674430446](https://github.com/naturewhisp/cymatica/actions/runs/39674430446) «Windows CI», job Release (windows-2025) e Debug (windows-2025) `success`, verificato con `gh run view` il 2026-10-21. Precedente: `8ba772e`, [run 39671112436](https://github.com/naturewhisp/cymatica/actions/runs/39671112436); il dettaglio dei suoi log (140/140 headless per configurazione, CACP `tone_test` PASS) viene dalla revisione esterna R3. La CI esclude i test `perf`, valutati sulle misure locali archiviate. Non sostituisce collaudo hardware o giudizio artistico. |
 | Integrazione documentale M2.4 | Contratti D-M2-04..07 (ADR-0003); AUD-D-01..04 ed emendamento §4.3 (ADR-0004); D-M2-08..11 d'ingresso Inc-4 (ADR-0005); D-M2-12..16 d'ingresso Inc-5 (ADR-0006, in review); tutti `accepted for implementation`; nessun profilo sperimentale `validated`. |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_core` (static lib), `cymatica_replay` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
-| Ultimo aggiornamento | 2026-10-29 (Inc-5: review mirata di `0a1af41` NON OK per DIF-5c-R2-01; correzione committata su approvazione del titolare, 173/173 Release e Debug headless; review in attesa). Precedente: stesso giorno (Inc-5: review indipendente di 5c NON OK, micro-remediation DIF-5c-01/02 committata su approvazione del titolare, 172/172 Release e Debug headless; review mirata in attesa). Precedente: stesso giorno (Inc-5: 5b chiusa con review OK su `d86f6bb`; 5c implementata, 169/169 Release e Debug headless, scenario `acao02_v1` MEASURED, committata su approvazione del titolare; review indipendente in attesa). Precedente: stesso giorno, micro-remediation DIF-5b-01..03. Precedente: 2026-10-27 (5b committata su approvazione del titolare). Precedente, stesso giorno (Inc-5 fase 5.0: ADR-0006 con D-M2-12..16, piano a fasi con review obbligatoria, registro INC5-REV-01..05; non committato). Precedente: 2026-10-21 (micro-remediation R3 committata in `b0f466f` con CI verde: R3-01 arresto sicuro fail-closed (D-INC4-R3-01), R3-02 contabilità eventi, R3-03 hash canonico condiviso, R3-04 stato documentale; R3-05 proposto per M2.5; hash del piano JIT assegnato a Inc-5) |
+| Ultimo aggiornamento | 2026-10-29 (Inc-5: 5c chiusa con review OK su `3f026c2`; 5d implementata e corretta dopo il secondo parere di Antigravity (AG-5d-01/02/03/05/06/07), 183/183 Release e Debug headless, scenario `evaluation_pack_v1` GENERATED con ripetizione identica, committata su approvazione del titolare; review indipendente in attesa). Precedente: stesso giorno (Inc-5: review mirata di `0a1af41` NON OK per DIF-5c-R2-01; correzione committata su approvazione del titolare, 173/173 Release e Debug headless; review in attesa). Precedente: stesso giorno (Inc-5: review indipendente di 5c NON OK, micro-remediation DIF-5c-01/02 committata su approvazione del titolare, 172/172 Release e Debug headless; review mirata in attesa). Precedente: stesso giorno (Inc-5: 5b chiusa con review OK su `d86f6bb`; 5c implementata, 169/169 Release e Debug headless, scenario `acao02_v1` MEASURED, committata su approvazione del titolare; review indipendente in attesa). Precedente: stesso giorno, micro-remediation DIF-5b-01..03. Precedente: 2026-10-27 (5b committata su approvazione del titolare). Precedente, stesso giorno (Inc-5 fase 5.0: ADR-0006 con D-M2-12..16, piano a fasi con review obbligatoria, registro INC5-REV-01..05; non committato). Precedente: 2026-10-21 (micro-remediation R3 committata in `b0f466f` con CI verde: R3-01 arresto sicuro fail-closed (D-INC4-R3-01), R3-02 contabilità eventi, R3-03 hash canonico condiviso, R3-04 stato documentale; R3-05 proposto per M2.5; hash del piano JIT assegnato a Inc-5) |
 
 ## Decisioni d'ingresso M0
 
@@ -129,6 +129,10 @@ Da riesaminare all'ingresso di M2.5 (AGENTS §1.1). Si valutano con il metodo de
 - **Agenti con ingestione audio (es. Gemini/Antigravity):** solo dopo 5d, attraverso il pacchetto in cieco e il checker dei risultati v0, e mai come gate.
   - Il motivo è documentato: canale mono a 16 Kbps e 32 token/s, quindi nessuna affermazione su fenomeni sotto ~31 ms come il rilascio di 2 ms (D-M2-11).
   - Le domande sì/no sulla presenza di un suono sono poco affidabili (dossier sui metodi CACP §3.1).
+- **Review qualitativa e tecnica con Antigravity (decisione del titolare, 2026-10-29):** a fine Inc-5, insieme alla revisione dell'esperto, Antigravity esamina anche le decisioni di [ADR-0006](adr/0006-m2-4-inc5-entry-decisions.md), comprese le precisazioni 5d.
+  - Per i punti aperti di ADR-0006 si avviano, se servono, ricerche approfondite di supporto, con fonti documentate.
+  - Punti aperti già noti: soglie di presenza non validate (5d-03); scelta fra precisione grezza e precisione senza rilasci per AC-AO-02; richiamo della Trama 0,75 nel set B; diversità fra seed nulla.
+  - L'ascolto con ingestione audio passa dal pacchetto `blind` e dal checker, come sopra.
 
 **Principi del titolare per F1–F5 (2026-10-28):**
 
@@ -885,8 +889,8 @@ L'ordine 5a → 5b → 5c → 5d → 5e è invariato. Inc-5 non introduce nuove 
 | 5.0 | ADR-0006, decisioni D-M2-12..16, confini realtime/offline, definizioni delle metriche | decisioni coerenti e documentate; review OK | **chiusa**: review OK il 2026-10-26 su [`1d39e88`](https://github.com/naturewhisp/cymatica/commit/1d39e881ea3858161ca78cc47845503d69e54ef4), dopo tre cicli di correzione (`431b03f`, `1624142`, `a235997`, `1d39e88`) |
 | 5a | registro degli eventi applicati, confronto JIT/offline, catena O3, fault injection, overflow, profilazione | eventi verificati esattamente; nessun difetto di concorrenza o regressione | **chiusa**: `8f3dfab` + micro-remediation [`be91198`](https://github.com/naturewhisp/cymatica/commit/be9119812ea9bb4e9f4df0640a2fcf7d49c30594); review indipendente OK il 2026-10-26; CI verde su `be91198` (run 40405902875) |
 | 5b | FFT/STFT, onset, mel, SHA-256, PNG, Side/Mid, LUFS | test contro oracoli indipendenti e vettori di riferimento; parità numerica documentata | **chiusa**: `a8c3fbe` + `85bbc4f` + [`d86f6bb`](https://github.com/naturewhisp/cymatica/commit/d86f6bbb61829d7ad2b84a346abdd9b5b8e2fffa); review indipendente OK (2026-10-29); CI verde su `d86f6bb` (run 40748864764) |
-| 5c | stem per ruolo, ricostruzione del mix dei bus, calibrazione e verifica AC-AO-02 | risultati misurati, soglie proposte, generalizzazione dimostrata oppure esplicitamente inconcludente | autorizzata il 2026-10-29 (subordinata alla CI di `d86f6bb`, verde); committata in `a6f360a`; review NON OK (DIF-5c-01/02), corretti in `0a1af41` (CI verde, run 40935971879); review mirata NON OK (DIF-5c-R2-01, MED); correzione committata su approvazione del titolare («OK, commit»), in attesa di review |
-| 5d | evaluation pack, controllo degli hash, separazione della ground truth, checker delle affermazioni | nessun leakage; test positivi e negativi del checker superati | non autorizzata |
+| 5c | stem per ruolo, ricostruzione del mix dei bus, calibrazione e verifica AC-AO-02 | risultati misurati, soglie proposte, generalizzazione dimostrata oppure esplicitamente inconcludente | **chiusa**: `a6f360a` + `0a1af41` + [`3f026c2`](https://github.com/naturewhisp/cymatica/commit/3f026c285c17cd9219eecb0168e048cf18cdb90b); review indipendente OK (2026-10-29); CI verde su `3f026c2` (run 40937081552) |
+| 5d | evaluation pack, controllo degli hash, separazione della ground truth, checker delle affermazioni | nessun leakage; test positivi e negativi del checker superati | autorizzata il 2026-10-29 (subordinata alla CI di `3f026c2`, verde); implementata e **committata** su approvazione del titolare («OK, commit»); esito della review indipendente **in attesa** |
 | 5e | suite completa, LUFS esplorativo, multi-seed, evidenze percettive, handoff | dossier riproducibile, tutti i gate obbligatori superati e review tecnica OK | non autorizzata |
 
 Ogni fase che tocca il codice si chiude con:
@@ -1349,3 +1353,137 @@ La review considera risolti DIF-5c-01 e DIF-5c-02 sul percorso di acquisizione, 
 | `acao02_v1` (Release) | `cymatica_game --cacp-run acao02_v1` | **MEASURED**, uscita 0, `inconclusive_reasons` vuoto. Tutti gli insiemi hanno `invalid_capture` e `invalid_analysis` false. Misure identiche al manifest archiviato, che è rigenerato con il nuovo campo. |
 
 **Stato (2026-10-29):** correzione DIF-5c-R2-01 committata su approvazione del titolare («OK, commit»). L'esito della review si registrerà quando sarà comunicato (DIF-5a-02). 5d e 5e non sono autorizzate.
+
+**Chiusura di 5c (review indipendente di `3f026c2`, 2026-10-29):** verdetto **OK**. DIF-5c-R2-01 è risolto; nessun nuovo difetto bloccante. La CI su `3f026c2` ([run 40937081552](https://github.com/naturewhisp/cymatica/actions/runs/40937081552)) è verde in Release e Debug, verificato con `gh run view`. 5d è autorizzata, subordinata alla CI verde.
+
+- *Osservazione per 5d:* `NO_REFERENCES` serializza ancora campi numerici a zero. Il checker di 5d deve leggere i punteggi solo con stato `MEASURED` e trattare tutti gli altri come non disponibili, preferibilmente `null` nei nuovi manifest.
+- *Multi-seed:* la generalizzazione su altri seed resta `INCONCLUSIVE` per diversità nulla. Non è un fallimento di 5c, ma non permette di dichiarare AC-AO-02 validato.
+
+### Fase 5d — evaluation pack e checker delle affermazioni (2026-10-29, committata, review indipendente in attesa)
+
+Lo stato è **implementata e committata** su approvazione del titolare («OK, commit»); l'esito della review indipendente si registrerà quando sarà comunicato (DIF-5a-02). 5e non è autorizzata.
+
+- **Decisioni:** le scelte che ADR-0006 rimandava alla review di 5d sono le precisazioni 5d-01..15 in [ADR-0006](adr/0006-m2-4-inc5-entry-decisions.md) D-M2-15, in stato `accepted for implementation`.
+- **Evidenze:** in [experiments/inc5_evaluation_pack/](research/experiments/inc5_evaluation_pack/).
+
+**Codice:**
+
+| File | Contenuto |
+|---|---|
+| [evaluation_pack.h](../engine/cacp/evaluation_pack.h) / [.cpp](../engine/cacp/evaluation_pack.cpp) | sorgente in memoria; livelli di verità per ruolo; costruzione deterministica di `public_blind/`, `public_diagnostic/` e `sealed/`; WAV con soli chunk `fmt` e `data`; mel Mid/Side in PNG; `SHA256SUMS`; checker `claims_v0` con controlli e baseline; scenario e controllo da CLI |
+| [audio_probe.h](../engine/audio/audio_probe.h) / [.cpp](../engine/audio/audio_probe.cpp) | `ProbeAnalysisCapture` restituisce anche gli intent e i NoteOff del planner (piano JIT per la fixture) |
+| [main.cpp](../apps/cymatica_game/main.cpp) | `--cacp-run evaluation_pack_v1 [--pack-seed N] [--sealed-dir P]`; `--cacp-check-evaluation <result.json> [--sealed-dir P] [--report P]` |
+| [engine/cacp/CMakeLists.txt](../engine/cacp/CMakeLists.txt), [dependencies.md](dependencies.md) | nlohmann/json (già fissata, ADR-0002) collegata anche a `cymatica_cacp` |
+
+Nella tabella dei comandi, `cymatica_game` indica `build/x64-release/apps/cymatica_game/cymatica_game.exe`.
+
+**Risultati** (fixture, Release; seed di selezione 8675309 per la prima esecuzione, 2718281828 dopo le correzioni AG-5d):
+
+- **Pacchetto `blind`:** 11 finestre, cioè 8 di prova, 1 duplicato, 1 item alterato e 1 catch trial, più 12 riferimenti. Sono 47 file pubblici, 27 MB. Dopo le correzioni AG-5d l'item alterato lascia 3 ruoli, una maschera esistente (`altered_mask_novel` false), e il PNG del duplicato differisce dall'originale nel 79 % dei byte (prima: 16 byte su 429.538).
+- **Pacchetto `diagnostic`:** 8 frasi intere, 59 file, 37 MB.
+- **Parte sigillata:** circa 100 KB.
+- **Ripetizione:** due rendering e due costruzioni danno file identici al byte.
+- **Presenza** ([presence_calibration](research/experiments/inc5_evaluation_pack/presence_calibration_2026-10-29.json)):
+  - ogni ruolo pianificato è `PRESENT`, con minimi di RMS −36,3 / −27,5 / −39,4 / −26,8 dBFS e di rapporto stem/mix −12,4 / −4,0 / −15,6 / −3,3 dB (Pulso, Corpo, Trama, Vettore);
+  - ogni ruolo non pianificato (Trama nelle frasi 0–3) è silenzio esatto;
+  - le soglie −60 dBFS e −30 dB sono coerenti con i dati ma **non validate**: non ci sono livelli intermedi (precisazione 5d-03).
+- **Baseline banale** «sempre presente», 44 affermazioni (prima esecuzione; dopo le correzioni [riepilogo](research/experiments/inc5_evaluation_pack/baseline_always_present_check_2026-10-29.json): 37 `supported`, 7 `contradicted`, specificità 0/3, stessi controlli falliti):
+  - 36 `supported` e 8 `contradicted` (accuratezza grezza 82 %);
+  - specificità 0/4, sensibilità 36/36 (Wilson inferiore 0,90);
+  - catch trial fallito, quindi statistiche `EXCLUDED_BY_CATCH_RULE`;
+  - 1 affermazione che segue il piano sull'item alterato; baseline banale non superata.
+
+  Mostra perché l'accuratezza grezza non basta.
+- **Ispezione visiva diretta** (AGENTS §5.1.2):
+  - nel mel Mid di una finestra di prova gli attacchi a banda larga cadono ogni ~0,5 s, cioè sui battiti a 120 BPM, e le armoniche sono stabili;
+  - nel riferimento della Trama si vedono pile armoniche separate da pause, con le basse frequenze in basso come dichiarato.
+
+**Test** ([test_evaluation_pack.cpp](../tests/unit/test_evaluation_pack.cpp), 10 casi dopo le correzioni AG-5d):
+
+- **Determinismo:** due rendering e due costruzioni di `planner_probe_v1` danno file identici. Un altro seed di selezione cambia gli ID ma non l'audio. La verità sigillata fa il giro completo attraverso JSON.
+- **Leakage della modalità `blind`:**
+  - nomi dei file ammessi;
+  - WAV con soli `RIFF`, `fmt` e `data`, tutti della stessa durata;
+  - PNG con soli `IHDR`, `IDAT` e `IEND`;
+  - nessun nome di ruolo nei file delle finestre;
+  - in `pack.json` voci delle finestre con 4 chiavi soltanto e nessun campo rivelatore né seed in chiaro (solo l'impegno);
+  - `SHA256SUMS` completo.
+- **Livelli di verità:** silenzio esatto, sotto il pavimento (−140 dBFS), sotto la soglia (−73 dBFS) e presente; ruolo rimosso → silenzio esatto; finestra fuori dagli stem → `UNAVAILABLE`, mai silenzio.
+- **Nota sostenuta** con il synth reale: Corpo da 0,5 a 3,5 s nella finestra [1, 3) s. `role_signal_present = true` dà `supported`, `role_onset_detected = true` dà `contradicted`, `role_audible = true` dà `compatible`.
+- **Checker:** ogni esito per ogni predicato. `role_audible` non è mai `supported`. È `contradicted` solo con silenzio esatto e `unverifiable` sotto il pavimento o sotto la soglia. Coperti anche:
+  - i casi `not_attributable` (stereo da mono, click a 32 token/s, `role_planned` non da codice, udibilità da codice);
+  - `abstained`;
+  - i casi `inadmissible` per finestra, metodo, predicato, ruolo, valore, spettrogramma senza riferimenti.
+- **Ammissibilità del risultato e qualifica alla cieca:**
+  - input sigillato, file `diagnostic` presentato come `blind`, input sconosciuto o assente, schema errato, accesso a `sealed/` dichiarato → tutto `inadmissible`;
+  - accesso al repository o non dichiarato, pacchetto `diagnostic` o seed di default → ammissibile ma non alla cieca.
+- **Controlli:** catch trial, item alterato, duplicati, intervallo di Wilson su valori noti (5/10 → 0,237–0,763).
+- **Integrità del sigillo:** un risultato che dichiara la verità sigillata è `inadmissible`; una verità alterata è rifiutata prima del controllo.
+- **Correzioni AG-5d:**
+  - affermazioni ripetute (dieci ripetizioni contano una volta; un `false` successivo non annulla un catch trial fallito né un'affermazione che segue il piano);
+  - input non dichiarati (finestra, riferimento, altra finestra di `stereo_wider_than`), mentre `code` non richiede input;
+  - valori `null` per misure non disponibili e tassi non misurati;
+  - spostamento e differenza dei PNG del duplicato;
+  - maschera esistente dell'item alterato.
+
+**Verifica** (working tree su `3f026c2`):
+
+| Check | Comando | Esito |
+|---|---|---|
+| Release + headless | `scripts/build.ps1 -Config Release -Test -Headless` | **183/183 PASS** (173 + 10), 0 `warning C` |
+| Debug + headless | `scripts/build.ps1 -Config Debug -Test -Headless` | **183/183 PASS**, 0 `warning C` |
+| Benchmark Release | `ctest --test-dir build/x64-release -L perf` | **2/2 PASS** |
+| `fixture_test` (Release) | `cymatica_game --cacp-run fixture_test` | **PASS**, uscita 0; hash PCM 15126969907236845529 invariato (la cattura degli intent non cambia l'audio) |
+| `acao02_v1` (Release) | `cymatica_game --cacp-run acao02_v1` | **MEASURED**, uscita 0, soglie `PROPOSED`: invariato |
+| `evaluation_pack_v1` (Release) | `cymatica_game --cacp-run evaluation_pack_v1 --pack-seed 2718281828` | **GENERATED**, uscita 0, `repeat_identical` true, circa 24 s. [Manifest](research/experiments/inc5_evaluation_pack/evaluation_pack_v1_manifest_2026-10-29.json) |
+| CLI fail-closed (Release) | `--pack-seed abc`, `--pack-seed -5`, `--cacp-check-evaluation` senza valore | uscita 2 in tutti e tre i casi |
+| `--cacp-check-evaluation` (Release) | baseline banale sul pacchetto `blind` | uscita 0; risultato ammissibile, qualificato alla cieca (seed non di default, accessi dichiarati falsi); esiti come sopra |
+
+
+#### Secondo parere di Antigravity su 5d (2026-10-29, supplementare)
+
+Su richiesta del titolare, Antigravity (dichiarato `Gemini 4 Argon (Medium)`) ha esaminato il working tree della fase 5d. Ha anche eseguito un test con ingestione audio sul pacchetto `blind` con seed 8675309. Il report è in `artifacts/antigravity_5d/` (non versionato); il riepilogo aggregato del checker è in [antigravity_check](research/experiments/inc5_evaluation_pack/antigravity_check_2026-10-29.json).
+
+- **Verdetto del secondo parere:** «OK con riserve». È una review supplementare, non la review indipendente di chiusura.
+
+**Rilievi, verificati dall'agente sul codice:**
+
+| ID | Sev. | Rilievo | Verifica | Esito |
+|---|---|---|---|---|
+| AG-5d-01 | MED | Le affermazioni ripetute per la stessa finestra, predicato e argomenti si sovrascrivevano: un `false` successivo annullava un catch trial fallito o un'affermazione che segue il piano. Inoltre gonfiavano TP/FN/TN/FP e l'intervallo di Wilson. | Confermato | Corretto (5d-15): dalla seconda in poi `inadmissible`, non contate |
+| AG-5d-02 | MED | Gli `input_hashes` erano controllati solo come insieme: un'affermazione poteva riferirsi a file mai dichiarati. | Confermato | Corretto (5d-15): richiesti il file della finestra per metodo e, per `spectrogram`, un riferimento etichettato |
+| AG-5d-03 | MED | Il duplicato con il solo guadagno −0,1 dB dava PNG quasi identici (verificato: 16 byte diversi su 429.538) e un WAV scalato di un fattore costante, quindi riconoscibile per confronto. L'item alterato lasciava 2 ruoli, una cardinalità assente nella fixture. | Confermato | Corretto (5d-09): spostamento di 7 ms più guadagno; ruolo rimosso scelto in modo da lasciare una maschera esistente |
+| AG-5d-04 | LOW | Onset calcolati sullo stem intero, senza i fade; il ruolo rimosso conserva `applied_note_ons` > 0. | È la scelta dichiarata in 5d-05: i livelli di verità restano distinti (applicato contro attacco nell'audio consegnato) | Nessuna modifica al comportamento; il motivo dell'esito indica ora «ruolo rimosso dall'audio consegnato» |
+| AG-5d-05 | LOW | Campi di onset a 0/`false` con stato non `MEASURED`; tassi di presenza esposti anche quando esclusi. | Confermato (stessa osservazione della chiusura di 5c) | Corretto: `null` |
+| AG-5d-06 | LOW | `--pack-seed` non validato; `--cacp-check-evaluation` senza valore apriva la finestra grafica; scrittura del report non verificata. | Confermato | Corretto: uscita 2, report verificato |
+| AG-5d-07 | LOW | `SHA256SUMS` con CRLF non letto. | Confermato (il generatore scrive LF; robustezza) | Corretto |
+
+**Test con ingestione audio: evidenza supplementare, NON alla cieca.**
+
+- **Esito:** 150 affermazioni, delle quali 103 `supported`, 44 `compatible` (tutte le `role_audible`), 0 `contradicted`, 1 `abstained` e 2 `unverifiable`. Catch trial superato, 0 affermazioni che seguono il piano, 13/13 coppie concordi sul duplicato. Presenza: sensibilità 36/36, specificità 4/4, baseline banale superata.
+- **Perché non è evidenza percettiva alla cieca:**
+  - accessi al repository e al codice dichiarati, quindi `blind_qualified` false;
+  - non è stato seguito il passo «pacchetto nuovo con seed non comunicato»: il seed 8675309 è registrato in questo file;
+  - la chiave di quel pacchetto era stata stampata nella sessione di sviluppo;
+  - il report dichiara di aver formulato le classificazioni prima di leggere il repository, ma la sequenza non è verificabile da qui;
+  - una riga del risultato nomina esplicitamente l'item alterato («item a verità alterata con Vettore rimosso»).
+- **Note di affidabilità del resoconto:** il riepilogo in chat attribuiva all'item alterato il Pulso rimosso e indicava come duplicato una finestra diversa da quella vera; i file del risultato sono invece coerenti con la chiave. Il resoconto menzionava anche un concetto `UNSUPPORTED_IN_V1` / `supported_roles_count` che non esiste nel repository né nel report scritto.
+- **Valore:** il percorso completo (pacchetto → risultato v0 → checker) funziona con un agente reale, e i limiti del canale (mono, 32 token/s, click astenuti) sono rispettati. Le osservazioni qualitative (ripetitività letterale del pattern di 4 battute, Side utile per la Trama) concordano con F3 e con l'ascolto esperto.
+
+**Proposte registrate per gli approfondimenti** (non decise; si discutono con la review di fine Inc-5):
+
+- **Richiamo della Trama 0,75 nel set B.** L'ipotesi è questa: per gli intervalli di 0,18 s e 0,22 s il NoteOff precedente cade 72 ms e 88 ms prima dell'attacco, quindi dentro la media mobile di ±100 ms della soglia adattiva.
+  - Il conteggio torna: 2 intervalli × 5 ripetizioni = 10 attacchi mancati su 40.
+  - L'ipotesi non è ancora verificata sperimentalmente: va controllato quali riferimenti restano senza abbinamento.
+- **Indagine 1 (priorità alta, ingresso M2.5):** variare solo la durata del release (2/15/30/50/80 ms) su set A, set B e `planner_probe_v1`. Misurare le rilevazioni sui rilasci e il richiamo della Trama. È il confronto controllato chiesto dalla review di 5c per F6.
+- **Criterio bivariato per AC-AO-02:** precisione senza i rilasci con soglia stretta, più il tasso di rilevazioni sui rilasci dopo l'introduzione del release per ruolo.
+- **Indagine 2 (priorità media, 5e/M2.5):** robustezza di `presence_profile_v1` su ruoli sparsi (un solo colpo in 6 s), su ducking e su filtraggio. Confronto fra RMS globale e RMS su blocchi attivi (gating di BS.1770). Le soglie restano non validate (5d-03).
+- **Fonti candidate citate:** Bello et al. 2005 e Böck & Widmer 2013 (già nel corpus); Gordon 1987 e Moore, Glasberg & Baer 1997 (da verificare in testo integrale prima dell'uso).
+
+**Sessione alla cieca qualificata (protocollo per la review di fine Inc-5):**
+
+- il titolare genera un pacchetto con un seed nuovo, che non annota nel repository;
+- consegna solo `public_blind/`, copiato fuori dal repository, a una sessione senza accesso al workspace;
+- il checker si esegue dopo, nella sessione di sviluppo.
+
+**Stato (2026-10-29):** fase 5d implementata, corretta dopo il secondo parere e committata su approvazione del titolare («OK, commit»); in attesa di review indipendente. 5e non è autorizzata.
