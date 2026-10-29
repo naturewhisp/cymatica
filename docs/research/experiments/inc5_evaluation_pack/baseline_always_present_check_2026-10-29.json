@@ -18,8 +18,8 @@
   "role_signal_present_scoring": {
     "above_trivial_baseline": false,
     "sensitivity": {
-      "successes": 37,
-      "trials": 37,
+      "successes": 33,
+      "trials": 33,
       "value": null,
       "wilson95_high": null,
       "wilson95_low": null
@@ -34,5 +34,5 @@
     "status": "EXCLUDED_BY_CATCH_RULE"
   },
   "evaluator": "trivial baseline: role_signal_present = true for every role of every blind window (44 claims)",
-  "note": "aggregate only: the per-claim list would reveal the key of this pack"
+  "note": "aggregate only: the per-claim list would reveal the key of this pack; checker after DIF-5d-01..03 and OSS-5d-01"
 }

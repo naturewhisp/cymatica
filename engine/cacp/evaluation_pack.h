@@ -260,6 +260,16 @@ struct EvaluationPackRun {
     [[nodiscard]] std::string toJson() const;
 };
 
+// Output directory isolation (DIF-5d-01): empty when public_blind, public_diagnostic and sealed are pairwise
+// disjoint (no equality, no ancestor/descendant relation, symbolic links resolved) and sealed is neither inside
+// nor an ancestor of the public root; otherwise the reason. Checked before any render or write.
+[[nodiscard]] std::string validatePackDirectories(const std::string& publicBlind, const std::string& publicDiagnostic,
+                                                  const std::string& sealed, const std::string& publicRoot);
+// Writes one pack directory: refuses a symbolic link, a non-directory, or an existing non-empty directory that
+// this generator did not write (an entry not listed in its SHA256SUMS); replaces only the files it listed; then
+// verifies that the directory holds exactly the built files with their hashes. Empty on success.
+[[nodiscard]] std::string writePackDirectory(const std::string& dir, const std::map<std::string, std::vector<std::uint8_t>>& files);
+
 // Renders fixture_probe_v1 (seed 1337) with stems, builds the pack, writes public_blind/ and
 // public_diagnostic/ under publicRoot and the sealed part under sealedDir (outside artifacts/cacp by default),
 // then renders and builds again and checks that every file hash is identical.

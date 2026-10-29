@@ -216,6 +216,15 @@ std::vector<WindowTruth> windowsFrom(const json& a) {
 
 std::string dump(const json& j) { return j.dump(2) + "\n"; }
 
+// Empty when the method can produce the predicate, otherwise the reason (DIF-5d-02)
+std::string methodNotAttributable(const std::string& predicate, const std::string& method) {
+    if (predicate == "observation") return {};
+    if (predicate == "role_planned") return method == "code" ? std::string{} : "role_planned is not a perception: method code only";
+    if (method == "code") return predicate + " is acoustic: never from code";
+    if (predicate == "role_audible" && method != "listening") return "audibility is perceptual: listening only";
+    return {};
+}
+
 } // namespace
 
 PresenceProfile presenceProfileV1() noexcept { return PresenceProfile{}; }
@@ -891,12 +900,35 @@ CheckReport checkEvaluation(const TruthBundle& truth, std::string_view resultJso
             }
         }
     }
-    const json access = res.contains("access") ? res["access"] : json::object();
+    // Mandatory metadata of evaluation_result_v0 (DIF-5d-03): missing or malformed fields make the result
+    // inadmissible; an unknown capability is never read as an available one.
+    auto nonEmptyString = [&](const json& o, const char* k) { return !str(o, k).empty(); };
+    const json evaluator = res.contains("evaluator") ? res["evaluator"] : json();
+    if (!evaluator.is_object() || !nonEmptyString(evaluator, "type") || !nonEmptyString(evaluator, "model") ||
+        !nonEmptyString(evaluator, "version")) {
+        inadmissible("evaluator type, model and version are mandatory strings");
+    }
+    if (!nonEmptyString(res, "timestamp")) inadmissible("timestamp is mandatory");
+    const json channel = res.contains("channel") ? res["channel"] : json();
+    const bool channelsOk = channel.is_object() && channel.contains("audio_channels") && channel["audio_channels"].is_number_integer() &&
+                            channel["audio_channels"].get<long long>() >= 0 && channel["audio_channels"].get<long long>() <= 64;
+    const bool tokensOk = channel.is_object() && channel.contains("tokens_per_s") && channel["tokens_per_s"].is_number() &&
+                          std::isfinite(channel["tokens_per_s"].get<double>()) && channel["tokens_per_s"].get<double>() >= 0.0;
+    if (!channelsOk) inadmissible("channel.audio_channels is mandatory (integer 0..64; 0 = no audio channel)");
+    if (!tokensOk) inadmissible("channel.tokens_per_s is mandatory (number >= 0; 0 = not token-based)");
+    const json access = res.contains("access") ? res["access"] : json();
     auto accessFlag = [&](const char* k) -> std::optional<bool> {
         if (access.is_object() && access.contains(k) && access[k].is_boolean()) return access[k].get<bool>();
         return std::nullopt;
     };
+    for (const char* k : {"repository", "sealed", "diagnostic_pack", "code_execution"}) {
+        if (!accessFlag(k).has_value()) inadmissible(std::string("access.") + k + " is mandatory (boolean)");
+    }
     if (accessFlag("sealed").value_or(false)) inadmissible("evaluator declares access to sealed/");
+    if (!res.contains("spectrogram_references_used") || !res["spectrogram_references_used"].is_boolean()) {
+        inadmissible("spectrogram_references_used is mandatory (boolean)");
+    }
+    if (!res.contains("claims") || !res["claims"].is_array()) inadmissible("claims is mandatory (array, possibly empty)");
     rep.resultAdmissible = rep.inadmissibleReasons.empty();
 
     // Blind qualification (D-M2-15): blind pack, admissible, no repository / sealed / diagnostic access declared
@@ -904,9 +936,7 @@ CheckReport checkEvaluation(const TruthBundle& truth, std::string_view resultJso
     if (!blindMode) notBlind("diagnostic pack: never blind");
     if (!rep.resultAdmissible) notBlind("result inadmissible");
     for (const char* k : {"repository", "sealed", "diagnostic_pack"}) {
-        const auto f = accessFlag(k);
-        if (!f.has_value()) notBlind(std::string("access.") + k + " not declared");
-        else if (*f) notBlind(std::string("access to ") + k);
+        if (accessFlag(k).value_or(true)) notBlind(std::string("access to ") + k + " declared or undeclared");
     }
     if (truth.defaultSeed) notBlind("pack built with the public default seed");
     rep.blindQualified = rep.blindNotQualifiedReasons.empty();
@@ -914,11 +944,8 @@ CheckReport checkEvaluation(const TruthBundle& truth, std::string_view resultJso
     const std::vector<WindowTruth>& windows = blindMode ? truth.blind : truth.diagnostic;
     std::map<std::string, const WindowTruth*> byId;
     for (const auto& w : windows) byId[w.id] = &w;
-    const json channel = res.contains("channel") && res["channel"].is_object() ? res["channel"] : json::object();
-    const int audioChannels = channel.contains("audio_channels") && channel["audio_channels"].is_number_integer()
-                                  ? channel["audio_channels"].get<int>() : 0;
-    const double tokensPerS = channel.contains("tokens_per_s") && channel["tokens_per_s"].is_number()
-                                  ? channel["tokens_per_s"].get<double>() : 0.0;
+    const long long audioChannels = channelsOk ? channel["audio_channels"].get<long long>() : 0;
+    const double tokensPerS = tokensOk ? channel["tokens_per_s"].get<double>() : 0.0;
     const bool refsUsed = res.contains("spectrogram_references_used") && res["spectrogram_references_used"].is_boolean() &&
                           res["spectrogram_references_used"].get<bool>();
 
@@ -936,7 +963,7 @@ CheckReport checkEvaluation(const TruthBundle& truth, std::string_view resultJso
     auto inputDeclared = [&](const std::string& id, const std::string& method) {
         if (method == "listening" || method == "descriptor") return declared.contains(id + ".wav");
         if (method == "spectrogram") return declared.contains(id + "_mid.png") || declared.contains(id + "_side.png");
-        return true; // code: no audio input
+        return true; // code: admitted only for role_planned and observation (methodAdmitted)
     };
     std::size_t tp = 0, fn = 0, tn = 0, fp = 0;
     for (std::size_t ci = 0; ci < claims.size(); ++ci) {
@@ -997,14 +1024,18 @@ CheckReport checkEvaluation(const TruthBundle& truth, std::string_view resultJso
         if (!c["claimed_value"].is_boolean()) { finish("inadmissible", "claimed_value is not boolean"); continue; }
         const bool v = c["claimed_value"].get<bool>();
 
-        // Method cannot produce the claim
-        if (o.predicate == "role_planned" && o.method != "code") { finish("not_attributable", "role_planned is not a perception: method code only"); continue; }
-        if (o.predicate == "role_audible" && (o.method == "code" || o.method == "descriptor")) {
-            finish("not_attributable", "audibility is perceptual: not from code or descriptors");
+        // Binding method/predicate matrix (DIF-5d-02): acoustic and energetic predicates need an audio-derived input,
+        // never code; audibility needs listening; the plan is read only from code.
+        if (const std::string why = methodNotAttributable(o.predicate, o.method); !why.empty()) {
+            finish("not_attributable", why);
             continue;
         }
-        if (o.predicate == "stereo_wider_than" && o.method == "listening" && audioChannels == 1) {
-            finish("not_attributable", "stereo from a mono channel");
+        if (o.method == "listening" && audioChannels < 1) {
+            finish("not_attributable", "listening declared without an audio channel");
+            continue;
+        }
+        if (o.predicate == "stereo_wider_than" && o.method == "listening" && audioChannels < 2) {
+            finish("not_attributable", "stereo from a channel that is not stereo");
             continue;
         }
         if (o.predicate == "artifact_present" && kind == "click" && o.method == "listening" && tokensPerS > 0.0 &&
@@ -1018,7 +1049,10 @@ CheckReport checkEvaluation(const TruthBundle& truth, std::string_view resultJso
             const SignalLevel s = w.roles[static_cast<std::size_t>(role)].signal;
             if (s == SignalLevel::Unavailable) { finish("unverifiable", "signal measure unavailable"); continue; }
             const bool present = s == SignalLevel::Present;
-            if (w.kind != "catch") {
+            // Primary perceptual sample (OSS-5d-01): perceptual methods only, independent windows only. The hidden
+            // duplicate is a consistency control and the catch trial an exclusion control; descriptors are not perception.
+            const bool perceptual = o.method == "listening" || o.method == "spectrogram";
+            if (perceptual && w.kind != "catch" && w.kind != "duplicate") {
                 if (present && v) ++tp;
                 if (present && !v) ++fn;
                 if (!present && !v) ++tn;
@@ -1146,23 +1180,12 @@ std::string CheckReport::toJson() const {
 
 namespace {
 
-bool writeFiles(const std::string& dir, const std::map<std::string, std::vector<std::uint8_t>>& files, std::string& error) {
-    std::error_code ec;
-    std::filesystem::remove_all(dir, ec);
-    std::filesystem::create_directories(dir, ec);
-    if (ec) {
-        error = "cannot create " + dir;
-        return false;
-    }
-    for (const auto& [name, bytes] : files) {
-        std::ofstream out(std::filesystem::path(dir) / name, std::ios::binary);
-        out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
-        if (!out.good()) {
-            error = "cannot write " + name;
-            return false;
-        }
-    }
-    return true;
+std::optional<std::string> readText(const std::filesystem::path& p) {
+    std::ifstream in(p, std::ios::binary);
+    if (!in.is_open()) return std::nullopt;
+    std::ostringstream s;
+    s << in.rdbuf();
+    return s.str();
 }
 
 struct FixtureRender {
@@ -1216,6 +1239,104 @@ constexpr std::size_t kFixtureCaptureFrames = 8'900'000;
 
 } // namespace
 
+std::string validatePackDirectories(const std::string& publicBlind, const std::string& publicDiagnostic, const std::string& sealed,
+                                    const std::string& publicRoot) {
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    struct Named {
+        const char* name;
+        fs::path path;
+    };
+    std::vector<Named> dirs;
+    for (const auto& [name, p] : {std::pair<const char*, const std::string*>{"public_blind", &publicBlind},
+                                  {"public_diagnostic", &publicDiagnostic}, {"sealed", &sealed}, {"public root", &publicRoot}}) {
+        if (p->empty()) return std::string(name) + " path is empty";
+        // weakly_canonical resolves the symbolic links of the existing part of the path
+        const fs::path c = fs::weakly_canonical(fs::absolute(*p, ec), ec);
+        if (ec) return std::string("cannot resolve the ") + name + " path " + *p;
+        dirs.push_back({name, c});
+    }
+    auto within = [](const fs::path& inner, const fs::path& outer) {
+        auto i = inner.begin();
+        for (auto o = outer.begin(); o != outer.end(); ++o, ++i) {
+            if (i == inner.end() || *i != *o) return false;
+        }
+        return true;
+    };
+    for (std::size_t a = 0; a < dirs.size(); ++a) {
+        for (std::size_t b = 0; b < dirs.size(); ++b) {
+            if (a == b) continue;
+            const bool rootPair = std::string(dirs[a].name) == "public root" || std::string(dirs[b].name) == "public root";
+            const bool sealedPair = std::string(dirs[a].name) == "sealed" || std::string(dirs[b].name) == "sealed";
+            if (rootPair && !sealedPair) continue; // the public dirs live under the public root by construction
+            if (within(dirs[a].path, dirs[b].path)) {
+                return std::string(dirs[a].name) + " (" + dirs[a].path.string() + ") is inside or equal to " + dirs[b].name + " (" +
+                       dirs[b].path.string() + ")";
+            }
+        }
+    }
+    return {};
+}
+
+std::string writePackDirectory(const std::string& dir, const std::map<std::string, std::vector<std::uint8_t>>& files) {
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    const fs::path d(dir);
+    if (fs::is_symlink(d, ec)) return dir + " is a symbolic link";
+    if (fs::exists(d, ec)) {
+        if (!fs::is_directory(d, ec)) return dir + " exists and is not a directory";
+        // Only a directory written by this generator is replaced: every entry is a regular file listed in its
+        // SHA256SUMS (or SHA256SUMS itself). Anything else is left untouched and the write is refused.
+        std::set<std::string> listed;
+        bool any = false;
+        if (const auto sums = readText(d / "SHA256SUMS")) {
+            std::istringstream lines(*sums);
+            std::string line;
+            while (std::getline(lines, line)) {
+                if (!line.empty() && line.back() == '\r') line.pop_back();
+                if (line.size() > 66) listed.insert(line.substr(66));
+            }
+        }
+        std::vector<fs::path> owned;
+        for (const auto& e : fs::directory_iterator(d, ec)) {
+            any = true;
+            const std::string name = e.path().filename().string();
+            if (e.is_symlink(ec) || !e.is_regular_file(ec) || (name != "SHA256SUMS" && !listed.contains(name))) {
+                return dir + " is not empty and not a pack directory written by this generator (" + name + "): refused";
+            }
+            owned.push_back(e.path());
+        }
+        if (ec) return "cannot list " + dir;
+        if (any && !listed.empty()) {
+            for (const auto& p : owned) {
+                if (!fs::remove(p, ec) || ec) return "cannot remove " + p.string();
+            }
+        } else if (any) {
+            return dir + " is not empty and has no SHA256SUMS: refused";
+        }
+    }
+    fs::create_directories(d, ec);
+    if (ec) return "cannot create " + dir;
+    for (const auto& [name, bytes] : files) {
+        std::ofstream out(d / name, std::ios::binary);
+        out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+        if (!out.good()) return "cannot write " + (d / name).string();
+    }
+    // What is on disk must be exactly what was built (the repeat check alone compares memory)
+    std::set<std::string> onDisk;
+    for (const auto& e : fs::directory_iterator(d, ec)) {
+        const std::string name = e.path().filename().string();
+        onDisk.insert(name);
+        const auto it = files.find(name);
+        const auto text = readText(e.path());
+        if (it == files.end() || !text || sha256Hex(std::string_view(*text)) != sha256Of(it->second)) {
+            return "on-disk verification failed for " + e.path().string();
+        }
+    }
+    if (ec || onDisk.size() != files.size()) return "on-disk verification failed for " + dir;
+    return {};
+}
+
 EvaluationPackRun runEvaluationPackV1(const std::string& publicRoot, const std::string& sealedDir, std::uint64_t packSeed) {
     EvaluationPackRun run;
     run.packSeed = packSeed;
@@ -1224,6 +1345,13 @@ EvaluationPackRun runEvaluationPackV1(const std::string& publicRoot, const std::
     run.publicDiagnosticDir = (std::filesystem::path(publicRoot) / "public_diagnostic").lexically_normal().string();
     run.sealedDir = std::filesystem::path(sealedDir).lexically_normal().string();
 
+    // Directory isolation before any render or destructive operation (DIF-5d-01)
+    if (const std::string why = validatePackDirectories(run.publicBlindDir, run.publicDiagnosticDir, run.sealedDir, publicRoot);
+        !why.empty()) {
+        run.errors.push_back("unsafe output directories: " + why);
+        run.status = "FAILED";
+        return run;
+    }
     StemCapture cap(kFixtureCaptureFrames);
     const FixtureRender first = renderFixture(cap);
     run.captureInvalid = captureInvalidReason(first.check);
@@ -1239,10 +1367,13 @@ EvaluationPackRun runEvaluationPackV1(const std::string& publicRoot, const std::
         run.references = build.references;
         run.publicBlindFiles = build.publicBlind.size();
         run.publicDiagnosticFiles = build.publicDiagnostic.size();
-        std::string err;
-        if (!writeFiles(run.publicBlindDir, build.publicBlind, err) || !writeFiles(run.publicDiagnosticDir, build.publicDiagnostic, err) ||
-            !writeFiles(run.sealedDir, build.sealed, err)) {
-            run.errors.push_back(err);
+        for (const auto& [dir, files] : {std::pair{&run.publicBlindDir, &build.publicBlind},
+                                         std::pair{&run.publicDiagnosticDir, &build.publicDiagnostic},
+                                         std::pair{&run.sealedDir, &build.sealed}}) {
+            if (const std::string why = writePackDirectory(*dir, *files); !why.empty()) {
+                run.errors.push_back(why);
+                break;
+            }
         }
     }
     if (run.errors.empty()) {

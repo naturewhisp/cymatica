@@ -13,6 +13,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <memory>
 #include <regex>
 #include <string>
@@ -463,14 +464,11 @@ TEST_CASE("claims_v0 checker: result-level admissibility and blind qualification
     declaredSealed["access"]["sealed"] = true;
     expectInadmissible(declaredSealed, "access to sealed");
 
-    // Admissible but not blind: repository access, undeclared access, diagnostic pack, default seed
+    // Admissible but not blind: repository access, diagnostic pack, default seed (undeclared access: DIF-5d-03 below)
     json repo = resultBase(t);
     repo["access"]["repository"] = true;
     CHECK(run(repo).resultAdmissible);
     CHECK_FALSE(run(repo).blindQualified);
-    json undeclared = resultBase(t);
-    undeclared.erase("access");
-    CHECK_FALSE(run(undeclared).blindQualified);
     const auto diag = run(resultBase(t, "diagnostic"));
     CHECK(diag.resultAdmissible);
     CHECK_FALSE(diag.blindQualified);
@@ -499,8 +497,9 @@ TEST_CASE("claims_v0 checker: catch trial, altered item, duplicates and the triv
     CHECK(rep.duplicatePairsAgreeing == 1);
     CHECK_FALSE(rep.catchTrialFailed);
     CHECK(rep.presenceStatus == "MEASURED");
-    CHECK(rep.sensitivity.trials == 2);
-    CHECK(rep.specificity.trials == 3);
+    // OSS-5d-01: the hidden duplicate is a consistency control, not an independent observation
+    CHECK(rep.sensitivity.trials == 1); // w0000000a trama
+    CHECK(rep.specificity.trials == 2); // w0000000a pulso, w0000000e trama
     CHECK_FALSE(rep.aboveTrivialBaseline); // a handful of claims never exceeds the trivial baseline
 
     // Catch trial failed: the presence statistics are excluded by the declared rule
@@ -614,4 +613,132 @@ TEST_CASE("Unavailable measures are null, never zero (AG-5d-05)", "[evaluation_p
     CHECK(sens.at("trials") == 1);
     CHECK(sens.at("value").is_null());
     CHECK(sens.at("wilson95_low").is_null());
+}
+
+TEST_CASE("claims_v0 checker: acoustic predicates are never supported from code (DIF-5d-02)", "[evaluation_pack][checker]") {
+    const TruthBundle t = prefabTruth();
+    // Only pack.json declared, access declared false, non-default seed: still no perceptual score from code
+    json onlyPack = resultBase(t);
+    onlyPack["input_hashes"] = json::array({t.publicBlindFiles.at("pack.json")});
+    for (const char* predicate : {"role_signal_present", "role_onset_detected", "role_audible"}) {
+        INFO(predicate);
+        CHECK(outcomeOf(t, claim("w0000000a", "code", predicate, role("trama"), true), onlyPack) == "not_attributable");
+        CHECK(outcomeOf(t, claim("w0000000a", "code", predicate, role("trama"), true)) == "not_attributable");
+    }
+    CHECK(outcomeOf(t, claim("w0000000b", "code", "stereo_wider_than", {{"window_id_other", "w0000000a"}}, true)) == "not_attributable");
+    CHECK(outcomeOf(t, claim("w0000000b", "code", "artifact_present", {{"kind", "clipping"}}, true)) == "not_attributable");
+    // Audibility from a spectrogram or a descriptor is not a perception of audibility
+    CHECK(outcomeOf(t, claim("w0000000a", "spectrogram", "role_audible", role("trama"), true)) == "not_attributable");
+    CHECK(outcomeOf(t, claim("w0000000a", "descriptor", "role_audible", role("trama"), true)) == "not_attributable");
+    // role_planned keeps its diagnostic path from code
+    CHECK(outcomeOf(t, claim("w0000000a", "code", "role_planned", role("trama"), true), onlyPack) == "supported");
+    // A code claim never enters the presence sample; descriptors neither (not a perception)
+    json r = resultBase(t);
+    r["claims"].push_back(claim("w0000000a", "code", "role_signal_present", role("trama"), true));
+    r["claims"].push_back(claim("w0000000c", "descriptor", "role_signal_present", role("trama"), true));
+    const auto rep = checkEvaluation(t, r.dump(), kSealedHashes);
+    CHECK(rep.sensitivity.trials == 0);
+    CHECK(rep.claims[1].outcome == "supported");
+    // Listening needs an audio channel; stereo by listening needs two
+    json noAudio = resultBase(t);
+    noAudio["channel"]["audio_channels"] = 0;
+    CHECK(outcomeOf(t, claim("w0000000a", "listening", "role_signal_present", role("trama"), true), noAudio) == "not_attributable");
+    CHECK(outcomeOf(t, claim("w0000000a", "spectrogram", "role_signal_present", role("trama"), true), noAudio) == "supported");
+}
+
+TEST_CASE("evaluation_result_v0 mandatory metadata are validated before any claim (DIF-5d-03)", "[evaluation_pack][checker]") {
+    const TruthBundle t = prefabTruth();
+    auto expectInadmissible = [&](const std::function<void(json&)>& mutate, const char* what) {
+        json r = resultBase(t);
+        r["claims"] = json::array({claim("w0000000a", "spectrogram", "role_signal_present", role("trama"), true)});
+        mutate(r);
+        const auto rep = checkEvaluation(t, r.dump(), kSealedHashes);
+        INFO(what);
+        CHECK(rep.checked);
+        CHECK_FALSE(rep.resultAdmissible);
+        CHECK_FALSE(rep.blindQualified);
+        for (const auto& c : rep.claims) CHECK(c.outcome == "inadmissible");
+    };
+    expectInadmissible([](json& r) { r.erase("evaluator"); }, "no evaluator");
+    expectInadmissible([](json& r) { r["evaluator"].erase("model"); }, "no model");
+    expectInadmissible([](json& r) { r["evaluator"]["version"] = ""; }, "empty version");
+    expectInadmissible([](json& r) { r.erase("timestamp"); }, "no timestamp");
+    expectInadmissible([](json& r) { r.erase("channel"); }, "no channel");
+    expectInadmissible([](json& r) { r["channel"].erase("audio_channels"); }, "unknown audio channels");
+    expectInadmissible([](json& r) { r["channel"]["audio_channels"] = -1; }, "negative channels");
+    expectInadmissible([](json& r) { r["channel"]["audio_channels"] = 2.5; }, "non-integer channels");
+    expectInadmissible([](json& r) { r["channel"].erase("tokens_per_s"); }, "unknown token rate");
+    expectInadmissible([](json& r) { r["channel"]["tokens_per_s"] = -32; }, "negative token rate");
+    expectInadmissible([](json& r) { r.erase("access"); }, "no access");
+    expectInadmissible([](json& r) { r["access"].erase("code_execution"); }, "access flag missing");
+    expectInadmissible([](json& r) { r["access"]["repository"] = "no"; }, "access flag not boolean");
+    expectInadmissible([](json& r) { r.erase("spectrogram_references_used"); }, "references flag missing");
+    {
+        json r = resultBase(t);
+        r.erase("claims");
+        const auto rep = checkEvaluation(t, r.dump(), kSealedHashes);
+        CHECK_FALSE(rep.resultAdmissible);
+    }
+    // The complete result stays admissible and blind-qualified
+    json ok = resultBase(t);
+    const auto rep = checkEvaluation(t, ok.dump(), kSealedHashes);
+    CHECK(rep.resultAdmissible);
+    CHECK(rep.blindQualified);
+}
+
+TEST_CASE("Pack output directories are isolated and never removed blindly (DIF-5d-01)", "[evaluation_pack][dirs]") {
+    namespace fs = std::filesystem;
+    const fs::path base = fs::temp_directory_path() / "cymatica_pack_dirs_test";
+    fs::remove_all(base);
+    fs::create_directories(base);
+    const std::string root = (base / "pack").string();
+    const std::string blind = (base / "pack" / "public_blind").string();
+    const std::string diag = (base / "pack" / "public_diagnostic").string();
+    const std::string sealed = (base / "sealed").string();
+    CHECK(validatePackDirectories(blind, diag, sealed, root).empty());
+    // Conflicts: equality, sealed inside a public dir or the root, sealed ancestor of the root, public dirs nested
+    CHECK_FALSE(validatePackDirectories(blind, diag, blind, root).empty());
+    CHECK_FALSE(validatePackDirectories(blind, diag, diag, root).empty());
+    CHECK_FALSE(validatePackDirectories(blind, diag, root, root).empty());
+    CHECK_FALSE(validatePackDirectories(blind, diag, (base / "pack" / "public_blind" / "s").string(), root).empty());
+    CHECK_FALSE(validatePackDirectories(blind, diag, (base / "pack" / "other").string(), root).empty());
+    CHECK_FALSE(validatePackDirectories(blind, diag, base.string(), root).empty());
+    CHECK_FALSE(validatePackDirectories(blind, blind, sealed, root).empty());
+    CHECK_FALSE(validatePackDirectories(blind, (base / "pack" / "public_blind" / "d").string(), sealed, root).empty());
+    CHECK_FALSE(validatePackDirectories(blind, diag, (base / "pack" / "public_blind" / "..").string(), root).empty());
+    CHECK_FALSE(validatePackDirectories(blind, diag, "", root).empty());
+    // A symbolic link that resolves into a public dir is detected (skipped where links cannot be created)
+    fs::create_directories(blind);
+    std::error_code ec;
+    fs::create_directory_symlink(blind, base / "link_to_blind", ec);
+    if (!ec) {
+        CHECK_FALSE(validatePackDirectories(blind, diag, (base / "link_to_blind").string(), root).empty());
+        CHECK_FALSE(writePackDirectory((base / "link_to_blind").string(), {{"a.txt", {1}}}).empty());
+    }
+
+    // writePackDirectory: a foreign non-empty directory is refused and left untouched
+    const fs::path foreign = base / "foreign";
+    fs::create_directories(foreign);
+    std::ofstream(foreign / "keep.txt") << "user data";
+    std::map<std::string, std::vector<std::uint8_t>> files{{"a.bin", {1, 2, 3}}};
+    files["SHA256SUMS"] = {};
+    {
+        std::map<std::string, std::vector<std::uint8_t>> listed{{"a.bin", {1, 2, 3}}};
+        const std::string sums = sha256Hex(std::span<const std::uint8_t>(listed["a.bin"].data(), 3)) + "  a.bin\n";
+        files["SHA256SUMS"] = std::vector<std::uint8_t>(sums.begin(), sums.end());
+    }
+    CHECK_FALSE(writePackDirectory(foreign.string(), files).empty());
+    CHECK(fs::exists(foreign / "keep.txt"));
+    // A fresh directory is written and verified; rewriting a directory it owns replaces only its files
+    const fs::path own = base / "own";
+    CHECK(writePackDirectory(own.string(), files).empty());
+    CHECK(writePackDirectory(own.string(), files).empty());
+    // A stray file in an owned directory makes it foreign again
+    std::ofstream(own / "stray.txt") << "x";
+    CHECK_FALSE(writePackDirectory(own.string(), files).empty());
+    CHECK(fs::exists(own / "stray.txt"));
+    // A regular file in place of the directory is refused
+    std::ofstream(base / "plainfile") << "x";
+    CHECK_FALSE(writePackDirectory((base / "plainfile").string(), files).empty());
+    fs::remove_all(base);
 }
