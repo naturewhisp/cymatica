@@ -6,6 +6,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <limits>
+
 #include <string>
 #include <vector>
 
@@ -161,12 +163,17 @@ TEST_CASE("procedural_v1 measure statuses come from the results, never assumed (
     // A complete set of valid measures
     ProceduralResult r;
     r.rendered = true;
+    r.renderedFrames = 48000;
     r.truePeakMeasured = true;
     r.truePeakDbtp = -10.0;
     r.loudnessStatus = "OK";
     r.integratedLufs = -21.0;
     r.sections.push_back(SectionMeasures{0, 0, 48000, "OK", -21.0, -18.0, -20.0, -10.0});
-    for (auto& o : r.onsets) o.status = "MEASURED";
+    for (auto& o : r.onsets) {
+        o.status = "MEASURED";
+        o.precision50 = 1.0;
+        o.recall50 = 1.0;
+    }
     WindowTruth w;
     w.id = "phrase_0";
     for (auto& rt : w.roles) rt.signal = SignalLevel::Present;
@@ -230,4 +237,109 @@ TEST_CASE("procedural_v1 manifest carries the binding evidence of the render (DI
     CHECK(ev["checks"]["golden_decision_trace"] == "NOT_APPLICABLE");
     CHECK(ev["checks"]["golden_canonical_plan"] == "NOT_APPLICABLE");
     CHECK(ev["checks"]["golden_pcm"] == "NOT_APPLICABLE");
+}
+
+TEST_CASE("Measure values are null unless their status is MEASURED (DIF-5e.1-R2-01)", "[procedural][measures]") {
+    using nlohmann::json;
+    ProceduralResult base;
+    base.rendered = true;
+    base.renderedFrames = 48000;
+    base.truePeakMeasured = true;
+    base.truePeakDbtp = -10.0;
+    base.loudnessStatus = "OK";
+    base.integratedLufs = -21.0;
+    base.maxMomentaryLufs = -18.0;
+    base.maxShortTermLufs = -20.0;
+    base.sections.push_back(SectionMeasures{0, 0, 48000, "OK", -21.0, -18.0, -20.0, -10.0});
+    for (auto& o : base.onsets) {
+        o.status = "MEASURED";
+        o.precision50 = 1.0;
+        o.recall50 = 1.0;
+        o.precisionExclReleases = 1.0;
+    }
+    WindowTruth w;
+    w.id = "phrase_0";
+    for (auto& rt : w.roles) {
+        rt.signal = SignalLevel::Present;
+        rt.rmsDbfs = -30.0;
+        rt.stemToMixDb = -6.0;
+    }
+    base.phrasePresence.push_back(w);
+    {
+        const json j = json::parse(base.toJson());
+        REQUIRE(proceduralMeasureStatuses(base).overall.status == "MEASURED");
+        CHECK(j["measures"]["loudness"]["integrated_lufs"] == -21.0);
+        CHECK(j["measures"]["sections"][0]["true_peak"]["dbtp"] == -10.0);
+        CHECK(j["measures"]["sections"][0]["true_peak"]["status"]["status"] == "MEASURED");
+    }
+    // Reviewer case 1: OK with a non-finite Integrated value is not MEASURED
+    {
+        auto r = base;
+        r.integratedLufs = std::numeric_limits<double>::quiet_NaN();
+        CHECK(loudnessMeasureStatus("OK", r.integratedLufs).status == "INCONCLUSIVE");
+        const json j = json::parse(r.toJson());
+        CHECK(j["measures"]["loudness"]["status"]["status"] == "INCONCLUSIVE");
+        CHECK(j["measures"]["loudness"]["integrated_lufs"].is_null());
+        CHECK(j["measures"]["status"]["status"] == "INCONCLUSIVE");
+    }
+    CHECK(loudnessMeasureStatus("OK", -21.0, std::numeric_limits<double>::infinity()).status == "INCONCLUSIVE");
+    // Reviewer case 2: an analysis error with a leftover numeric value serialises null, never the value
+    {
+        auto r = base;
+        r.loudnessStatus = "NON_FINITE_INPUT";
+        const json j = json::parse(r.toJson());
+        CHECK(j["measures"]["loudness"]["status"]["status"] == "INCONCLUSIVE");
+        CHECK(j["measures"]["loudness"]["integrated_lufs"].is_null());
+        CHECK(j["measures"]["loudness"]["max_momentary_lufs"].is_null());
+        CHECK(j["measures"]["loudness"]["max_short_term_lufs"].is_null());
+    }
+    // Reviewer case 3: a section with an invalid range has no true peak and no loudness values
+    {
+        auto r = base;
+        r.sections[0] = SectionMeasures{0, 0, 48000, "INVALID_RANGE", std::nullopt, std::nullopt, std::nullopt, std::nullopt};
+        const auto ms = proceduralMeasureStatuses(r);
+        CHECK(ms.sectionTruePeaks[0].status == "INCONCLUSIVE");
+        const json j = json::parse(r.toJson());
+        CHECK(j["measures"]["sections"][0]["status"]["status"] == "INCONCLUSIVE");
+        CHECK(j["measures"]["sections"][0]["true_peak"]["status"]["status"] == "INCONCLUSIVE");
+        CHECK(j["measures"]["sections"][0]["true_peak"]["dbtp"].is_null());
+        CHECK(j["measures"]["sections"][0]["integrated_lufs"].is_null());
+        // The section true peak is independent of its loudness: valid TP, failed loudness
+        r.sections[0] = SectionMeasures{0, 0, 48000, "NON_FINITE_INPUT", -21.0, std::nullopt, std::nullopt, -11.0};
+        const json k = json::parse(r.toJson());
+        CHECK(k["measures"]["sections"][0]["true_peak"]["dbtp"] == -11.0);
+        CHECK(k["measures"]["sections"][0]["integrated_lufs"].is_null());
+        // A non-finite section true peak is not MEASURED
+        r.sections[0] = SectionMeasures{0, 0, 48000, "OK", -21.0, -18.0, -20.0, std::numeric_limits<double>::infinity()};
+        CHECK(proceduralMeasureStatuses(r).sectionTruePeaks[0].status == "INCONCLUSIVE");
+        CHECK(json::parse(r.toJson())["measures"]["sections"][0]["true_peak"]["dbtp"].is_null());
+    }
+    // No valid data from the capture: rendered, but no frames and nothing computed
+    {
+        ProceduralResult r;
+        r.rendered = true;
+        r.truePeakDbtp = 0.0;
+        const auto ms = proceduralMeasureStatuses(r);
+        CHECK(ms.truePeak.status == "INCONCLUSIVE");
+        CHECK(ms.overall.status == "INCONCLUSIVE");
+        const json j = json::parse(r.toJson());
+        CHECK(j["measures"]["true_peak"]["dbtp"].is_null());
+        CHECK(j["measures"]["true_peak"]["above_trial"].is_null());
+        CHECK(j["measures"]["true_peak"]["max_gain_reduction_db"].is_null());
+        CHECK(j["measures"]["loudness"]["integrated_lufs"].is_null());
+    }
+    // Onsets: an error status never serialises leftover numbers; MEASURED without finite values is INCONCLUSIVE
+    {
+        auto r = base;
+        r.onsets[2].status = "NON_FINITE_INPUT";
+        json j = json::parse(r.toJson());
+        CHECK(j["onsets"]["roles"]["trama"]["precision_50"].is_null());
+        CHECK(j["onsets"]["roles"]["trama"]["recall_50"].is_null());
+        CHECK(j["onsets"]["roles"]["trama"]["precision_excl_releases_50"].is_null());
+        r = base;
+        r.onsets[1].recall50 = std::numeric_limits<double>::quiet_NaN();
+        CHECK(proceduralMeasureStatuses(r).onsets.status == "INCONCLUSIVE");
+        r.onsets[1].recall50.reset();
+        CHECK(proceduralMeasureStatuses(r).onsets.status == "INCONCLUSIVE");
+    }
 }

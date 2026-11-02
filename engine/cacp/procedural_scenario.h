@@ -32,7 +32,7 @@ struct SectionMeasures {
     std::optional<double> integratedLufs{};
     std::optional<double> maxMomentaryLufs{};
     std::optional<double> maxShortTermLufs{};
-    double truePeakDbtp{0.0};
+    std::optional<double> truePeakDbtp{};      // distinct from the loudness validity (DIF-5e.1-R2-01)
 };
 
 struct RoleOnsetSummary {
@@ -94,13 +94,18 @@ struct ProceduralResult {
 struct ProceduralMeasureStatuses {
     MeasureStatus truePeak{};
     MeasureStatus loudness{};
-    std::vector<MeasureStatus> sections{};
+    std::vector<MeasureStatus> sections{};          // loudness of each section
+    std::vector<MeasureStatus> sectionTruePeaks{};  // true peak of each section, independent of its loudness
     MeasureStatus onsets{};
     MeasureStatus presence{};
     MeasureStatus overall{};   // MEASURED if every measure is; NOT_RUN if none ran; INCONCLUSIVE otherwise
 };
 [[nodiscard]] ProceduralMeasureStatuses proceduralMeasureStatuses(const ProceduralResult& r);
-[[nodiscard]] MeasureStatus loudnessMeasureStatus(const std::string& analysisStatus, const std::optional<double>& integrated);
+// MEASURED only with analysis status OK and a finite Integrated value; Momentary and Short-term maxima, when
+// present, must be finite too (DIF-5e.1-R2-01). Values of a measure that is not MEASURED are serialised as null.
+[[nodiscard]] MeasureStatus loudnessMeasureStatus(const std::string& analysisStatus, const std::optional<double>& integrated,
+                                                  const std::optional<double>& maxMomentary = std::nullopt,
+                                                  const std::optional<double>& maxShortTerm = std::nullopt);
 
 [[nodiscard]] ProceduralResult runProceduralV1(const std::string& outputDir = "artifacts/cacp", bool writeFiles = true);
 

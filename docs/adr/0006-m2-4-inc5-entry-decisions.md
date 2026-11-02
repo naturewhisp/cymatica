@@ -617,6 +617,10 @@ Fissano ciò che D-M2-15 e D-M2-16 rimandano a 5e e stabiliscono il perimetro de
   - `NOT_RUN` quando non è stata eseguita.
 
   Lo stato complessivo è `MEASURED` solo se lo sono tutte le misure. Il verdetto tecnico PASS/FAIL resta indipendente.
+- **Coerenza fra stato e valori** (review mirata di 5e.1, DIF-5e.1-R2-01):
+  - `MEASURED` richiede valori obbligatori finiti: Integrated, i massimi Momentary e Short-term quando presenti, true peak, precisione e richiamo degli onset;
+  - i valori di una misura che non è `MEASURED` si serializzano `null`, mai come avanzi numerici;
+  - il true peak di ogni sezione è un valore opzionale con un suo stato, indipendente dalla validità della loudness della sezione.
 - **Evidenza vincolante nel manifest.** Il blocco `binding_evidence` copia da `fixture_probe_v1`, senza rieseguirlo:
   - ogni check vincolante, distinguendo PASS, FAIL e `NOT_APPLICABLE`;
   - hash e golden;

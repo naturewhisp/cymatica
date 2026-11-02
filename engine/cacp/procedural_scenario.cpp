@@ -134,7 +134,7 @@ ProceduralResult runProceduralV1(const std::string& outputDir, bool writeFiles) 
     r.truePeakDbtp = f.truePeakDbtp;
     r.truePeakMeasured = r.renderedFrames > 0 && std::isfinite(f.truePeakDbtp);
     r.maxGainReductionDb = f.maxGainReductionDb;
-    if (r.truePeakDbtp > kTrueTrialDbtp) {
+    if (r.truePeakMeasured && r.truePeakDbtp > kTrueTrialDbtp) {
         std::ostringstream s;
         s << "true peak " << std::fixed << std::setprecision(2) << r.truePeakDbtp
           << " dBTP above the -1 dBTP trial value (finding, not a failure; ADR-0004 §4-5)";
@@ -297,24 +297,43 @@ ProceduralResult runProceduralV1(const std::string& outputDir, bool writeFiles) 
     return r;
 }
 
-MeasureStatus loudnessMeasureStatus(const std::string& analysisStatus, const std::optional<double>& integrated) {
+MeasureStatus loudnessMeasureStatus(const std::string& analysisStatus, const std::optional<double>& integrated,
+                                    const std::optional<double>& maxMomentary, const std::optional<double>& maxShortTerm) {
     if (analysisStatus == "NOT_RUN") return {"NOT_RUN", ""};
     if (analysisStatus != "OK") return {"INCONCLUSIVE", "loudness analysis status " + analysisStatus};
     if (!integrated) return {"INCONCLUSIVE", "integrated loudness undefined (nothing above the gates)"};
+    if (!std::isfinite(*integrated)) return {"INCONCLUSIVE", "integrated loudness not finite"};
+    if ((maxMomentary && !std::isfinite(*maxMomentary)) || (maxShortTerm && !std::isfinite(*maxShortTerm))) {
+        return {"INCONCLUSIVE", "momentary or short-term maximum not finite"};
+    }
     return {"MEASURED", ""};
 }
 
+namespace {
+
+MeasureStatus truePeakStatus(bool computed, double value, const char* notComputedReason) {
+    if (!computed) return {"INCONCLUSIVE", notComputedReason};
+    if (!std::isfinite(value)) return {"INCONCLUSIVE", "true peak not finite"};
+    return {"MEASURED", ""};
+}
+
+} // namespace
+
 ProceduralMeasureStatuses proceduralMeasureStatuses(const ProceduralResult& r) {
     ProceduralMeasureStatuses m;
-    if (!r.rendered) {
-        m.truePeak = {"NOT_RUN", ""};
-    } else if (!r.truePeakMeasured) {
-        m.truePeak = {"INCONCLUSIVE", "true peak not finite or no rendered frames"};
-    } else {
-        m.truePeak = {"MEASURED", ""};
+    m.truePeak = r.rendered ? truePeakStatus(r.truePeakMeasured && r.renderedFrames > 0, r.truePeakDbtp,
+                                             "true peak not computed (no valid rendered frames)")
+                            : MeasureStatus{"NOT_RUN", ""};
+    m.loudness = loudnessMeasureStatus(r.loudnessStatus, r.integratedLufs, r.maxMomentaryLufs, r.maxShortTermLufs);
+    for (const auto& s : r.sections) {
+        m.sections.push_back(loudnessMeasureStatus(s.loudnessStatus, s.integratedLufs, s.maxMomentaryLufs, s.maxShortTermLufs));
+        if (s.loudnessStatus == "NOT_RUN" && !s.truePeakDbtp) {
+            m.sectionTruePeaks.push_back({"NOT_RUN", ""});
+        } else {
+            m.sectionTruePeaks.push_back(truePeakStatus(s.truePeakDbtp.has_value(), s.truePeakDbtp.value_or(0.0),
+                                                        "section true peak not computed (invalid range)"));
+        }
     }
-    m.loudness = loudnessMeasureStatus(r.loudnessStatus, r.integratedLufs);
-    for (const auto& s : r.sections) m.sections.push_back(loudnessMeasureStatus(s.loudnessStatus, s.integratedLufs));
     // Onsets: every role MEASURED or NO_REFERENCES (no evidence, not an error, DIF-5c-R2-01)
     std::size_t onsetRun = 0;
     std::string onsetReason;
@@ -322,6 +341,11 @@ ProceduralMeasureStatuses proceduralMeasureStatuses(const ProceduralResult& r) {
         const std::string& st = r.onsets[i].status;
         if (st != "NOT_RUN") ++onsetRun;
         if (st != "MEASURED" && st != "NO_REFERENCES") onsetReason += std::string(kRoleNames[i]) + " " + st + "; ";
+        const auto& o = r.onsets[i];
+        auto finite = [](const std::optional<double>& v) { return v && std::isfinite(*v); };
+        if (st == "MEASURED" && !(finite(o.precision50) && finite(o.recall50))) {
+            onsetReason += std::string(kRoleNames[i]) + " MEASURED without finite precision and recall; ";
+        }
     }
     if (onsetRun == 0) m.onsets = {"NOT_RUN", ""};
     else if (!onsetReason.empty()) m.onsets = {"INCONCLUSIVE", onsetReason};
@@ -340,6 +364,7 @@ ProceduralMeasureStatuses proceduralMeasureStatuses(const ProceduralResult& r) {
     }
     std::vector<const MeasureStatus*> all{&m.truePeak, &m.loudness, &m.onsets, &m.presence};
     for (const auto& s : m.sections) all.push_back(&s);
+    for (const auto& s : m.sectionTruePeaks) all.push_back(&s);
     const bool noneRun = std::all_of(all.begin(), all.end(), [](const MeasureStatus* s) { return s->status == "NOT_RUN"; });
     const bool allMeasured = std::all_of(all.begin(), all.end(), [](const MeasureStatus* s) { return s->status == "MEASURED"; });
     if (m.sections.empty() && !noneRun) {
@@ -352,6 +377,11 @@ ProceduralMeasureStatuses proceduralMeasureStatuses(const ProceduralResult& r) {
 }
 
 namespace {
+
+// The value only when its measure is MEASURED (DIF-5e.1-R2-01)
+json measured(const MeasureStatus& s, const std::optional<double>& v) {
+    return (s.status == "MEASURED" && v && std::isfinite(*v)) ? json(*v) : json(nullptr);
+}
 
 json statusJson(const MeasureStatus& s) {
     json j{{"status", s.status}};
@@ -447,9 +477,11 @@ std::string ProceduralResult::toJson() const {
         const auto& s = sections[i];
         sec.push_back({{"section", s.section}, {"start_frame", s.startFrame}, {"end_frame", s.endFrame},
                        {"status", statusJson(ms.sections[i])}, {"loudness_analysis_status", s.loudnessStatus},
-                       {"integrated_lufs", optNum(s.integratedLufs)},
-                       {"max_momentary_lufs", optNum(s.maxMomentaryLufs)}, {"max_short_term_lufs", optNum(s.maxShortTermLufs)},
-                       {"true_peak_dbtp", num(s.truePeakDbtp)}});
+                       {"integrated_lufs", measured(ms.sections[i], s.integratedLufs)},
+                       {"max_momentary_lufs", measured(ms.sections[i], s.maxMomentaryLufs)},
+                       {"max_short_term_lufs", measured(ms.sections[i], s.maxShortTermLufs)},
+                       {"true_peak", {{"status", statusJson(ms.sectionTruePeaks[i])},
+                                      {"dbtp", measured(ms.sectionTruePeaks[i], s.truePeakDbtp)}}}});
     }
     const bool tpOk = ms.truePeak.status == "MEASURED";
     j["measures"] = {
@@ -459,8 +491,9 @@ std::string ProceduralResult::toJson() const {
                        {"gate", false}, {"max_gain_reduction_db", tpOk ? num(maxGainReductionDb) : json(nullptr)}}},
         {"loudness", {{"standard", "ITU-R BS.1770-5, EBU Tech 3341"}, {"status", statusJson(ms.loudness)},
                       {"analysis_status", loudnessStatus},
-                      {"integrated_lufs", optNum(integratedLufs)}, {"max_momentary_lufs", optNum(maxMomentaryLufs)},
-                      {"max_short_term_lufs", optNum(maxShortTermLufs)}, {"trial_target_lufs", -23.0}, {"trial_tolerance_lu", 2.0},
+                      {"integrated_lufs", measured(ms.loudness, integratedLufs)},
+                      {"max_momentary_lufs", measured(ms.loudness, maxMomentaryLufs)},
+                      {"max_short_term_lufs", measured(ms.loudness, maxShortTermLufs)}, {"trial_target_lufs", -23.0}, {"trial_tolerance_lu", 2.0},
                       {"gate", false}, {"note", "about 183 s: no 30-minute rolling measure (ADR-0004 §5)"}}},
         {"sections", sec}};
     json on = json::object();
@@ -469,8 +502,9 @@ std::string ProceduralResult::toJson() const {
         on[kRoleNames[r]] = {{"status", s.status}, {"references", s.references}, {"detections", s.detections},
                              {"matched_50ms", s.status == "MEASURED" ? json(s.matched) : json(nullptr)},
                              {"release_detections", s.status == "MEASURED" ? json(s.releaseDetections) : json(nullptr)},
-                             {"precision_50", optNum(s.precision50)}, {"recall_50", optNum(s.recall50)},
-                             {"precision_excl_releases_50", optNum(s.precisionExclReleases)}};
+                             {"precision_50", s.status == "MEASURED" ? optNum(s.precision50) : json(nullptr)},
+                             {"recall_50", s.status == "MEASURED" ? optNum(s.recall50) : json(nullptr)},
+                             {"precision_excl_releases_50", s.status == "MEASURED" ? optNum(s.precisionExclReleases) : json(nullptr)}};
     }
     j["onsets"] = {{"status", statusJson(ms.onsets)}, {"profile", "stem_onset_profile_v1"}, {"profile_sha256", onsetProfileSha256}, {"tolerance_ms", 50},
                    {"roles", on}, {"note", "MEASURED; AC-AO-02 thresholds proposed in 5c, ratified at M2.5"}};
