@@ -319,6 +319,14 @@ MeasureStatus truePeakStatus(bool computed, double value, const char* notCompute
 
 } // namespace
 
+MeasureStatus roleOnsetMeasureStatus(const RoleOnsetSummary& s) {
+    if (s.status == "NOT_RUN" || s.status == "NO_REFERENCES") return {s.status, ""};
+    if (s.status != "MEASURED") return {"INCONCLUSIVE", "onset analysis status " + s.status};
+    auto finite = [](const std::optional<double>& v) { return v && std::isfinite(*v); };
+    if (!finite(s.precision50) || !finite(s.recall50)) return {"INCONCLUSIVE", "precision or recall missing or not finite"};
+    return {"MEASURED", ""};
+}
+
 ProceduralMeasureStatuses proceduralMeasureStatuses(const ProceduralResult& r) {
     ProceduralMeasureStatuses m;
     m.truePeak = r.rendered ? truePeakStatus(r.truePeakMeasured && r.renderedFrames > 0, r.truePeakDbtp,
@@ -334,17 +342,15 @@ ProceduralMeasureStatuses proceduralMeasureStatuses(const ProceduralResult& r) {
                                                         "section true peak not computed (invalid range)"));
         }
     }
-    // Onsets: every role MEASURED or NO_REFERENCES (no evidence, not an error, DIF-5c-R2-01)
+    // Onsets: every role MEASURED or NO_REFERENCES (no evidence, not an error, DIF-5c-R2-01), from the same
+    // effective per-role status that the role's own serialisation uses (DIF-5e.1-R3-01)
     std::size_t onsetRun = 0;
     std::string onsetReason;
     for (std::size_t i = 0; i < kRoleCount; ++i) {
-        const std::string& st = r.onsets[i].status;
-        if (st != "NOT_RUN") ++onsetRun;
-        if (st != "MEASURED" && st != "NO_REFERENCES") onsetReason += std::string(kRoleNames[i]) + " " + st + "; ";
-        const auto& o = r.onsets[i];
-        auto finite = [](const std::optional<double>& v) { return v && std::isfinite(*v); };
-        if (st == "MEASURED" && !(finite(o.precision50) && finite(o.recall50))) {
-            onsetReason += std::string(kRoleNames[i]) + " MEASURED without finite precision and recall; ";
+        const MeasureStatus rs = roleOnsetMeasureStatus(r.onsets[i]);
+        if (rs.status != "NOT_RUN") ++onsetRun;
+        if (rs.status != "MEASURED" && rs.status != "NO_REFERENCES") {
+            onsetReason += std::string(kRoleNames[i]) + " " + rs.status + (rs.reason.empty() ? "" : " (" + rs.reason + ")") + "; ";
         }
     }
     if (onsetRun == 0) m.onsets = {"NOT_RUN", ""};
@@ -499,12 +505,16 @@ std::string ProceduralResult::toJson() const {
     json on = json::object();
     for (std::size_t r = 0; r < kRoleCount; ++r) {
         const auto& s = onsets[r];
-        on[kRoleNames[r]] = {{"status", s.status}, {"references", s.references}, {"detections", s.detections},
-                             {"matched_50ms", s.status == "MEASURED" ? json(s.matched) : json(nullptr)},
-                             {"release_detections", s.status == "MEASURED" ? json(s.releaseDetections) : json(nullptr)},
-                             {"precision_50", s.status == "MEASURED" ? optNum(s.precision50) : json(nullptr)},
-                             {"recall_50", s.status == "MEASURED" ? optNum(s.recall50) : json(nullptr)},
-                             {"precision_excl_releases_50", s.status == "MEASURED" ? optNum(s.precisionExclReleases) : json(nullptr)}};
+        const MeasureStatus rs = roleOnsetMeasureStatus(s);
+        const bool ok = rs.status == "MEASURED";
+        json role = {{"status", rs.status}, {"analysis_status", s.status}, {"references", s.references}, {"detections", s.detections},
+                     {"matched_50ms", ok ? json(s.matched) : json(nullptr)},
+                     {"release_detections", ok ? json(s.releaseDetections) : json(nullptr)},
+                     {"precision_50", ok ? optNum(s.precision50) : json(nullptr)},
+                     {"recall_50", ok ? optNum(s.recall50) : json(nullptr)},
+                     {"precision_excl_releases_50", ok ? optNum(s.precisionExclReleases) : json(nullptr)}};
+        if (!rs.reason.empty()) role["reason"] = rs.reason;
+        on[kRoleNames[r]] = role;
     }
     j["onsets"] = {{"status", statusJson(ms.onsets)}, {"profile", "stem_onset_profile_v1"}, {"profile_sha256", onsetProfileSha256}, {"tolerance_ms", 50},
                    {"roles", on}, {"note", "MEASURED; AC-AO-02 thresholds proposed in 5c, ratified at M2.5"}};

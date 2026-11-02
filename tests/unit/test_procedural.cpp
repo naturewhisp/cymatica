@@ -343,3 +343,52 @@ TEST_CASE("Measure values are null unless their status is MEASURED (DIF-5e.1-R2-
         CHECK(proceduralMeasureStatuses(r).onsets.status == "INCONCLUSIVE");
     }
 }
+
+TEST_CASE("Per-role onset status and values follow the effective status (DIF-5e.1-R3-01)", "[procedural][measures]") {
+    using nlohmann::json;
+    ProceduralResult r;
+    r.rendered = true;
+    r.renderedFrames = 48000;
+    for (auto& o : r.onsets) {
+        o.status = "MEASURED";
+        o.references = 10;
+        o.detections = 10;
+        o.matched = 10;
+        o.precision50 = 1.0;
+        o.recall50 = 1.0;
+        o.precisionExclReleases = 1.0;
+    }
+    // Reviewer counterexample: corpo MEASURED with precision 1.0 and recall NaN
+    r.onsets[1].recall50 = std::numeric_limits<double>::quiet_NaN();
+    const json j = json::parse(r.toJson());
+    const json& corpo = j["onsets"]["roles"]["corpo"];
+    CHECK(j["onsets"]["status"]["status"] == "INCONCLUSIVE");
+    CHECK(corpo["status"] == "INCONCLUSIVE");
+    CHECK(corpo["analysis_status"] == "MEASURED");
+    CHECK_FALSE(corpo["reason"].get<std::string>().empty());
+    CHECK(corpo["precision_50"].is_null()); // no partial evidence presented
+    CHECK(corpo["recall_50"].is_null());
+    CHECK(corpo["matched_50ms"].is_null());
+    CHECK(corpo["precision_excl_releases_50"].is_null());
+    // The other roles keep their valid measures
+    CHECK(j["onsets"]["roles"]["pulso"]["status"] == "MEASURED");
+    CHECK(j["onsets"]["roles"]["pulso"]["precision_50"] == 1.0);
+    CHECK(j["onsets"]["roles"]["vettore"]["recall_50"] == 1.0);
+    // Missing precision is the same as non-finite
+    r.onsets[1].recall50 = 1.0;
+    r.onsets[1].precision50.reset();
+    CHECK(roleOnsetMeasureStatus(r.onsets[1]).status == "INCONCLUSIVE");
+    // NO_REFERENCES keeps its approved meaning: no evidence, not an error, no values, aggregate unaffected
+    r.onsets[1] = RoleOnsetSummary{};
+    r.onsets[1].status = "NO_REFERENCES";
+    const json k = json::parse(r.toJson());
+    CHECK(k["onsets"]["roles"]["corpo"]["status"] == "NO_REFERENCES");
+    CHECK(k["onsets"]["roles"]["corpo"]["recall_50"].is_null());
+    CHECK(k["onsets"]["status"]["status"] == "MEASURED");
+    // A detector error status is INCONCLUSIVE with the analysis status kept
+    r.onsets[1].status = "NON_FINITE_INPUT";
+    const json e = json::parse(r.toJson());
+    CHECK(e["onsets"]["roles"]["corpo"]["status"] == "INCONCLUSIVE");
+    CHECK(e["onsets"]["roles"]["corpo"]["analysis_status"] == "NON_FINITE_INPUT");
+    CHECK(roleOnsetMeasureStatus(RoleOnsetSummary{}).status == "NOT_RUN");
+}

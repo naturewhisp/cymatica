@@ -101,6 +101,10 @@ struct ProceduralMeasureStatuses {
     MeasureStatus overall{};   // MEASURED if every measure is; NOT_RUN if none ran; INCONCLUSIVE otherwise
 };
 [[nodiscard]] ProceduralMeasureStatuses proceduralMeasureStatuses(const ProceduralResult& r);
+// Effective status of one role's onsets (DIF-5e.1-R3-01), used both for the aggregate and for the role's own
+// serialisation: MEASURED only with finite precision and recall; NO_REFERENCES kept (no evidence, not an error);
+// NOT_RUN kept; anything else, or MEASURED without finite values, is INCONCLUSIVE with the reason.
+[[nodiscard]] MeasureStatus roleOnsetMeasureStatus(const RoleOnsetSummary& s);
 // MEASURED only with analysis status OK and a finite Integrated value; Momentary and Short-term maxima, when
 // present, must be finite too (DIF-5e.1-R2-01). Values of a measure that is not MEASURED are serialised as null.
 [[nodiscard]] MeasureStatus loudnessMeasureStatus(const std::string& analysisStatus, const std::optional<double>& integrated,
