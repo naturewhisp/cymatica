@@ -111,6 +111,30 @@ jobs:
           }
           Write-Host "[cacp] Offline tone_test verification PASSED." -ForegroundColor Green
 
+      # ADR-0006 5e-03: light deterministic check (O3 chain, PCM golden hash, integrity). Its verdict includes the
+      # ADR-0005 D-M2-09 true-peak engineering check against limiter regressions: not an M2.5 gate, no new gate.
+      - name: Run CACP Fixture Test (Release only)
+        if: matrix.config == 'Release'
+        shell: pwsh
+        run: |
+          $exe = ".\build\x64-release\apps\cymatica_game\cymatica_game.exe"
+          & $exe --cacp-run fixture_test
+          if ($LASTEXITCODE -ne 0) {
+              throw "cymatica_game.exe --cacp-run fixture_test exited with error code $LASTEXITCODE"
+          }
+          $manifestPath = "artifacts/cacp/fixture_probe_v1_manifest.json"
+          if (-not (Test-Path $manifestPath)) {
+              throw "Expected CACP manifest not found: $manifestPath"
+          }
+          $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+          Write-Host "  verdict: $($manifest.verdict)  pcm_content_hash: $($manifest.pcm_content_hash)"
+          Write-Host "  event_chain.passed: $($manifest.event_chain.passed)  mismatches: $($manifest.event_chain.mismatches)"
+          if ($manifest.verdict -ne "PASS") { throw "fixture_test verdict is '$($manifest.verdict)', expected 'PASS'" }
+          if (-not $manifest.event_chain.passed) { throw "fixture_test O3 event chain did not pass" }
+          if ($manifest.event_chain.mismatches -ne 0) { throw "fixture_test O3 event chain has mismatches" }
+          if ($manifest.dropped_frames -ne 0) { throw "fixture_test dropped_frames is $($manifest.dropped_frames)" }
+          Write-Host "[cacp] fixture_test verification PASSED." -ForegroundColor Green
+
       - name: Upload Diagnostic Logs on Failure
         if: failure()
         uses: actions/upload-artifact@v4

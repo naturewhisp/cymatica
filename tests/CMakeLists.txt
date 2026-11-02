@@ -16,6 +16,7 @@ add_executable(cymatica_tests
     unit/test_cacp_analysis.cpp
     unit/test_stem_analysis.cpp
     unit/test_evaluation_pack.cpp
+    unit/test_procedural.cpp
 )
 
 target_link_libraries(cymatica_tests

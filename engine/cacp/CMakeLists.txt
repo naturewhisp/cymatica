@@ -18,6 +18,8 @@ add_library(cymatica_cacp STATIC
     onset_parity.h
     png_writer.cpp
     png_writer.h
+    procedural_scenario.cpp
+    procedural_scenario.h
     sha256.cpp
     sha256.h
     stereo.cpp
@@ -26,6 +28,8 @@ add_library(cymatica_cacp STATIC
     stereo.h
     stft.cpp
     stft.h
+    staff_view.cpp
+    staff_view.h
 )
 
 target_include_directories(cymatica_cacp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
