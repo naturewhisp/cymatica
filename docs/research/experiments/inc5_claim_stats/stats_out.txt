@@ -1,0 +1,105 @@
+== A. Lower bounds for k/k (all correct)
+ n  Wilson95low  n/(n+z2)  CP97.5%low  CP95%low(1-sided) ruleof3 upper err 3/n  exact 1-0.05^(1/n)
+  1  0.2065      0.2065   0.0250     0.0500   1.0000  0.9500
+  2  0.3424      0.3424   0.1581     0.2236   1.0000  0.7764
+  3  0.4385      0.4385   0.2924     0.3684   1.0000  0.6316
+  4  0.5101      0.5101   0.3976     0.4729   0.7500  0.5271
+  5  0.5655      0.5655   0.4782     0.5493   0.6000  0.4507
+  6  0.6097      0.6097   0.5407     0.6070   0.5000  0.3930
+  8  0.6756      0.6756   0.6306     0.6877   0.3750  0.3123
+  9  0.7009      0.7009   0.6637     0.7169   0.3333  0.2831
+ 10  0.7225      0.7225   0.6915     0.7411   0.3000  0.2589
+ 12  0.7575      0.7575   0.7354     0.7791   0.2500  0.2209
+ 15  0.7961      0.7961   0.7820     0.8190   0.2000  0.1810
+ 16  0.8064      0.8064   0.7941     0.8293   0.1875  0.1707
+ 20  0.8389      0.8389   0.8316     0.8609   0.1500  0.1391
+ 30  0.8865      0.8865   0.8843     0.9050   0.1000  0.0950
+ 33  0.8957      0.8957   0.8942     0.9132   0.0909  0.0868
+ 35  0.9011      0.9011   0.9000     0.9180   0.0857  0.0820
+ 36  0.9036      0.9036   0.9026     0.9202   0.0833  0.0798
+ 40  0.9124      0.9124   0.9119     0.9278   0.0750  0.0722
+ 74  0.9507      0.9507   0.9514     0.9603   0.0405  0.0397
+thresholds L: min n with Wilson n/n low > L ; CP97.5 ; CP95
+ L=0.5: Wilson n>=4, CP97.5 n>=6, CP95 n>=5
+ L=0.7: Wilson n>=9, CP97.5 n>=11, CP95 n>=9
+ L=0.8: Wilson n>=16, CP97.5 n>=17, CP95 n>=14
+ L=0.9: Wilson n>=35, CP97.5 n>=36, CP95 n>=29
+ L=0.95: Wilson n>=73, CP97.5 n>=72, CP95 n>=59
+
+== B. Worked examples: J lower bounds
+ per-claim Antigravity 36/36, 4/4: SeLow=0.9036 SpLow=0.5101 sumrule J_L=0.4137 MOVER J_L=0.5007 CP(97.5) sum J_L=0.3002
+ window unit 9/9, 4/4: SeLow=0.7009 SpLow=0.5101 sumrule J_L=0.2110 MOVER J_L=0.4260 CP(97.5) sum J_L=0.0614
+ current checker per-claim 33/33, 3/3: SeLow=0.8957 SpLow=0.4385 sumrule J_L=0.3342 MOVER J_L=0.4289 CP(97.5) sum J_L=0.1866
+ window unit 9/9, 3/3: SeLow=0.7009 SpLow=0.4385 sumrule J_L=0.1394 MOVER J_L=0.3638 CP(97.5) sum J_L=-0.0439
+ 8 windows 8/8, 3/3: SeLow=0.6756 SpLow=0.4385 sumrule J_L=0.1141 MOVER J_L=0.3515 CP(97.5) sum J_L=-0.0770
+ per-claim 36/36, 1/1: SeLow=0.9036 SpLow=0.2065 sumrule J_L=0.1101 MOVER J_L=0.2007 CP(97.5) sum J_L=-0.0724
+ window 9/9, 2/2: SeLow=0.7009 SpLow=0.3424 sumrule J_L=0.0432 MOVER J_L=0.2775 CP(97.5) sum J_L=-0.1782
+ window 9/9, 1/1: SeLow=0.7009 SpLow=0.2065 sumrule J_L=-0.0926 MOVER J_L=0.1520 CP(97.5) sum J_L=-0.3113
+
+== C. Design effect, effective n (equal clusters m), Wilson low for all-correct
+ n=36 m=4.000 rho=0: deff=1.000 n_eff=36.00 Wilson low=0.9036
+ n=36 m=4.000 rho=0.1: deff=1.300 n_eff=27.69 Wilson low=0.8782
+ n=36 m=4.000 rho=0.3: deff=1.900 n_eff=18.95 Wilson low=0.8314
+ n=36 m=4.000 rho=0.5: deff=2.500 n_eff=14.40 Wilson low=0.7894
+ n=36 m=4.000 rho=1.0: deff=4.000 n_eff=9.00 Wilson low=0.7009
+ n=33 m=3.667 rho=0: deff=1.000 n_eff=33.00 Wilson low=0.8957
+ n=33 m=3.667 rho=0.1: deff=1.267 n_eff=26.05 Wilson low=0.8715
+ n=33 m=3.667 rho=0.3: deff=1.800 n_eff=18.33 Wilson low=0.8268
+ n=33 m=3.667 rho=0.5: deff=2.333 n_eff=14.14 Wilson low=0.7864
+ n=33 m=3.667 rho=1.0: deff=3.667 n_eff=9.00 Wilson low=0.7009
+ rho=1 sizes [4, 4, 4, 4, 4, 4, 4, 4, 4]: n_eff=9.000 (C=9)
+ rho=1 sizes [4, 4, 4, 4, 3, 3, 3, 4, 4]: n_eff=8.854 (C=9)
+ rho=1 sizes [3, 3, 3, 3, 4, 4, 4, 4, 4]: n_eff=8.828 (C=9)
+
+== D. Exact one-sided coverage of the Wilson 95% two-sided lower bound (nominal 97.5%), min over p grid
+ n=3: min coverage 0.8279 at p=0.0610; p=0.5:1.000, p=0.8:1.000, p=0.9:1.000, p=0.95:1.000, p=0.99:1.000
+ n=4: min coverage 0.8300 at p=0.0455; p=0.5:0.938, p=0.8:1.000, p=0.9:1.000, p=0.95:1.000, p=0.99:1.000
+ n=5: min coverage 0.8325 at p=0.0360; p=0.5:0.969, p=0.8:1.000, p=0.9:1.000, p=0.95:1.000, p=0.99:1.000
+ n=9: min coverage 0.8376 at p=0.0195; p=0.5:0.980, p=0.8:1.000, p=0.9:1.000, p=0.95:1.000, p=0.99:1.000
+ n=10: min coverage 0.8382 at p=0.0175; p=0.5:0.989, p=0.8:1.000, p=0.9:1.000, p=0.95:1.000, p=0.99:1.000
+ n=20: min coverage 0.8431 at p=0.0085; p=0.5:0.979, p=0.8:0.988, p=0.9:1.000, p=0.95:1.000, p=0.99:1.000
+ n=36: min coverage 0.8501 at p=0.0045; p=0.5:0.967, p=0.8:0.984, p=0.9:0.977, p=0.95:1.000, p=0.99:1.000
+
+== E. Size of 'sum of Wilson lower bounds > 1' under H0 (Se+Sp=1), independent claims, exact
+ n_pos=36 n_neg=4: sum-rule size=0.00878 at Se=0.845; MOVER(J_L>0) size=0.04773 at Se=0.865
+ n_pos=9 n_neg=4: sum-rule size=0.00474 at Se=0.73; MOVER(J_L>0) size=0.03352 at Se=0.78
+ n_pos=33 n_neg=3: sum-rule size=0.01040 at Se=0.89; MOVER(J_L>0) size=0.07539 at Se=0.95
+ n_pos=9 n_neg=3: sum-rule size=0.00533 at Se=0.685; MOVER(J_L>0) size=0.03454 at Se=0.56
+ n_pos=36 n_neg=1: sum-rule size=0.03793 at Se=0.94; MOVER(J_L>0) size=0.10747 at Se=0.86
+ n_pos=9 n_neg=2: sum-rule size=0.00543 at Se=0.82; MOVER(J_L>0) size=0.04204 at Se=0.68
+
+== F. Clustered positives: 9 windows x 4 positive claims, beta-binomial with ICC rho; 4 negatives independent (1 per window).
+   Size under H0 of the per-claim sum rule (36 claims treated as independent) vs window-level rule (n_eff=9).
+ rho=0: per-claim rule size=0.00878 (Se=0.845), n_eff=9 rule size=0.00069 (Se=0.775)
+ rho=0.2: per-claim rule size=0.01231 (Se=0.87), n_eff=9 rule size=0.00094 (Se=0.74)
+ rho=0.5: per-claim rule size=0.01894 (Se=0.84), n_eff=9 rule size=0.00148 (Se=0.705)
+ rho=1.0: per-claim rule size=0.03352 (Se=0.78), n_eff=9 rule size=0.00474 (Se=0.73)
+
+== G. Duplicate consistency: Wilson low for D/D concordant duplicated windows
+ D=1: 0.2065
+ D=2: 0.3424
+ D=3: 0.4385
+ D=5: 0.5655
+ D=8: 0.6756
+ D=10: 0.7225
+ D=16: 0.8064
+
+== H. Kappa/AC1/PABAK for 13/13 agreeing pairs with all values identical (e.g. all true)
+ table a,b,c,d=(13, 0, 0, 0): po,kappa,AC1,PABAK=(1.0, None, 1.0, 1.0)
+ table a,b,c,d=(10, 0, 0, 3): po,kappa,AC1,PABAK=(1.0, 1.0, 1.0, 1.0)
+ table a,b,c,d=(12, 1, 0, 0): po,kappa,AC1,PABAK=(0.9230769230769231, 0.0, 0.9169329073482428, 0.8461538461538463)
+ table a,b,c,d=(3, 0, 0, 1): po,kappa,AC1,PABAK=(1.0, 1.0, 1.0, 1.0)
+n  (n-1)/n Wilson low   (n-2)/n
+4 0.3006 0.15
+5 0.3755 0.2307
+8 0.5291 0.4093
+10 0.5958 0.4902
+16 0.7167 0.6398
+20 0.7639 0.699
+30 0.8333 0.7868
+35 0.8547 0.8139
+distinct cluster-bootstrap resamples C=9: 24310
+P(resample has no negative window | 1 of 9 windows have negatives) = 0.3464
+P(resample has no negative window | 2 of 9 windows have negatives) = 0.1042
+P(resample has no negative window | 3 of 9 windows have negatives) = 0.0260
+P(resample has no negative window | 4 of 9 windows have negatives) = 0.0050
