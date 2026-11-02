@@ -69,6 +69,8 @@ std::vector<std::string> proceduralBindingFailures(const audio::FixtureProbeResu
     need(f.captureCompletePassed, "capture incomplete or discontinuous");
     need(f.determinismPassed, "determinism (offline passes or rendered plan differ)");
     need(!f.goldenApplicable || (f.goldenTracePassed && f.goldenPlanPassed), "golden decision trace or canonical plan");
+    need(f.goldenPcmStatus != "FAIL", "golden PCM content hash (audio regression, DIF-5e.1-01)");
+    need(f.goldenPcmStatus != "NOT_RUN", "golden PCM status not computed");
     need(f.noteOffPairingPassed, "NoteOn/NoteOff pairing");
     need(f.tempoAckPassed, "transport acks");
     need(f.schedulingAccountingPassed, "scheduling accounting");
@@ -103,6 +105,8 @@ ProceduralResult runProceduralV1(const std::string& outputDir, bool writeFiles) 
     const audio::FixtureProbeResult f = audio::runFixtureProbeV1Offline(outputDir, false, audio::FixtureInjectedFault::None, &pc);
 
     // ---- binding ----
+    r.rendered = true;
+    r.fixture = f;
     r.failures = proceduralBindingFailures(f);
     r.fixtureProbePassed = f.passed;
     r.pcmContentHash = f.pcmContentHash;
@@ -128,6 +132,7 @@ ProceduralResult runProceduralV1(const std::string& outputDir, bool writeFiles) 
 
     // ---- measures: true peak and loudness (whole render and per section) ----
     r.truePeakDbtp = f.truePeakDbtp;
+    r.truePeakMeasured = r.renderedFrames > 0 && std::isfinite(f.truePeakDbtp);
     r.maxGainReductionDb = f.maxGainReductionDb;
     if (r.truePeakDbtp > kTrueTrialDbtp) {
         std::ostringstream s;
@@ -292,7 +297,128 @@ ProceduralResult runProceduralV1(const std::string& outputDir, bool writeFiles) 
     return r;
 }
 
+MeasureStatus loudnessMeasureStatus(const std::string& analysisStatus, const std::optional<double>& integrated) {
+    if (analysisStatus == "NOT_RUN") return {"NOT_RUN", ""};
+    if (analysisStatus != "OK") return {"INCONCLUSIVE", "loudness analysis status " + analysisStatus};
+    if (!integrated) return {"INCONCLUSIVE", "integrated loudness undefined (nothing above the gates)"};
+    return {"MEASURED", ""};
+}
+
+ProceduralMeasureStatuses proceduralMeasureStatuses(const ProceduralResult& r) {
+    ProceduralMeasureStatuses m;
+    if (!r.rendered) {
+        m.truePeak = {"NOT_RUN", ""};
+    } else if (!r.truePeakMeasured) {
+        m.truePeak = {"INCONCLUSIVE", "true peak not finite or no rendered frames"};
+    } else {
+        m.truePeak = {"MEASURED", ""};
+    }
+    m.loudness = loudnessMeasureStatus(r.loudnessStatus, r.integratedLufs);
+    for (const auto& s : r.sections) m.sections.push_back(loudnessMeasureStatus(s.loudnessStatus, s.integratedLufs));
+    // Onsets: every role MEASURED or NO_REFERENCES (no evidence, not an error, DIF-5c-R2-01)
+    std::size_t onsetRun = 0;
+    std::string onsetReason;
+    for (std::size_t i = 0; i < kRoleCount; ++i) {
+        const std::string& st = r.onsets[i].status;
+        if (st != "NOT_RUN") ++onsetRun;
+        if (st != "MEASURED" && st != "NO_REFERENCES") onsetReason += std::string(kRoleNames[i]) + " " + st + "; ";
+    }
+    if (onsetRun == 0) m.onsets = {"NOT_RUN", ""};
+    else if (!onsetReason.empty()) m.onsets = {"INCONCLUSIVE", onsetReason};
+    else m.onsets = {"MEASURED", ""};
+    // Presence: every phrase and role with an available signal level
+    if (r.phrasePresence.empty()) {
+        m.presence = {"NOT_RUN", ""};
+    } else {
+        std::string reason;
+        for (const auto& w : r.phrasePresence) {
+            for (std::size_t i = 0; i < kRoleCount; ++i) {
+                if (w.roles[i].signal == SignalLevel::Unavailable) reason += w.id + " " + kRoleNames[i] + " unavailable; ";
+            }
+        }
+        m.presence = reason.empty() ? MeasureStatus{"MEASURED", ""} : MeasureStatus{"INCONCLUSIVE", reason};
+    }
+    std::vector<const MeasureStatus*> all{&m.truePeak, &m.loudness, &m.onsets, &m.presence};
+    for (const auto& s : m.sections) all.push_back(&s);
+    const bool noneRun = std::all_of(all.begin(), all.end(), [](const MeasureStatus* s) { return s->status == "NOT_RUN"; });
+    const bool allMeasured = std::all_of(all.begin(), all.end(), [](const MeasureStatus* s) { return s->status == "MEASURED"; });
+    if (m.sections.empty() && !noneRun) {
+        m.overall = {"INCONCLUSIVE", "no section measured"};
+    } else {
+        m.overall = noneRun ? MeasureStatus{"NOT_RUN", ""} : allMeasured ? MeasureStatus{"MEASURED", ""}
+                                                                        : MeasureStatus{"INCONCLUSIVE", "see the measure statuses"};
+    }
+    return m;
+}
+
+namespace {
+
+json statusJson(const MeasureStatus& s) {
+    json j{{"status", s.status}};
+    if (!s.reason.empty()) j["reason"] = s.reason;
+    return j;
+}
+
+// Binding evidence of the render, copied from fixture_probe_v1 without re-running it (DIF-5e.1-03)
+json bindingEvidence(const audio::FixtureProbeResult& f) {
+    auto check = [](bool v) { return json(v ? "PASS" : "FAIL"); };
+    auto golden = [&](bool v) { return f.goldenApplicable ? check(v) : json("NOT_APPLICABLE"); };
+    json acks = json::array();
+    for (const auto& a : f.transportAcks) {
+        acks.push_back({{"command_id", a.commandId}, {"status", static_cast<int>(a.status)}, {"sample_frame", a.sampleFrame},
+                        {"transport_epoch", a.transportEpoch}});
+    }
+    return {
+        {"source", "fixture_probe_v1 (same render, not re-run)"},
+        {"run_seed", f.runSeed},
+        {"fixture_probe_v1_verdict", f.passed ? "PASS" : "FAIL"},
+        {"checks",
+         {{"capture_complete", check(f.captureCompletePassed)},
+          {"determinism", check(f.determinismPassed)},
+          {"golden_decision_trace", golden(f.goldenTracePassed)},
+          {"golden_canonical_plan", golden(f.goldenPlanPassed)},
+          {"golden_pcm", f.goldenPcmStatus},
+          {"note_off_pairing", check(f.noteOffPairingPassed)},
+          {"transport_acks", check(f.tempoAckPassed)},
+          {"scheduling_accounting", check(f.schedulingAccountingPassed)},
+          {"non_silent_sections", check(f.nonSilentAudioPassed)},
+          {"role_activity", check(f.roleActivityPassed)},
+          {"silence_after_stop", check(f.silenceBoundaryPassed)},
+          {"sample_ceiling", check(f.sampleCeilingPassed)},
+          {"zero_clipping", check(f.clippedSamples == 0)},
+          {"dsp_anomalies", check(f.dspAnomaliesPassed)},
+          {"safe_stop", check(f.safeStopPassed)},
+          {"event_chain", check(f.eventChainPassed)},
+          {"coordinator", check(!f.coordinatorFailed)},
+          {"true_peak_engineering_check", {{"result", check(f.truePeakPassed)}, {"binding_in_procedural_v1", false}}}}},
+        {"hashes",
+         {{"decision_trace", f.decisionTraceHash}, {"golden_decision_trace", audio::kFixtureProbeV1GoldenTraceHash},
+          {"canonical_plan", f.canonicalPlanHash}, {"golden_canonical_plan", audio::kFixtureProbeV1GoldenPlanHash},
+          {"jit_plan", f.jitPlanHash}, {"jit_golden_status", f.jitGoldenStatus}, {"jit_offline_plan_match", f.jitOfflinePlanMatch},
+          {"pcm_content", f.pcmContentHash}, {"golden_pcm_content", audio::kFixtureProbeV1GoldenPcmHash},
+          {"content_fingerprint", f.contentFingerprint}, {"content_fingerprint_jit_match", f.contentFingerprintJitMatch}}},
+        {"event_chain",
+         {{"path", f.coordinatorFailed ? "injected_fault" : "nominal"}, {"expected", f.chainExpectedEvents}, {"sent", f.chainSentEvents},
+          {"canceled", f.chainCanceledEvents}, {"consumed", f.chainConsumedEvents}, {"applied", f.chainAppliedEvents},
+          {"ignored", f.chainIgnoredEvents}, {"dropped", f.chainDroppedEvents}, {"spsc_drained", f.chainSpscDrained},
+          {"mismatches", f.chainMismatches}, {"first_mismatch", f.chainFirstMismatch}, {"passed", f.eventChainPassed}}},
+        {"scheduling",
+         {{"phrases_planned", f.phrasesPlanned}, {"generated_events", f.generatedEvents}, {"planner_note_offs", f.plannerNoteOffs},
+          {"engine_processed_events", f.engineProcessedEvents}, {"expected_engine_events", f.expectedEngineEvents},
+          {"dropped_scheduled_events", f.droppedScheduledEvents}, {"deferred_scheduled_events", f.deferredScheduledEvents},
+          {"scheduler_backpressure_drops", f.schedulerBackpressureDrops}, {"orphan_note_recovered", f.orphanNoteRecoveredCount},
+          {"voice_drop_count", f.voiceDropCount}}},
+        {"transport_acks", acks},
+        {"signal",
+         {{"captured_frames", f.totalCapturedFrames}, {"requested_frames", f.requestedSampleFrames}, {"dropped_frames", f.droppedFrames},
+          {"peak_amplitude", f.peakAmplitude}, {"clipped_samples", f.clippedSamples}, {"max_gain_reduction_db", f.maxGainReductionDb}}},
+        {"failure_reason", f.failureReason}};
+}
+
+} // namespace
+
 std::string ProceduralResult::toJson() const {
+    const ProceduralMeasureStatuses ms = proceduralMeasureStatuses(*this);
     json j;
     j["manifest_version"] = "1.0";
     j["scenario"] = "procedural_v1";
@@ -304,6 +430,7 @@ std::string ProceduralResult::toJson() const {
     j["failures"] = failures;
     j["findings"] = findings;
     j["fixture_probe_v1_passed"] = fixtureProbePassed;
+    j["binding_evidence"] = fixture ? bindingEvidence(*fixture) : json{{"status", "NOT_RUN"}};
     j["pcm_content_hash"] = pcmContentHash;
     j["canonical_plan_hash"] = canonicalPlanHash;
     j["content_fingerprint"] = contentFingerprint;
@@ -316,17 +443,22 @@ std::string ProceduralResult::toJson() const {
                     {"reconstruction_status", reconstructionStatus},
                     {"reconstruction_mismatched_samples", reconstructionMismatches}};
     json sec = json::array();
-    for (const auto& s : sections) {
+    for (std::size_t i = 0; i < sections.size(); ++i) {
+        const auto& s = sections[i];
         sec.push_back({{"section", s.section}, {"start_frame", s.startFrame}, {"end_frame", s.endFrame},
-                       {"loudness_status", s.loudnessStatus}, {"integrated_lufs", optNum(s.integratedLufs)},
+                       {"status", statusJson(ms.sections[i])}, {"loudness_analysis_status", s.loudnessStatus},
+                       {"integrated_lufs", optNum(s.integratedLufs)},
                        {"max_momentary_lufs", optNum(s.maxMomentaryLufs)}, {"max_short_term_lufs", optNum(s.maxShortTermLufs)},
                        {"true_peak_dbtp", num(s.truePeakDbtp)}});
     }
+    const bool tpOk = ms.truePeak.status == "MEASURED";
     j["measures"] = {
-        {"status", "MEASURED"},
-        {"true_peak", {{"dbtp", num(truePeakDbtp)}, {"trial_value_dbtp", kTrueTrialDbtp}, {"above_trial", truePeakDbtp > kTrueTrialDbtp},
-                       {"gate", false}, {"max_gain_reduction_db", num(maxGainReductionDb)}}},
-        {"loudness", {{"standard", "ITU-R BS.1770-5, EBU Tech 3341"}, {"status", loudnessStatus},
+        {"status", statusJson(ms.overall)},
+        {"true_peak", {{"status", statusJson(ms.truePeak)}, {"dbtp", tpOk ? num(truePeakDbtp) : json(nullptr)}, {"trial_value_dbtp", kTrueTrialDbtp},
+                       {"above_trial", tpOk ? json(truePeakDbtp > kTrueTrialDbtp) : json(nullptr)},
+                       {"gate", false}, {"max_gain_reduction_db", tpOk ? num(maxGainReductionDb) : json(nullptr)}}},
+        {"loudness", {{"standard", "ITU-R BS.1770-5, EBU Tech 3341"}, {"status", statusJson(ms.loudness)},
+                      {"analysis_status", loudnessStatus},
                       {"integrated_lufs", optNum(integratedLufs)}, {"max_momentary_lufs", optNum(maxMomentaryLufs)},
                       {"max_short_term_lufs", optNum(maxShortTermLufs)}, {"trial_target_lufs", -23.0}, {"trial_tolerance_lu", 2.0},
                       {"gate", false}, {"note", "about 183 s: no 30-minute rolling measure (ADR-0004 §5)"}}},
@@ -340,7 +472,7 @@ std::string ProceduralResult::toJson() const {
                              {"precision_50", optNum(s.precision50)}, {"recall_50", optNum(s.recall50)},
                              {"precision_excl_releases_50", optNum(s.precisionExclReleases)}};
     }
-    j["onsets"] = {{"profile", "stem_onset_profile_v1"}, {"profile_sha256", onsetProfileSha256}, {"tolerance_ms", 50},
+    j["onsets"] = {{"status", statusJson(ms.onsets)}, {"profile", "stem_onset_profile_v1"}, {"profile_sha256", onsetProfileSha256}, {"tolerance_ms", 50},
                    {"roles", on}, {"note", "MEASURED; AC-AO-02 thresholds proposed in 5c, ratified at M2.5"}};
     json pres = json::array();
     for (const auto& w : phrasePresence) {
@@ -352,7 +484,7 @@ std::string ProceduralResult::toJson() const {
         }
         pres.push_back({{"phrase", w.phrase}, {"section", w.section}, {"start_bar", w.startBar}, {"roles", roles}});
     }
-    j["presence_per_phrase"] = {{"profile", "presence_profile_v1"}, {"validated", false}, {"phrases", pres}};
+    j["presence_per_phrase"] = {{"status", statusJson(ms.presence)}, {"profile", "presence_profile_v1"}, {"validated", false}, {"phrases", pres}};
     j["diversity"] = {{"status", "NOT_RUN"}, {"phase", "5e.2 (ADR-0006 5e-04)"}};
     j["staff_view"] = {{"dir", staffDir}, {"files", staffViews}, {"pixels_per_second", kStaffPixelsPerSecond},
                        {"legend", {{"lanes_top_to_bottom", json::array({"pulso", "corpo", "trama", "vettore"})},

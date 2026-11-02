@@ -860,6 +860,11 @@ TEST_CASE("Offline CACP fixture_probe_v1 validation", "[music_planner][fixture_p
     CHECK(res.decisionTraceHash == kFixtureProbeV1GoldenTraceHash);
     CHECK(res.goldenPlanPassed);
     CHECK(res.canonicalPlanHash == kFixtureProbeV1GoldenPlanHash);
+    // Golden PCM, verified separately from the plan (DIF-5e.1-01)
+    CHECK(res.goldenPcmStatus == "PASS");
+    CHECK(res.pcmContentHash == kFixtureProbeV1GoldenPcmHash);
+    // Negative: the same valid run against an altered expected hash fails only the PCM golden
+    CHECK(fixturePcmGoldenStatus(res, kFixtureProbeV1GoldenPcmHash + 1) == "FAIL");
     CHECK(res.engineProcessedEvents == 2ULL * res.generatedEvents);
     CHECK_FALSE(res.coordinatorFailed);
     CHECK(res.safeStopPassed);

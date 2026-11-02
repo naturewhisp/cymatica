@@ -197,6 +197,7 @@ TEST_CASE("fixture_probe_v1 on another seed: goldens NOT_APPLICABLE, structural 
     CHECK(res.canonicalPlanHash != cymatica::audio::kFixtureProbeV1GoldenPlanHash);
     CHECK(res.jitGoldenStatus == "NOT_APPLICABLE");
     CHECK(res.jitOfflinePlanMatch);
+    CHECK(res.goldenPcmStatus == "NOT_APPLICABLE"); // the PCM golden describes seed 1337 only
     CHECK(res.contentFingerprintJitMatch);
     CHECK(res.determinismPassed);
     CHECK(res.eventChainPassed);

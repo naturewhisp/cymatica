@@ -4,6 +4,8 @@
 #include "procedural_scenario.h"
 #include "staff_view.h"
 
+#include <nlohmann/json.hpp>
+
 #include <string>
 #include <vector>
 
@@ -31,6 +33,7 @@ cymatica::audio::FixtureProbeResult allBindingPassed() {
     f.eventChainPassed = true;
     f.coordinatorFailed = false;
     f.truePeakPassed = true;
+    f.goldenPcmStatus = "PASS";
     return f;
 }
 
@@ -112,4 +115,119 @@ TEST_CASE("Staff view: lanes, notes by pitch, applied and detected markers (5e-0
     bad = in;
     bad.pixelsPerSecond = 0.0;
     CHECK(renderStaffView(bad).png.empty());
+}
+
+TEST_CASE("Golden PCM: an audio-only change fails, other seeds and faults are NOT_APPLICABLE (DIF-5e.1-01)", "[procedural][golden_pcm]") {
+    auto f = allBindingPassed();
+    f.pcmContentHash = cymatica::audio::kFixtureProbeV1GoldenPcmHash;
+    CHECK(cymatica::audio::fixturePcmGoldenStatus(f) == "PASS");
+    // Every other check valid, expected hash altered: the audio golden alone fails
+    CHECK(cymatica::audio::fixturePcmGoldenStatus(f, cymatica::audio::kFixtureProbeV1GoldenPcmHash ^ 1ULL) == "FAIL");
+    f.pcmContentHash ^= 1ULL; // a synthesis change that leaves events and decisions identical
+    f.goldenPcmStatus = cymatica::audio::fixturePcmGoldenStatus(f);
+    CHECK(f.goldenPcmStatus == "FAIL");
+    const auto failures = proceduralBindingFailures(f);
+    REQUIRE(failures.size() == 1);
+    CHECK(failures[0].find("golden PCM") != std::string::npos);
+    // Not computed is never a pass
+    auto notRun = allBindingPassed();
+    notRun.goldenPcmStatus = "NOT_RUN";
+    CHECK_FALSE(proceduralBindingFailures(notRun).empty());
+    // Another seed or an injected fault: the golden does not apply
+    auto other = allBindingPassed();
+    other.goldenApplicable = false;
+    CHECK(cymatica::audio::fixturePcmGoldenStatus(other) == "NOT_APPLICABLE");
+    auto fault = allBindingPassed();
+    fault.injectedFault = cymatica::audio::FixtureInjectedFault::InvalidTempoMap;
+    CHECK(cymatica::audio::fixturePcmGoldenStatus(fault) == "NOT_APPLICABLE");
+}
+
+TEST_CASE("procedural_v1 measure statuses come from the results, never assumed (DIF-5e.1-02)", "[procedural][measures]") {
+    using nlohmann::json;
+    // Nothing ran: NOT_RUN everywhere, no value presented as measured
+    {
+        const ProceduralResult empty{};
+        const auto ms = proceduralMeasureStatuses(empty);
+        CHECK(ms.overall.status == "NOT_RUN");
+        const json j = json::parse(empty.toJson());
+        CHECK(j["measures"]["status"]["status"] == "NOT_RUN");
+        CHECK(j["measures"]["true_peak"]["status"]["status"] == "NOT_RUN");
+        CHECK(j["measures"]["true_peak"]["dbtp"].is_null());
+        CHECK(j["measures"]["loudness"]["status"]["status"] == "NOT_RUN");
+        CHECK(j["onsets"]["status"]["status"] == "NOT_RUN");
+        CHECK(j["presence_per_phrase"]["status"]["status"] == "NOT_RUN");
+        CHECK(j["binding_evidence"]["status"] == "NOT_RUN");
+    }
+    // A complete set of valid measures
+    ProceduralResult r;
+    r.rendered = true;
+    r.truePeakMeasured = true;
+    r.truePeakDbtp = -10.0;
+    r.loudnessStatus = "OK";
+    r.integratedLufs = -21.0;
+    r.sections.push_back(SectionMeasures{0, 0, 48000, "OK", -21.0, -18.0, -20.0, -10.0});
+    for (auto& o : r.onsets) o.status = "MEASURED";
+    WindowTruth w;
+    w.id = "phrase_0";
+    for (auto& rt : w.roles) rt.signal = SignalLevel::Present;
+    r.phrasePresence.push_back(w);
+    CHECK(proceduralMeasureStatuses(r).overall.status == "MEASURED");
+    // NO_REFERENCES is no evidence, not an error
+    r.onsets[2].status = "NO_REFERENCES";
+    CHECK(proceduralMeasureStatuses(r).onsets.status == "MEASURED");
+    // Partial results: each failed analysis keeps its reason and makes the overall INCONCLUSIVE
+    auto expectInconclusive = [](ProceduralResult x, auto mutate, const char* which, const char* what) {
+        mutate(x);
+        const auto ms = proceduralMeasureStatuses(x);
+        INFO(what);
+        CHECK(ms.overall.status == "INCONCLUSIVE");
+        const json j = json::parse(x.toJson());
+        CHECK(j["measures"]["status"]["status"] == "INCONCLUSIVE");
+        if (std::string(which) == "loudness") {
+            CHECK(ms.loudness.status == "INCONCLUSIVE");
+            CHECK_FALSE(ms.loudness.reason.empty());
+        }
+        if (std::string(which) == "onsets") CHECK(ms.onsets.reason.find("trama") != std::string::npos);
+        if (std::string(which) == "true_peak") CHECK(j["measures"]["true_peak"]["dbtp"].is_null());
+        return ms;
+    };
+    (void)expectInconclusive(r, [](ProceduralResult& x) { x.loudnessStatus = "NON_FINITE_INPUT"; }, "loudness", "loudness error");
+    (void)expectInconclusive(r, [](ProceduralResult& x) { x.loudnessStatus = "UNSUPPORTED"; }, "loudness", "unsupported rate");
+    (void)expectInconclusive(r, [](ProceduralResult& x) { x.integratedLufs.reset(); }, "loudness", "integrated undefined");
+    (void)expectInconclusive(r, [](ProceduralResult& x) { x.sections[0].loudnessStatus = "INVALID_RANGE"; }, "section", "section range");
+    (void)expectInconclusive(r, [](ProceduralResult& x) { x.onsets[2].status = "NON_FINITE_INPUT"; }, "onsets", "onset error");
+    (void)expectInconclusive(r, [](ProceduralResult& x) { x.truePeakMeasured = false; }, "true_peak", "true peak missing");
+    (void)expectInconclusive(r, [](ProceduralResult& x) { x.phrasePresence[0].roles[1].signal = SignalLevel::Unavailable; }, "presence",
+                             "presence unavailable");
+    (void)expectInconclusive(r, [](ProceduralResult& x) { x.sections.clear(); }, "section", "no section measured");
+}
+
+TEST_CASE("procedural_v1 manifest carries the binding evidence of the render (DIF-5e.1-03)", "[procedural][binding_evidence]") {
+    using nlohmann::json;
+    ProceduralResult r;
+    auto f = allBindingPassed();
+    f.chainExpectedEvents = 10;
+    f.chainSentEvents = 10;
+    f.chainConsumedEvents = 10;
+    f.chainAppliedEvents = 10;
+    f.truePeakPassed = false;
+    r.fixture = f;
+    json ev = json::parse(r.toJson())["binding_evidence"];
+    CHECK(ev["checks"]["event_chain"] == "PASS");
+    CHECK(ev["checks"]["golden_canonical_plan"] == "PASS");
+    CHECK(ev["checks"]["golden_pcm"] == "PASS");
+    CHECK(ev["checks"]["true_peak_engineering_check"]["result"] == "FAIL");
+    CHECK(ev["checks"]["true_peak_engineering_check"]["binding_in_procedural_v1"] == false);
+    CHECK(ev["event_chain"]["expected"] == 10);
+    CHECK(ev["event_chain"]["applied"] == 10);
+    CHECK(ev["hashes"].contains("golden_pcm_content"));
+    CHECK(ev["scheduling"].contains("dropped_scheduled_events"));
+    // Goldens of another seed are NOT_APPLICABLE, distinguishable from a pass
+    f.goldenApplicable = false;
+    f.goldenPcmStatus = "NOT_APPLICABLE";
+    r.fixture = f;
+    ev = json::parse(r.toJson())["binding_evidence"];
+    CHECK(ev["checks"]["golden_decision_trace"] == "NOT_APPLICABLE");
+    CHECK(ev["checks"]["golden_canonical_plan"] == "NOT_APPLICABLE");
+    CHECK(ev["checks"]["golden_pcm"] == "NOT_APPLICABLE");
 }

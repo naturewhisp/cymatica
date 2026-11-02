@@ -1,6 +1,7 @@
 #pragma once
 
 #include "acao02_calibration.h"
+#include "audio_probe.h"
 #include "evaluation_pack.h"
 #include "stem_analysis.h"
 
@@ -9,10 +10,6 @@
 #include <optional>
 #include <string>
 #include <vector>
-
-namespace cymatica::audio {
-struct FixtureProbeResult;
-}
 
 namespace cymatica::cacp {
 
@@ -49,8 +46,17 @@ struct RoleOnsetSummary {
     std::optional<double> precisionExclReleases{};
 };
 
+// Status of a measure (DIF-5e.1-02): MEASURED only when the analysis ran on valid data and produced its values;
+// INCONCLUSIVE with the reason when it ran but could not produce them; NOT_RUN when it never ran.
+struct MeasureStatus {
+    std::string status{"NOT_RUN"};
+    std::string reason{};
+};
+
 struct ProceduralResult {
     std::string status{"NOT_RUN"};               // PASS or FAIL (binding checks only)
+    bool rendered{false};
+    std::optional<audio::FixtureProbeResult> fixture{}; // binding evidence of the render (DIF-5e.1-03)
     std::vector<std::string> failures{};
     std::vector<std::string> findings{};         // measured facts worth attention, never failures
     bool fixtureProbePassed{false};              // verdict of fixture_probe_v1, true-peak check included
@@ -63,6 +69,7 @@ struct ProceduralResult {
     std::size_t reconstructionMismatches{0};
     std::string reconstructionStatus{"NOT_RUN"};
     // Measures (MEASURED)
+    bool truePeakMeasured{false};
     double truePeakDbtp{0.0};
     double maxGainReductionDb{0.0};
     std::string loudnessStatus{"NOT_RUN"};
@@ -82,6 +89,18 @@ struct ProceduralResult {
 
     [[nodiscard]] std::string toJson() const;
 };
+
+// Derived statuses of the measures (DIF-5e.1-02), from the recorded results only
+struct ProceduralMeasureStatuses {
+    MeasureStatus truePeak{};
+    MeasureStatus loudness{};
+    std::vector<MeasureStatus> sections{};
+    MeasureStatus onsets{};
+    MeasureStatus presence{};
+    MeasureStatus overall{};   // MEASURED if every measure is; NOT_RUN if none ran; INCONCLUSIVE otherwise
+};
+[[nodiscard]] ProceduralMeasureStatuses proceduralMeasureStatuses(const ProceduralResult& r);
+[[nodiscard]] MeasureStatus loudnessMeasureStatus(const std::string& analysisStatus, const std::optional<double>& integrated);
 
 [[nodiscard]] ProceduralResult runProceduralV1(const std::string& outputDir = "artifacts/cacp", bool writeFiles = true);
 

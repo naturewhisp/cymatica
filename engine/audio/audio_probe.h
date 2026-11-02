@@ -287,6 +287,12 @@ inline constexpr std::uint64_t kFixtureProbeV1GoldenTraceHash = 1094952646847178
 // canonicalPlanHash format version 1, DIF-INC4-R3-03). Same value as the [fixture_golden] test, which uses the
 // same shared serialization.
 inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0x4f021cb9e8637598ULL;
+// Regression golden of the fixture_probe_v1 PCM (seed 1337, nominal path; FNV-1a of the recorded float samples,
+// pcmContentHash). Verified separately from the plan (DIF-5e.1-01): a synthesis change that alters the audio
+// without changing events or decisions must fail. Recorded identically on the development machine and on the
+// windows-2025 CI runner (run 41501164874). Same versioning rule as the other goldens: it changes only with a
+// reviewed synthesis, fixture or toolchain change, recorded with its reason.
+inline constexpr std::uint64_t kFixtureProbeV1GoldenPcmHash = 15126969907236845529ULL;
 // Minimum post-bus telemetry energy for a role to count as active in a section (D-M2-11)
 inline constexpr float kFixtureRoleActivityFloor = 1.0e-4f;
 
@@ -341,6 +347,7 @@ struct FixtureProbeResult {
     std::uint64_t decisionTraceHash{0};
     std::uint64_t canonicalPlanHash{0};
     bool goldenPlanPassed{false};
+    std::string goldenPcmStatus{"NOT_RUN"};   // PASS / FAIL (seed 1337, nominal path) or NOT_APPLICABLE
     std::uint64_t expectedEngineEvents{0}; // 2 x generatedEvents: one NoteOn and one NoteOff per intent
     // O3 chain and plan identities (ADR-0006 D-M2-12, Inc-5 phase 5a)
     std::uint64_t jitPlanHash{0};             // canonicalPlanHash of the intents the Coordinator planned just in time
@@ -452,6 +459,12 @@ struct ProfileProbeResult {
 // exactly one NoteOn and one NoteOff, none dropped or deferred, no backpressure, empty staging at Stop, no orphan
 // recovery and every phrase planned. Pure function so that negative cases can be tested directly.
 [[nodiscard]] bool fixtureSchedulingAccountingPassed(const FixtureProbeResult& r, std::size_t expectedPhrases) noexcept;
+
+// Golden PCM check of fixture_probe_v1 (DIF-5e.1-01): NOT_APPLICABLE for another seed or an injected fault (the
+// golden describes the nominal run of seed 1337 only), otherwise PASS when pcmContentHash equals expected.
+// Pure function so that a negative case (altered expected hash, every other check valid) can be tested directly.
+[[nodiscard]] std::string fixturePcmGoldenStatus(const FixtureProbeResult& r,
+                                                 std::uint64_t expected = kFixtureProbeV1GoldenPcmHash);
 
 struct RoleStemSink;
 struct PlannedNoteOff;

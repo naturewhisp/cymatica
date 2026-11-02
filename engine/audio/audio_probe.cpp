@@ -2329,6 +2329,7 @@ std::string FixtureProbeResult::toJson() const {
     ss << "  \"canonical_plan_hash\": " << canonicalPlanHash << ",\n";
     ss << "  \"golden_canonical_plan_hash\": " << kFixtureProbeV1GoldenPlanHash << ",\n";
     ss << "  \"pcm_content_hash\": " << pcmContentHash << ",\n";
+    ss << "  \"golden_pcm_content_hash\": " << kFixtureProbeV1GoldenPcmHash << ",\n";
     ss << "  \"jit_plan_hash\": " << jitPlanHash << ",\n";
     ss << "  \"jit_golden_status\": \"" << jitGoldenStatus << "\",\n";
     ss << "  \"jit_offline_plan_match\": " << (jitOfflinePlanMatch ? "true" : "false") << ",\n";
@@ -2368,6 +2369,7 @@ std::string FixtureProbeResult::toJson() const {
         ss << "    \"golden_trace_passed\": \"NOT_APPLICABLE\",\n";
         ss << "    \"golden_plan_passed\": \"NOT_APPLICABLE\",\n";
     }
+    ss << "    \"golden_pcm_status\": \"" << goldenPcmStatus << "\",\n";
     ss << "    \"true_peak_passed\": " << (truePeakPassed ? "true" : "false") << ",\n";
     ss << "    \"sample_ceiling_passed\": " << (sampleCeilingPassed ? "true" : "false") << ",\n";
     ss << "    \"zero_clipping_passed\": " << (clippedSamples == 0 ? "true" : "false") << ",\n";
@@ -2453,6 +2455,11 @@ std::string ProfileProbeResult::toJson() const {
     }
     ss << "\n}\n";
     return ss.str();
+}
+
+std::string fixturePcmGoldenStatus(const FixtureProbeResult& r, std::uint64_t expected) {
+    if (!r.goldenApplicable || r.injectedFault != FixtureInjectedFault::None) return "NOT_APPLICABLE";
+    return r.pcmContentHash == expected ? "PASS" : "FAIL";
 }
 
 bool fixtureSchedulingAccountingPassed(const FixtureProbeResult& r, std::size_t expectedPhrases) noexcept {
@@ -2778,6 +2785,7 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     }
 
     result.pcmContentHash = pcmContentHash(recordedStereo);
+    result.goldenPcmStatus = fixturePcmGoldenStatus(result);
 
     // Terminal fail-closed safe stop (D-INC4-R3-01). Nominal run: no failure, no unexpected drop. Failed run:
     // Stopped state, emergency Stop Applied at the first block boundary after the ack (never retroactive),
@@ -2800,6 +2808,7 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     result.passed = result.captureCompletePassed &&
                     result.determinismPassed &&
                     (!result.goldenApplicable || (result.goldenTracePassed && result.goldenPlanPassed)) &&
+                    result.goldenPcmStatus != "FAIL" &&
                     result.noteOffPairingPassed &&
                     result.tempoAckPassed &&
                     result.schedulingAccountingPassed &&
@@ -2822,6 +2831,8 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
         if (!result.determinismPassed) err << "determinism check failed (offline passes or rendered plan differ); ";
         if (result.goldenApplicable && !result.goldenTracePassed) err << "decision trace hash " << result.decisionTraceHash << " != golden "
                                            << kFixtureProbeV1GoldenTraceHash << "; ";
+        if (result.goldenPcmStatus == "FAIL") err << "PCM content hash " << result.pcmContentHash << " != golden "
+                                                   << kFixtureProbeV1GoldenPcmHash << "; ";
         if (result.goldenApplicable && !result.goldenPlanPassed) err << "canonical plan hash " << result.canonicalPlanHash << " != golden "
                                           << kFixtureProbeV1GoldenPlanHash << "; ";
         if (!result.noteOffPairingPassed) err << "NoteOn/NoteOff pairing failed; ";
