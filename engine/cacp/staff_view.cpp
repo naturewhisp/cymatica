@@ -1,6 +1,8 @@
 #include "staff_view.h"
 
+#include "onset.h"
 #include "png_writer.h"
+#include "stft.h"
 
 #include <algorithm>
 #include <cmath>
@@ -35,6 +37,32 @@ struct Canvas {
 };
 
 } // namespace
+
+std::vector<StaffOnset> classifyRoleOnsets(std::size_t role, std::span<const float> stem, const RoleOnsetProfile& profile,
+                                           const std::vector<double>& refsS, const std::vector<double>& releasesS,
+                                           std::uint32_t sampleRate, double toleranceS) {
+    std::vector<StaffOnset> out;
+    OnsetParams p{};
+    p.delta = profile.delta;
+    const OnsetDetection det = detectOnsetsSeconds(monoFromStereo(stem), p, sampleRate);
+    if (det.status != AnalysisStatus::Ok) return out;
+    std::vector<double> est = det.timesS;
+    for (auto& t : est) t -= profile.offsetS;
+    std::sort(est.begin(), est.end());
+    const OnsetScore sc = matchOnsetsMaxCardinality(refsS, est, toleranceS); // indices refer to the sorted lists
+    std::vector<bool> matched(est.size(), false);
+    for (const auto& pr : sc.pairs) matched[pr.estimate] = true;
+    for (std::size_t i = 0; i < est.size(); ++i) {
+        if (est[i] < 0.0) continue;
+        StaffOnsetKind kind = StaffOnsetKind::Matched;
+        if (!matched[i]) {
+            const auto rel = std::lower_bound(releasesS.begin(), releasesS.end(), est[i] - toleranceS);
+            kind = (rel != releasesS.end() && *rel <= est[i] + toleranceS) ? StaffOnsetKind::Release : StaffOnsetKind::Unmatched;
+        }
+        out.push_back({role, static_cast<std::uint64_t>(std::llround(est[i] * sampleRate)), kind});
+    }
+    return out;
+}
 
 std::size_t staffLaneTop(std::size_t role) noexcept { return kStaffSeparator + role * (kStaffLaneHeight + kStaffSeparator); }
 

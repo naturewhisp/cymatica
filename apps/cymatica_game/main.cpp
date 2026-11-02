@@ -50,6 +50,7 @@ int main(int argc, char** argv) {
     // The sealed part defaults outside artifacts/cacp so that it never sits next to the public files.
     std::uint64_t packSeed = cymatica::cacp::kDefaultPackSeed;
     std::string sealedDir = "artifacts/sealed/evaluation_pack_v1";
+    bool sealedDirGiven = false;
     std::string reportPath;
     for (int i = 1; i < argc; ++i) {
         const bool valueOption = std::strcmp(argv[i], "--pack-seed") == 0 || std::strcmp(argv[i], "--sealed-dir") == 0 ||
@@ -70,7 +71,10 @@ int main(int argc, char** argv) {
             }
             packSeed = parsed;
         }
-        if (std::strcmp(argv[i], "--sealed-dir") == 0) sealedDir = argv[i + 1];
+        if (std::strcmp(argv[i], "--sealed-dir") == 0) {
+            sealedDir = argv[i + 1];
+            sealedDirGiven = true;
+        }
         if (std::strcmp(argv[i], "--report") == 0) reportPath = argv[i + 1];
     }
     for (int i = 1; i < argc; ++i) {
@@ -143,6 +147,18 @@ int main(int argc, char** argv) {
                                 "(pass --pack-seed)\n");
                 }
                 auto res = cymatica::cacp::runEvaluationPackV1("artifacts/cacp/evaluation_pack_v1", sealedDir, packSeed);
+                std::printf("[cacp] Verdict: %s\n", res.status.c_str());
+                std::printf("%s\n", res.toJson().c_str());
+                return (res.ok && res.manifestWriteSuccess) ? 0 : 1;
+            } else if (std::strcmp(scenario, "evaluation_pack_v2") == 0) {
+                std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5e.2 evaluation_pack_v2, not a gate)...\n", scenario);
+                if (packSeed == cymatica::cacp::kDefaultPackSeed) {
+                    std::printf("[cacp] Default public selection seed: the pack is reproducible but never valid for a blind session "
+                                "(pass --pack-seed)\n");
+                }
+                // v2 has its own sealed default, so that it never overwrites the v1 truth
+                const std::string sealedV2 = sealedDirGiven ? sealedDir : std::string("artifacts/sealed/evaluation_pack_v2");
+                auto res = cymatica::cacp::runEvaluationPackV2("artifacts/cacp/evaluation_pack_v2", sealedV2, packSeed);
                 std::printf("[cacp] Verdict: %s\n", res.status.c_str());
                 std::printf("%s\n", res.toJson().c_str());
                 return (res.ok && res.manifestWriteSuccess) ? 0 : 1;

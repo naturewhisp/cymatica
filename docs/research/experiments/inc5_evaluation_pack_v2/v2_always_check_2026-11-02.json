@@ -1,0 +1,193 @@
+{
+  "report": "evaluation_check_v0",
+  "gate": false,
+  "checked": true,
+  "pack_mode": "blind",
+  "result_admissible": true,
+  "blind_qualified": true,
+  "outcome_counts": {
+    "contradicted": 17,
+    "supported": 79
+  },
+  "controls": {
+    "altered_plan_following_claims": 11,
+    "catch_trial_failed": true,
+    "duplicate_pairs_agreeing": 4,
+    "duplicate_pairs_compared": 4,
+    "duplicate_windows": 1,
+    "note": "altered_plan_following counts true claims on the removed role of altered (v1) and removal (v2) windows; duplicate agreement is a consistency control, no kappa with fewer than 4 duplicates"
+  },
+  "role_signal_present_scoring": {
+    "above_trivial_baseline": null,
+    "abstained": 0,
+    "balanced_accuracy": 0.5,
+    "coverage": "model_based_unverified",
+    "grouping_rule": "per_phrase_content_fingerprint",
+    "natural_negatives": {
+      "claims": 2,
+      "correct": 0,
+      "groups": 1,
+      "n_eff": 1.0,
+      "phrases": 2,
+      "rate": 0.0,
+      "status": "DESCRIPTIVE_ONLY",
+      "wilson95_high": null,
+      "wilson95_low": null,
+      "windows": 2
+    },
+    "per_role": {
+      "corpo": {
+        "negatives": {
+          "claims": 3,
+          "correct": 0,
+          "groups": 3,
+          "n_eff": 3.0,
+          "phrases": 3,
+          "rate": 0.0,
+          "status": "DESCRIPTIVE_ONLY",
+          "wilson95_high": null,
+          "wilson95_low": null,
+          "windows": 3
+        },
+        "positives": {
+          "claims": 19,
+          "correct": 19,
+          "groups": 11,
+          "n_eff": 10.314285714285715,
+          "phrases": 13,
+          "rate": 1.0,
+          "status": "MEASURED",
+          "wilson95_high": 1.0,
+          "wilson95_low": 0.7286289808917072,
+          "windows": 19
+        }
+      },
+      "pulso": {
+        "negatives": {
+          "claims": 3,
+          "correct": 0,
+          "groups": 3,
+          "n_eff": 3.0,
+          "phrases": 3,
+          "rate": 0.0,
+          "status": "DESCRIPTIVE_ONLY",
+          "wilson95_high": null,
+          "wilson95_low": null,
+          "windows": 3
+        },
+        "positives": {
+          "claims": 19,
+          "correct": 19,
+          "groups": 11,
+          "n_eff": 10.314285714285715,
+          "phrases": 12,
+          "rate": 1.0,
+          "status": "MEASURED",
+          "wilson95_high": 1.0,
+          "wilson95_low": 0.7286289808917072,
+          "windows": 19
+        }
+      },
+      "trama": {
+        "negatives": {
+          "claims": 5,
+          "correct": 0,
+          "groups": 4,
+          "n_eff": 3.5714285714285716,
+          "phrases": 5,
+          "rate": 0.0,
+          "status": "INSUFFICIENT_DATA",
+          "wilson95_high": null,
+          "wilson95_low": null,
+          "windows": 5
+        },
+        "positives": {
+          "claims": 17,
+          "correct": 17,
+          "groups": 10,
+          "n_eff": 9.32258064516129,
+          "phrases": 12,
+          "rate": 1.0,
+          "status": "MEASURED",
+          "wilson95_high": 0.9999999999999999,
+          "wilson95_low": 0.7081854068686125,
+          "windows": 17
+        }
+      },
+      "vettore": {
+        "negatives": {
+          "claims": 2,
+          "correct": 0,
+          "groups": 2,
+          "n_eff": 2.0,
+          "phrases": 2,
+          "rate": 0.0,
+          "status": "DESCRIPTIVE_ONLY",
+          "wilson95_high": null,
+          "wilson95_low": null,
+          "windows": 2
+        },
+        "positives": {
+          "claims": 20,
+          "correct": 20,
+          "groups": 11,
+          "n_eff": 10.526315789473685,
+          "phrases": 14,
+          "rate": 1.0,
+          "status": "MEASURED",
+          "wilson95_high": 1.0,
+          "wilson95_low": 0.7326336941577858,
+          "windows": 20
+        }
+      }
+    },
+    "removal_negatives": {
+      "claims": 11,
+      "correct": 0,
+      "groups": 11,
+      "n_eff": 11.0,
+      "phrases": 11,
+      "rate": 0.0,
+      "status": "MEASURED",
+      "wilson95_high": 0.2588329669680317,
+      "wilson95_low": 0.0,
+      "windows": 11
+    },
+    "scope": "conditional on the windows of this fixture and this musical seed; no generalisation to other seeds",
+    "sensitivity": {
+      "claims": 75,
+      "correct": 75,
+      "groups": 11,
+      "n_eff": 10.922330097087379,
+      "phrases": 14,
+      "rate": 1.0,
+      "status": "MEASURED",
+      "wilson95_high": 1.0,
+      "wilson95_low": 0.7398053547035293,
+      "windows": 22
+    },
+    "specificity": {
+      "claims": 13,
+      "correct": 0,
+      "groups": 11,
+      "n_eff": 8.894736842105264,
+      "phrases": 12,
+      "rate": 0.0,
+      "status": "MEASURED",
+      "wilson95_high": 0.3016174470304723,
+      "wilson95_low": 0.0,
+      "windows": 12
+    },
+    "stats_profile": "presence_stats_v1",
+    "status": "EXCLUDED_BY_CATCH_RULE",
+    "worst_case": {
+      "note": "abstentions counted as errors; beside the primary rates, never instead",
+      "sensitivity": 1.0,
+      "specificity": 0.0
+    },
+    "youden_hat": 0.0,
+    "youden_lower": null
+  },
+  "evaluator": "trivial baseline: role_signal_present = true for every role of every blind window",
+  "note": "aggregate only: the per-claim list would reveal the key of this pack"
+}

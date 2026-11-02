@@ -633,6 +633,32 @@ Fissano ciò che D-M2-15 e D-M2-16 rimandano a 5e e stabiliscono il perimetro de
   - contabilità dello scheduling, ack di trasporto e conteggi del segnale;
   - il check ingegneristico del true peak, marcato come non vincolante in `procedural_v1`.
 
+**Precisazioni d'implementazione di 5e.2** (2026-11-02, da confermare nella review di 5e.2):
+
+- **Fingerprint per frase:** è il fingerprint di D-M2-12 con l'origine all'inizio della frase. Unisce solo i NoteOff legati ai NoteOn della frase.
+- **Regola dei gruppi:** stessa frase sorgente oppure stesso fingerprint per frase. Con una sorgente senza piano, compresa la verità v1, il gruppo è la frase sorgente (`source_phrase_only`).
+- **Composizione di `evaluation_pack_v2`:**
+  - si riserva un gruppo per i riferimenti in ogni sezione che ha almeno due gruppi, scelto fra quelli con tutti i ruoli presenti, così ogni sezione conserva almeno una finestra di prova;
+  - una finestra di prova per ogni gruppo restante;
+  - una finestra di rimozione per gruppo, presa da un'altra frase del gruppo quando c'è, che rimuove il ruolo presente con meno rimozioni fino a quel momento; mai una finestra vuota;
+  - un duplicato e un catch trial come in v1.
+- **Sulla fixture:**
+  - 14 gruppi, di cui 3 riservati, quindi 11 finestre di prova e 11 di rimozione;
+  - rimozioni per ruolo 3/3/3/2;
+  - `n_eff` atteso 10,9 per i positivi e 8,9 per i negativi.
+
+  I negativi naturali stanno in un solo gruppo e restano `DESCRIPTIVE_ONLY`.
+- **Stato complessivo della presenza:** `MEASURED` solo con entrambe le classi `MEASURED`. Altrimenti, in ordine:
+  - `EXCLUDED_BY_CATCH_RULE`;
+  - `NOT_RUN`, senza affermazioni;
+  - `DESCRIPTIVE_ONLY`, se una classe è descrittiva o vuota;
+  - `INSUFFICIENT_DATA`.
+
+  Il tasso descrittivo resta sempre riportato, mentre intervalli, `J_L` e baseline compaiono solo con `MEASURED`. Le astensioni si contano a parte, con i tassi nel caso peggiore.
+- **Compatibilità:** `evaluation_pack_v1` resta identico al byte. È verificato sul pacchetto reale con il seed 2718281828: `SHA256SUMS` identici per la parte pubblica blind, la diagnostic e la sigillata, prima e dopo 5e.2. Il checker legge le verità v1 e v2.
+- **OSS-5d-R3-01:** nel pacchetto `diagnostic`, `role_planned` da `code` richiede `truth.json` fra gli input dichiarati; altrimenti è `not_attributable`.
+- **Diversità** (5e-04): sui seed 1..64 esiste un solo contenuto (`NULL_DIVERSITY`), e la generalizzazione della calibrazione è `INCONCLUSIVE`. M2–M4 si calcolano solo sulle coppie con contenuto diverso; le coppie identiche sono zero per identità. La misura è `MEASURED` e non rende rosso alcuno scenario.
+
 **Sottofasi**, ognuna con build Release, Debug e Headless (0 warning, 100 % dei test), scenari interessati e stop per la review:
 
 - **5e.1:** `procedural_v1`, LUFS, vista a pentagramma, controllo di CI;

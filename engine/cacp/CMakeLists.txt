@@ -4,6 +4,8 @@ add_library(cymatica_cacp STATIC
     acao02_calibration.cpp
     acao02_calibration.h
     analysis_status.h
+    diversity.cpp
+    diversity.h
     evaluation_pack.cpp
     evaluation_pack.h
     fft.cpp
@@ -18,6 +20,8 @@ add_library(cymatica_cacp STATIC
     onset_parity.h
     png_writer.cpp
     png_writer.h
+    presence_stats.cpp
+    presence_stats.h
     procedural_scenario.cpp
     procedural_scenario.h
     sha256.cpp

@@ -3,6 +3,8 @@
 #include "analysis_status.h"
 #include "event_chain_log.h"
 #include "music_intent.h"
+#include "music_planner.h"
+#include "presence_stats.h"
 #include "stem_analysis.h"
 
 #include <array>
@@ -16,10 +18,6 @@
 #include <string_view>
 #include <vector>
 
-namespace cymatica::audio {
-struct PlannedNoteOff;
-}
-
 namespace cymatica::cacp {
 
 // evaluation_pack_v1, evaluation_result_v0 and the claims_v0 checker (ADR-0006 D-M2-15, Inc-5 phase 5d).
@@ -28,6 +26,10 @@ namespace cymatica::cacp {
 // from the gates and never decides a verdict (D-M2-11).
 
 inline constexpr const char* kEvaluationPackVersion = "evaluation_pack_v1";
+// v2 (ADR-0006 5e-11, DIF-5e.0-02): musical groups, one test window per group, removal negatives balanced per role,
+// references from reserved groups, group_id and negative_kind in the sealed truth, staff view in the diagnostic pack.
+// v1 stays generable and readable, unchanged byte for byte.
+inline constexpr const char* kEvaluationPackVersionV2 = "evaluation_pack_v2";
 inline constexpr const char* kEvaluationResultSchema = "evaluation_result_v0";
 inline constexpr const char* kClaimsVersion = "claims_v0";
 inline constexpr std::uint64_t kDefaultPackSeed = 20261029ULL; // public: never valid for a blind session
@@ -77,6 +79,7 @@ struct PackPhrase {
     std::uint32_t barCount{0};
     std::uint64_t startFrame{0};
     std::uint64_t endFrame{0};
+    std::vector<std::uint64_t> barFrames{};   // bar lines of the phrase (staff view); empty when unknown
 };
 
 // Everything the pack is built from, in memory (render of a scenario with stems and event logs)
@@ -89,6 +92,8 @@ struct PackSource {
     std::vector<PackPhrase> phrases{};
     std::array<RoleOnsetProfile, kRoleCount> onsetProfile{};  // frozen stem_onset_profile_v1
     std::string onsetProfileSha256{};
+    std::vector<audio::MusicIntentEvent> intents{};   // the plan (musical groups, staff view); optional for v1
+    std::vector<audio::PlannedNoteOff> noteOffs{};
 };
 
 // Ground truth of one role in one delivered window (the four truth levels of D-M2-15, kept distinct)
@@ -103,6 +108,7 @@ struct RoleWindowTruth {
     std::size_t appliedNoteOns{0};        // applied NoteOn references starting in the window
     std::size_t matchedOnsets{0};         // of those, matched by a detection within the tolerance
     bool onsetDetected{false};
+    std::string negativeKind{};           // v2: "natural" or "removal" when the role is absent, else empty
 };
 
 struct WindowTruth {
@@ -125,6 +131,7 @@ struct WindowTruth {
     std::uint64_t clippedSamples{0};
     std::string melMidStatus{"NOT_RUN"};
     std::string melSideStatus{"NOT_RUN"};
+    std::string groupId{};                 // v2: musical group (DIF-5e.0-02); empty in v1 (grouping by phrase)
 };
 
 // What is delivered for one window: frames [start, end), included roles, gain and fades
@@ -162,6 +169,13 @@ struct TruthBundle {
     std::vector<WindowTruth> diagnostic{};
     std::vector<WindowTruth> phrases{};    // blind excerpt of every phrase: presence calibration evidence
     bool alteredMaskNovel{false};          // altered item leaves a role set that no phrase has (AG-5d-03)
+    // v2 only
+    std::string groupingRule{};            // per_phrase_content_fingerprint or source_phrase_only
+    std::size_t musicalGroups{0};
+    std::size_t referenceGroups{0};
+    double expectedPositiveNeff{0.0};      // one claim per (window, role), test and removal windows
+    double expectedNegativeNeff{0.0};
+    std::array<std::size_t, kRoleCount> removalsPerRole{};
     std::map<std::string, std::string> publicBlindFiles{};       // file name -> SHA-256
     std::map<std::string, std::string> publicDiagnosticFiles{};
 };
@@ -183,6 +197,11 @@ struct PackBuild {
 // Deterministic for a given source, seed, configuration and profile
 [[nodiscard]] PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, const PackConfig& cfg = {},
                                             const PresenceProfile& profile = presenceProfileV1());
+[[nodiscard]] PackBuild buildEvaluationPackV2(const PackSource& src, std::uint64_t packSeed, const PackConfig& cfg = {},
+                                              const PresenceProfile& profile = presenceProfileV1());
+// Musical group of every phrase of a source: per-phrase content fingerprint of its plan, or "p<index>" when the
+// source carries no plan (rule source_phrase_only)
+[[nodiscard]] std::vector<std::string> sourcePhraseGroups(const PackSource& src, std::string* rule = nullptr);
 
 // 16-bit PCM stereo WAV with only the RIFF, fmt and data chunks (same quantization as writeWavStereo16)
 [[nodiscard]] std::vector<std::uint8_t> encodeWavStereo16(std::span<const float> interleaved, std::uint32_t sampleRate);
@@ -223,11 +242,15 @@ struct CheckReport {
     std::size_t alteredPlanFollowing{0};   // true claims on the removed role of an altered item
     std::size_t duplicatePairsCompared{0};
     std::size_t duplicatePairsAgreeing{0};
-    // role_signal_present against the measured truth, test/duplicate/altered windows (catch excluded)
-    std::string presenceStatus{"NOT_RUN"}; // MEASURED, INSUFFICIENT_DATA or EXCLUDED_BY_CATCH_RULE
-    ProportionCi sensitivity{};
-    ProportionCi specificity{};
-    bool aboveTrivialBaseline{false};
+    std::size_t duplicateWindows{0};       // D: consistency control, not an independent observation
+    // role_signal_present against the measured truth (presence_stats_v1, 5e-09): perceptual claims only, test,
+    // altered and removal windows (duplicate and catch excluded), musical groups as the unit
+    std::string presenceStatus{"NOT_RUN"}; // MEASURED, INSUFFICIENT_DATA, DESCRIPTIVE_ONLY, NOT_RUN, EXCLUDED_BY_CATCH_RULE
+    std::string groupingRule{};
+    PresenceStats presence{};
+    std::size_t presenceAbstained{0};      // role_signal_present abstentions, counted apart
+    double worstCasePositiveRate{std::numeric_limits<double>::quiet_NaN()};   // abstentions counted as errors
+    double worstCaseNegativeRate{std::numeric_limits<double>::quiet_NaN()};
 
     [[nodiscard]] std::string toJson() const;
 };
@@ -239,6 +262,7 @@ struct CheckReport {
 // ---- scenario ----
 
 struct EvaluationPackRun {
+    std::string scenario{kEvaluationPackVersion};
     bool ok{false};
     std::string status{"NOT_RUN"};
     std::vector<std::string> errors{};
@@ -256,6 +280,12 @@ struct EvaluationPackRun {
     std::string sealedDir{};
     std::string manifestFilePath{};
     bool manifestWriteSuccess{false};
+    // v2 only: counts, never the key
+    std::string groupingRule{};
+    std::size_t musicalGroups{0};
+    std::size_t referenceGroups{0};
+    double expectedPositiveNeff{0.0};
+    double expectedNegativeNeff{0.0};
 
     [[nodiscard]] std::string toJson() const;
 };
@@ -274,6 +304,8 @@ struct EvaluationPackRun {
 // public_diagnostic/ under publicRoot and the sealed part under sealedDir (outside artifacts/cacp by default),
 // then renders and builds again and checks that every file hash is identical.
 [[nodiscard]] EvaluationPackRun runEvaluationPackV1(const std::string& publicRoot, const std::string& sealedDir,
+                                                    std::uint64_t packSeed);
+[[nodiscard]] EvaluationPackRun runEvaluationPackV2(const std::string& publicRoot, const std::string& sealedDir,
                                                     std::uint64_t packSeed);
 
 // Reads the sealed truth (verified against sealed/SHA256SUMS) and a result file, checks it, writes the report

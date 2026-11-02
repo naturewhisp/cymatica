@@ -58,7 +58,8 @@ std::optional<std::int32_t> quantizeCents(float hz) noexcept {
 
 MusicalContentFingerprint musicalContentFingerprint(const std::vector<std::vector<MusicIntentEvent>>& intentsPerPhrase,
                                                     const std::vector<PlannedNoteOff>& noteOffs,
-                                                    std::uint32_t sampleRate, std::optional<MusicRole> roleFilter) {
+                                                    std::uint32_t sampleRate, std::optional<MusicRole> roleFilter,
+                                                    std::uint64_t originFrame) {
     MusicalContentFingerprint fp;
 
     // Explicit releases keyed by (eventId, role): the join key between a NoteOn and its planner NoteOff
@@ -75,6 +76,10 @@ MusicalContentFingerprint musicalContentFingerprint(const std::vector<std::vecto
             const auto timbre = quantizeMilli(e.timbreParam);
             if (!pitch || !velocity || !timbre) {
                 fp.error = "non-finite field in intent eventId " + std::to_string(e.eventId);
+                return fp;
+            }
+            if (e.sampleFrame < originFrame) {
+                fp.error = "intent eventId " + std::to_string(e.eventId) + " before the origin frame";
                 return fp;
             }
             const auto roleKey = static_cast<std::uint8_t>(e.role);
@@ -98,6 +103,20 @@ MusicalContentFingerprint musicalContentFingerprint(const std::vector<std::vecto
         for (const auto f : frames) orphans.emplace_back(f, key.second);
     }
 
+    for (const auto& n : notes) {
+        for (const auto r : n.explicitReleases) {
+            if (r < originFrame) {
+                fp.error = "release before the origin frame";
+                return fp;
+            }
+        }
+    }
+    for (const auto& [frame, role] : orphans) {
+        if (frame < originFrame) {
+            fp.error = "orphan release before the origin frame";
+            return fp;
+        }
+    }
     std::sort(notes.begin(), notes.end(), [](const NoteRecord& a, const NoteRecord& b) { return a.key() < b.key(); });
     std::sort(orphans.begin(), orphans.end());
 
@@ -108,18 +127,18 @@ MusicalContentFingerprint musicalContentFingerprint(const std::vector<std::vecto
     f.u64(orphans.size());
     for (const auto& n : notes) {
         f.byte(n.role);
-        f.u64(n.frame);
+        f.u64(n.frame - originFrame);
         f.i32(n.pitch);
         f.i32(n.velocity);
         f.i32(n.timbre);
         f.u32(n.durationFrames);
         f.u32(static_cast<std::uint32_t>(n.explicitReleases.size()));
-        for (const auto r : n.explicitReleases) f.u64(r);
+        for (const auto r : n.explicitReleases) f.u64(r - originFrame);
         fp.explicitReleaseCount += n.explicitReleases.size();
     }
     for (const auto& [frame, role] : orphans) {
         f.byte(role);
-        f.u64(frame);
+        f.u64(frame - originFrame);
     }
 
     fp.valid = true;

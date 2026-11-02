@@ -2,6 +2,8 @@
 
 #include "acao02_calibration.h"
 #include "audio_probe.h"
+#include "diversity.h"
+#include "staff_view.h"
 #include "mel.h"
 #include "music_planner.h"
 #include "onset.h"
@@ -128,8 +130,8 @@ std::vector<float> channelMix(const std::vector<float>& stereo, bool side) {
 
 bool overlaps(const RoleSpan& s, std::uint64_t start, std::uint64_t end) { return s.startFrame < end && s.endFrame > start; }
 
-json roleTruthJson(const RoleWindowTruth& r) {
-    return json{{"planned", r.planned},
+json roleTruthJson(const RoleWindowTruth& r, bool v2) {
+    json j{{"planned", r.planned},
                 {"applied", r.applied},
                 {"signal", signalLevelName(r.signal)},
                 {"peak_dbfs", numOrNull(r.peakDbfs)},
@@ -139,12 +141,14 @@ json roleTruthJson(const RoleWindowTruth& r) {
                 {"applied_note_ons", r.appliedNoteOns},
                 {"matched_onsets", r.onsetStatus == "MEASURED" ? json(r.matchedOnsets) : json(nullptr)},
                 {"onset_detected", r.onsetStatus == "MEASURED" ? json(r.onsetDetected) : json(nullptr)}};
+    if (v2) j["negative_kind"] = r.negativeKind;
+    return j;
 }
 
-json windowTruthJson(const WindowTruth& w) {
+json windowTruthJson(const WindowTruth& w, bool v2) {
     json roles = json::object();
-    for (std::size_t r = 0; r < kRoleCount; ++r) roles[kRoleNames[r]] = roleTruthJson(w.roles[r]);
-    return json{{"id", w.id},
+    for (std::size_t r = 0; r < kRoleCount; ++r) roles[kRoleNames[r]] = roleTruthJson(w.roles[r], v2);
+    json j{{"id", w.id},
                 {"kind", w.kind},
                 {"duplicate_of", w.duplicateOf},
                 {"removed_role", w.removedRole >= 0 ? json(kRoleNames[static_cast<std::size_t>(w.removedRole)]) : json(nullptr)},
@@ -163,6 +167,8 @@ json windowTruthJson(const WindowTruth& w) {
                 {"clipped_samples", w.clippedSamples},
                 {"mel_mid_status", w.melMidStatus},
                 {"mel_side_status", w.melSideStatus}};
+    if (v2) j["group_id"] = w.groupId;
+    return j;
 }
 
 WindowTruth windowTruthFrom(const json& j) {
@@ -191,6 +197,7 @@ WindowTruth windowTruthFrom(const json& j) {
         rt.appliedNoteOns = rj.at("applied_note_ons").get<std::size_t>();
         rt.matchedOnsets = rj.at("matched_onsets").is_null() ? 0 : rj.at("matched_onsets").get<std::size_t>();
         rt.onsetDetected = !rj.at("onset_detected").is_null() && rj.at("onset_detected").get<bool>();
+        rt.negativeKind = rj.value("negative_kind", std::string{});
     }
     w.sideMidStatus = j.at("side_mid_status").get<std::string>();
     if (j.at("side_mid_db").is_number()) w.sideMidDb = j.at("side_mid_db").get<double>();
@@ -199,12 +206,13 @@ WindowTruth windowTruthFrom(const json& j) {
     w.clippedSamples = j.at("clipped_samples").get<std::uint64_t>();
     w.melMidStatus = j.at("mel_mid_status").get<std::string>();
     w.melSideStatus = j.at("mel_side_status").get<std::string>();
+    w.groupId = j.value("group_id", std::string{});
     return w;
 }
 
-json windowsJson(const std::vector<WindowTruth>& v) {
+json windowsJson(const std::vector<WindowTruth>& v, bool v2) {
     json a = json::array();
-    for (const auto& w : v) a.push_back(windowTruthJson(w));
+    for (const auto& w : v) a.push_back(windowTruthJson(w, v2));
     return a;
 }
 
@@ -467,10 +475,21 @@ std::string truthToJson(const TruthBundle& t) {
                    {"onset_tolerance_s", t.config.onsetToleranceS},
                    {"click_resolution_s", t.config.clickResolutionS}};
     j["onset_profile_sha256"] = t.onsetProfileSha256;
-    j["blind"] = windowsJson(t.blind);
-    j["diagnostic"] = windowsJson(t.diagnostic);
-    j["phrases"] = windowsJson(t.phrases);
+    const bool v2 = t.packVersion == kEvaluationPackVersionV2;
+    j["blind"] = windowsJson(t.blind, v2);
+    j["diagnostic"] = windowsJson(t.diagnostic, v2);
+    j["phrases"] = windowsJson(t.phrases, v2);
     j["altered_mask_novel"] = t.alteredMaskNovel;
+    if (v2) {
+        j["grouping_rule"] = t.groupingRule;
+        j["musical_groups"] = t.musicalGroups;
+        j["reference_groups"] = t.referenceGroups;
+        j["expected_n_eff"] = {{"positives", t.expectedPositiveNeff}, {"negatives", t.expectedNegativeNeff},
+                               {"assumption", "one claim per (window, role) on test and removal windows"}};
+        json rem = json::object();
+        for (std::size_t r = 0; r < kRoleCount; ++r) rem[kRoleNames[r]] = t.removalsPerRole[r];
+        j["removals_per_role"] = rem;
+    }
     j["public_blind_files"] = t.publicBlindFiles;
     j["public_diagnostic_files"] = t.publicDiagnosticFiles;
     return dump(j);
@@ -481,7 +500,9 @@ std::optional<TruthBundle> truthFromJson(std::string_view text, std::string* err
         const json j = json::parse(text);
         TruthBundle t;
         t.packVersion = j.at("pack_version").get<std::string>();
-        if (t.packVersion != kEvaluationPackVersion) throw std::runtime_error("unsupported pack version " + t.packVersion);
+        if (t.packVersion != kEvaluationPackVersion && t.packVersion != kEvaluationPackVersionV2) {
+            throw std::runtime_error("unsupported pack version " + t.packVersion);
+        }
         t.sourceName = j.at("source").get<std::string>();
         t.packSeed = j.at("pack_seed").get<std::uint64_t>();
         t.seedSha256 = j.at("seed_commitment_sha256").get<std::string>();
@@ -504,6 +525,14 @@ std::optional<TruthBundle> truthFromJson(std::string_view text, std::string* err
         t.diagnostic = windowsFrom(j.at("diagnostic"));
         t.phrases = windowsFrom(j.at("phrases"));
         t.alteredMaskNovel = j.at("altered_mask_novel").get<bool>();
+        if (t.packVersion == kEvaluationPackVersionV2) {
+            t.groupingRule = j.at("grouping_rule").get<std::string>();
+            t.musicalGroups = j.at("musical_groups").get<std::size_t>();
+            t.referenceGroups = j.at("reference_groups").get<std::size_t>();
+            t.expectedPositiveNeff = j.at("expected_n_eff").at("positives").get<double>();
+            t.expectedNegativeNeff = j.at("expected_n_eff").at("negatives").get<double>();
+            for (std::size_t r = 0; r < kRoleCount; ++r) t.removalsPerRole[r] = j.at("removals_per_role").at(kRoleNames[r]).get<std::size_t>();
+        }
         t.publicBlindFiles = j.at("public_blind_files").get<std::map<std::string, std::string>>();
         t.publicDiagnosticFiles = j.at("public_diagnostic_files").get<std::map<std::string, std::string>>();
         return t;
@@ -513,10 +542,35 @@ std::optional<TruthBundle> truthFromJson(std::string_view text, std::string* err
     }
 }
 
-PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, const PackConfig& cfg,
-                              const PresenceProfile& profile) {
+std::vector<std::string> sourcePhraseGroups(const PackSource& src, std::string* rule) {
+    std::vector<std::string> ids;
+    if (src.intents.empty()) {
+        if (rule != nullptr) *rule = "source_phrase_only";
+        for (const auto& p : src.phrases) ids.push_back("p" + std::to_string(p.index));
+        return ids;
+    }
+    if (rule != nullptr) *rule = "per_phrase_content_fingerprint";
+    for (const auto& p : src.phrases) {
+        std::vector<audio::MusicIntentEvent> own;
+        for (const auto& e : src.intents) {
+            if (e.sampleFrame >= p.startFrame && e.sampleFrame < p.endFrame) own.push_back(e);
+        }
+        const auto fp = phraseContentFingerprint(own, src.noteOffs, p.startFrame, src.sampleRate);
+        std::ostringstream id;
+        if (fp) id << 'g' << std::hex << std::setw(16) << std::setfill('0') << *fp;
+        else id << "invalid_p" << p.index;
+        ids.push_back(id.str());
+    }
+    return ids;
+}
+
+namespace {
+
+PackBuild buildPackImpl(const PackSource& src, std::uint64_t packSeed, const PackConfig& cfg, const PresenceProfile& profile,
+                        int version) {
     PackBuild b;
     TruthBundle& truth = b.truth;
+    truth.packVersion = version == 2 ? kEvaluationPackVersionV2 : kEvaluationPackVersion;
     truth.sourceName = src.name;
     truth.packSeed = packSeed;
     truth.seedSha256 = packSeedCommitment(packSeed);
@@ -559,17 +613,37 @@ PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, con
     truth.phrases = excerpt;
     b.phrasesMeasured = excerpt.size();
 
-    // Test windows: up to k phrases per (section, planned mask), drawn by the selection stream
-    std::map<std::pair<std::uint32_t, std::uint32_t>, std::vector<std::size_t>> groups;
-    for (std::size_t i = 0; i < src.phrases.size(); ++i) groups[{src.phrases[i].section, mask[i]}].push_back(i);
+    struct Ref {
+        std::size_t role;
+        std::uint32_t section;
+        std::size_t phrase;
+    };
+    struct BlindItem {
+        WindowRender render;
+        WindowTruth meta;
+    };
     std::vector<std::size_t> tests;
-    for (auto& [key, members] : groups) {
-        shuffle(members, rng);
-        for (std::size_t k = 0; k < members.size() && k < cfg.windowsPerMaskGroup; ++k) tests.push_back(members[k]);
-    }
-    std::sort(tests.begin(), tests.end());
-    std::set<std::size_t> used(tests.begin(), tests.end());
-
+    std::vector<Ref> refs;
+    std::vector<BlindItem> items;
+    std::set<std::uint32_t> sections;
+    for (const auto& p : src.phrases) sections.insert(p.section);
+    // Opaque identifiers from the selection stream
+    std::set<std::string> ids;
+    auto newId = [&]() {
+        for (;;) {
+            std::string id = hexId(rng.next());
+            if (ids.insert(id).second) return id;
+        }
+    };
+    auto phraseMeta = [&](std::size_t i, const std::string& kind) {
+        WindowTruth m;
+        m.kind = kind;
+        m.phrase = static_cast<int>(src.phrases[i].index);
+        m.section = src.phrases[i].section;
+        m.startBar = src.phrases[i].startBar;
+        m.barCount = src.phrases[i].barCount;
+        return m;
+    };
     auto presentRoles = [&](std::size_t i) {
         std::vector<std::size_t> v;
         for (std::size_t r = 0; r < kRoleCount; ++r) {
@@ -577,6 +651,20 @@ PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, con
         }
         return v;
     };
+    const auto duplicateShift = static_cast<std::uint64_t>(std::llround(cfg.duplicateShiftS * src.sampleRate));
+    std::vector<std::string> groupOf;
+    if (version == 2) groupOf = sourcePhraseGroups(src, &truth.groupingRule);
+
+    if (version == 1) {
+    // Test windows: up to k phrases per (section, planned mask), drawn by the selection stream
+    std::map<std::pair<std::uint32_t, std::uint32_t>, std::vector<std::size_t>> groups;
+    for (std::size_t i = 0; i < src.phrases.size(); ++i) groups[{src.phrases[i].section, mask[i]}].push_back(i);
+    for (auto& [key, members] : groups) {
+        shuffle(members, rng);
+        for (std::size_t k = 0; k < members.size() && k < cfg.windowsPerMaskGroup; ++k) tests.push_back(members[k]);
+    }
+    std::sort(tests.begin(), tests.end());
+    std::set<std::size_t> used(tests.begin(), tests.end());
 
     // Altered-truth item: a phrase with >= 2 roles present, one present role removed. Preferred (AG-5d-03): the
     // remaining role set equals the planned mask of some phrase, so the item is not recognisable by counting roles.
@@ -614,17 +702,8 @@ PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, con
         used.insert(pick.phrase);
     }
     const std::size_t duplicateSource = tests[rng.below(tests.size())];
-    const auto duplicateShift = static_cast<std::uint64_t>(std::llround(cfg.duplicateShiftS * src.sampleRate));
 
     // Labelled references: solo stem of each role per section, from phrases that are not used as test items
-    struct Ref {
-        std::size_t role;
-        std::uint32_t section;
-        std::size_t phrase;
-    };
-    std::vector<Ref> refs;
-    std::set<std::uint32_t> sections;
-    for (const auto& p : src.phrases) sections.insert(p.section);
     for (std::size_t r = 0; r < kRoleCount; ++r) {
         for (const auto s : sections) {
             std::vector<std::size_t> cands;
@@ -637,29 +716,6 @@ PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, con
         }
     }
 
-    // Opaque identifiers from the selection stream
-    std::set<std::string> ids;
-    auto newId = [&]() {
-        for (;;) {
-            std::string id = hexId(rng.next());
-            if (ids.insert(id).second) return id;
-        }
-    };
-
-    struct BlindItem {
-        WindowRender render;
-        WindowTruth meta;
-    };
-    std::vector<BlindItem> items;
-    auto phraseMeta = [&](std::size_t i, const std::string& kind) {
-        WindowTruth m;
-        m.kind = kind;
-        m.phrase = static_cast<int>(src.phrases[i].index);
-        m.section = src.phrases[i].section;
-        m.startBar = src.phrases[i].startBar;
-        m.barCount = src.phrases[i].barCount;
-        return m;
-    };
     std::map<std::size_t, std::string> testIds;
     for (const auto i : tests) {
         BlindItem it{{src.phrases[i].startFrame, src.phrases[i].startFrame + blindFrames, {true, true, true, true}, 0.0, cfg.fadeS},
@@ -694,6 +750,106 @@ PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, con
         it.meta.id = newId();
         items.push_back(it);
     }
+    } else {
+        // ---- evaluation_pack_v2 (5e-11, DIF-5e.0-02) ----
+        std::map<std::string, std::vector<std::size_t>> members;
+        std::vector<std::string> order;
+        for (std::size_t i = 0; i < src.phrases.size(); ++i) {
+            if (!members.contains(groupOf[i])) order.push_back(groupOf[i]);
+            members[groupOf[i]].push_back(i);
+        }
+        truth.musicalGroups = order.size();
+        // Reference groups: one per section with at least two groups, among the groups lying in that section with
+        // every role present; never tested, so that a labelled solo stem never shows the material of a test window,
+        // and every section keeps at least one test group
+        std::set<std::string> reserved;
+        for (const auto s : sections) {
+            std::vector<std::string> inSectionGroups, cands;
+            for (const auto& g : order) {
+                const auto& m = members[g];
+                const bool inSection = std::all_of(m.begin(), m.end(), [&](std::size_t i) { return src.phrases[i].section == s; });
+                if (!inSection) continue;
+                inSectionGroups.push_back(g);
+                if (presentRoles(m.front()).size() == kRoleCount) cands.push_back(g);
+            }
+            if (cands.empty() || inSectionGroups.size() < 2) continue;
+            const std::string g = cands[rng.below(cands.size())];
+            reserved.insert(g);
+            const auto& m = members[g];
+            const std::size_t phrase = m[rng.below(m.size())];
+            for (std::size_t r = 0; r < kRoleCount; ++r) refs.push_back({r, s, phrase});
+        }
+        truth.referenceGroups = reserved.size();
+        // One test window per remaining group
+        std::vector<std::string> testGroups;
+        for (const auto& g : order) {
+            if (!reserved.contains(g)) testGroups.push_back(g);
+        }
+        std::map<std::string, std::size_t> testPhraseOf;
+        for (const auto& g : testGroups) {
+            const auto& m = members[g];
+            testPhraseOf[g] = m[rng.below(m.size())];
+            tests.push_back(testPhraseOf[g]);
+        }
+        std::sort(tests.begin(), tests.end());
+        if (tests.empty()) {
+            b.errors.emplace_back("no musical group left for test windows");
+            return b;
+        }
+        std::map<std::size_t, std::string> testIds;
+        for (const auto i : tests) {
+            BlindItem it{{src.phrases[i].startFrame, src.phrases[i].startFrame + blindFrames, {true, true, true, true}, 0.0, cfg.fadeS},
+                         phraseMeta(i, "test")};
+            it.meta.groupId = groupOf[i];
+            it.meta.id = newId();
+            testIds[i] = it.meta.id;
+            items.push_back(it);
+        }
+        // Removal negatives: one per test group, in selection-stream order, removing the present role with the fewest
+        // removals so far (balance per role); from another phrase of the group when there is one. Never an empty window.
+        std::vector<std::string> shuffled = testGroups;
+        shuffle(shuffled, rng);
+        for (const auto& g : shuffled) {
+            std::vector<std::size_t> others;
+            for (const auto i : members[g]) {
+                if (i != testPhraseOf[g]) others.push_back(i);
+            }
+            const std::size_t i = others.empty() ? testPhraseOf[g] : others[rng.below(others.size())];
+            const auto roles = presentRoles(i);
+            if (roles.size() < 2) continue;
+            std::size_t best = roles.front();
+            for (const auto r : roles) {
+                if (truth.removalsPerRole[r] < truth.removalsPerRole[best]) best = r;
+            }
+            ++truth.removalsPerRole[best];
+            BlindItem it{{src.phrases[i].startFrame, src.phrases[i].startFrame + blindFrames, {true, true, true, true}, 0.0, cfg.fadeS},
+                         phraseMeta(i, "removal")};
+            it.render.include[best] = false;
+            it.meta.removedRole = static_cast<int>(best);
+            it.meta.groupId = g;
+            it.meta.id = newId();
+            items.push_back(it);
+        }
+        {
+            const std::size_t i = tests[rng.below(tests.size())];
+            BlindItem it{{src.phrases[i].startFrame + duplicateShift, src.phrases[i].startFrame + duplicateShift + blindFrames,
+                          {true, true, true, true}, cfg.duplicateGainDb, cfg.fadeS},
+                         phraseMeta(i, "duplicate")};
+            it.meta.groupId = groupOf[i];
+            it.meta.id = newId();
+            it.meta.duplicateOf = testIds[i];
+            items.push_back(it);
+        }
+        {
+            BlindItem it{{src.phrases[0].startFrame, src.phrases[0].startFrame + blindFrames, {false, false, false, false}, 0.0, cfg.fadeS},
+                         WindowTruth{}};
+            it.meta.kind = "catch";
+            it.meta.phrase = -1;
+            it.meta.groupId = "catch";
+            it.meta.id = newId();
+            items.push_back(it);
+        }
+    }
 
     // ---- public_blind ----
     json windowsPublic = json::array();
@@ -708,6 +864,13 @@ PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, con
         t.section = it.meta.section;
         t.startBar = it.meta.startBar;
         t.barCount = it.meta.barCount;
+        t.groupId = it.meta.groupId;
+        if (version == 2 && t.kind != "catch") {
+            for (std::size_t r = 0; r < kRoleCount; ++r) {
+                if (t.removedRole == static_cast<int>(r)) t.roles[r].negativeKind = "removal";
+                else if (t.roles[r].signal != SignalLevel::Present) t.roles[r].negativeKind = "natural";
+            }
+        }
         if (t.kind == "catch") {
             for (auto& rt : t.roles) {
                 rt.planned = false;  // synthetic silence: not an excerpt of the run
@@ -725,6 +888,21 @@ PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, con
         truth.blind.push_back(t);
     }
     std::sort(truth.blind.begin(), truth.blind.end(), [](const WindowTruth& a, const WindowTruth& c) { return a.id < c.id; });
+    if (version == 2) {
+        // Expected n_eff with one claim per (window, role) on the test and removal windows (DIF-5e.0-02)
+        std::map<std::string, std::size_t> pos, neg;
+        for (const auto& t : truth.blind) {
+            if (t.kind != "test" && t.kind != "removal") continue;
+            for (const auto& rt : t.roles) ++(rt.signal == SignalLevel::Present ? pos : neg)[t.groupId];
+        }
+        auto neff = [](const std::map<std::string, std::size_t>& m) {
+            std::vector<std::size_t> v;
+            for (const auto& [g, c] : m) v.push_back(c);
+            return effectiveSampleSize(v);
+        };
+        truth.expectedPositiveNeff = neff(pos);
+        truth.expectedNegativeNeff = neff(neg);
+    }
     for (const auto& t : truth.blind) {
         windowsPublic.push_back({{"id", t.id}, {"audio", t.id + ".wav"}, {"mel_mid", t.id + "_mid.png"}, {"mel_side", t.id + "_side.png"}});
     }
@@ -743,7 +921,7 @@ PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, con
 
     auto commonPack = [&](const char* mode) {
         json j;
-        j["pack_version"] = kEvaluationPackVersion;
+        j["pack_version"] = version == 2 ? kEvaluationPackVersionV2 : kEvaluationPackVersion;
         j["mode"] = mode;
         j["result_schema"] = kEvaluationResultSchema;
         j["claims_version"] = kClaimsVersion;
@@ -777,6 +955,24 @@ PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, con
 
     // ---- public_diagnostic: full phrases of the test windows, absolute timing, truth visible ----
     json windowsDiag = json::array();
+    std::vector<StaffOnset> detected;
+    std::array<std::pair<float, float>, kRoleCount> pitchRange{};
+    if (version == 2) {
+        for (std::size_t r = 0; r < kRoleCount; ++r) {
+            const auto releases = roleReleaseTimesS(src.applied, static_cast<audio::MusicRole>(r), src.sampleRate);
+            const auto d = classifyRoleOnsets(r, src.stems[r], src.onsetProfile[r], onsets.referencesS[r], releases, src.sampleRate,
+                                              cfg.onsetToleranceS);
+            detected.insert(detected.end(), d.begin(), d.end());
+        }
+        for (auto& rg : pitchRange) rg = {std::numeric_limits<float>::max(), 0.0f};
+        for (const auto& e : src.intents) {
+            auto& rg = pitchRange[static_cast<std::size_t>(e.role)];
+            if (e.pitchHz > 0.0f && std::isfinite(e.pitchHz)) {
+                rg.first = (std::min)(rg.first, e.pitchHz);
+                rg.second = (std::max)(rg.second, e.pitchHz);
+            }
+        }
+    }
     for (const auto i : tests) {
         const auto& p = src.phrases[i];
         std::vector<float> audio;
@@ -806,9 +1002,37 @@ PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, con
             b.publicDiagnostic[name] = melPng(channelMix(solo, false), src.sampleRate).second;
             stems[kRoleNames[r]] = name;
         }
-        windowsDiag.push_back({{"id", t.id}, {"audio", t.id + ".wav"}, {"mel_mid", t.id + "_mid.png"}, {"mel_side", t.id + "_side.png"},
-                               {"stem_mel_mid", stems}, {"phrase", p.index}, {"section", p.section}, {"start_bar", p.startBar},
-                               {"bar_count", p.barCount}, {"start_frame", p.startFrame}, {"end_frame", p.endFrame}});
+        json entry{{"id", t.id}, {"audio", t.id + ".wav"}, {"mel_mid", t.id + "_mid.png"}, {"mel_side", t.id + "_side.png"},
+                   {"stem_mel_mid", stems}, {"phrase", p.index}, {"section", p.section}, {"start_bar", p.startBar},
+                   {"bar_count", p.barCount}, {"start_frame", p.startFrame}, {"end_frame", p.endFrame}};
+        if (version == 2) {
+            t.groupId = groupOf[i];
+            entry["group_id"] = t.groupId;
+            // Staff view (5e-06): diagnostic only, never in the blind pack
+            StaffViewInput in;
+            in.startFrame = p.startFrame;
+            in.endFrame = p.endFrame;
+            in.sampleRate = src.sampleRate;
+            in.pitchRange = pitchRange;
+            in.barFrames = p.barFrames;
+            std::map<std::pair<std::uint64_t, int>, std::uint64_t> offs;
+            for (const auto& o : src.noteOffs) offs[{o.eventId, static_cast<int>(o.role)}] = o.sampleFrame;
+            for (const auto& e : src.intents) {
+                const auto it = offs.find({e.eventId, static_cast<int>(e.role)});
+                in.planned.push_back({static_cast<std::size_t>(e.role), e.sampleFrame,
+                                      it != offs.end() ? it->second : e.sampleFrame + e.durationFrames, e.pitchHz});
+            }
+            for (const auto& a : src.applied) {
+                if (a.id.type == audio::AudioEventType::NoteOn && a.disposition == EventDisposition::Applied) {
+                    in.appliedNoteOns.emplace_back(static_cast<std::size_t>(a.id.role), a.id.sampleFrame);
+                }
+            }
+            in.detected = detected;
+            const std::string staffName = t.id + "_staff.png";
+            b.publicDiagnostic[staffName] = renderStaffView(in).png;
+            entry["staff_view"] = staffName;
+        }
+        windowsDiag.push_back(entry);
         truth.diagnostic.push_back(t);
     }
     {
@@ -820,8 +1044,15 @@ PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, con
                                  {"stem_to_mix_db", profile.stemToMixDb}, {"numerical_floor_dbfs", profile.numericalFloorDbfs}};
         j["windows"] = windowsDiag;
         j["never_blind"] = true;
+        if (version == 2) {
+            j["staff_view_legend"] = {{"lanes_top_to_bottom", json::array({"pulso", "corpo", "trama", "vettore"})},
+                                      {"top_strip_white", "applied NoteOn"},
+                                      {"middle_bars", "planned notes by log pitch"},
+                                      {"bottom_strip", "detected onsets: green matched, red unmatched, orange release"},
+                                      {"grey_vertical_lines", "bar lines"}};
+        }
         b.publicDiagnostic["pack.json"] = bytesOf(dump(j));
-        b.publicDiagnostic["truth.json"] = bytesOf(dump(windowsJson(truth.diagnostic)));
+        b.publicDiagnostic["truth.json"] = bytesOf(dump(windowsJson(truth.diagnostic, version == 2)));
     }
     truth.publicDiagnosticFiles = hashMap(b.publicDiagnostic);
     b.publicDiagnostic["SHA256SUMS"] = bytesOf(sha256Sums(b.publicDiagnostic));
@@ -832,6 +1063,16 @@ PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, con
     b.sealed["SHA256SUMS"] = bytesOf(sha256Sums(b.sealed));
     b.ok = true;
     return b;
+}
+
+} // namespace
+
+PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, const PackConfig& cfg, const PresenceProfile& profile) {
+    return buildPackImpl(src, packSeed, cfg, profile, 1);
+}
+
+PackBuild buildEvaluationPackV2(const PackSource& src, std::uint64_t packSeed, const PackConfig& cfg, const PresenceProfile& profile) {
+    return buildPackImpl(src, packSeed, cfg, profile, 2);
 }
 
 // ---- checker ----
@@ -965,7 +1206,17 @@ CheckReport checkEvaluation(const TruthBundle& truth, std::string_view resultJso
         if (method == "spectrogram") return declared.contains(id + "_mid.png") || declared.contains(id + "_side.png");
         return true; // code: admitted only for role_planned and observation (methodAdmitted)
     };
-    std::size_t tp = 0, fn = 0, tn = 0, fp = 0;
+    // presence_stats_v1 sample (5e-09): perceptual role_signal_present claims on test, altered and removal windows
+    std::vector<PresenceObservation> presenceObs;
+    std::size_t abstainedPositives = 0, abstainedNegatives = 0;
+    auto groupOfWindow = [](const WindowTruth& w) {
+        if (!w.groupId.empty()) return w.groupId;
+        return w.phrase >= 0 ? "p" + std::to_string(w.phrase) : "w:" + w.id; // v1: grouping by source phrase
+    };
+    auto inPresenceSample = [](const WindowTruth& w, const std::string& method) {
+        return (method == "listening" || method == "spectrogram") &&
+               (w.kind == "test" || w.kind == "altered" || w.kind == "removal");
+    };
     for (std::size_t ci = 0; ci < claims.size(); ++ci) {
         const json& c = claims[ci];
         ClaimOutcome o;
@@ -1020,7 +1271,14 @@ CheckReport checkEvaluation(const TruthBundle& truth, std::string_view resultJso
             continue;
         }
         if (o.predicate == "observation") { finish("unverifiable", "observation: no base of truth"); continue; }
-        if (!c.contains("claimed_value") || c["claimed_value"].is_null()) { finish("abstained", "not determinable (counted apart)"); continue; }
+        if (!c.contains("claimed_value") || c["claimed_value"].is_null()) {
+            if (o.predicate == "role_signal_present" && inPresenceSample(w, o.method) &&
+                w.roles[static_cast<std::size_t>(role)].signal != SignalLevel::Unavailable) {
+                ++(w.roles[static_cast<std::size_t>(role)].signal == SignalLevel::Present ? abstainedPositives : abstainedNegatives);
+            }
+            finish("abstained", "not determinable (counted apart)");
+            continue;
+        }
         if (!c["claimed_value"].is_boolean()) { finish("inadmissible", "claimed_value is not boolean"); continue; }
         const bool v = c["claimed_value"].get<bool>();
 
@@ -1035,6 +1293,11 @@ CheckReport checkEvaluation(const TruthBundle& truth, std::string_view resultJso
         // exposes the plan (truth.json) and keeps this path.
         if (o.predicate == "role_planned" && blindMode && !accessFlag("repository").value_or(false)) {
             finish("not_attributable", "plan read from code in blind mode without declared repository access");
+            continue;
+        }
+        // OSS-5d-R3-01: in the diagnostic pack the plan comes from truth.json, which must be a declared input
+        if (o.predicate == "role_planned" && !blindMode && !declared.contains("truth.json")) {
+            finish("not_attributable", "plan claim in diagnostic mode without truth.json among the declared inputs");
             continue;
         }
         if (o.method == "listening" && audioChannels < 1) {
@@ -1058,12 +1321,14 @@ CheckReport checkEvaluation(const TruthBundle& truth, std::string_view resultJso
             const bool present = s == SignalLevel::Present;
             // Primary perceptual sample (OSS-5d-01): perceptual methods only, independent windows only. The hidden
             // duplicate is a consistency control and the catch trial an exclusion control; descriptors are not perception.
-            const bool perceptual = o.method == "listening" || o.method == "spectrogram";
-            if (perceptual && w.kind != "catch" && w.kind != "duplicate") {
-                if (present && v) ++tp;
-                if (present && !v) ++fn;
-                if (!present && !v) ++tn;
-                if (!present && v) ++fp;
+            if (inPresenceSample(w, o.method)) {
+                const auto& rt = w.roles[static_cast<std::size_t>(role)];
+                std::string negativeKind;
+                if (!present) {
+                    negativeKind = !rt.negativeKind.empty() ? rt.negativeKind : (w.removedRole == role ? "removal" : "natural");
+                }
+                presenceObs.push_back({groupOfWindow(w), w.id, w.phrase, kRoleNames[static_cast<std::size_t>(role)], present,
+                                       negativeKind, v});
             }
             finish(present == v ? "supported" : "contradicted", std::string("measured ") + signalLevelName(s));
         } else if (o.predicate == "role_onset_detected") {
@@ -1115,13 +1380,14 @@ CheckReport checkEvaluation(const TruthBundle& truth, std::string_view resultJso
                 }
             }
         }
-        if (w.kind == "altered" && w.removedRole >= 0) {
+        if ((w.kind == "altered" || w.kind == "removal") && w.removedRole >= 0) {
             const std::string r = kRoleNames[static_cast<std::size_t>(w.removedRole)];
             for (const char* p : {"role_signal_present|", "role_onset_detected|", "role_audible|"}) {
                 const auto it = values[w.id].find(p + r);
                 if (it != values[w.id].end() && it->second) ++rep.alteredPlanFollowing;
             }
         }
+        if (w.kind == "duplicate") ++rep.duplicateWindows;
         if (w.kind == "duplicate" && byId.contains(w.duplicateOf)) {
             for (const auto& [k, v] : values[w.id]) {
                 const auto it = values[w.duplicateOf].find(k);
@@ -1131,16 +1397,31 @@ CheckReport checkEvaluation(const TruthBundle& truth, std::string_view resultJso
             }
         }
     }
-    rep.sensitivity = wilsonInterval(tp, tp + fn);
-    rep.specificity = wilsonInterval(tn, tn + fp);
+    rep.groupingRule = truth.packVersion == kEvaluationPackVersionV2 ? truth.groupingRule : "source_phrase_only (evaluation_pack_v1)";
+    rep.presence = computePresenceStats(presenceObs);
+    rep.presenceAbstained = abstainedPositives + abstainedNegatives;
+    // Worst case (STARD item 15): abstentions counted as errors, reported beside the primary rates, never instead
+    if (rep.presence.positives.claims + abstainedPositives > 0) {
+        rep.worstCasePositiveRate = static_cast<double>(rep.presence.positives.correct) /
+                                    static_cast<double>(rep.presence.positives.claims + abstainedPositives);
+    }
+    if (rep.presence.negatives.claims + abstainedNegatives > 0) {
+        rep.worstCaseNegativeRate = static_cast<double>(rep.presence.negatives.correct) /
+                                    static_cast<double>(rep.presence.negatives.claims + abstainedNegatives);
+    }
+    const std::string& ps = rep.presence.positives.status;
+    const std::string& ns = rep.presence.negatives.status;
     if (rep.catchTrialFailed) {
         rep.presenceStatus = "EXCLUDED_BY_CATCH_RULE";
-    } else if (tp + fn == 0 || tn + fp == 0) {
-        rep.presenceStatus = "INSUFFICIENT_DATA";
-    } else {
+        rep.presence.aboveTrivialBaseline.reset();
+    } else if (ps == "NOT_RUN" && ns == "NOT_RUN") {
+        rep.presenceStatus = "NOT_RUN";
+    } else if (ps == "MEASURED" && ns == "MEASURED") {
         rep.presenceStatus = "MEASURED";
-        // Trivial classifiers have sensitivity + specificity = 1: exceeded only if both lower bounds sum above 1
-        rep.aboveTrivialBaseline = rep.sensitivity.low + rep.specificity.low > 1.0;
+    } else if (ps == "DESCRIPTIVE_ONLY" || ns == "DESCRIPTIVE_ONLY" || ps == "NOT_RUN" || ns == "NOT_RUN") {
+        rep.presenceStatus = "DESCRIPTIVE_ONLY";
+    } else {
+        rep.presenceStatus = "INSUFFICIENT_DATA";
     }
     return rep;
 }
@@ -1163,22 +1444,43 @@ std::string CheckReport::toJson() const {
                       {"outcome", c.outcome}, {"reason", c.reason}});
     }
     j["claims"] = cl;
-    auto ci = [](const ProportionCi& p) {
-        return json{{"successes", p.successes}, {"trials", p.trials}, {"value", numOrNull(p.value)},
-                    {"wilson95_low", numOrNull(p.low)}, {"wilson95_high", numOrNull(p.high)}};
-    };
     j["controls"] = {{"catch_trial_failed", catchTrialFailed},
                      {"altered_plan_following_claims", alteredPlanFollowing},
+                     {"duplicate_windows", duplicateWindows},
                      {"duplicate_pairs_compared", duplicatePairsCompared},
-                     {"duplicate_pairs_agreeing", duplicatePairsAgreeing}};
-    // Rates only when MEASURED (AG-5d-05): counts are kept, values and intervals are null otherwise
-    auto ciOrCounts = [&](const ProportionCi& p) {
-        json c = ci(p);
-        if (presenceStatus != "MEASURED") c["value"] = c["wilson95_low"] = c["wilson95_high"] = nullptr;
-        return c;
+                     {"duplicate_pairs_agreeing", duplicatePairsAgreeing},
+                     {"note", "altered_plan_following counts true claims on the removed role of altered (v1) and removal (v2) "
+                              "windows; duplicate agreement is a consistency control, no kappa with fewer than 4 duplicates"}};
+    // Interval only when the class is MEASURED; the rate stays as a descriptive value (5e-09, DIF-5e.1-R2-01)
+    auto cls = [](const ClassStats& c) {
+        const bool m = c.status == "MEASURED";
+        return json{{"status", c.status}, {"claims", c.claims}, {"correct", c.correct}, {"windows", c.windows},
+                    {"phrases", c.phrases}, {"groups", c.groups}, {"n_eff", c.claims ? json(c.nEff) : json(nullptr)},
+                    {"rate", numOrNull(c.rate)}, {"wilson95_low", m ? numOrNull(c.low) : json(nullptr)},
+                    {"wilson95_high", m ? numOrNull(c.high) : json(nullptr)}};
     };
-    j["role_signal_present_scoring"] = {{"status", presenceStatus}, {"sensitivity", ciOrCounts(sensitivity)},
-                                        {"specificity", ciOrCounts(specificity)}, {"above_trivial_baseline", aboveTrivialBaseline}};
+    json perRole = json::object();
+    for (const auto& [role, c] : presence.positivesPerRole) perRole[role]["positives"] = cls(c);
+    for (const auto& [role, c] : presence.negativesPerRole) perRole[role]["negatives"] = cls(c);
+    const bool measured = presenceStatus == "MEASURED";
+    j["role_signal_present_scoring"] = {
+        {"status", presenceStatus},
+        {"stats_profile", presence.profile},
+        {"coverage", presence.coverage},
+        {"grouping_rule", groupingRule},
+        {"scope", "conditional on the windows of this fixture and this musical seed; no generalisation to other seeds"},
+        {"sensitivity", cls(presence.positives)},
+        {"specificity", cls(presence.negatives)},
+        {"natural_negatives", cls(presence.naturalNegatives)},
+        {"removal_negatives", cls(presence.removalNegatives)},
+        {"per_role", perRole},
+        {"youden_hat", numOrNull(presence.youdenHat)},
+        {"balanced_accuracy", numOrNull(presence.balancedAccuracy)},
+        {"youden_lower", measured ? numOrNull(presence.youdenLow) : json(nullptr)},
+        {"above_trivial_baseline", (measured && presence.aboveTrivialBaseline) ? json(*presence.aboveTrivialBaseline) : json(nullptr)},
+        {"abstained", presenceAbstained},
+        {"worst_case", {{"sensitivity", numOrNull(worstCasePositiveRate)}, {"specificity", numOrNull(worstCaseNegativeRate)},
+                        {"note", "abstentions counted as errors; beside the primary rates, never instead"}}}};
     j["note"] = "supplementary evidence: never a gate (D-M2-11); role_audible is at most compatible, never supported";
     return dump(j);
 }
@@ -1282,14 +1584,17 @@ PackSource fixtureSource(const StemCapture& cap, const FixtureRender& fr) {
     src.planned = plannedSpans(fr.intents, fr.noteOffs);
     if (const auto clock = audio::MusicPlanner::makeFixtureM24V1Clock()) {
         for (const auto& p : audio::MusicPlanner::makeFixtureM24V1Phrases(*clock)) {
-            src.phrases.push_back({static_cast<std::uint32_t>(src.phrases.size()), p.sectionIndex, p.startBar, p.barCount,
-                                   p.startFrame, p.endFrame});
+            PackPhrase pp{static_cast<std::uint32_t>(src.phrases.size()), p.sectionIndex, p.startBar, p.barCount, p.startFrame, p.endFrame};
+            for (std::uint32_t b = 0; b <= p.barCount; ++b) pp.barFrames.push_back(clock->frameAtBar(p.startBar + b));
+            src.phrases.push_back(pp);
         }
     }
     if (const auto frozen = frozenStemProfileV1()) {
         src.onsetProfile = frozen->roles;
         src.onsetProfileSha256 = stemProfileSha256(frozen->roles);
     }
+    src.intents = fr.intents; // the plan: unused by v1 (its output is unchanged), musical groups and staff view in v2
+    src.noteOffs = fr.noteOffs;
     return src;
 }
 
@@ -1377,8 +1682,14 @@ std::string writePackDirectory(const std::string& dir, const std::map<std::strin
     return {};
 }
 
-EvaluationPackRun runEvaluationPackV1(const std::string& publicRoot, const std::string& sealedDir, std::uint64_t packSeed) {
+namespace {
+
+EvaluationPackRun runEvaluationPackImpl(int version, const std::string& publicRoot, const std::string& sealedDir, std::uint64_t packSeed) {
     EvaluationPackRun run;
+    run.scenario = version == 2 ? kEvaluationPackVersionV2 : kEvaluationPackVersion;
+    auto buildOf = [version](const PackSource& src, std::uint64_t seed) {
+        return version == 2 ? buildEvaluationPackV2(src, seed) : buildEvaluationPack(src, seed);
+    };
     run.packSeed = packSeed;
     run.defaultSeed = (packSeed == kDefaultPackSeed);
     run.publicBlindDir = (std::filesystem::path(publicRoot) / "public_blind").lexically_normal().string();
@@ -1398,8 +1709,13 @@ EvaluationPackRun runEvaluationPackV1(const std::string& publicRoot, const std::
     if (!run.captureInvalid.empty()) run.errors.push_back("invalid capture: " + run.captureInvalid);
     PackBuild build;
     if (run.errors.empty()) {
-        build = buildEvaluationPack(fixtureSource(cap, first), packSeed);
+        build = buildOf(fixtureSource(cap, first), packSeed);
         for (const auto& e : build.errors) run.errors.push_back(e);
+        run.groupingRule = build.truth.groupingRule;
+        run.musicalGroups = build.truth.musicalGroups;
+        run.referenceGroups = build.truth.referenceGroups;
+        run.expectedPositiveNeff = build.truth.expectedPositiveNeff;
+        run.expectedNegativeNeff = build.truth.expectedNegativeNeff;
     }
     if (run.errors.empty()) {
         run.blindWindows = build.truth.blind.size();
@@ -1422,7 +1738,7 @@ EvaluationPackRun runEvaluationPackV1(const std::string& publicRoot, const std::
         if (!captureInvalidReason(second.check).empty()) {
             run.errors.push_back("invalid capture on the repeat render");
         } else {
-            const PackBuild again = buildEvaluationPack(fixtureSource(cap, second), packSeed);
+            const PackBuild again = buildOf(fixtureSource(cap, second), packSeed);
             run.repeatIdentical = again.ok && again.publicBlind == build.publicBlind &&
                                   again.publicDiagnostic == build.publicDiagnostic && again.sealed == build.sealed;
             if (!run.repeatIdentical) run.errors.push_back("repeat build differs");
@@ -1444,10 +1760,26 @@ EvaluationPackRun runEvaluationPackV1(const std::string& publicRoot, const std::
     return run;
 }
 
+} // namespace
+
+EvaluationPackRun runEvaluationPackV1(const std::string& publicRoot, const std::string& sealedDir, std::uint64_t packSeed) {
+    return runEvaluationPackImpl(1, publicRoot, sealedDir, packSeed);
+}
+
+EvaluationPackRun runEvaluationPackV2(const std::string& publicRoot, const std::string& sealedDir, std::uint64_t packSeed) {
+    return runEvaluationPackImpl(2, publicRoot, sealedDir, packSeed);
+}
+
 std::string EvaluationPackRun::toJson() const {
     json j;
     j["manifest_version"] = "1.0";
-    j["scenario"] = kEvaluationPackVersion;
+    j["scenario"] = scenario;
+    if (scenario == kEvaluationPackVersionV2) {
+        j["grouping_rule"] = groupingRule;
+        j["musical_groups"] = musicalGroups;
+        j["reference_groups"] = referenceGroups;
+        j["expected_n_eff"] = {{"positives", expectedPositiveNeff}, {"negatives", expectedNegativeNeff}};
+    }
     j["build_id"] = CYMATICA_BUILD_ID;
     j["verdict"] = status;
     j["gate"] = false;

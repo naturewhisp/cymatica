@@ -36,9 +36,12 @@ struct MusicalContentFingerprint {
 };
 
 // roleFilter restricts the fingerprint to one role (per-role variant); a single-phrase vector gives the
-// per-phrase variant.
+// per-phrase variant. originFrame is subtracted from every serialized frame (NoteOns and releases): with the
+// phrase start it gives the per-phrase fingerprint of the entry research §2.3 (ADR-0006 DIF-5e.0-02), equal for
+// the same material at different positions in the piece. The default 0 leaves the absolute fingerprint
+// unchanged. A frame before the origin is an error (no fingerprint).
 [[nodiscard]] MusicalContentFingerprint musicalContentFingerprint(
     const std::vector<std::vector<MusicIntentEvent>>& intentsPerPhrase, const std::vector<PlannedNoteOff>& noteOffs,
-    std::uint32_t sampleRate = 48000, std::optional<MusicRole> roleFilter = std::nullopt);
+    std::uint32_t sampleRate = 48000, std::optional<MusicRole> roleFilter = std::nullopt, std::uint64_t originFrame = 0);
 
 } // namespace cymatica::audio

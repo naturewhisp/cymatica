@@ -1,6 +1,7 @@
 #include "procedural_scenario.h"
 
 #include "audio_probe.h"
+#include "diversity.h"
 #include "loudness.h"
 #include "music_planner.h"
 #include "onset.h"
@@ -33,31 +34,6 @@ constexpr double kOnsetToleranceS = 0.050;
 json optNum(const std::optional<double>& v) { return (v && std::isfinite(*v)) ? json(*v) : json(nullptr); }
 json num(double v) { return std::isfinite(v) ? json(v) : json(nullptr); }
 
-// Detected onsets of one role, offset-corrected, classified against the applied NoteOns and NoteOffs
-std::vector<StaffOnset> classifiedOnsets(std::size_t role, std::span<const float> stem, const RoleOnsetProfile& profile,
-                                         const std::vector<double>& refs, const std::vector<double>& releases) {
-    std::vector<StaffOnset> out;
-    OnsetParams p{};
-    p.delta = profile.delta;
-    const OnsetDetection det = detectOnsetsSeconds(monoFromStereo(stem), p, kFs);
-    if (det.status != AnalysisStatus::Ok) return out;
-    std::vector<double> est = det.timesS;
-    for (auto& t : est) t -= profile.offsetS;
-    std::sort(est.begin(), est.end());
-    const OnsetScore sc = matchOnsetsMaxCardinality(refs, est, kOnsetToleranceS); // indices refer to the sorted lists
-    std::vector<bool> matched(est.size(), false);
-    for (const auto& pr : sc.pairs) matched[pr.estimate] = true;
-    for (std::size_t i = 0; i < est.size(); ++i) {
-        if (est[i] < 0.0) continue;
-        StaffOnsetKind kind = StaffOnsetKind::Matched;
-        if (!matched[i]) {
-            const auto rel = std::lower_bound(releases.begin(), releases.end(), est[i] - kOnsetToleranceS);
-            kind = (rel != releases.end() && *rel <= est[i] + kOnsetToleranceS) ? StaffOnsetKind::Release : StaffOnsetKind::Unmatched;
-        }
-        out.push_back({role, static_cast<std::uint64_t>(std::llround(est[i] * kFs)), kind});
-    }
-    return out;
-}
 
 } // namespace
 
@@ -206,7 +182,7 @@ ProceduralResult runProceduralV1(const std::string& outputDir, bool writeFiles) 
                 s.recall50 = ev.at50.recall;
                 s.precisionExclReleases = ev.precisionExclReleases;
             }
-            const auto d = classifiedOnsets(role, cap.stem(role), frozen->roles[role], refs[role], releases[role]);
+            const auto d = classifyRoleOnsets(role, cap.stem(role), frozen->roles[role], refs[role], releases[role], kFs, kOnsetToleranceS);
             detections.insert(detections.end(), d.begin(), d.end());
         }
     } else {
@@ -232,6 +208,10 @@ ProceduralResult runProceduralV1(const std::string& outputDir, bool writeFiles) 
         t.barCount = p.barCount;
         r.phrasePresence.push_back(t);
     }
+
+    // ---- measures: musical groups of the phrases and seed diversity (5e-04; offline planning only) ----
+    if (const FixturePlan plan = planFixtureM24V1(1337); plan.ok) r.phraseGroups = phraseGroupIds(plan);
+    r.diversityJson = diversityJson(measureSeedDiversity());
 
     r.status = r.failures.empty() ? "PASS" : "FAIL";
     if (!writeFiles) return r;
@@ -368,7 +348,16 @@ ProceduralMeasureStatuses proceduralMeasureStatuses(const ProceduralResult& r) {
         }
         m.presence = reason.empty() ? MeasureStatus{"MEASURED", ""} : MeasureStatus{"INCONCLUSIVE", reason};
     }
+    if (r.diversityJson.empty()) {
+        m.diversity = {"NOT_RUN", ""};
+    } else {
+        const json d = json::parse(r.diversityJson, nullptr, false);
+        const std::string st = (d.is_object() && d.contains("status") && d["status"].is_string()) ? d["status"].get<std::string>() : "";
+        m.diversity = st == "MEASURED" ? MeasureStatus{"MEASURED", ""}
+                                       : MeasureStatus{"INCONCLUSIVE", "diversity status " + (st.empty() ? std::string("unreadable") : st)};
+    }
     std::vector<const MeasureStatus*> all{&m.truePeak, &m.loudness, &m.onsets, &m.presence};
+    if (m.diversity.status != "NOT_RUN") all.push_back(&m.diversity);
     for (const auto& s : m.sections) all.push_back(&s);
     for (const auto& s : m.sectionTruePeaks) all.push_back(&s);
     const bool noneRun = std::all_of(all.begin(), all.end(), [](const MeasureStatus* s) { return s->status == "NOT_RUN"; });
@@ -529,7 +518,9 @@ std::string ProceduralResult::toJson() const {
         pres.push_back({{"phrase", w.phrase}, {"section", w.section}, {"start_bar", w.startBar}, {"roles", roles}});
     }
     j["presence_per_phrase"] = {{"status", statusJson(ms.presence)}, {"profile", "presence_profile_v1"}, {"validated", false}, {"phrases", pres}};
-    j["diversity"] = {{"status", "NOT_RUN"}, {"phase", "5e.2 (ADR-0006 5e-04)"}};
+    j["diversity"] = diversityJson.empty() ? json{{"status", "NOT_RUN"}} : json::parse(diversityJson);
+    j["phrase_groups"] = {{"rule", "per-phrase content fingerprint, frames relative to the phrase start (DIF-5e.0-02)"},
+                          {"groups", phraseGroups}};
     j["staff_view"] = {{"dir", staffDir}, {"files", staffViews}, {"pixels_per_second", kStaffPixelsPerSecond},
                        {"legend", {{"lanes_top_to_bottom", json::array({"pulso", "corpo", "trama", "vettore"})},
                                    {"top_strip_white", "applied NoteOn"},

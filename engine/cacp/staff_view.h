@@ -68,6 +68,12 @@ struct StaffViewImage {
     std::vector<std::uint8_t> png{};
 };
 
+// Detected onsets of one role on its whole stem (frozen profile, offset-corrected), classified against the
+// applied NoteOns (matched within the tolerance) and NoteOffs (release); empty on a detector error
+[[nodiscard]] std::vector<StaffOnset> classifyRoleOnsets(std::size_t role, std::span<const float> stem, const RoleOnsetProfile& profile,
+                                                         const std::vector<double>& refsS, const std::vector<double>& releasesS,
+                                                         std::uint32_t sampleRate, double toleranceS);
+
 // Empty png on an empty or inverted interval or a non-positive scale
 [[nodiscard]] StaffViewImage renderStaffView(const StaffViewInput& in);
 

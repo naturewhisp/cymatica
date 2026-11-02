@@ -59,6 +59,8 @@ std::unique_ptr<PlannerSource> plannerSource() {
     REQUIRE(frozen.has_value());
     ps->src.onsetProfile = frozen->roles;
     ps->src.onsetProfileSha256 = stemProfileSha256(frozen->roles);
+    ps->src.intents = ps->intents;
+    ps->src.noteOffs = ps->noteOffs;
     return ps;
 }
 
@@ -138,6 +140,7 @@ TruthBundle prefabTruth() {
     addFiles(t.publicDiagnosticFiles, "p00", "diag:");
     t.publicDiagnosticFiles["pack.json"] = sha256Hex(std::string_view("diag:pack.json"));
     t.publicDiagnosticFiles["p00_trama_mid.png"] = sha256Hex(std::string_view("diag:stem"));
+    t.publicDiagnosticFiles["truth.json"] = sha256Hex(std::string_view("diag:truth"));
     return t;
 }
 
@@ -499,11 +502,13 @@ TEST_CASE("claims_v0 checker: catch trial, altered item, duplicates and the triv
     CHECK(rep.duplicatePairsCompared == 2);
     CHECK(rep.duplicatePairsAgreeing == 1);
     CHECK_FALSE(rep.catchTrialFailed);
-    CHECK(rep.presenceStatus == "MEASURED");
     // OSS-5d-01: the hidden duplicate is a consistency control, not an independent observation
-    CHECK(rep.sensitivity.trials == 1); // w0000000a trama
-    CHECK(rep.specificity.trials == 2); // w0000000a pulso, w0000000e trama
-    CHECK_FALSE(rep.aboveTrivialBaseline); // a handful of claims never exceeds the trivial baseline
+    CHECK(rep.presence.positives.claims == 1); // w0000000a trama
+    CHECK(rep.presence.negatives.claims == 2); // w0000000a pulso, w0000000e trama
+    CHECK(rep.duplicateWindows == 1);
+    // presence_stats_v1: two windows are two groups at most: no inference, only descriptive values
+    CHECK(rep.presenceStatus == "DESCRIPTIVE_ONLY");
+    CHECK_FALSE(rep.presence.aboveTrivialBaseline.has_value());
 
     // Catch trial failed: the presence statistics are excluded by the declared rule
     r["claims"].push_back(claim("w0000000f", "listening", "role_audible", role("corpo"), true));
@@ -557,7 +562,7 @@ TEST_CASE("claims_v0 checker: repeated claims and undeclared inputs are inadmiss
     auto rep = checkEvaluation(t, r.dump(), kSealedHashes);
     CHECK(rep.outcomeCounts["supported"] == 1);
     CHECK(rep.outcomeCounts["inadmissible"] == 9);
-    CHECK(rep.sensitivity.trials == 1);
+    CHECK(rep.presence.positives.claims == 1);
     // Catch trial: a later false cannot cancel an earlier true
     r = resultBase(t);
     r["claims"].push_back(claim("w0000000f", "listening", "role_audible", role("corpo"), true));
@@ -614,10 +619,12 @@ TEST_CASE("Unavailable measures are null, never zero (AG-5d-05)", "[evaluation_p
     r["claims"].push_back(claim("w0000000a", "listening", "role_signal_present", role("trama"), true));
     const json report = json::parse(checkEvaluation(t, r.dump(), kSealedHashes).toJson());
     const json& sens = report.at("role_signal_present_scoring").at("sensitivity");
-    CHECK(report.at("role_signal_present_scoring").at("status") == "INSUFFICIENT_DATA");
-    CHECK(sens.at("trials") == 1);
-    CHECK(sens.at("value").is_null());
-    CHECK(sens.at("wilson95_low").is_null());
+    CHECK(report.at("role_signal_present_scoring").at("status") == "DESCRIPTIVE_ONLY");
+    CHECK(sens.at("claims") == 1);
+    CHECK(sens.at("rate") == 1.0);                // descriptive value kept
+    CHECK(sens.at("wilson95_low").is_null());      // no interval without a usable sample
+    CHECK(report.at("role_signal_present_scoring").at("above_trivial_baseline").is_null());
+    CHECK(report.at("role_signal_present_scoring").at("coverage") == "model_based_unverified");
 }
 
 TEST_CASE("claims_v0 checker: acoustic predicates are never supported from code (DIF-5d-02)", "[evaluation_pack][checker]") {
@@ -648,12 +655,18 @@ TEST_CASE("claims_v0 checker: acoustic predicates are never supported from code 
     }
     // The diagnostic pack exposes the plan: role_planned from code keeps its diagnostic path there
     CHECK(outcomeOf(t, claim("p00", "code", "role_planned", role("trama"), true), resultBase(t, "diagnostic")) == "supported");
+    // OSS-5d-R3-01: in the diagnostic pack the plan claim needs truth.json among the declared inputs
+    json noTruth = resultBase(t, "diagnostic");
+    noTruth["input_hashes"] = json::array({t.publicDiagnosticFiles.at("pack.json")});
+    CHECK(outcomeOf(t, claim("p00", "code", "role_planned", role("trama"), true), noTruth) == "not_attributable");
     // A code claim never enters the presence sample; descriptors neither (not a perception)
     json r = resultBase(t);
     r["claims"].push_back(claim("w0000000a", "code", "role_signal_present", role("trama"), true));
     r["claims"].push_back(claim("w0000000c", "descriptor", "role_signal_present", role("trama"), true));
     const auto rep = checkEvaluation(t, r.dump(), kSealedHashes);
-    CHECK(rep.sensitivity.trials == 0);
+    CHECK(rep.presence.positives.claims == 0);
+    CHECK(rep.presence.negatives.claims == 0);
+    CHECK(rep.presenceStatus == "NOT_RUN");
     CHECK(rep.claims[1].outcome == "supported");
     // Listening needs an audio channel; stereo by listening needs two
     json noAudio = resultBase(t);
@@ -813,4 +826,106 @@ TEST_CASE("Pack output directories are isolated and never removed blindly (DIF-5
     std::ofstream(base / "plainfile") << "x";
     CHECK_FALSE(writePackDirectory((base / "plainfile").string(), files).empty());
     fs::remove_all(base);
+}
+
+TEST_CASE("evaluation_pack_v2: groups, removal negatives, staff view; v1 unchanged (5e-11, DIF-5e.0-02)", "[evaluation_pack][v2]") {
+    auto ps = plannerSource();
+    // v1 output does not depend on the plan carried by the source: byte-identical with and without it
+    PackSource noPlan = ps->src;
+    noPlan.intents.clear();
+    noPlan.noteOffs.clear();
+    const PackBuild v1a = buildEvaluationPack(ps->src, 77), v1b = buildEvaluationPack(noPlan, 77);
+    REQUIRE(v1a.ok);
+    CHECK(v1a.publicBlind == v1b.publicBlind);
+    CHECK(v1a.publicDiagnostic == v1b.publicDiagnostic);
+    CHECK(v1a.sealed == v1b.sealed);
+    CHECK(str(v1a.sealed.at("evaluation_truth.json")).find("group_id") == std::string::npos);
+
+    const PackBuild v2 = buildEvaluationPackV2(ps->src, 77);
+    INFO((v2.errors.empty() ? std::string{} : v2.errors.front()));
+    REQUIRE(v2.ok);
+    CHECK(v2.truth.packVersion == kEvaluationPackVersionV2);
+    CHECK(v2.truth.groupingRule == "per_phrase_content_fingerprint");
+    const auto groups = sourcePhraseGroups(ps->src);
+    std::size_t removals = 0, tests = 0;
+    for (const auto& w : v2.truth.blind) {
+        if (w.kind == "catch") continue;
+        REQUIRE(w.phrase >= 0);
+        // Review case: a variant with a removed role (and the duplicate) belongs to the group of its source phrase
+        CHECK(w.groupId == groups[static_cast<std::size_t>(w.phrase)]);
+        if (w.kind == "removal") {
+            ++removals;
+            REQUIRE(w.removedRole >= 0);
+            const auto& rt = w.roles[static_cast<std::size_t>(w.removedRole)];
+            CHECK(rt.negativeKind == "removal");
+            CHECK(rt.signal == SignalLevel::ExactSilence);
+        }
+        if (w.kind == "test") ++tests;
+        for (const auto& rt : w.roles) {
+            if (rt.signal == SignalLevel::Present) CHECK(rt.negativeKind.empty());
+            else CHECK_FALSE(rt.negativeKind.empty());
+        }
+    }
+    std::size_t perRole = 0;
+    for (const auto n : v2.truth.removalsPerRole) perRole += n;
+    CHECK(perRole == removals);
+    CHECK(tests >= 1);
+    CHECK(v2.truth.expectedPositiveNeff > 0.0);
+    // Deterministic, and the sealed truth round-trips
+    const PackBuild again = buildEvaluationPackV2(ps->src, 77);
+    CHECK(again.publicBlind == v2.publicBlind);
+    CHECK(again.sealed == v2.sealed);
+    const auto truth = truthFromJson(str(v2.sealed.at("evaluation_truth.json")));
+    REQUIRE(truth.has_value());
+    CHECK(truthToJson(*truth) == str(v2.sealed.at("evaluation_truth.json")));
+    // Blind pack: no group, removal or negative-kind information
+    const std::string packText = str(v2.publicBlind.at("pack.json"));
+    for (const char* forbidden : {"group", "removal", "negative_kind", "\"kind\""}) {
+        INFO(forbidden);
+        CHECK(packText.find(forbidden) == std::string::npos);
+    }
+    CHECK(json::parse(packText).at("pack_version") == kEvaluationPackVersionV2);
+    // Diagnostic pack: one staff view per window, plain PNG
+    const json diag = json::parse(str(v2.publicDiagnostic.at("pack.json")));
+    for (const auto& w : diag.at("windows")) {
+        const std::string name = w.at("staff_view").get<std::string>();
+        REQUIRE(v2.publicDiagnostic.contains(name));
+        CHECK(pngChunkTypes(v2.publicDiagnostic.at(name)) == std::vector<std::string>{"IHDR", "IDAT", "IEND"});
+        CHECK(w.contains("group_id"));
+    }
+    // The checker reads v2 and groups the claims by musical group
+    json r = resultBase(v2.truth);
+    for (const auto& w : v2.truth.blind) {
+        if (w.kind != "test" && w.kind != "removal") continue;
+        for (std::size_t k = 0; k < kRoleCount; ++k) {
+            r["claims"].push_back(claim(w.id.c_str(), "listening", "role_signal_present", role(kRoleNames[k]),
+                                        w.roles[k].signal == SignalLevel::Present));
+        }
+    }
+    const auto rep = checkEvaluation(v2.truth, r.dump(), kSealedHashes);
+    CHECK(rep.resultAdmissible);
+    CHECK_FALSE(rep.outcomeCounts.contains("contradicted"));
+    CHECK(rep.groupingRule == "per_phrase_content_fingerprint");
+    CHECK(rep.presence.positives.groups == tests);
+    CHECK(rep.presence.removalNegatives.claims == removals);
+}
+
+TEST_CASE("The checker keeps reading evaluation_pack_v1 truths (5e-11 compatibility)", "[evaluation_pack][v2]") {
+    auto ps = plannerSource();
+    const PackBuild v1 = buildEvaluationPack(ps->src, 99);
+    REQUIRE(v1.ok);
+    const auto truth = truthFromJson(str(v1.sealed.at("evaluation_truth.json")));
+    REQUIRE(truth.has_value());
+    CHECK(truth->packVersion == kEvaluationPackVersion);
+    json r = resultBase(*truth);
+    for (const auto& w : truth->blind) {
+        if (w.kind == "catch") continue;
+        r["claims"].push_back(claim(w.id.c_str(), "listening", "role_signal_present", role("pulso"),
+                                    w.roles[0].signal == SignalLevel::Present));
+    }
+    const auto rep = checkEvaluation(*truth, r.dump(), kSealedHashes);
+    CHECK(rep.checked);
+    CHECK(rep.resultAdmissible);
+    CHECK(rep.groupingRule.find("source_phrase_only") != std::string::npos);
+    CHECK(rep.presence.positives.claims + rep.presence.negatives.claims >= 1);
 }

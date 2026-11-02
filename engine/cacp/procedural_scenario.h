@@ -18,7 +18,7 @@ namespace cymatica::cacp {
 // in one manifest. Binding (PASS/FAIL): O3 chain, determinism and goldens, PCM integrity and the approved
 // limiter invariants, capture validity, exact bus-mix reconstruction. MEASURED, never PASS: true peak against
 // the -1 dBTP trial value (an excess is a finding, DIF-5e.0-01), LUFS, per-role onsets with the frozen profile,
-// per-phrase presence. Seed diversity belongs to phase 5e.2 and is NOT_RUN here.
+// per-phrase presence, seed diversity over the declared scan (phase 5e.2, 5e-04).
 
 // Binding verdict of the render: every check of fixture_probe_v1 except its true-peak engineering check
 // (ADR-0005 D-M2-09), which procedural_v1 reports as a measure. Empty when every binding check passes.
@@ -80,6 +80,8 @@ struct ProceduralResult {
     std::array<RoleOnsetSummary, kRoleCount> onsets{};
     std::string onsetProfileSha256{};
     std::vector<WindowTruth> phrasePresence{};
+    std::vector<std::string> phraseGroups{};      // musical group of each phrase (DIF-5e.0-02)
+    std::string diversityJson{};                  // seed diversity (5e-04), JSON object text; empty = NOT_RUN
     std::vector<std::string> staffViews{};
     std::string staffDir{};
     std::string wavFilePath{};
@@ -98,6 +100,7 @@ struct ProceduralMeasureStatuses {
     std::vector<MeasureStatus> sectionTruePeaks{};  // true peak of each section, independent of its loudness
     MeasureStatus onsets{};
     MeasureStatus presence{};
+    MeasureStatus diversity{};  // MEASURED also for a null diversity: a legitimate result, not a failure
     MeasureStatus overall{};   // MEASURED if every measure is; NOT_RUN if none ran; INCONCLUSIVE otherwise
 };
 [[nodiscard]] ProceduralMeasureStatuses proceduralMeasureStatuses(const ProceduralResult& r);

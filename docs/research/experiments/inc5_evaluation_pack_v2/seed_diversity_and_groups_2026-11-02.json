@@ -1,0 +1,129 @@
+{
+  "source": "procedural_v1 (fixture-m2-4-v1, seed 1337), offline planning for the seed scan",
+  "diversity": {
+    "distinct_fingerprints": 1,
+    "gate": false,
+    "generalisation_of_calibration": "INCONCLUSIVE",
+    "grid": "sixteenths of the phrase bar",
+    "k_min_distinct": 8,
+    "m1_identical_pair_share": 1.0,
+    "m2_feature_distance": {
+      "max": null,
+      "mean": null,
+      "median": null,
+      "min": null,
+      "n": 0
+    },
+    "note": "identical pairs are 0 by identity for M2-M4 and are not recomputed; diversity is not a gate and is not to be maximised (ADR-0006 D-M2-16)",
+    "outcome": "NULL_DIVERSITY",
+    "pairs": 2016,
+    "pairs_with_distinct_content": 0,
+    "phrase_groups_seed_1337": 14,
+    "roles": {
+      "corpo": {
+        "m1_identical_phrase_share": 1.0,
+        "m3_cardinality_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        },
+        "m4_edit_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        }
+      },
+      "pulso": {
+        "m1_identical_phrase_share": 1.0,
+        "m3_cardinality_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        },
+        "m4_edit_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        }
+      },
+      "trama": {
+        "m1_identical_phrase_share": 1.0,
+        "m3_cardinality_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        },
+        "m4_edit_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        }
+      },
+      "vettore": {
+        "m1_identical_phrase_share": 1.0,
+        "m3_cardinality_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        },
+        "m4_edit_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        }
+      }
+    },
+    "seeds": {
+      "first": 1,
+      "last": 64,
+      "n": 64
+    },
+    "status": "MEASURED"
+  },
+  "phrase_groups_seed_1337": {
+    "rule": "per-phrase content fingerprint, frames relative to the phrase start (DIF-5e.0-02)",
+    "group_index_per_phrase": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      12,
+      12,
+      12,
+      12,
+      12,
+      13
+    ],
+    "distinct_groups": 14
+  }
+}

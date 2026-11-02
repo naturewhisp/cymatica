@@ -102,6 +102,12 @@ Regole obbligatorie per ogni giudizio percettivo di un agente. L'analisi con mis
    - al valutatore alla cieca si consegna **solo** `public_blind/`, copiato fuori dal repository. Il valutatore risponde con un JSON `evaluation_result_v0` che contiene: modalità, valutatore, canale (canali, token/s), accessi (`repository`, `sealed`, `diagnostic_pack`, `code_execution`), `spectrogram_references_used`, SHA-256 dei file ricevuti e affermazioni tipizzate `claims_v0` (`claimed_value: null` = non determinabile);
    - controllo: `cymatica_game --cacp-check-evaluation <result.json>`. Il report va accanto al risultato (`.check.json`) e non è mai un gate;
    - un agente che ha generato il pacchetto, o che ha accesso al repository, non produce evidenza «alla cieca»: lo dichiara negli accessi.
+   - da Inc-5 fase 5e.2 c'è `cymatica_game --cacp-run evaluation_pack_v2 --pack-seed <N>`, con output in `artifacts/cacp/evaluation_pack_v2/` e verità in `artifacts/sealed/evaluation_pack_v2/`; per controllarlo si passa `--sealed-dir artifacts/sealed/evaluation_pack_v2`. Contiene:
+     - gruppi musicali;
+     - negativi per rimozione bilanciati per ruolo;
+     - la vista a pentagramma nel pacchetto diagnostic.
+
+     Il report usa `presence_stats_v1`, con il gruppo musicale come unità e `n_eff`. Gli stati `DESCRIPTIVE_ONLY` e `INSUFFICIENT_DATA` sono esiti legittimi, non errori; gli intervalli sono `model_based_unverified`.
 
 ---
 

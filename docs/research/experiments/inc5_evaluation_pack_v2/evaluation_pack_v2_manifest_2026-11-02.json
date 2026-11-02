@@ -1,0 +1,27 @@
+{
+  "blind_windows": 24,
+  "build_id": "8671164",
+  "default_seed": false,
+  "diagnostic_windows": 11,
+  "errors": [],
+  "expected_n_eff": {
+    "negatives": 8.894736842105264,
+    "positives": 10.922330097087379
+  },
+  "gate": false,
+  "grouping_rule": "per_phrase_content_fingerprint",
+  "manifest_version": "1.0",
+  "musical_groups": 14,
+  "note": "hand only public_blind/ to a blind evaluator; sealed/ is for the checker (D-M2-15)",
+  "public_blind_dir": "artifacts\\cacp\\evaluation_pack_v2\\public_blind",
+  "public_blind_files": 86,
+  "public_diagnostic_dir": "artifacts\\cacp\\evaluation_pack_v2\\public_diagnostic",
+  "public_diagnostic_files": 91,
+  "reference_groups": 3,
+  "references": 12,
+  "repeat_identical": true,
+  "scenario": "evaluation_pack_v2",
+  "sealed_dir": "artifacts\\sealed\\evaluation_pack_v2",
+  "seed_commitment_sha256": "47b791e5e06903bfe9f48b6abc81203fc9bf40e2ec45195a61faa5364f83e8e4",
+  "verdict": "GENERATED"
+}
