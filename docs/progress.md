@@ -2605,3 +2605,16 @@ CI di `6930652` ([run 41658678635](https://github.com/naturewhisp/cymatica/actio
 - **Proposta:** secondo ciclo mirato con log salvati in `artifacts/review/m2_4_cl_r2/` (prompt nel §6 della verifica), oppure accettazione del verdetto con le riserve registrate.
 - **Decisione del titolare (2026-11-03):** «Secondo ciclo mirato». Il prompt del §6 della verifica va consegnato al revisore.
 - **Stato:** secondo ciclo in attesa del rapporto. M2.4 non è chiusa; resta anche l'ascolto dell'esperto.
+
+**Proposta per l'ingresso di M2.5 sulla qualità musicale (2026-11-03):** considerazioni consegnate dal titolare, verificate e registrate come [proposta](research/M2_5_Entry_Music_Quality_Proposal.md), con il testo originale in appendice. Status **proposed**: non cambia decisioni, criteri né stati, e si discute all'ingresso di M2.5 (AGENTS §1.1).
+- **Contenuto:**
+  - tre livelli di qualità: gate tecnico della specifica, credibilità musicale come obiettivo non vincolante, eccellenza artistica come ambizione M6–M8;
+  - priorità F1–F6 con interventi piccoli e reversibili, ciascuno con A/B e golden aggiornati con il motivo;
+  - regola di chiusura di M2.5 che separa i gate tecnici dal giudizio artistico.
+- **Correzioni rispetto all'originale:**
+  - gli indirizzi di ricerca di M3, M6 e M8 non sono deliverable obbligatori;
+  - il CIE Director di M6 non ha compiti musicali, mentre M7 richiede «run diverse mostrano diversità misurabile»: F5 ha quindi una scadenza obbligatoria e richiede una decisione di perimetro;
+  - le soglie AC-AO-02 sono solo proposte;
+  - il cambio di metro manca nella fixture;
+  - la numerazione F era imprecisa.
+- **Decisioni proposte:** P-M25-01..07 (metro, soglie AC-AO-02, procedura percettiva fissata prima dell'ascolto, regola di chiusura, perimetro degli interventi, collocazione di F5 e dell'ablazione 5e-07, declinazione del criterio artistico).
