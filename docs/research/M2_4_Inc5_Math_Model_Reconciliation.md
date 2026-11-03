@@ -42,7 +42,7 @@ Verifiche puntuali sul commit `df0bcbe` (`grep` su `engine/` e `docs/`):
 | Finestra di lookahead [t, t + 4.800) | 7.200 frame (`AudioSchedulerConfig`) |
 | Build con `/W4 /WX` | `/utf-8 /W4 /permissive-`, senza `/WX` (`CMakeLists.txt`) |
 | ADR-0002 = `0002-seeded-rng-contract.md` | `0002-m1-timing-random-concurrency.md` |
-| Finding «F2 `L_DOMINANT_PRECEDENCE_RISK`» | non presente nel repository |
+| Finding «F2 `L_DOMINANT_PRECEDENCE_RISK`» | l'etichetta `L_DOMINANT_PRECEDENCE_RISK` non è nel repository, ma il **finding F2 esiste**: è la Trama lateralizzata a sinistra dal delay 11/17 ms, riportata dall'ascolto esperto del 2026-10-28 ([progress.md](../progress.md), tabella F1–F6). Rettifica del 2026-11-03: la prima versione di questa riga diceva che il finding non esisteva |
 | Limiter: «predittore quadratico attivo solo se d1·d2 < 0», guadagni `prevL_`/`prev2L_` | nessuna condizione del genere; il detector è picco campione + 3 interpolatori + curvatura, come descritto in ADR-0004 §4.3 |
 
 Molti rimandi `file:riga` di B puntano a funzioni inesistenti e non sono stati controllati uno per uno. Le formule generali che B riporta per clock, fixed step, mixer, PolyBLEP, SVF e statistica coincidono con il codice dove sono state confrontate.
@@ -136,7 +136,7 @@ CL-MM-03, CL-MM-05, CL-MM-07, CL-MM-08, CL-MM-10, CL-MM-11, CL-MM-12, CL-MM-13:
 |---|---|---|---|
 | AG-MM-02 | `phrasePhase` senza clamp: l'arrotondamento in float32 può dare 1,0f | Calcolo in float32: per una frase di 16 beat il caso compare solo sotto ~1,4 BPM; con frasi lunghe (per esempio 64 battute) già intorno a 20 BPM. A 20–300 BPM e 4 battute il valore massimo è 0,99999 | **confermato, latente** (tempi estremi o frasi lunghe); INFO |
 | AG-MM-11 | Il primo campione di ogni nota è muto: l'inviluppo è applicato prima del passo ADSR | Ordine nel ciclo di `renderBlock` (campione con `envelopeLevel` = 0, poi passo) | **confermato**; ritardo di 1 campione (20,8 µs), musicalmente irrilevante; spiega le latenze di 529/817 campioni |
-| AG-MM-12 | Immagine della Trama spostata a sinistra: lo slot 4 ha guadagni L:R = 1:0,5 (+6,02 dB a sinistra); con note non sovrapposte vince sempre lo slot 4 (regola 0); il tap sinistro del delay arriva 6 ms prima | Codice `voice_allocator.cpp` (spread per slot), `role_bus_processor.cpp` (11 e 17 ms); i guadagni assoluti 0,60/0,30 di B sono inesatti, il rapporto è corretto | **confermato analiticamente**; l'effetto percettivo (precedenza di Haas) non è verificato e passa all'ascolto dell'esperto |
+| AG-MM-12 | Immagine della Trama spostata a sinistra: lo slot 4 ha guadagni L:R = 1:0,5 (+6,02 dB a sinistra); con note non sovrapposte vince sempre lo slot 4 (regola 0); il tap sinistro del delay arriva 6 ms prima | Codice `voice_allocator.cpp` (spread per slot), `role_bus_processor.cpp` (11 e 17 ms); i guadagni assoluti 0,60/0,30 di B sono inesatti, il rapporto è corretto | **confermato analiticamente**; l'effetto percettivo era già stato riportato dall'esperto il 2026-10-28 come F2 (rettifica del 2026-11-03: la prima versione lo dava per non verificato); il meccanismo analitico ne è la spiegazione |
 | AG-MM-15 | La fusione per distanza minima concatena picchi crescenti: una catena può superare la distanza minima collassando in un solo picco | Codice `pickOnsetFrames` (`out.back() = i`) | **confermato**; effetto minore sul materiale attuale (P4 di 5e.3b: nessuna fusione sui mancati); lacuna di test |
 
 ## 6. Punti aperti consolidati
@@ -171,7 +171,7 @@ Opzioni:
 ## 8. Lezioni di processo
 
 - **Indipendenza utile.** La seconda indagine ha trovato un difetto reale (AG-MM-07) sfuggito alla prima, e ha confermato in modo indipendente il risultato principale (Teorema D).
-- **Verificabilità insufficiente.** Il dossier B mescola fatti verificati e dettagli inventati: identificatori, SHA, parametri e finding inesistenti.
+- **Verificabilità insufficiente.** Il dossier B mescola fatti verificati e dettagli inventati: identificatori, SHA e parametri inesistenti, e un'etichetta di finding non presente (il finding F2 a cui si riferisce, invece, esiste).
 
 Per le prossime consegne di Antigravity si propone di chiedere:
 1. l'output grezzo dei comandi dichiarati;
