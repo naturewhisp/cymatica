@@ -91,6 +91,19 @@ struct ReleaseAbResult {
 [[nodiscard]] HypothesisOutcome evaluateR2ShortIoi(const std::vector<std::size_t>& unmatched,
                                                    const std::vector<double>& precedingIntervalS, std::size_t totalReferences);
 
+// Override frames of a release variant: 0 (production, no override) for 2 ms, otherwise round(ms * 48)
+[[nodiscard]] std::uint32_t releaseOverrideFrames(double ms) noexcept;
+
+// Isolated notes of one role rendered offline through the real engine with a release override (5e.3, reused by
+// the 5e.3b diagnosis): capture validity, applied events and voice confounders; the stems stay in cap
+struct SyntheticRender {
+    CaptureCheck check{};
+    std::vector<AppliedEventRecord> applied{};
+    audio::VoiceConfounders confounders{};
+};
+[[nodiscard]] SyntheticRender renderSyntheticWithRelease(audio::MusicRole role, const std::vector<SynthNote>& notes,
+                                                         StemCapture& cap, std::uint32_t releaseFrames);
+
 [[nodiscard]] ReleaseAbResult runReleaseAbV1(const std::string& outputDir = "artifacts/cacp", bool writeFiles = true);
 
 } // namespace cymatica::cacp

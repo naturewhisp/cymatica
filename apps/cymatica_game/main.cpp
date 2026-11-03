@@ -8,6 +8,7 @@
 #include "onset_parity.h"
 #include "procedural_scenario.h"
 #include "release_ab.h"
+#include "trama_diagnosis.h"
 #include "raylib.h"
 #include "run_record.h"
 
@@ -175,6 +176,12 @@ int main(int argc, char** argv) {
                 std::printf("[cacp] Verdict: %s\n", res.status.c_str());
                 std::printf("%s\n", res.toJson().c_str());
                 return (res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
+            } else if (std::strcmp(scenario, "trama_miss_diagnosis") == 0 || std::strcmp(scenario, "trama_miss_diagnosis_v1") == 0) {
+                std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5e.3b: causal diagnosis of the missed Trama attacks, MEASURED, not a gate)...\n", scenario);
+                auto res = cymatica::cacp::runTramaMissDiagnosisV1("artifacts/cacp", true);
+                std::printf("[cacp] Verdict: %s\n", res.status.c_str());
+                std::printf("%s\n", res.toJson().c_str());
+                return (res.status == "MEASURED" && res.manifestWriteSuccess && res.curvesWriteSuccess) ? 0 : 1;
             } else if (std::strcmp(scenario, "onset_parity") == 0 ||
                        std::strcmp(scenario, "onset_parity_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5b onset_parity_v1, not a gate)...\n", scenario);
@@ -184,7 +191,7 @@ int main(int argc, char** argv) {
                 return (res.completed && res.inputValid) ? 0 : 1;
             } else {
                 std::fprintf(stderr, "[cacp] ERROR: unknown scenario '%s' (known: tone_test, voice_test, "
-                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, onset_parity, acao02, evaluation_pack, procedural, release_ab "
+                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, onset_parity, acao02, evaluation_pack, procedural, release_ab, trama_miss_diagnosis "
                                      "and their *_v* aliases)\n",
                              scenario);
                 return 2;

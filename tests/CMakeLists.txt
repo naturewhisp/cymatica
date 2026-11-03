@@ -20,6 +20,7 @@ add_executable(cymatica_tests
     unit/test_diversity.cpp
     unit/test_presence_stats.cpp
     unit/test_release_ab.cpp
+    unit/test_trama_diagnosis.cpp
 )
 
 target_link_libraries(cymatica_tests

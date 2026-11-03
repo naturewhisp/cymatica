@@ -130,6 +130,15 @@ Gli scarti calibrati coincidono con la latenza intrinseca del set A entro circa 
   - *Nesso causale non ancora dimostrato:* la vicinanza entro ±50 ms a un NoteOff è una corrispondenza temporale. Prima di modificare l'ADSR serve un confronto controllato con diverse durate di release e tutti gli altri parametri invariati (review indipendente di 5c).
 - **Diversità fra seed nulla (risultato negativo, D-M2-16).** I 32 seed scansionati producono lo stesso fingerprint di contenuto del seed 1337: la diversità osservata è `MEASURED` e **nulla**. È il limite già noto, il seed agisce solo sui pareggi, ora misurato. La generalizzazione della calibrazione ad altri seed è `INCONCLUSIVE`. Restano validi gli insiemi (2) e (3), che sono contenuti diversi. Collegato a F3 e F5.
 - **Richiamo della Trama nel set sintetico B: 0,75.** Mancano 10 attacchi su 40, con il profilo congelato (δ 0,20). La causa non è stata isolata in 5c. Ipotesi da verificare: attacco di 20 ms a velocity bassa sotto la soglia; vicinanza fra il rilascio di una nota e l'attacco della successiva negli intervalli brevi. La metrica non è stata ritoccata.
+  - *Aggiornamento 5e.3 (`release_ab_v1`):* con un release di 30 ms il richiamo sale a 1,000. La sotto-ipotesi «intervalli brevi» non regge: solo 4 dei 10 mancati seguono 0,18 o 0,22 s, e la prima nota, senza NoteOff precedente, è mancata.
+  - *Causa isolata in 5e.3b* (`trama_miss_diagnosis_v1`, previsioni registrate prima della misura in ADR-0006): **normalizzazione globale del flusso combinata con attacchi deboli** (M-NORM, `SUPPORTED`).
+    - Il flusso è normalizzato sul suo massimo globale, quindi in unità grezze la soglia vale media mobile + δ·max F.
+    - A 2 ms il massimo cade su un transitorio di rilascio della Trama e vale 1,65 volte quello a 30 ms (259,2 contro 157,1).
+    - I 10 mancati sono fra i 12 attacchi più deboli (picco grezzo 50–66); i loro picchi grezzi coincidono a 2 e 30 ms entro l'1,8 %, quindi l'attacco non cambia.
+    - Dividendo per il massimo fuori dai rilasci si recuperano 40 attacchi su 40, e il controllo a 30 ms resta a 1,000.
+    - Nessuna fusione per distanza minima.
+    - Il release non nasconde gli attacchi vicini: alza la soglia **di tutto lo stem**.
+    - Dettagli in [progress.md](../progress.md) (5e.3b) e nei [dati](experiments/inc5_trama_diagnosis/README.md).
 - **Il master non basta per la Trama, gli stem sì.** Sul master E1 dava per la Trama un richiamo di 0,31 a δ 0,10; sullo stem il richiamo è 1,00 sulla fixture. È la conferma della scelta O1 (stem offline) del dossier CACP.
 
 ## 5. Limiti

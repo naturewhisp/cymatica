@@ -629,6 +629,42 @@ Fissano ciò che D-M2-15 e D-M2-16 rimandano a 5e e stabiliscono il perimetro de
 - **Clip A/B:** frasi 5 e 10 della fixture per ogni variante, dal PCM finale, con dissolvenze di 10 ms, per la revisione dell'esperto.
 - **Nessun release di produzione è adottato in Inc-5:** la decisione resta a M2.5. Risultati in `progress.md` (5e.3).
 
+**5e.3b — diagnostica causale dei 10 attacchi mancati della Trama (autorizzata il 2026-11-03; previsioni registrate prima di qualunque misura della fase):**
+
+- **Perimetro:** analisi offline del set sintetico B, ruolo Trama, nei rendering a 2 ms (produzione) e 30 ms (controllo) di `release_ab_v1`. Restano invariati:
+  - il DSP e il release di produzione;
+  - `descriptors_v1` (STFT, flusso, soglia, picchi);
+  - il profilo congelato `stem_onset_profile_v1` (Trama δ = 0,20, offset +9,96 ms).
+
+  Nessun tuning. L'esito è `MEASURED` e non è un gate.
+- **Modello del rivelatore** (D-M2-14):
+  - n[k] = F[k] / max_j F[k], dove F è il flusso spettrale grezzo di log(1 + 100|X|);
+  - soglia θ[k] = media mobile centrata di n su ±100 ms + δ;
+  - un picco è rilevato se è un massimo locale con n[k] > θ[k].
+
+  In unità grezze la soglia vale media(F) + δ·max F. Il termine δ·max F dipende da **tutto** il segnale, quindi un transitorio forte in un punto qualunque alza la soglia degli attacchi ovunque.
+- **Ipotesi di meccanismo (M-NORM):** a 2 ms i transitori dei rilasci della Trama fissano il massimo globale del flusso. Gli attacchi più deboli restano così sotto δ·max F; a 30 ms i transitori spariscono, il massimo scende e gli stessi attacchi superano la soglia.
+- **Provenienza dell'ipotesi (dichiarata):** nasce dall'osservazione a posteriori dei dati di 5e.3. Fra le 10 non abbinate, 9 hanno velocity ≤ 0,7 (atteso 20 su 40) e 8 timbro ≤ 0,3 (atteso 16 su 40); la prima nota, mancata, non ha un NoteOff precedente. Queste associazioni **non** sono una verifica. Le previsioni sotto riguardano grandezze nuove (flusso grezzo, normalizzatore, soglia, ricalcolo controfattuale), non ancora misurate.
+- **Grandezze per riferimento** (finestra di abbinamento ±50 ms dopo la correzione dell'offset):
+  - picco di n e di F nella finestra, soglia θ e margine n − θ al picco, condizione di massimo locale;
+  - distanza dal NoteOff precedente, velocity, timbro e intervallo precedente;
+  - per il rendering: normalizzatore max F e posizione del massimo (entro ±50 ms da un NoteOff della Trama, cioè su un rilascio, oppure no).
+- **Previsioni e regole** (fissate ora):
+  - **P1, normalizzatore dominato dai rilasci:** `SUPPORTED` se a 2 ms il massimo globale di F cade entro ±50 ms da un NoteOff della Trama **e** max F(2 ms) ≥ 1,2 × max F(30 ms).
+  - **P2, controfattuale di normalizzazione:** a 2 ms si ricalcola n dividendo F per il suo massimo fuori dalle finestre di ±50 ms attorno ai NoteOff della Trama. Restano invariati δ, offset, finestra della media, distanza minima e abbinamento. `SUPPORTED` se il richiamo della Trama vale ≥ 0,95 (≥ 38 su 40). *Controllo:* lo stesso ricalcolo a 30 ms deve mantenere il richiamo a 1,000; altrimenti P2 è `INCONCLUSIVE`.
+  - **P3, attacchi deboli:** `SUPPORTED` se almeno 8 dei 10 riferimenti mancati a 2 ms stanno fra i 12 con il picco grezzo di F più basso dei 40.
+  - **P4, fusione per distanza minima** (meccanismo alternativo): `NOT_SUPPORTED` se nessun riferimento mancato ha nella sua finestra un massimo locale sopra soglia scartato dalla fusione a 30 ms; `SUPPORTED` se lo hanno almeno 5 dei 10; `INCONCLUSIVE` da 1 a 4.
+  - *Validità:* la prova richiede catture e analisi valide, un riferimento per nota e un richiamo ricostruito passo per passo identico a quello di `evaluateRoleOnsets`. Con 2 ms e 30 ms rieseguiti, la ripetizione dev'essere identica. P3 è fissata per 10 mancati: un numero diverso la rende `INCONCLUSIVE`.
+  - **Esito causale:**
+    - `SUPPORTED` per M-NORM se P1, P2 e P3 sono `SUPPORTED` e P4 no;
+    - `NOT_SUPPORTED` se P2 è `NOT_SUPPORTED` con controllo valido;
+    - altrimenti `INCONCLUSIVE`, con le previsioni riportate singolarmente.
+- **Conseguenze ammesse:** solo documentali (dossier di calibrazione, punti aperti per M2.5 e per il consolidamento del modello matematico). Un'eventuale modifica del rivelatore (per esempio una normalizzazione locale) è una decisione di M2.5 con una nuova versione di `descriptors_v1`.
+- **Esito (2026-11-03, `trama_miss_diagnosis_v1`, `MEASURED`):** P1, P2 e P3 sono `SUPPORTED`, P4 è `NOT_SUPPORTED`; l'esito causale M-NORM è **`SUPPORTED`**. I dati sono in `progress.md` (5e.3b). Restano aperti per M2.5 e per il modello matematico:
+  - la dipendenza delle misure di onset dal contenuto dell'intero stem;
+  - il δ della Trama, calibrato in presenza dei transitori di rilascio;
+  - la scelta fra normalizzazione globale e locale in un futuro `descriptors_v2`.
+
 **Precisazioni della review di 5e.0 (`d08187d`, DIF-5e.0-02, vincolanti per 5e.2; fissate prima della misura):**
 
 - **Regola deterministica di raggruppamento.** L'unità d'indipendenza è il **gruppo musicale**, non la finestra.

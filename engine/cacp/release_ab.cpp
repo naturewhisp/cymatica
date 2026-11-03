@@ -18,6 +18,7 @@
 #include <iomanip>
 #include <limits>
 #include <sstream>
+#include <utility>
 
 namespace cymatica::cacp {
 
@@ -225,6 +226,14 @@ bool ReleaseSetMeasure::analysesValid() const noexcept {
         if (r.status != "MEASURED" && r.status != "NO_REFERENCES") return false;
     }
     return true;
+}
+
+std::uint32_t releaseOverrideFrames(double ms) noexcept { return releaseFramesOf(ms); }
+
+SyntheticRender renderSyntheticWithRelease(audio::MusicRole role, const std::vector<SynthNote>& notes, StemCapture& cap,
+                                           std::uint32_t releaseFrames) {
+    SynthRender r = renderSynthetic(role, notes, cap, releaseFrames);
+    return {std::move(r.check), std::move(r.applied), r.confounders};
 }
 
 std::vector<std::string> sameEventsViolations(const std::vector<ReleaseSetMeasure>& measures) {

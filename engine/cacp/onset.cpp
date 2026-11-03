@@ -58,6 +58,7 @@ NoveltyCurve spectralFluxNovelty(const MagnitudeSpectrogram& mag, double logGamm
         std::swap(prev, cur);
     }
     const double norm = (std::max)(maxV, 1e-12);
+    curve.normaliser = norm;
     for (auto& v : nov) v /= norm;
     if (!allFinite(std::span<const double>(nov))) { // defensive: overflow of a finite but huge magnitude
         curve.status = AnalysisStatus::NonFiniteInput;
@@ -66,10 +67,9 @@ NoveltyCurve spectralFluxNovelty(const MagnitudeSpectrogram& mag, double logGamm
     return curve;
 }
 
-OnsetFrames pickOnsetFrames(std::span<const double> nov, const OnsetParams& p, const StftConfig& cfg,
-                            std::uint32_t sampleRate) {
-    OnsetFrames result;
-    std::vector<std::size_t>& out = result.frames;
+ThresholdCurve onsetThresholdCurve(std::span<const double> nov, const OnsetParams& p, const StftConfig& cfg,
+                                   std::uint32_t sampleRate) {
+    ThresholdCurve result;
     // Domain checks before any conversion to integers (DIF-5b-R2-01): a negative half window would give w < 0 and
     // an out-of-bounds prefix-sum index
     if (cfg.hop == 0 || sampleRate == 0 || !std::isfinite(p.delta) || !validTimeParam(p.thresholdHalfWindowS) ||
@@ -82,25 +82,40 @@ OnsetFrames pickOnsetFrames(std::span<const double> nov, const OnsetParams& p, c
         return result;
     }
     const std::size_t n = nov.size();
-    if (n < 3) return result;
     const double framesPerSecond = static_cast<double>(sampleRate) / static_cast<double>(cfg.hop);
     const auto w = static_cast<std::ptrdiff_t>(std::llround(p.thresholdHalfWindowS * framesPerSecond)); // >= 0
-    const auto sep = static_cast<std::size_t>(std::llround(p.minSeparationS * framesPerSecond));
     const double kernelLen = static_cast<double>(2 * w + 1);
 
     // Zero-padded centred moving average via prefix sums (numpy.convolve mode 'same')
     std::vector<double> prefix(n + 1, 0.0);
     for (std::size_t i = 0; i < n; ++i) prefix[i + 1] = prefix[i] + nov[i];
-    auto threshold = [&](std::size_t i) {
+    result.values.resize(n);
+    for (std::size_t i = 0; i < n; ++i) {
         const std::ptrdiff_t lo = static_cast<std::ptrdiff_t>(i) - w;
         const std::ptrdiff_t hi = static_cast<std::ptrdiff_t>(i) + w + 1;
         const auto a = static_cast<std::size_t>(lo > 0 ? lo : 0);
         const auto b = static_cast<std::size_t>(hi < static_cast<std::ptrdiff_t>(n) ? hi : static_cast<std::ptrdiff_t>(n));
-        return (prefix[b] - prefix[a]) / kernelLen + p.delta;
-    };
+        result.values[i] = (prefix[b] - prefix[a]) / kernelLen + p.delta;
+    }
+    return result;
+}
+
+OnsetFrames pickOnsetFrames(std::span<const double> nov, const OnsetParams& p, const StftConfig& cfg,
+                            std::uint32_t sampleRate) {
+    OnsetFrames result;
+    std::vector<std::size_t>& out = result.frames;
+    const ThresholdCurve thr = onsetThresholdCurve(nov, p, cfg, sampleRate);
+    if (thr.status != AnalysisStatus::Ok) {
+        result.status = thr.status;
+        return result;
+    }
+    const std::size_t n = nov.size();
+    if (n < 3) return result;
+    const double framesPerSecond = static_cast<double>(sampleRate) / static_cast<double>(cfg.hop);
+    const auto sep = static_cast<std::size_t>(std::llround(p.minSeparationS * framesPerSecond));
 
     for (std::size_t i = 1; i + 1 < n; ++i) {
-        if (!(nov[i] > nov[i - 1] && nov[i] >= nov[i + 1] && nov[i] > threshold(i))) continue;
+        if (!(nov[i] > nov[i - 1] && nov[i] >= nov[i + 1] && nov[i] > thr.values[i])) continue;
         if (!out.empty() && i - out.back() < sep) {
             if (nov[i] > nov[out.back()]) out.back() = i;
             continue;

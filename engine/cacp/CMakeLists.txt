@@ -36,6 +36,8 @@ add_library(cymatica_cacp STATIC
     stft.h
     staff_view.cpp
     staff_view.h
+    trama_diagnosis.cpp
+    trama_diagnosis.h
 )
 
 target_include_directories(cymatica_cacp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -26,6 +26,7 @@ struct OnsetParams {
 struct NoveltyCurve {
     AnalysisStatus status{AnalysisStatus::Ok};
     std::vector<double> values{};
+    double normaliser{0.0}; // max of the raw flux (floored at 1e-12): raw = values * normaliser (diagnostics, 5e.3b)
 };
 
 [[nodiscard]] NoveltyCurve spectralFluxNovelty(const MagnitudeSpectrogram& mag, double logGamma);
@@ -40,6 +41,15 @@ struct OnsetFrames {
 
 [[nodiscard]] OnsetFrames pickOnsetFrames(std::span<const double> novelty, const OnsetParams& p, const StftConfig& cfg,
                                           std::uint32_t sampleRate);
+
+// Threshold of pickOnsetFrames per frame (zero-padded centred moving average of 2w+1 frames plus delta), exposed
+// for diagnostics (5e.3b); pickOnsetFrames uses this same curve. Empty with the same status rules as the picker.
+struct ThresholdCurve {
+    AnalysisStatus status{AnalysisStatus::Ok};
+    std::vector<double> values{};
+};
+[[nodiscard]] ThresholdCurve onsetThresholdCurve(std::span<const double> novelty, const OnsetParams& p, const StftConfig& cfg,
+                                                 std::uint32_t sampleRate);
 
 // Detected onset times (frame centres, seconds) of a mono signal. An empty list is a valid "no onset" only with
 // status Ok (e.g. silence); NaN/inf input gives NonFiniteInput (DIF-5b-02).
