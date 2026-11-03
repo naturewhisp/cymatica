@@ -1,6 +1,7 @@
 #pragma once
 
 #include "acao02_calibration.h"
+#include "audio_probe.h"
 #include "stem_analysis.h"
 
 #include <array>
@@ -17,10 +18,13 @@ namespace cymatica::cacp {
 // same in every variant and verified; production keeps the 2 ms de-click. MEASURED, never a gate; no production
 // release is adopted in Inc-5 (decision at M2.5). Decision rules fixed here, before any measurement:
 //   H1 (release detections): SUPPORTED when at 30 ms the release detections are <= 20 % of those at 2 ms in each
-//      of set B, planner_probe_v1 and the fixture (sum over roles); INCONCLUSIVE when a 2 ms baseline is 0.
-//   H2 (Trama recall, set B): SUPPORTED when the Trama recall at 30 ms is >= 0.90.
-//   R2 (2 ms diagnostic): SUPPORTED when the unmatched Trama references of set B are exactly the notes preceded
-//      by the 0.18 s and 0.22 s intervals (10 of 40).
+//      of set B, planner_probe_v1 and the fixture (sum over the MEASURED roles; NO_REFERENCES adds nothing; any
+//      other role status, an invalid capture, a missing measure or a 2 ms baseline of 0 give INCONCLUSIVE).
+//   H2 (Trama recall, set B): SUPPORTED when the Trama recall at 30 ms is >= 0.90 AND greater than at 2 ms, both
+//      MEASURED on valid captures (DIF-5e.3-04); otherwise NOT_SUPPORTED, or INCONCLUSIVE without both measures.
+//   R2 short-IOI sub-hypothesis (2 ms diagnostic, DIF-5e.3-05): SUPPORTED when the unmatched Trama references of
+//      set B are exactly the notes preceded by the 0.18 s and 0.22 s intervals (10 of 40). It tests only that
+//      sub-hypothesis of the 5c explanation; the causal explanation as a whole stays INCONCLUSIVE (phase 5e.3b).
 // H1 and H2 are distinct hypotheses with their own measure and outcome; neither is assumed before measuring.
 
 inline constexpr std::array<double, 5> kReleaseVariantsMs{2.0, 15.0, 30.0, 50.0, 80.0};
@@ -45,12 +49,14 @@ struct ReleaseSetMeasure {
     double releaseMs{0.0};
     std::uint32_t releaseFrames{0};          // 0 = production (2 ms de-click)
     std::string captureInvalid{};            // empty when the capture is valid
-    std::uint64_t eventsHash{0};             // identity of the applied NoteOns and NoteOffs (same in every variant)
+    std::uint64_t eventsHash{0};             // identity, consumed frame and disposition of the applied events
+    std::uint64_t pcmHash{0};                // fixture: FNV-1a of the final PCM (repeat check); 0 for the other sets
     std::array<ReleaseRoleMeasure, kRoleCount> roles{};
-    std::uint32_t voiceDrops{0};
-    std::uint32_t releaseCuts{0};
-    std::uint32_t releaseOverlaps{0};
+    audio::VoiceConfounders confounders{};   // totals and per role (DIF-5e.3-03)
+    // Release detections summed over the MEASURED roles only (DIF-5e.3-06)
     [[nodiscard]] std::size_t releaseDetectionsTotal() const noexcept;
+    // Valid capture and every role MEASURED or NO_REFERENCES
+    [[nodiscard]] bool analysesValid() const noexcept;
 };
 
 struct HypothesisOutcome {
@@ -63,7 +69,9 @@ struct ReleaseAbResult {
     std::vector<std::string> reasons{};
     std::vector<ReleaseSetMeasure> measures{};
     std::vector<std::string> sameEventsViolations{};
-    HypothesisOutcome h1{}, h2{}, r2{};
+    HypothesisOutcome h1{}, h2{}, r2ShortIoi{};
+    HypothesisOutcome r2Causal{"INCONCLUSIVE", "causal explanation of the unmatched Trama references not tested here "
+                                               "(velocity, timbre, NoteOff distance, flux normalisation: phase 5e.3b)"};
     std::vector<std::size_t> r2UnmatchedTrama{};     // indices of the unmatched Trama references, set B, 2 ms
     std::vector<double> r2PrecedingIntervalS{};      // interval before each of them
     std::vector<std::string> clips{};
@@ -80,8 +88,8 @@ struct ReleaseAbResult {
 // Decision rules on recorded measures (pure, testable)
 [[nodiscard]] HypothesisOutcome evaluateH1(const std::vector<ReleaseSetMeasure>& measures);
 [[nodiscard]] HypothesisOutcome evaluateH2(const std::vector<ReleaseSetMeasure>& measures);
-[[nodiscard]] HypothesisOutcome evaluateR2(const std::vector<std::size_t>& unmatched, const std::vector<double>& precedingIntervalS,
-                                           std::size_t totalReferences);
+[[nodiscard]] HypothesisOutcome evaluateR2ShortIoi(const std::vector<std::size_t>& unmatched,
+                                                   const std::vector<double>& precedingIntervalS, std::size_t totalReferences);
 
 [[nodiscard]] ReleaseAbResult runReleaseAbV1(const std::string& outputDir = "artifacts/cacp", bool writeFiles = true);
 

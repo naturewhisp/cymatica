@@ -1,0 +1,1685 @@
+{
+  "build_id": "0e61893",
+  "clips": {
+    "dir": "release_ab_v1",
+    "files": [
+      "fixture_p05_release_02ms.wav",
+      "fixture_p10_release_02ms.wav",
+      "fixture_p05_release_15ms.wav",
+      "fixture_p10_release_15ms.wav",
+      "fixture_p05_release_30ms.wav",
+      "fixture_p10_release_30ms.wav",
+      "fixture_p05_release_50ms.wav",
+      "fixture_p10_release_50ms.wav",
+      "fixture_p05_release_80ms.wav",
+      "fixture_p10_release_80ms.wav"
+    ],
+    "source": "fixture_probe_v1 final PCM, whole phrases, 10 ms raised-cosine fades; for the expert's A/B listening"
+  },
+  "gate": false,
+  "hypotheses": {
+    "h1_release_detections": {
+      "detail": "set_b 9/102 = 0.088; planner_probe_v1 0/23 = 0.000; fixture 245/402 = 0.609; ",
+      "outcome": "NOT_SUPPORTED"
+    },
+    "h2_trama_recall_set_b": {
+      "detail": "Trama recall set B: 2 ms = 0.750, 30 ms = 1.000",
+      "outcome": "SUPPORTED"
+    },
+    "r2_causal_explanation": {
+      "detail": "causal explanation of the unmatched Trama references not tested here (velocity, timbre, NoteOff distance, flux normalisation: phase 5e.3b)",
+      "outcome": "INCONCLUSIVE"
+    },
+    "r2_short_ioi_subhypothesis_set_b_2ms": {
+      "detail": "10 unmatched of 40, 4 preceded by a 0.18 s or 0.22 s interval",
+      "outcome": "NOT_SUPPORTED",
+      "unmatched": [
+        {
+          "preceding_interval_s": null,
+          "reference_index": 0
+        },
+        {
+          "preceding_interval_s": 0.31000000000000005,
+          "reference_index": 10
+        },
+        {
+          "preceding_interval_s": 0.21999999999999975,
+          "reference_index": 14
+        },
+        {
+          "preceding_interval_s": 0.2699999999999996,
+          "reference_index": 20
+        },
+        {
+          "preceding_interval_s": 0.22000000000000064,
+          "reference_index": 22
+        },
+        {
+          "preceding_interval_s": 0.6999999999999993,
+          "reference_index": 24
+        },
+        {
+          "preceding_interval_s": 0.17999999999999972,
+          "reference_index": 25
+        },
+        {
+          "preceding_interval_s": 0.22000000000000064,
+          "reference_index": 30
+        },
+        {
+          "preceding_interval_s": 0.6999999999999993,
+          "reference_index": 32
+        },
+        {
+          "preceding_interval_s": 0.3100000000000005,
+          "reference_index": 34
+        }
+      ]
+    }
+  },
+  "manifest_version": "1.0",
+  "measures": [
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 0,
+        "release_overlaps": 0,
+        "voice_drops": 0
+      },
+      "events_hash": 11963622286038013927,
+      "pcm_hash": null,
+      "production_release": true,
+      "release_detections_total": 72,
+      "release_frames": 0,
+      "release_ms": 2.0,
+      "roles": {
+        "corpo": {
+          "detections": 48,
+          "matched_50ms": 24,
+          "precision_50": 0.5,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 24,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 24,
+          "matched_50ms": 24,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 48,
+          "matched_50ms": 24,
+          "precision_50": 0.5,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 24,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 48,
+          "matched_50ms": 24,
+          "precision_50": 0.5,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 24,
+          "status": "MEASURED"
+        }
+      },
+      "set": "set_a"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 0,
+        "release_overlaps": 0,
+        "voice_drops": 0
+      },
+      "events_hash": 15553322173284497434,
+      "pcm_hash": null,
+      "production_release": true,
+      "release_detections_total": 102,
+      "release_frames": 0,
+      "release_ms": 2.0,
+      "roles": {
+        "corpo": {
+          "detections": 69,
+          "matched_50ms": 40,
+          "precision_50": 0.5797101449275363,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 29,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 40,
+          "matched_50ms": 40,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 66,
+          "matched_50ms": 30,
+          "precision_50": 0.45454545454545453,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.75,
+          "references": 40,
+          "release_detections": 36,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 77,
+          "matched_50ms": 40,
+          "precision_50": 0.5194805194805194,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 37,
+          "status": "MEASURED"
+        }
+      },
+      "set": "set_b"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 8,
+            "release_overlaps": 4,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 14,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 31,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 22,
+        "release_overlaps": 35,
+        "voice_drops": 0
+      },
+      "events_hash": 12161862382700542175,
+      "pcm_hash": null,
+      "production_release": true,
+      "release_detections_total": 23,
+      "release_frames": 0,
+      "release_ms": 2.0,
+      "roles": {
+        "corpo": {
+          "detections": 5,
+          "matched_50ms": 4,
+          "precision_50": 0.8,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.8,
+          "references": 5,
+          "release_detections": 1,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 39,
+          "matched_50ms": 39,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.975,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 57,
+          "matched_50ms": 36,
+          "precision_50": 0.631578947368421,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 36,
+          "release_detections": 21,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 32,
+          "matched_50ms": 31,
+          "precision_50": 0.96875,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.96875,
+          "references": 32,
+          "release_detections": 1,
+          "status": "MEASURED"
+        }
+      },
+      "set": "planner_probe_v1"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 190,
+            "release_overlaps": 95,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 383,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 190,
+        "release_overlaps": 478,
+        "voice_drops": 0
+      },
+      "events_hash": 5207699717906788531,
+      "pcm_hash": 8541683880396540011,
+      "production_release": true,
+      "release_detections_total": 402,
+      "release_frames": 0,
+      "release_ms": 2.0,
+      "roles": {
+        "corpo": {
+          "detections": 96,
+          "matched_50ms": 95,
+          "precision_50": 0.9895833333333334,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.9895833333333334,
+          "references": 96,
+          "release_detections": 1,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 416,
+          "matched_50ms": 416,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 416,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 800,
+          "matched_50ms": 400,
+          "precision_50": 0.5,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 400,
+          "release_detections": 400,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 384,
+          "matched_50ms": 383,
+          "precision_50": 0.9973958333333334,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.9973958333333334,
+          "references": 384,
+          "release_detections": 1,
+          "status": "MEASURED"
+        }
+      },
+      "set": "fixture"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 0,
+        "release_overlaps": 0,
+        "voice_drops": 0
+      },
+      "events_hash": 11963622286038013927,
+      "pcm_hash": null,
+      "production_release": false,
+      "release_detections_total": 49,
+      "release_frames": 720,
+      "release_ms": 15.0,
+      "roles": {
+        "corpo": {
+          "detections": 25,
+          "matched_50ms": 24,
+          "precision_50": 0.96,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 1,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 24,
+          "matched_50ms": 24,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 48,
+          "matched_50ms": 24,
+          "precision_50": 0.5,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 24,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 48,
+          "matched_50ms": 24,
+          "precision_50": 0.5,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 24,
+          "status": "MEASURED"
+        }
+      },
+      "set": "set_a"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 0,
+        "release_overlaps": 0,
+        "voice_drops": 0
+      },
+      "events_hash": 15553322173284497434,
+      "pcm_hash": null,
+      "production_release": false,
+      "release_detections_total": 27,
+      "release_frames": 720,
+      "release_ms": 15.0,
+      "roles": {
+        "corpo": {
+          "detections": 40,
+          "matched_50ms": 40,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 40,
+          "matched_50ms": 40,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 65,
+          "matched_50ms": 40,
+          "precision_50": 0.6153846153846154,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 25,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 42,
+          "matched_50ms": 40,
+          "precision_50": 0.9523809523809523,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 2,
+          "status": "MEASURED"
+        }
+      },
+      "set": "set_b"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 8,
+            "release_overlaps": 4,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 14,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 31,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 22,
+        "release_overlaps": 35,
+        "voice_drops": 0
+      },
+      "events_hash": 12161862382700542175,
+      "pcm_hash": null,
+      "production_release": false,
+      "release_detections_total": 22,
+      "release_frames": 720,
+      "release_ms": 15.0,
+      "roles": {
+        "corpo": {
+          "detections": 4,
+          "matched_50ms": 4,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.8,
+          "references": 5,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 39,
+          "matched_50ms": 39,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.975,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 57,
+          "matched_50ms": 36,
+          "precision_50": 0.631578947368421,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 36,
+          "release_detections": 21,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 32,
+          "matched_50ms": 31,
+          "precision_50": 0.96875,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.96875,
+          "references": 32,
+          "release_detections": 1,
+          "status": "MEASURED"
+        }
+      },
+      "set": "planner_probe_v1"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 190,
+            "release_overlaps": 95,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 383,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 190,
+        "release_overlaps": 478,
+        "voice_drops": 0
+      },
+      "events_hash": 5207699717906788531,
+      "pcm_hash": 5614996138644418784,
+      "production_release": false,
+      "release_detections_total": 401,
+      "release_frames": 720,
+      "release_ms": 15.0,
+      "roles": {
+        "corpo": {
+          "detections": 96,
+          "matched_50ms": 95,
+          "precision_50": 0.9895833333333334,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.9895833333333334,
+          "references": 96,
+          "release_detections": 1,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 416,
+          "matched_50ms": 416,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 416,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 800,
+          "matched_50ms": 400,
+          "precision_50": 0.5,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 400,
+          "release_detections": 400,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 383,
+          "matched_50ms": 383,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.9973958333333334,
+          "references": 384,
+          "release_detections": 0,
+          "status": "MEASURED"
+        }
+      },
+      "set": "fixture"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 0,
+        "release_overlaps": 0,
+        "voice_drops": 0
+      },
+      "events_hash": 11963622286038013927,
+      "pcm_hash": null,
+      "production_release": false,
+      "release_detections_total": 24,
+      "release_frames": 1440,
+      "release_ms": 30.0,
+      "roles": {
+        "corpo": {
+          "detections": 24,
+          "matched_50ms": 24,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 24,
+          "matched_50ms": 24,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 48,
+          "matched_50ms": 24,
+          "precision_50": 0.5,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 24,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 24,
+          "matched_50ms": 24,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 0,
+          "status": "MEASURED"
+        }
+      },
+      "set": "set_a"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 0,
+        "release_overlaps": 0,
+        "voice_drops": 0
+      },
+      "events_hash": 15553322173284497434,
+      "pcm_hash": null,
+      "production_release": false,
+      "release_detections_total": 9,
+      "release_frames": 1440,
+      "release_ms": 30.0,
+      "roles": {
+        "corpo": {
+          "detections": 40,
+          "matched_50ms": 40,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 40,
+          "matched_50ms": 40,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 49,
+          "matched_50ms": 40,
+          "precision_50": 0.8163265306122449,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 9,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 40,
+          "matched_50ms": 40,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        }
+      },
+      "set": "set_b"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 8,
+            "release_overlaps": 4,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 14,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 31,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 22,
+        "release_overlaps": 35,
+        "voice_drops": 0
+      },
+      "events_hash": 12161862382700542175,
+      "pcm_hash": null,
+      "production_release": false,
+      "release_detections_total": 0,
+      "release_frames": 1440,
+      "release_ms": 30.0,
+      "roles": {
+        "corpo": {
+          "detections": 4,
+          "matched_50ms": 4,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.8,
+          "references": 5,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 39,
+          "matched_50ms": 39,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.975,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 36,
+          "matched_50ms": 36,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 36,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 31,
+          "matched_50ms": 31,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.96875,
+          "references": 32,
+          "release_detections": 0,
+          "status": "MEASURED"
+        }
+      },
+      "set": "planner_probe_v1"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 190,
+            "release_overlaps": 95,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 383,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 190,
+        "release_overlaps": 478,
+        "voice_drops": 0
+      },
+      "events_hash": 5207699717906788531,
+      "pcm_hash": 7370641251048121806,
+      "production_release": false,
+      "release_detections_total": 245,
+      "release_frames": 1440,
+      "release_ms": 30.0,
+      "roles": {
+        "corpo": {
+          "detections": 96,
+          "matched_50ms": 95,
+          "precision_50": 0.9895833333333334,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.9895833333333334,
+          "references": 96,
+          "release_detections": 1,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 416,
+          "matched_50ms": 416,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 416,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 643,
+          "matched_50ms": 400,
+          "precision_50": 0.6220839813374806,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 400,
+          "release_detections": 243,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 384,
+          "matched_50ms": 383,
+          "precision_50": 0.9973958333333334,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.9973958333333334,
+          "references": 384,
+          "release_detections": 1,
+          "status": "MEASURED"
+        }
+      },
+      "set": "fixture"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 0,
+        "release_overlaps": 0,
+        "voice_drops": 0
+      },
+      "events_hash": 11963622286038013927,
+      "pcm_hash": null,
+      "production_release": false,
+      "release_detections_total": 12,
+      "release_frames": 2400,
+      "release_ms": 50.0,
+      "roles": {
+        "corpo": {
+          "detections": 24,
+          "matched_50ms": 24,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 24,
+          "matched_50ms": 24,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 36,
+          "matched_50ms": 24,
+          "precision_50": 0.6666666666666666,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 12,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 24,
+          "matched_50ms": 24,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 0,
+          "status": "MEASURED"
+        }
+      },
+      "set": "set_a"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 0,
+        "release_overlaps": 0,
+        "voice_drops": 0
+      },
+      "events_hash": 15553322173284497434,
+      "pcm_hash": null,
+      "production_release": false,
+      "release_detections_total": 0,
+      "release_frames": 2400,
+      "release_ms": 50.0,
+      "roles": {
+        "corpo": {
+          "detections": 40,
+          "matched_50ms": 40,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 40,
+          "matched_50ms": 40,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 40,
+          "matched_50ms": 40,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 40,
+          "matched_50ms": 40,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        }
+      },
+      "set": "set_b"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 8,
+            "release_overlaps": 4,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 14,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 31,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 22,
+        "release_overlaps": 35,
+        "voice_drops": 0
+      },
+      "events_hash": 12161862382700542175,
+      "pcm_hash": null,
+      "production_release": false,
+      "release_detections_total": 0,
+      "release_frames": 2400,
+      "release_ms": 50.0,
+      "roles": {
+        "corpo": {
+          "detections": 4,
+          "matched_50ms": 4,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.8,
+          "references": 5,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 39,
+          "matched_50ms": 39,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.975,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 36,
+          "matched_50ms": 36,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 36,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 31,
+          "matched_50ms": 31,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.96875,
+          "references": 32,
+          "release_detections": 0,
+          "status": "MEASURED"
+        }
+      },
+      "set": "planner_probe_v1"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 190,
+            "release_overlaps": 95,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 383,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 190,
+        "release_overlaps": 478,
+        "voice_drops": 0
+      },
+      "events_hash": 5207699717906788531,
+      "pcm_hash": 6712475024928695908,
+      "production_release": false,
+      "release_detections_total": 2,
+      "release_frames": 2400,
+      "release_ms": 50.0,
+      "roles": {
+        "corpo": {
+          "detections": 96,
+          "matched_50ms": 95,
+          "precision_50": 0.9895833333333334,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.9895833333333334,
+          "references": 96,
+          "release_detections": 1,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 416,
+          "matched_50ms": 416,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 416,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 400,
+          "matched_50ms": 400,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 400,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 384,
+          "matched_50ms": 383,
+          "precision_50": 0.9973958333333334,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.9973958333333334,
+          "references": 384,
+          "release_detections": 1,
+          "status": "MEASURED"
+        }
+      },
+      "set": "fixture"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 0,
+        "release_overlaps": 0,
+        "voice_drops": 0
+      },
+      "events_hash": 11963622286038013927,
+      "pcm_hash": null,
+      "production_release": false,
+      "release_detections_total": 0,
+      "release_frames": 3840,
+      "release_ms": 80.0,
+      "roles": {
+        "corpo": {
+          "detections": 24,
+          "matched_50ms": 24,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 24,
+          "matched_50ms": 24,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 24,
+          "matched_50ms": 24,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 24,
+          "matched_50ms": 24,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 24,
+          "release_detections": 0,
+          "status": "MEASURED"
+        }
+      },
+      "set": "set_a"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 0,
+            "release_overlaps": 5,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 1,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 5,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 5,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 0,
+        "release_overlaps": 16,
+        "voice_drops": 0
+      },
+      "events_hash": 15553322173284497434,
+      "pcm_hash": null,
+      "production_release": false,
+      "release_detections_total": 0,
+      "release_frames": 3840,
+      "release_ms": 80.0,
+      "roles": {
+        "corpo": {
+          "detections": 40,
+          "matched_50ms": 40,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 40,
+          "matched_50ms": 40,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 40,
+          "matched_50ms": 40,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 40,
+          "matched_50ms": 40,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        }
+      },
+      "set": "set_b"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 8,
+            "release_overlaps": 4,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 14,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 31,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 22,
+        "release_overlaps": 35,
+        "voice_drops": 0
+      },
+      "events_hash": 12161862382700542175,
+      "pcm_hash": null,
+      "production_release": false,
+      "release_detections_total": 0,
+      "release_frames": 3840,
+      "release_ms": 80.0,
+      "roles": {
+        "corpo": {
+          "detections": 4,
+          "matched_50ms": 4,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.8,
+          "references": 5,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 39,
+          "matched_50ms": 39,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.975,
+          "references": 40,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 36,
+          "matched_50ms": 36,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 36,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 31,
+          "matched_50ms": 31,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.96875,
+          "references": 32,
+          "release_detections": 0,
+          "status": "MEASURED"
+        }
+      },
+      "set": "planner_probe_v1"
+    },
+    {
+      "capture_valid": true,
+      "confounders": {
+        "per_role": {
+          "corpo": {
+            "release_cuts": 190,
+            "release_overlaps": 95,
+            "voice_drops": 0
+          },
+          "pulso": {
+            "release_cuts": 0,
+            "release_overlaps": 1,
+            "voice_drops": 0
+          },
+          "trama": {
+            "release_cuts": 0,
+            "release_overlaps": 0,
+            "voice_drops": 0
+          },
+          "vettore": {
+            "release_cuts": 0,
+            "release_overlaps": 383,
+            "voice_drops": 0
+          }
+        },
+        "release_cuts": 190,
+        "release_overlaps": 479,
+        "voice_drops": 0
+      },
+      "events_hash": 5207699717906788531,
+      "pcm_hash": 13480337598828788720,
+      "production_release": false,
+      "release_detections_total": 2,
+      "release_frames": 3840,
+      "release_ms": 80.0,
+      "roles": {
+        "corpo": {
+          "detections": 96,
+          "matched_50ms": 95,
+          "precision_50": 0.9895833333333334,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.9895833333333334,
+          "references": 96,
+          "release_detections": 1,
+          "status": "MEASURED"
+        },
+        "pulso": {
+          "detections": 416,
+          "matched_50ms": 416,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 416,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "trama": {
+          "detections": 400,
+          "matched_50ms": 400,
+          "precision_50": 1.0,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 1.0,
+          "references": 400,
+          "release_detections": 0,
+          "status": "MEASURED"
+        },
+        "vettore": {
+          "detections": 384,
+          "matched_50ms": 383,
+          "precision_50": 0.9973958333333334,
+          "precision_excl_releases_50": 1.0,
+          "recall_50": 0.9973958333333334,
+          "references": 384,
+          "release_detections": 1,
+          "status": "MEASURED"
+        }
+      },
+      "set": "fixture"
+    }
+  ],
+  "reasons": [],
+  "repeat_identical": true,
+  "rules": {
+    "events_hash": "type, event id, role, planned frame, epoch, consumed frame and disposition; slot excluded",
+    "h1": "SUPPORTED when release detections at 30 ms <= 20 % of 2 ms in set B, planner_probe_v1 and fixture",
+    "h1_validity": "only MEASURED roles count; NO_REFERENCES adds nothing; any other status is INCONCLUSIVE",
+    "h2": "SUPPORTED when the Trama recall on set B at 30 ms >= 0.90 and > the recall at 2 ms, both MEASURED",
+    "note": "only the release of ordinary NoteOffs varies; steal tails, Pause, Stop and safety releases keep the 2 ms de-click; the 2 ms variant is the production release without override; no production release is adopted in Inc-5",
+    "r2_causal": "INCONCLUSIVE here; investigated separately (phase 5e.3b)",
+    "r2_short_ioi": "SUPPORTED when the unmatched Trama references of set B at 2 ms are exactly the 10 notes after 0.18 s / 0.22 s; a sub-hypothesis of the 5c explanation only",
+    "repeat": "second run compared on the measures JSON, including the fixture final PCM hash per variant",
+    "variants_ms": [
+      2.0,
+      15.0,
+      30.0,
+      50.0,
+      80.0
+    ]
+  },
+  "same_events_violations": [],
+  "scenario": "release_ab_v1",
+  "verdict": "MEASURED"
+}

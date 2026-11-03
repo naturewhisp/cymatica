@@ -11,6 +11,7 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <bit>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -42,23 +43,46 @@ std::string msLabel(double ms) {
 
 json optNum(const std::optional<double>& v) { return (v && std::isfinite(*v)) ? json(*v) : json(nullptr); }
 
-// FNV-1a over the identity and disposition of every record consumed by the engine
-std::uint64_t eventsHash(const std::vector<AppliedEventRecord>& applied, std::uint64_t h = 1469598103934665603ULL) {
-    auto mix = [&h](std::uint64_t v) {
-        for (int i = 0; i < 8; ++i) {
-            h ^= (v >> (8 * i)) & 0xFFU;
-            h *= 1099511628211ULL;
-        }
-    };
+constexpr std::uint64_t kFnvOffset = 1469598103934665603ULL;
+
+void fnvMix(std::uint64_t& h, std::uint64_t v) {
+    for (int i = 0; i < 8; ++i) {
+        h ^= (v >> (8 * i)) & 0xFFU;
+        h *= 1099511628211ULL;
+    }
+}
+
+// FNV-1a over the identity, consumed frame and disposition of every record consumed by the engine; the slot is
+// left out because it may legitimately change with the release length
+std::uint64_t eventsHash(const std::vector<AppliedEventRecord>& applied, std::uint64_t h = kFnvOffset) {
     for (const auto& r : applied) {
-        mix(static_cast<std::uint64_t>(r.id.type));
-        mix(r.id.eventId);
-        mix(static_cast<std::uint64_t>(r.id.role));
-        mix(r.id.sampleFrame);
-        mix(r.id.transportEpoch);
-        mix(static_cast<std::uint64_t>(r.disposition));
+        fnvMix(h, static_cast<std::uint64_t>(r.id.type));
+        fnvMix(h, r.id.eventId);
+        fnvMix(h, static_cast<std::uint64_t>(r.id.role));
+        fnvMix(h, r.id.sampleFrame);
+        fnvMix(h, r.id.transportEpoch);
+        fnvMix(h, r.consumedFrame);
+        fnvMix(h, static_cast<std::uint64_t>(r.disposition));
     }
     return h;
+}
+
+// FNV-1a over the bit patterns of a PCM buffer
+std::uint64_t pcmHash(const std::vector<float>& pcm) {
+    std::uint64_t h = kFnvOffset;
+    for (const float x : pcm) fnvMix(h, std::bit_cast<std::uint32_t>(x));
+    return h;
+}
+
+void addConfounders(audio::VoiceConfounders& to, const audio::VoiceConfounders& from) {
+    to.voiceDrops += from.voiceDrops;
+    to.releaseCuts += from.releaseCuts;
+    to.releaseOverlaps += from.releaseOverlaps;
+    for (std::size_t r = 0; r < kRoleCount; ++r) {
+        to.roleVoiceDrops[r] += from.roleVoiceDrops[r];
+        to.roleReleaseCuts[r] += from.roleReleaseCuts[r];
+        to.roleReleaseOverlaps[r] += from.roleReleaseOverlaps[r];
+    }
 }
 
 ReleaseRoleMeasure measureRole(std::span<const float> stem, const std::vector<AppliedEventRecord>& applied, std::size_t role,
@@ -133,7 +157,7 @@ SynthRender renderSynthetic(audio::MusicRole role, const std::vector<SynthNote>&
     (void)engine.setRoleStemSink(nullptr);
     (void)engine.setAppliedEventLog(nullptr);
     const auto& va = engine.voiceAllocator();
-    out.confounders = {va.voiceDropCount(), va.releaseCutCount(), va.releaseOverlapCount()};
+    out.confounders = audio::voiceConfoundersOf(va);
     out.applied.assign(log.records().begin(), log.records().end());
     engine.shutdown();
     std::size_t appliedNoteOns = 0;
@@ -189,8 +213,18 @@ std::vector<float> fadedSlice(const std::vector<float>& stereo, std::uint64_t st
 
 std::size_t ReleaseSetMeasure::releaseDetectionsTotal() const noexcept {
     std::size_t s = 0;
-    for (const auto& r : roles) s += r.releaseDetections;
+    for (const auto& r : roles) {
+        if (r.status == "MEASURED") s += r.releaseDetections;
+    }
     return s;
+}
+
+bool ReleaseSetMeasure::analysesValid() const noexcept {
+    if (!captureInvalid.empty()) return false;
+    for (const auto& r : roles) {
+        if (r.status != "MEASURED" && r.status != "NO_REFERENCES") return false;
+    }
+    return true;
 }
 
 std::vector<std::string> sameEventsViolations(const std::vector<ReleaseSetMeasure>& measures) {
@@ -218,7 +252,8 @@ HypothesisOutcome evaluateH1(const std::vector<ReleaseSetMeasure>& measures) {
             if (m.releaseMs == 2.0) base = &m;
             if (m.releaseMs == kH1ReleaseMs) at = &m;
         }
-        if (base == nullptr || at == nullptr || !base->captureInvalid.empty() || !at->captureInvalid.empty()) {
+        // Fail-closed (DIF-5e.3-06): a role not measured never counts as zero detections
+        if (base == nullptr || at == nullptr || !base->analysesValid() || !at->analysesValid()) {
             h.outcome = "INCONCLUSIVE";
             h.detail = std::string("missing or invalid measure for ") + set;
             return h;
@@ -240,27 +275,36 @@ HypothesisOutcome evaluateH1(const std::vector<ReleaseSetMeasure>& measures) {
 
 HypothesisOutcome evaluateH2(const std::vector<ReleaseSetMeasure>& measures) {
     HypothesisOutcome h;
+    const ReleaseSetMeasure* base = nullptr;
+    const ReleaseSetMeasure* at = nullptr;
     for (const auto& m : measures) {
-        if (m.set != "set_b" || m.releaseMs != kH1ReleaseMs) continue;
-        const auto& trama = m.roles[2];
-        if (!m.captureInvalid.empty() || trama.status != "MEASURED" || !trama.recall50) {
-            h.outcome = "INCONCLUSIVE";
-            h.detail = "Trama recall on set B at 30 ms not measured";
-            return h;
-        }
-        std::ostringstream d;
-        d << "Trama recall set B at 30 ms = " << std::fixed << std::setprecision(3) << *trama.recall50;
-        h.outcome = *trama.recall50 >= kH2MinRecall ? "SUPPORTED" : "NOT_SUPPORTED";
-        h.detail = d.str();
+        if (m.set != "set_b") continue;
+        if (m.releaseMs == 2.0) base = &m;
+        if (m.releaseMs == kH1ReleaseMs) at = &m;
+    }
+    auto tramaRecall = [](const ReleaseSetMeasure* m) -> std::optional<double> {
+        if (m == nullptr || !m->captureInvalid.empty()) return std::nullopt;
+        const auto& t = m->roles[2];
+        if (t.status != "MEASURED" || !t.recall50 || !std::isfinite(*t.recall50)) return std::nullopt;
+        return t.recall50;
+    };
+    const auto atBase = tramaRecall(base);
+    const auto at30 = tramaRecall(at);
+    if (!atBase || !at30) {
+        h.outcome = "INCONCLUSIVE";
+        h.detail = "Trama recall on set B not measured at both 2 ms and 30 ms";
         return h;
     }
-    h.outcome = "INCONCLUSIVE";
-    h.detail = "no set B measure at 30 ms";
+    std::ostringstream d;
+    d << "Trama recall set B: 2 ms = " << std::fixed << std::setprecision(3) << *atBase << ", 30 ms = " << *at30;
+    // Absolute threshold fixed before measuring and an improvement over the production release (DIF-5e.3-04)
+    h.outcome = (*at30 >= kH2MinRecall && *at30 > *atBase) ? "SUPPORTED" : "NOT_SUPPORTED";
+    h.detail = d.str();
     return h;
 }
 
-HypothesisOutcome evaluateR2(const std::vector<std::size_t>& unmatched, const std::vector<double>& precedingIntervalS,
-                             std::size_t totalReferences) {
+HypothesisOutcome evaluateR2ShortIoi(const std::vector<std::size_t>& unmatched, const std::vector<double>& precedingIntervalS,
+                                     std::size_t totalReferences) {
     HypothesisOutcome h;
     if (totalReferences == 0 || unmatched.size() != precedingIntervalS.size()) {
         h.outcome = "INCONCLUSIVE";
@@ -299,15 +343,13 @@ ReleaseAbResult runReleaseAbV1(const std::string& outputDir, bool writeFiles) {
                 m.set = setName;
                 m.releaseMs = ms;
                 m.releaseFrames = frames;
-                std::uint64_t h = 1469598103934665603ULL;
+                std::uint64_t h = kFnvOffset;
                 for (std::size_t role = 0; role < kRoleCount; ++role) {
                     const auto notes = std::string(setName) == "set_a" ? syntheticNotesSetA(role) : syntheticNotesSetB(role);
                     const SynthRender sr = renderSynthetic(static_cast<audio::MusicRole>(role), notes, synthCap, frames);
                     m.captureInvalid += captureInvalidReason(sr.check);
                     h = eventsHash(sr.applied, h);
-                    m.voiceDrops += sr.confounders.voiceDrops;
-                    m.releaseCuts += sr.confounders.releaseCuts;
-                    m.releaseOverlaps += sr.confounders.releaseOverlaps;
+                    addConfounders(m.confounders, sr.confounders);
                     if (captureInvalidReason(sr.check).empty()) {
                         m.roles[role] = measureRole(synthCap.stem(role), sr.applied, role, frozen->roles[role]);
                         if (role == 2 && std::string(setName) == "set_b" && ms == 2.0) {
@@ -317,7 +359,7 @@ ReleaseAbResult runReleaseAbV1(const std::string& outputDir, bool writeFiles) {
                                 r.r2PrecedingIntervalS.push_back(i == 0 ? std::numeric_limits<double>::quiet_NaN()
                                                                         : notes[i].timeS - notes[i - 1].timeS);
                             }
-                            r.r2 = evaluateR2(r.r2UnmatchedTrama, r.r2PrecedingIntervalS, refs.size());
+                            r.r2ShortIoi = evaluateR2ShortIoi(r.r2UnmatchedTrama, r.r2PrecedingIntervalS, refs.size());
                         }
                     }
                 }
@@ -345,9 +387,7 @@ ReleaseAbResult runReleaseAbV1(const std::string& outputDir, bool writeFiles) {
                                cap.overflowFrames(), appliedOverflow};
                 m.captureInvalid = captureInvalidReason(c);
                 m.eventsHash = eventsHash(applied);
-                m.voiceDrops = conf.voiceDrops;
-                m.releaseCuts = conf.releaseCuts;
-                m.releaseOverlaps = conf.releaseOverlaps;
+                m.confounders = conf;
                 if (m.captureInvalid.empty()) {
                     for (std::size_t role = 0; role < kRoleCount; ++role) m.roles[role] = measureRole(cap.stem(role), applied, role, frozen->roles[role]);
                 }
@@ -375,12 +415,11 @@ ReleaseAbResult runReleaseAbV1(const std::string& outputDir, bool writeFiles) {
                                fixtureCap.frames(), fixtureCap.overflowFrames(), appliedOverflow};
                 m.captureInvalid = captureInvalidReason(c);
                 m.eventsHash = eventsHash(applied);
-                m.voiceDrops = conf.voiceDrops;
-                m.releaseCuts = conf.releaseCuts;
-                m.releaseOverlaps = conf.releaseOverlaps;
+                m.confounders = conf;
                 if (m.captureInvalid.empty()) {
                     for (std::size_t role = 0; role < kRoleCount; ++role) m.roles[role] = measureRole(fixtureCap.stem(role), applied, role, frozen->roles[role]);
                 }
+                m.pcmHash = pcmHash(fixtureStereo);
                 if (withClips && clock && m.captureInvalid.empty()) {
                     const auto phrases = audio::MusicPlanner::makeFixtureM24V1Phrases(*clock);
                     namespace fs = std::filesystem;
@@ -416,7 +455,7 @@ ReleaseAbResult runReleaseAbV1(const std::string& outputDir, bool writeFiles) {
         for (const auto& v : r.sameEventsViolations) r.reasons.push_back("events differ from the 2 ms variant: " + v);
         r.h1 = evaluateH1(r.measures);
         r.h2 = evaluateH2(r.measures);
-        if (r.r2.outcome == "NOT_RUN") r.r2 = {"INCONCLUSIVE", "set B Trama at 2 ms not measured"};
+        if (r.r2ShortIoi.outcome == "NOT_RUN") r.r2ShortIoi = {"INCONCLUSIVE", "set B Trama at 2 ms not measured"};
         r.status = r.reasons.empty() ? "MEASURED" : "INCONCLUSIVE";
         return r;
     };
@@ -443,6 +482,14 @@ ReleaseAbResult runReleaseAbV1(const std::string& outputDir, bool writeFiles) {
 std::string ReleaseAbResult::measuresJson() const {
     json a = json::array();
     for (const auto& m : measures) {
+        const auto& cf = m.confounders;
+        json perRole = json::object();
+        for (std::size_t r = 0; r < kRoleCount; ++r) {
+            perRole[kRoleNames[r]] = {{"voice_drops", cf.roleVoiceDrops[r]}, {"release_cuts", cf.roleReleaseCuts[r]},
+                                      {"release_overlaps", cf.roleReleaseOverlaps[r]}};
+        }
+        const json confounders{{"voice_drops", cf.voiceDrops}, {"release_cuts", cf.releaseCuts},
+                               {"release_overlaps", cf.releaseOverlaps}, {"per_role", perRole}};
         json roles = json::object();
         for (std::size_t r = 0; r < kRoleCount; ++r) {
             const auto& x = m.roles[r];
@@ -457,7 +504,8 @@ std::string ReleaseAbResult::measuresJson() const {
         a.push_back({{"set", m.set}, {"release_ms", m.releaseMs}, {"release_frames", m.releaseFrames},
                      {"production_release", m.releaseFrames == 0}, {"capture_valid", m.captureInvalid.empty()},
                      {"events_hash", m.eventsHash}, {"release_detections_total", m.releaseDetectionsTotal()},
-                     {"confounders", {{"voice_drops", m.voiceDrops}, {"release_cuts", m.releaseCuts}, {"release_overlaps", m.releaseOverlaps}}},
+                     {"pcm_hash", m.pcmHash != 0 ? json(m.pcmHash) : json(nullptr)},
+                     {"confounders", confounders},
                      {"roles", roles}});
     }
     json unmatchedJson = json::array();
@@ -469,7 +517,9 @@ std::string ReleaseAbResult::measuresJson() const {
     json j{{"measures", a},
            {"hypotheses", {{"h1_release_detections", {{"outcome", h1.outcome}, {"detail", h1.detail}}},
                            {"h2_trama_recall_set_b", {{"outcome", h2.outcome}, {"detail", h2.detail}}},
-                           {"r2_unmatched_trama_set_b_2ms", {{"outcome", r2.outcome}, {"detail", r2.detail}, {"unmatched", unmatchedJson}}}}},
+                           {"r2_short_ioi_subhypothesis_set_b_2ms",
+                            {{"outcome", r2ShortIoi.outcome}, {"detail", r2ShortIoi.detail}, {"unmatched", unmatchedJson}}},
+                           {"r2_causal_explanation", {{"outcome", r2Causal.outcome}, {"detail", r2Causal.detail}}}}},
            {"same_events_violations", sameEventsViolations}};
     return j.dump();
 }
@@ -485,9 +535,14 @@ std::string ReleaseAbResult::toJson() const {
     j["repeat_identical"] = repeatIdentical;
     j["rules"] = {{"variants_ms", kReleaseVariantsMs},
                   {"h1", "SUPPORTED when release detections at 30 ms <= 20 % of 2 ms in set B, planner_probe_v1 and fixture"},
-                  {"h2", "SUPPORTED when the Trama recall on set B at 30 ms >= 0.90"},
-                  {"r2", "SUPPORTED when the unmatched Trama references of set B at 2 ms are exactly the 10 notes after 0.18 s / 0.22 s"},
-                  {"note", "only the release of ordinary NoteOffs varies; steal tails, Pause and Stop keep the 2 ms de-click; the "
+                  {"h1_validity", "only MEASURED roles count; NO_REFERENCES adds nothing; any other status is INCONCLUSIVE"},
+                  {"h2", "SUPPORTED when the Trama recall on set B at 30 ms >= 0.90 and > the recall at 2 ms, both MEASURED"},
+                  {"r2_short_ioi", "SUPPORTED when the unmatched Trama references of set B at 2 ms are exactly the 10 notes after "
+                                   "0.18 s / 0.22 s; a sub-hypothesis of the 5c explanation only"},
+                  {"r2_causal", "INCONCLUSIVE here; investigated separately (phase 5e.3b)"},
+                  {"events_hash", "type, event id, role, planned frame, epoch, consumed frame and disposition; slot excluded"},
+                  {"repeat", "second run compared on the measures JSON, including the fixture final PCM hash per variant"},
+                  {"note", "only the release of ordinary NoteOffs varies; steal tails, Pause, Stop and safety releases keep the 2 ms de-click; the "
                            "2 ms variant is the production release without override; no production release is adopted in Inc-5"}};
     j["clips"] = {{"dir", "release_ab_v1"}, {"files", clips},
                   {"source", "fixture_probe_v1 final PCM, whole phrases, 10 ms raised-cosine fades; for the expert's A/B listening"}};

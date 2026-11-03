@@ -138,8 +138,12 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
 
     // Release-experiment confounders (5e-08): the other voice of the role still releasing
     const std::size_t first = roleFirstSlot(event.role);
+    const std::size_t roleIndex = static_cast<std::size_t>(event.role); // valid: a slot of the role was found
     for (std::size_t s = first; s < first + kSlotsPerRole; ++s) {
-        if (s != static_cast<std::size_t>(idx) && slots_[s].state == VoiceState::Release) ++releaseOverlapCount_;
+        if (s != static_cast<std::size_t>(idx) && slots_[s].state == VoiceState::Release) {
+            ++releaseOverlapCount_;
+            ++roleReleaseOverlaps_[roleIndex];
+        }
     }
 
     // Steal tail snapshot & voice stealing accounting
@@ -147,8 +151,10 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
         if (slot.state != VoiceState::Release) {
             // Rule 2 voice steal on active voice
             ++voiceDropCount_;
+            ++roleVoiceDrops_[roleIndex];
         } else {
             ++releaseCutCount_; // a release cut short by a new note (5e-08 confounder)
+            ++roleReleaseCuts_[roleIndex];
         }
 
         // Capture current output into dedicated steal tail with 2 ms linear fade-out
@@ -339,6 +345,7 @@ void VoiceAllocator::checkLifetimes(std::uint64_t currentLogicalFrame) noexcept 
                 core::saturatingAdd(slot.startFrame, static_cast<std::uint64_t>(slot.durationFrames));
             if (currentLogicalFrame >= expireFrame) {
                 slot.state = VoiceState::Release;
+                slot.releaseSamples = declickFrames_; // safety release: never the experimental override (DIF-5e.3-02)
                 slot.stageFrame = 0;
                 slot.releaseStartLevel = slot.envelopeLevel;
             }
@@ -348,6 +355,7 @@ void VoiceAllocator::checkLifetimes(std::uint64_t currentLogicalFrame) noexcept 
                 core::saturatingAdd(slot.startFrame, static_cast<std::uint64_t>(kMaxLeaseDurationFrames));
             if (currentLogicalFrame >= leaseExpireFrame) {
                 slot.state = VoiceState::Release;
+                slot.releaseSamples = declickFrames_; // safety release: never the experimental override (DIF-5e.3-02)
                 slot.stageFrame = 0;
                 slot.releaseStartLevel = slot.envelopeLevel;
                 ++orphanNoteRecoveredCount_;

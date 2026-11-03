@@ -898,7 +898,9 @@ bool AudioEngine::setRoleStemSink(RoleStemSink* sink) noexcept {
 
 bool AudioEngine::setNoteReleaseFrames(std::uint32_t frames) noexcept {
     if (!pImpl_) return false;
-    if (pImpl_->deviceStarted.load(std::memory_order_acquire)) return false; // quiescence contract
+    if (!noteReleaseOverrideAllowed(!pImpl_->deviceInitialized, pImpl_->deviceStarted.load(std::memory_order_acquire))) {
+        return false; // offline engines only (DIF-5e.3-01)
+    }
     pImpl_->voiceAllocator.setNoteReleaseFrames(frames);
     return true;
 }

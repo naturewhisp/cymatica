@@ -11,6 +11,8 @@
 
 namespace cymatica::audio {
 
+class AudioEngine;
+
 // Voice lifecycle states according to Spec §16, §20.2 and ADR-0003 D-M2-03
 enum class VoiceState : std::uint8_t {
     Idle = 0,
@@ -203,19 +205,29 @@ public:
     [[nodiscard]] std::uint32_t orphanNoteRecoveredCount() const noexcept { return orphanNoteRecoveredCount_; }
     [[nodiscard]] std::uint32_t dspAnomalyCount() const noexcept { return dspAnomalyCount_; }
 
-    // Offline experimental release of ordinary NoteOffs (ADR-0006 5e-08, Inc-5 phase 5e.3). 0 (default) keeps the
-    // 2 ms de-click release, so production audio, goldens and callback are unchanged; steal tails, Pause and Stop
-    // always keep the 2 ms de-click. Set only in quiescence (AudioEngine::setNoteReleaseFrames).
-    void setNoteReleaseFrames(std::uint32_t frames) noexcept { noteReleaseOverride_ = frames; }
+    // Release of ordinary NoteOffs (ADR-0006 5e-08): the 2 ms de-click unless an offline release experiment
+    // overrides it. The override is set only through AudioEngine::setNoteReleaseFrames on an offline engine
+    // (DIF-5e.3-01); steal tails, Pause, Stop and the safety releases of checkLifetimes always keep 2 ms.
     [[nodiscard]] std::uint32_t noteReleaseFrames() const noexcept {
         return noteReleaseOverride_ > 0 ? noteReleaseOverride_ : declickFrames_;
     }
-    // Confounders of a release experiment (5e-08): a NoteOn that steals a voice still in Release (its release cut
-    // short), and a NoteOn while the other voice of the same role is still in Release (overlap)
+    // Confounders of a release experiment (5e-08), in total and per role (DIF-5e.3-03): a NoteOn that steals an
+    // active voice (drop), a NoteOn that steals a voice still in Release (release cut short), and a NoteOn while the
+    // other voice of the same role is still in Release (overlap). Out-of-range roles read 0.
     [[nodiscard]] std::uint32_t releaseCutCount() const noexcept { return releaseCutCount_; }
     [[nodiscard]] std::uint32_t releaseOverlapCount() const noexcept { return releaseOverlapCount_; }
+    [[nodiscard]] std::uint32_t voiceDropCount(MusicRole role) const noexcept { return perRole(roleVoiceDrops_, role); }
+    [[nodiscard]] std::uint32_t releaseCutCount(MusicRole role) const noexcept { return perRole(roleReleaseCuts_, role); }
+    [[nodiscard]] std::uint32_t releaseOverlapCount(MusicRole role) const noexcept { return perRole(roleReleaseOverlaps_, role); }
 
 private:
+    friend class AudioEngine; // the only writer of the release override (DIF-5e.3-01)
+    void setNoteReleaseFrames(std::uint32_t frames) noexcept { noteReleaseOverride_ = frames; }
+    [[nodiscard]] static std::uint32_t perRole(const std::array<std::uint32_t, kRoleCount>& a, MusicRole role) noexcept {
+        const auto r = static_cast<std::size_t>(role);
+        return r < kRoleCount ? a[r] : 0U;
+    }
+
     std::array<VoiceSlot, kTotalSlots> slots_{};
     std::uint32_t sampleRate_{48000};
     std::uint32_t declickFrames_{kDefaultTransportDeclickFrames};
@@ -225,6 +237,9 @@ private:
     std::uint32_t noteReleaseOverride_{0};
     std::uint32_t releaseCutCount_{0};
     std::uint32_t releaseOverlapCount_{0};
+    std::array<std::uint32_t, kRoleCount> roleVoiceDrops_{};
+    std::array<std::uint32_t, kRoleCount> roleReleaseCuts_{};
+    std::array<std::uint32_t, kRoleCount> roleReleaseOverlaps_{};
 
     // Inc-2 Role buses and Telemetry
     RoleBusProcessor roleBusProcessor_{};

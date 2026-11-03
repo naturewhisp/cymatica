@@ -471,12 +471,18 @@ struct ProfileProbeResult {
 struct RoleStemSink;
 struct PlannedNoteOff;
 
-// Voice confounders of a release experiment (ADR-0006 5e-08)
+// Voice confounders of a release experiment (ADR-0006 5e-08), in total and per role (DIF-5e.3-03)
 struct VoiceConfounders {
     std::uint32_t voiceDrops{0};       // steals of an active (non-releasing) voice
     std::uint32_t releaseCuts{0};      // steals of a voice still in Release
     std::uint32_t releaseOverlaps{0};  // NoteOns while the other voice of the role is releasing
+    std::array<std::uint32_t, 4> roleVoiceDrops{};      // per MusicRole (Pulso, Corpo, Trama, Vettore)
+    std::array<std::uint32_t, 4> roleReleaseCuts{};
+    std::array<std::uint32_t, 4> roleReleaseOverlaps{};
 };
+class VoiceAllocator;
+// Confounders read from the allocator at the end of a run (totals and per-role values)
+[[nodiscard]] VoiceConfounders voiceConfoundersOf(const VoiceAllocator& va) noexcept;
 
 // Optional offline capture for CACP analysis (ADR-0006 D-M2-13/16, Inc-5 phase 5c). Every pointer may be null.
 // The stem sink is installed for the scenario render only (removed before the probe-only stale-event check).

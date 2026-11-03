@@ -165,8 +165,13 @@ public:
     // Offline per-role stem tap (ADR-0006 D-M2-13): same quiescence contract as the applied-event log.
     bool setRoleStemSink(RoleStemSink* sink) noexcept;
     // Offline release experiment (ADR-0006 5e-08): release of ordinary NoteOffs in frames, 0 = the 2 ms de-click.
-    // Same quiescence contract as the applied-event log; never used by the realtime path.
+    // Accepted only by an engine created with initOffline() (DIF-5e.3-01): an engine with a physical device refuses
+    // it whether or not the device is started, so the realtime path can never carry the override.
     bool setNoteReleaseFrames(std::uint32_t frames) noexcept;
+    // Rule of setNoteReleaseFrames, testable without hardware: offline engine and no device running
+    [[nodiscard]] static constexpr bool noteReleaseOverrideAllowed(bool offlineEngine, bool deviceStarted) noexcept {
+        return offlineEngine && !deviceStarted;
+    }
     // Quiescence only: true when the scheduled-event SPSC is empty (E_sent = E_cons is checked after the drain).
     [[nodiscard]] bool scheduledEventQueueEmpty() const noexcept;
 

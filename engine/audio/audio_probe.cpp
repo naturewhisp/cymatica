@@ -31,6 +31,17 @@
 
 namespace cymatica::audio {
 
+VoiceConfounders voiceConfoundersOf(const VoiceAllocator& va) noexcept {
+    VoiceConfounders c{va.voiceDropCount(), va.releaseCutCount(), va.releaseOverlapCount()};
+    for (std::size_t r = 0; r < c.roleVoiceDrops.size(); ++r) {
+        const auto role = static_cast<MusicRole>(r);
+        c.roleVoiceDrops[r] = va.voiceDropCount(role);
+        c.roleReleaseCuts[r] = va.releaseCutCount(role);
+        c.roleReleaseOverlaps[r] = va.releaseOverlapCount(role);
+    }
+    return c;
+}
+
 AudioProbe::AudioProbe(std::uint32_t capacityFrames, std::uint32_t channels, std::uint32_t sampleRate)
     : capacityFrames_(capacityFrames > 0 ? capacityFrames : kDefaultCapacityFrames)
     , channels_(channels > 0 ? channels : 2)
@@ -1744,7 +1755,7 @@ PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool w
         if (capture->intents != nullptr) *capture->intents = allIntents;
         if (capture->confounders != nullptr) {
             const auto& va = engine.voiceAllocator();
-            *capture->confounders = {va.voiceDropCount(), va.releaseCutCount(), va.releaseOverlapCount()};
+            *capture->confounders = voiceConfoundersOf(va);
         }
         if (capture->noteOffs != nullptr) *capture->noteOffs = mainRun.noteOffs;
     }
@@ -2640,7 +2651,7 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     if (capture != nullptr && capture->appliedOverflow != nullptr) *capture->appliedOverflow = appliedLog.overflow();
     if (capture != nullptr && capture->confounders != nullptr) {
         const auto& va = engine.voiceAllocator();
-        *capture->confounders = {va.voiceDropCount(), va.releaseCutCount(), va.releaseOverlapCount()};
+        *capture->confounders = voiceConfoundersOf(va);
     }
     if (capture != nullptr && capture->intents != nullptr) {
         capture->intents->clear();

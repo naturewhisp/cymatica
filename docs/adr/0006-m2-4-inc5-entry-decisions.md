@@ -605,20 +605,27 @@ Fissano ciò che D-M2-15 e D-M2-16 rimandano a 5e e stabiliscono il perimetro de
 
 **Attuazione di 5e-08 in 5e.3 (`release_ab_v1`, 2026-11-03; regole fissate in `engine/cacp/release_ab.h` prima della misura):**
 
-- **Variabile unica:** `VoiceAllocator::setNoteReleaseFrames` (via `AudioEngine::setNoteReleaseFrames`, solo in quiescenza) cambia il release dei soli NoteOff ordinari.
+- **Variabile unica:** l'override cambia il release dei soli NoteOff ordinari.
   - 0 è il default e mantiene il declick di 2 ms: la variante 2 ms è il release di produzione, senza override.
-  - Code di voice stealing, Pausa e Stop restano a 2 ms.
+  - Code di voice stealing, Pausa e Stop restano a 2 ms. Restano a 2 ms anche i rilasci di sicurezza di `checkLifetimes` (scadenza della durata e lease dell'open pad, DIF-5e.3-02).
   - Con un override il golden PCM della fixture è `NOT_APPLICABLE`; i golden di piano restano.
-- **Stessi eventi:** per ogni insieme l'hash FNV-1a delle identità e disposizioni degli eventi applicati deve coincidere con quello della variante 2 ms; una variante senza riferimento a 2 ms è una violazione. Con una violazione, una cattura non valida o un'analisi non valida l'esito è `INCONCLUSIVE`.
-- **Confondenti:** per ogni insieme e variante si contano:
+- **Isolamento offline** (DIF-5e.3-01): l'override si imposta solo con `AudioEngine::setNoteReleaseFrames`, accettato soltanto da un motore creato con `initOffline()` e senza device in esecuzione. Un motore con device fisico lo rifiuta, avviato o no. Il setter di `VoiceAllocator` è privato (`AudioEngine` è friend), quindi l'accessor modificabile non lo aggira. La regola (`noteReleaseOverrideAllowed`) è una funzione pura, verificata in CI senza hardware.
+- **Stessi eventi:** per ogni insieme l'hash FNV-1a degli eventi applicati deve coincidere con quello della variante 2 ms; una variante senza riferimento a 2 ms è una violazione.
+  - L'hash copre tipo, id, ruolo, frame pianificato, epoch, frame di consumo e disposizione. Lo slot è escluso perché può cambiare legittimamente con il release.
+  - Con una violazione, una cattura non valida o un'analisi non valida l'esito è `INCONCLUSIVE`.
+- **Confondenti:** per ogni insieme, variante e ruolo, con i totali (DIF-5e.3-03), si contano:
   - i voice drop (furto di una voce attiva);
   - i release tagliati (furto di una voce ancora in Release);
   - le sovrapposizioni (NoteOn mentre l'altra voce del ruolo è in Release).
-- **Regole:**
-  - **H1** è `SUPPORTED` se, in ciascuno fra set B, `planner_probe_v1` e fixture, le rilevazioni sui rilasci a 30 ms sono ≤ 20 % di quelle a 2 ms (somma sui ruoli). È `INCONCLUSIVE` con un riferimento a 2 ms nullo o mancante.
-  - **H2** è `SUPPORTED` se il richiamo della Trama nel set B a 30 ms è ≥ 0,90.
-  - **R2** è la diagnostica a 2 ms: `SUPPORTED` se i riferimenti della Trama non abbinati nel set B sono esattamente le 10 note precedute dagli intervalli di 0,18 e 0,22 s.
-- **Esito:** `MEASURED`, mai un gate. Ripetizione identica verificata.
+- **Regole** (revisione DIF-5e.3-04..06, fissata prima della nuova misura):
+  - **H1** è `SUPPORTED` se, in ciascuno fra set B, `planner_probe_v1` e fixture, le rilevazioni sui rilasci a 30 ms sono ≤ 20 % di quelle a 2 ms.
+    - Contano solo i ruoli `MEASURED`; `NO_REFERENCES` non aggiunge nulla.
+    - È `INCONCLUSIVE` con qualunque altro stato di analisi, una cattura non valida, una misura mancante o un riferimento a 2 ms nullo (fail-closed).
+  - **H2** è `SUPPORTED` se il richiamo della Trama nel set B a 30 ms è ≥ 0,90 **e** maggiore di quello a 2 ms, entrambi `MEASURED` su catture valide. Senza entrambe le misure è `INCONCLUSIVE`.
+  - **R2, sotto-ipotesi short-IOI** (diagnostica a 2 ms): `SUPPORTED` se i riferimenti della Trama non abbinati nel set B sono esattamente le 10 note precedute dagli intervalli di 0,18 e 0,22 s. Verifica solo questa sotto-ipotesi della spiegazione di 5c.
+  - **R2, spiegazione causale:** resta `INCONCLUSIVE` nello scenario; l'indagine (velocity, timbro, distanze dai NoteOff, normalizzazione del flusso) è la micro-fase 5e.3b.
+- **Esito:** `MEASURED`, mai un gate.
+- **Ripetizione:** confronta il JSON delle misure, compreso l'hash del PCM finale della fixture per variante. Le clip derivano da quel PCM.
 - **Clip A/B:** frasi 5 e 10 della fixture per ogni variante, dal PCM finale, con dissolvenze di 10 ms, per la revisione dell'esperto.
 - **Nessun release di produzione è adottato in Inc-5:** la decisione resta a M2.5. Risultati in `progress.md` (5e.3).
 
