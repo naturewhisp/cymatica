@@ -20,7 +20,7 @@ std::pair<double, double> wilsonEffective(double successes, double trials) noexc
     if (!(trials > 0.0) || !std::isfinite(trials) || !std::isfinite(successes) || successes < 0.0 || successes > trials) {
         return {nan, nan};
     }
-    constexpr double z = 1.959963984540054;
+    constexpr double z = kPresenceStatsZ;
     const double p = successes / trials;
     const double denom = 1.0 + z * z / trials;
     const double centre = (p + z * z / (2.0 * trials)) / denom;
@@ -75,6 +75,14 @@ PresenceStats computePresenceStats(const std::vector<PresenceObservation>& obs) 
             (o.negativeKind == "removal" ? removal : natural).push_back(&o);
         }
     }
+    std::map<std::string, bool> windowAllCorrect;
+    for (const auto& o : obs) {
+        const bool ok = o.claimedPresent == o.truthPresent;
+        const auto it = windowAllCorrect.find(o.window);
+        windowAllCorrect[o.window] = (it == windowAllCorrect.end() ? true : it->second) && ok;
+    }
+    s.windowsInSample = windowAllCorrect.size();
+    for (const auto& [w, ok] : windowAllCorrect) s.windowsAllCorrect += ok ? 1 : 0;
     s.positives = classStats(pos);
     s.negatives = classStats(neg);
     s.naturalNegatives = classStats(natural);

@@ -542,7 +542,7 @@ std::optional<TruthBundle> truthFromJson(std::string_view text, std::string* err
     }
 }
 
-std::vector<std::string> sourcePhraseGroups(const PackSource& src, std::string* rule) {
+std::vector<std::string> sourcePhraseGroups(const PackSource& src, std::string* rule, std::string* error) {
     std::vector<std::string> ids;
     if (src.intents.empty()) {
         if (rule != nullptr) *rule = "source_phrase_only";
@@ -556,9 +556,12 @@ std::vector<std::string> sourcePhraseGroups(const PackSource& src, std::string* 
             if (e.sampleFrame >= p.startFrame && e.sampleFrame < p.endFrame) own.push_back(e);
         }
         const auto fp = phraseContentFingerprint(own, src.noteOffs, p.startFrame, src.sampleRate);
+        if (!fp) {
+            if (error != nullptr) *error = "per-phrase content fingerprint not computable for phrase " + std::to_string(p.index);
+            return {};
+        }
         std::ostringstream id;
-        if (fp) id << 'g' << std::hex << std::setw(16) << std::setfill('0') << *fp;
-        else id << "invalid_p" << p.index;
+        id << 'g' << std::hex << std::setw(16) << std::setfill('0') << *fp;
         ids.push_back(id.str());
     }
     return ids;
@@ -653,7 +656,14 @@ PackBuild buildPackImpl(const PackSource& src, std::uint64_t packSeed, const Pac
     };
     const auto duplicateShift = static_cast<std::uint64_t>(std::llround(cfg.duplicateShiftS * src.sampleRate));
     std::vector<std::string> groupOf;
-    if (version == 2) groupOf = sourcePhraseGroups(src, &truth.groupingRule);
+    if (version == 2) {
+        std::string groupError;
+        groupOf = sourcePhraseGroups(src, &truth.groupingRule, &groupError);
+        if (groupOf.size() != src.phrases.size()) {
+            b.errors.push_back("musical grouping failed: " + (groupError.empty() ? std::string("size mismatch") : groupError));
+            return b;
+        }
+    }
 
     if (version == 1) {
     // Test windows: up to k phrases per (section, planned mask), drawn by the selection stream
@@ -1466,6 +1476,11 @@ std::string CheckReport::toJson() const {
     j["role_signal_present_scoring"] = {
         {"status", presenceStatus},
         {"stats_profile", presence.profile},
+        {"parameters", {{"z", kPresenceStatsZ}, {"rho_assumed_within_group", kPresenceStatsRhoAssumed},
+                        {"min_groups_per_class", kPresenceStatsMinGroups}, {"min_n_eff_per_class", kPresenceStatsMinNeff},
+                        {"interval", "Wilson on n_eff with x_eff = rate * n_eff"}}},
+        {"windows_in_sample", presence.windowsInSample},
+        {"windows_all_claims_correct", presence.windowsAllCorrect},
         {"coverage", presence.coverage},
         {"grouping_rule", groupingRule},
         {"scope", "conditional on the windows of this fixture and this musical seed; no generalisation to other seeds"},
@@ -1497,11 +1512,12 @@ std::optional<std::string> readText(const std::filesystem::path& p) {
     return s.str();
 }
 
-// Empty when d is empty or an intact evaluation_pack_v1 directory written by this generator, otherwise the reason
-// (DIF-5d-R2-01): well-formed SHA256SUMS ("<64 lowercase hex>  <plain name>", no duplicates), exactly the
-// listed files plus SHA256SUMS, every digest matching the content, and a pack identifier (pack.json or
-// evaluation_truth.json with pack_version evaluation_pack_v1).
-std::string ownedPackDirectoryProblem(const std::filesystem::path& d) {
+// Empty when d is empty or an intact directory of the expected pack version written by this generator, otherwise
+// the reason (DIF-5d-R2-01, DIF-5e.2-01): well-formed SHA256SUMS ("<64 lowercase hex>  <plain name>", no
+// duplicates), exactly the listed files plus SHA256SUMS, every digest matching the content, and a pack identifier
+// (pack.json or evaluation_truth.json) whose pack_version is the expected one: a v1 directory is never replaced
+// by v2, nor the opposite.
+std::string ownedPackDirectoryProblem(const std::filesystem::path& d, const std::string& expectedVersion) {
     namespace fs = std::filesystem;
     std::error_code ec;
     std::set<std::string> entries;
@@ -1540,10 +1556,10 @@ std::string ownedPackDirectoryProblem(const std::filesystem::path& d) {
         if (!listed.contains(id)) continue;
         try {
             const json j = json::parse(*readText(d / id));
-            if (j.is_object() && j.contains("pack_version") && j["pack_version"] == kEvaluationPackVersion) return {};
+            if (j.is_object() && j.contains("pack_version") && j["pack_version"] == expectedVersion) return {};
         } catch (const std::exception&) {
         }
-        return std::string(id) + " does not identify an evaluation_pack_v1 directory";
+        return std::string(id) + " does not identify an " + expectedVersion + " directory";
     }
     return "no pack identifier (pack.json or evaluation_truth.json)";
 }
@@ -1645,12 +1661,24 @@ std::string writePackDirectory(const std::string& dir, const std::map<std::strin
     namespace fs = std::filesystem;
     std::error_code ec;
     const fs::path d(dir);
+    // The pack version being written decides which existing directory may be replaced (DIF-5e.2-01)
+    std::string expected;
+    for (const char* id : {"pack.json", "evaluation_truth.json"}) {
+        const auto it = files.find(id);
+        if (it == files.end()) continue;
+        const json j = json::parse(std::string(it->second.begin(), it->second.end()), nullptr, false);
+        if (j.is_object() && j.contains("pack_version") && j["pack_version"].is_string()) expected = j["pack_version"].get<std::string>();
+        break;
+    }
+    if (expected != kEvaluationPackVersion && expected != kEvaluationPackVersionV2) {
+        return dir + ": the files to write carry no known pack version: refused";
+    }
     if (fs::is_symlink(d, ec)) return dir + " is a symbolic link";
     if (fs::exists(d, ec)) {
         if (!fs::is_directory(d, ec)) return dir + " exists and is not a directory";
         // Only an intact directory written by this generator is replaced (DIF-5d-01, DIF-5d-R2-01). Every check
         // runs before the first removal; any inconsistency refuses the write and leaves the directory untouched.
-        if (const std::string why = ownedPackDirectoryProblem(d); !why.empty()) {
+        if (const std::string why = ownedPackDirectoryProblem(d, expected); !why.empty()) {
             return dir + ": " + why + ": refused, directory left untouched";
         }
         std::vector<fs::path> owned;
@@ -1723,9 +1751,24 @@ EvaluationPackRun runEvaluationPackImpl(int version, const std::string& publicRo
         run.references = build.references;
         run.publicBlindFiles = build.publicBlind.size();
         run.publicDiagnosticFiles = build.publicDiagnostic.size();
-        for (const auto& [dir, files] : {std::pair{&run.publicBlindDir, &build.publicBlind},
-                                         std::pair{&run.publicDiagnosticDir, &build.publicDiagnostic},
-                                         std::pair{&run.sealedDir, &build.sealed}}) {
+        const auto targets = {std::pair{&run.publicBlindDir, &build.publicBlind},
+                              std::pair{&run.publicDiagnosticDir, &build.publicDiagnostic},
+                              std::pair{&run.sealedDir, &build.sealed}};
+        // All three directories are checked before any of them is written (DIF-5e.2-01): a refusal never leaves
+        // a pack whose public part and sealed truth come from different runs
+        for (const auto& [dir, files] : targets) {
+            std::error_code ec;
+            if (!std::filesystem::exists(*dir, ec)) continue;
+            if (std::filesystem::is_symlink(*dir, ec) || !std::filesystem::is_directory(*dir, ec)) {
+                run.errors.push_back(*dir + ": not a plain directory: refused before writing");
+                continue;
+            }
+            if (const std::string why = ownedPackDirectoryProblem(*dir, run.scenario); !why.empty()) {
+                run.errors.push_back(*dir + ": " + why + ": refused before writing, nothing written");
+            }
+        }
+        for (const auto& [dir, files] : targets) {
+            if (!run.errors.empty()) break;
             if (const std::string why = writePackDirectory(*dir, *files); !why.empty()) {
                 run.errors.push_back(why);
                 break;

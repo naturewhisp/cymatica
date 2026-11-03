@@ -21,6 +21,8 @@ namespace cymatica::cacp {
 inline constexpr const char* kPresenceStatsProfile = "presence_stats_v1";
 inline constexpr std::size_t kPresenceStatsMinGroups = 4;
 inline constexpr double kPresenceStatsMinNeff = 4.0;
+inline constexpr double kPresenceStatsZ = 1.959963984540054;   // Wilson 95 %
+inline constexpr double kPresenceStatsRhoAssumed = 1.0;        // within a group
 
 struct PresenceObservation {
     std::string group{};
@@ -58,6 +60,9 @@ struct PresenceStats {
     double youdenLow{std::numeric_limits<double>::quiet_NaN()};   // J_L, both classes MEASURED only
     double balancedAccuracy{std::numeric_limits<double>::quiet_NaN()};
     std::optional<bool> aboveTrivialBaseline{};                   // nullopt unless both classes MEASURED
+    // Secondary count (dossier R5 §6.1): windows of the sample whose claims are all correct
+    std::size_t windowsInSample{0};
+    std::size_t windowsAllCorrect{0};
 };
 
 // Kish effective sample size of a cluster partition: (sum m)^2 / sum m^2; 0 for no observation

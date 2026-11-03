@@ -657,6 +657,11 @@ Fissano ciò che D-M2-15 e D-M2-16 rimandano a 5e e stabiliscono il perimetro de
   Il tasso descrittivo resta sempre riportato, mentre intervalli, `J_L` e baseline compaiono solo con `MEASURED`. Le astensioni si contano a parte, con i tassi nel caso peggiore.
 - **Compatibilità:** `evaluation_pack_v1` resta identico al byte. È verificato sul pacchetto reale con il seed 2718281828: `SHA256SUMS` identici per la parte pubblica blind, la diagnostic e la sigillata, prima e dopo 5e.2. Il checker legge le verità v1 e v2.
 - **OSS-5d-R3-01:** nel pacchetto `diagnostic`, `role_planned` da `code` richiede `truth.json` fra gli input dichiarati; altrimenti è `not_attributable`.
+- **Review di 5e.2 (`631258b`, DIF-5e.2-01..03, OSS-5e.2-01):**
+  - **Directory per versione:** si sostituisce solo una directory integra della *stessa* versione del pacchetto, letta dal `pack.json` o dall'`evaluation_truth.json` da scrivere; una directory v1 non è mai sostituita da v2, né il contrario. Lo scenario controlla tutte e tre le directory prima di scriverne qualunque, così un rifiuto non lascia mai parte pubblica e verità sigillata di esecuzioni diverse.
+  - **M3:** usa l'intersezione di multinsiemi (note simultanee alla stessa altezza contate con la loro molteplicità), sempre in [0, 1].
+  - **Fingerprint non calcolabile:** con il piano disponibile la costruzione di v2 si interrompe con un errore (fail-closed); mai un gruppo a sé che conterebbe come indipendente. Il fallback `source_phrase_only` resta solo per le sorgenti senza piano (compatibilità con v1).
+  - **Parametri statistici nel report:** z, ρ ipotizzato dentro il gruppo, soglie minime di gruppi e `n_eff`, regola dell'intervallo, finestre del campione e finestre con tutte le affermazioni corrette.
 - **Diversità** (5e-04): sui seed 1..64 esiste un solo contenuto (`NULL_DIVERSITY`), e la generalizzazione della calibrazione è `INCONCLUSIVE`. M2–M4 si calcolano solo sulle coppie con contenuto diverso; le coppie identiche sono zero per identità. La misura è `MEASURED` e non rende rosso alcuno scenario.
 
 **Sottofasi**, ognuna con build Release, Debug e Headless (0 warning, 100 % dei test), scenari interessati e stop per la review:

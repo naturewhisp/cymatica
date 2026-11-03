@@ -80,7 +80,8 @@ std::vector<std::string> phraseGroupIds(const FixturePlan& plan, std::uint32_t s
     std::vector<std::string> ids;
     for (std::size_t i = 0; i < plan.phrases.size() && i < plan.intentsPerPhrase.size(); ++i) {
         const auto fp = phraseContentFingerprint(plan.intentsPerPhrase[i], plan.noteOffs, plan.phrases[i].startFrame, sampleRate);
-        ids.push_back(fp ? "g" + hex16(*fp) : "invalid_p" + std::to_string(i));
+        if (!fp) return {}; // fail-closed (DIF-5e.2-03)
+        ids.push_back("g" + hex16(*fp));
     }
     return ids;
 }
@@ -154,14 +155,18 @@ double m3CardinalityDistance(const std::vector<NoteToken>& a, const std::vector<
     for (const auto& t : b) if (t.role == role) r.emplace_back(t.onset, t.midi);
     if (q.empty() && r.empty()) return 0.0;
     if (q.empty() || r.empty()) return 1.0;
-    std::unordered_map<std::uint64_t, std::size_t> count;
+    // Multiset intersection (DIF-5e.2-02): for a translation t, |Q ∩ (R + t)| = sum over distinct points p of Q of
+    // min(count_Q(p), count_R(p - t)). Each distinct q pairs with exactly one distinct r for a given t, so the sum
+    // accumulates min(a, b) over the pairs of distinct points; the result stays in [0, 1].
+    std::map<std::pair<std::int64_t, int>, std::size_t> cq, cr;
+    for (const auto& x : q) ++cq[x];
+    for (const auto& y : r) ++cr[y];
+    std::map<std::pair<std::int64_t, int>, std::size_t> score;
     std::size_t best = 0;
-    for (const auto& x : q) {
-        for (const auto& y : r) {
-            const auto dt = static_cast<std::uint64_t>(x.first - y.first);
-            const auto dp = static_cast<std::uint64_t>(static_cast<std::int64_t>(x.second - y.second));
-            const std::uint64_t key = (dt << 20) ^ (dp & 0xFFFFFULL);
-            best = (std::max)(best, ++count[key]);
+    for (const auto& [x, aCount] : cq) {
+        for (const auto& [y, bCount] : cr) {
+            const std::pair<std::int64_t, int> t{x.first - y.first, x.second - y.second};
+            best = (std::max)(best, score[t] += (std::min)(aCount, bCount));
         }
     }
     return 1.0 - static_cast<double>(best) / static_cast<double>((std::max)(q.size(), r.size()));

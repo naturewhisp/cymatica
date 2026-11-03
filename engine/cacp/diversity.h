@@ -42,7 +42,8 @@ struct FixturePlan {
                                                                     std::optional<audio::MusicRole> role = std::nullopt);
 
 // Musical group of every phrase (DIF-5e.0-02): phrases with the same per-phrase fingerprint share the group
-// "g<16 hex>"; an invalid fingerprint gives a group of its own ("invalid_p<index>"), never merged.
+// "g<16 hex>". A fingerprint that cannot be computed gives an empty result (fail-closed, DIF-5e.2-03): an
+// unverifiable phrase is never counted as an independent group.
 [[nodiscard]] std::vector<std::string> phraseGroupIds(const FixturePlan& plan, std::uint32_t sampleRate = 48000);
 
 // Token of a note for M2-M4, on a grid of sixteenths of the phrase's bar
@@ -57,7 +58,8 @@ struct NoteToken {
 // M2 feature vector of one plan: pitch-class histogram (12, normalised), IOI histogram (0..16 sixteenths and
 // overflow, normalised), note count / 1000, pitch range / 88, pitch-class entropy / log2(12)
 [[nodiscard]] std::vector<double> m2Features(const std::vector<NoteToken>& tokens);
-// M3 per role: 1 - max over translations of |Q ∩ (R + t)| / max(|Q|, |R|) on points (onset, midi)
+// M3 per role: 1 - max over translations of |Q ∩ (R + t)| / max(|Q|, |R|) on points (onset, midi), multiset
+// intersection (simultaneous notes at the same pitch counted with their multiplicity, DIF-5e.2-02); in [0, 1]
 [[nodiscard]] double m3CardinalityDistance(const std::vector<NoteToken>& a, const std::vector<NoteToken>& b, std::size_t role);
 // M4 per role: Levenshtein distance (unit costs) on tokens (Δonset, interval, duration class) / max length
 [[nodiscard]] double m4EditDistance(const std::vector<NoteToken>& a, const std::vector<NoteToken>& b, std::size_t role);

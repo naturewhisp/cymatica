@@ -3,6 +3,8 @@
 #include "diversity.h"
 #include "plan_content_fingerprint.h"
 
+#include <cmath>
+#include <limits>
 #include <set>
 #include <string>
 #include <vector>
@@ -100,4 +102,28 @@ TEST_CASE("Seed diversity of the fixture is measured over the declared scan (5e-
     // Planning is deterministic: same seed, same plan
     const auto p1 = planFixtureM24V1(7), p2 = planFixtureM24V1(7);
     CHECK(phraseGroupIds(p1) == phraseGroupIds(p2));
+}
+
+TEST_CASE("M3 counts simultaneous notes at the same pitch with their multiplicity (DIF-5e.2-02)", "[diversity][metrics]") {
+    // Reviewer counterexample: A = {(0,60),(0,60)}, B = {(0,60),(0,60),(4,62)}: two common notes, not four
+    const std::vector<NoteToken> a{{1, 0, 60, 4}, {1, 0, 60, 4}};
+    const std::vector<NoteToken> b{{1, 0, 60, 4}, {1, 0, 60, 4}, {1, 4, 62, 4}};
+    const double d = m3CardinalityDistance(a, b, 1);
+    CHECK(std::abs(d - 1.0 / 3.0) < 1e-12);
+    CHECK(d >= 0.0);
+    CHECK(d <= 1.0);
+    CHECK(m3CardinalityDistance(a, a, 1) == 0.0);
+    CHECK(m3CardinalityDistance(b, b, 1) == 0.0);
+    // Unequal multiplicities: three copies against one: one common note out of three
+    const std::vector<NoteToken> three{{1, 0, 60, 4}, {1, 0, 60, 4}, {1, 0, 60, 4}};
+    const std::vector<NoteToken> one{{1, 8, 65, 4}};
+    CHECK(std::abs(m3CardinalityDistance(three, one, 1) - 2.0 / 3.0) < 1e-12);
+    // A plan whose per-phrase fingerprint cannot be computed gives no groups (DIF-5e.2-03)
+    FixturePlan p;
+    p.ok = true;
+    p.phrases = {{0, 0, 0, 1, 0, 48000}};
+    p.intentsPerPhrase = {{MusicIntentEvent{.eventId = 1, .sampleFrame = 0, .tick = 0, .transportEpoch = 1, .role = MusicRole::Corpo,
+                                            .pitchHz = std::numeric_limits<float>::quiet_NaN(), .velocity = 0.8f,
+                                            .durationFrames = 100, .timbreParam = 0.5f}}};
+    CHECK(phraseGroupIds(p).empty());
 }

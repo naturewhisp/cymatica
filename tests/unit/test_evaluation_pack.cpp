@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <fstream>
 #include <functional>
+#include <limits>
 #include <iterator>
 #include <memory>
 #include <regex>
@@ -928,4 +929,96 @@ TEST_CASE("The checker keeps reading evaluation_pack_v1 truths (5e-11 compatibil
     CHECK(rep.resultAdmissible);
     CHECK(rep.groupingRule.find("source_phrase_only") != std::string::npos);
     CHECK(rep.presence.positives.claims + rep.presence.negatives.claims >= 1);
+}
+
+TEST_CASE("v2 pack directories are regenerable in place; versions never replace each other (DIF-5e.2-01)", "[evaluation_pack][v2][dirs]") {
+    namespace fs = std::filesystem;
+    auto ps = plannerSource();
+    const PackBuild v1 = buildEvaluationPack(ps->src, 5), v2 = buildEvaluationPackV2(ps->src, 5);
+    REQUIRE(v1.ok);
+    REQUIRE(v2.ok);
+    const fs::path base = fs::temp_directory_path() / "cymatica_pack_v2_dirs";
+    fs::remove_all(base);
+    auto snapshot = [](const fs::path& d) {
+        std::map<std::string, std::string> m;
+        for (const auto& e : fs::directory_iterator(d)) {
+            std::ifstream in(e.path(), std::ios::binary);
+            m[e.path().filename().string()] = std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        }
+        return m;
+    };
+    // Two consecutive v2 writes on the same directories: both succeed, identical content
+    for (const auto& [name, files] : {std::pair{"blind", &v2.publicBlind}, std::pair{"diag", &v2.publicDiagnostic},
+                                      std::pair{"sealed", &v2.sealed}}) {
+        const fs::path d = base / "v2" / name;
+        INFO(name);
+        CHECK(writePackDirectory(d.string(), *files).empty());
+        const auto first = snapshot(d);
+        CHECK(writePackDirectory(d.string(), *files).empty());
+        CHECK(snapshot(d) == first);
+    }
+    // A v1 directory is never replaced by v2, nor the opposite: refused and untouched
+    const fs::path d1 = base / "v1_blind";
+    REQUIRE(writePackDirectory(d1.string(), v1.publicBlind).empty());
+    const auto v1Before = snapshot(d1);
+    CHECK_FALSE(writePackDirectory(d1.string(), v2.publicBlind).empty());
+    CHECK(snapshot(d1) == v1Before);
+    const fs::path d2 = base / "v2" / "blind";
+    const auto v2Before = snapshot(d2);
+    CHECK_FALSE(writePackDirectory(d2.string(), v1.publicBlind).empty());
+    CHECK(snapshot(d2) == v2Before);
+    // An altered v2 directory is refused without deletions
+    std::ofstream(d2 / "pack.json", std::ios::app) << " ";
+    const auto altered = snapshot(d2);
+    CHECK_FALSE(writePackDirectory(d2.string(), v2.publicBlind).empty());
+    CHECK(snapshot(d2) == altered);
+    // A foreign directory is refused without deletions
+    const fs::path foreign = base / "foreign";
+    fs::create_directories(foreign);
+    std::ofstream(foreign / "keep.txt") << "user data";
+    CHECK_FALSE(writePackDirectory(foreign.string(), v2.publicBlind).empty());
+    CHECK(fs::exists(foreign / "keep.txt"));
+    // Files without a known pack version are never written
+    CHECK_FALSE(writePackDirectory((base / "noversion").string(), {{"a.bin", {1}}}).empty());
+    CHECK_FALSE(fs::exists(base / "noversion"));
+    fs::remove_all(base);
+}
+
+TEST_CASE("A plan whose fingerprint cannot be computed stops v2; v1 compatibility unaffected (DIF-5e.2-03)", "[evaluation_pack][v2]") {
+    auto ps = plannerSource();
+    PackSource bad = ps->src;
+    REQUIRE_FALSE(bad.intents.empty());
+    bad.intents.front().pitchHz = std::numeric_limits<float>::quiet_NaN();
+    std::string rule, error;
+    CHECK(sourcePhraseGroups(bad, &rule, &error).empty());
+    CHECK(error.find("fingerprint") != std::string::npos);
+    const PackBuild v2 = buildEvaluationPackV2(bad, 5);
+    CHECK_FALSE(v2.ok);
+    REQUIRE_FALSE(v2.errors.empty());
+    CHECK(v2.errors.front().find("musical grouping failed") != std::string::npos);
+    CHECK(v2.publicBlind.empty());
+    // Without a plan the fallback stays source_phrase_only (v1 compatibility), never an error
+    PackSource noPlan = ps->src;
+    noPlan.intents.clear();
+    rule.clear();
+    error.clear();
+    CHECK(sourcePhraseGroups(noPlan, &rule, &error).size() == noPlan.phrases.size());
+    CHECK(rule == "source_phrase_only");
+    CHECK(error.empty());
+    CHECK(buildEvaluationPack(bad, 5).ok); // v1 never uses the plan
+}
+
+TEST_CASE("The presence report declares its statistical parameters (OSS-5e.2-01)", "[evaluation_pack][v2]") {
+    const TruthBundle t = prefabTruth();
+    json r = resultBase(t);
+    r["claims"].push_back(claim("w0000000a", "listening", "role_signal_present", role("trama"), true));
+    r["claims"].push_back(claim("w0000000a", "listening", "role_signal_present", role("pulso"), true)); // wrong
+    const json report = json::parse(checkEvaluation(t, r.dump(), kSealedHashes).toJson());
+    const json& sc = report.at("role_signal_present_scoring");
+    CHECK(sc.at("parameters").at("z").get<double>() > 1.959);
+    CHECK(sc.at("parameters").at("rho_assumed_within_group") == 1.0);
+    CHECK(sc.at("parameters").at("min_groups_per_class") == 4);
+    CHECK(sc.at("parameters").at("min_n_eff_per_class") == 4.0);
+    CHECK(sc.at("windows_in_sample") == 1);
+    CHECK(sc.at("windows_all_claims_correct") == 0);
 }

@@ -200,8 +200,11 @@ struct PackBuild {
 [[nodiscard]] PackBuild buildEvaluationPackV2(const PackSource& src, std::uint64_t packSeed, const PackConfig& cfg = {},
                                               const PresenceProfile& profile = presenceProfileV1());
 // Musical group of every phrase of a source: per-phrase content fingerprint of its plan, or "p<index>" when the
-// source carries no plan (rule source_phrase_only)
-[[nodiscard]] std::vector<std::string> sourcePhraseGroups(const PackSource& src, std::string* rule = nullptr);
+// source carries no plan (rule source_phrase_only, the v1 compatibility case). With a plan, a fingerprint that
+// cannot be computed is an error (DIF-5e.2-03): an empty vector and the reason, never a group of its own that
+// would count as independent.
+[[nodiscard]] std::vector<std::string> sourcePhraseGroups(const PackSource& src, std::string* rule = nullptr,
+                                                          std::string* error = nullptr);
 
 // 16-bit PCM stereo WAV with only the RIFF, fmt and data chunks (same quantization as writeWavStereo16)
 [[nodiscard]] std::vector<std::uint8_t> encodeWavStereo16(std::span<const float> interleaved, std::uint32_t sampleRate);
@@ -296,8 +299,9 @@ struct EvaluationPackRun {
 [[nodiscard]] std::string validatePackDirectories(const std::string& publicBlind, const std::string& publicDiagnostic,
                                                   const std::string& sealed, const std::string& publicRoot);
 // Writes one pack directory: refuses a symbolic link, a non-directory, or an existing non-empty directory that
-// this generator did not write (an entry not listed in its SHA256SUMS); replaces only the files it listed; then
-// verifies that the directory holds exactly the built files with their hashes. Empty on success.
+// is not an intact directory of the same pack version written by this generator (DIF-5d-R2-01, DIF-5e.2-01: the
+// version is read from the pack.json or evaluation_truth.json being written); replaces only the files it listed;
+// then verifies that the directory holds exactly the built files with their hashes. Empty on success.
 [[nodiscard]] std::string writePackDirectory(const std::string& dir, const std::map<std::string, std::vector<std::uint8_t>>& files);
 
 // Renders fixture_probe_v1 (seed 1337) with stems, builds the pack, writes public_blind/ and
