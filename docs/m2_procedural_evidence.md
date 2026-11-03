@@ -90,6 +90,8 @@ Riduzione del limiter 0 dB; prova −23 ± 2 LU: −21,25 − (−23) = **+1,75 
 
 ## 4. Handoff M2.5
 
+Calendario proposto per tutte le voci di questo paragrafo: [ADR-0007](adr/0007-m2-5-entry-decisions.md) §5 e §8.
+
 ### 4.1 Decisioni da prendere al gate
 
 | ID | Decisione | Fonte |

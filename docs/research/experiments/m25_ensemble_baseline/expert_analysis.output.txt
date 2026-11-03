@@ -1,0 +1,100 @@
+== package integrity
+brano sha dcb667ea0f493d2c procedural_v1 sha dcb667ea0f493d2c identical True
+clips 10 sha mismatches 0
+== null tests
+frase_A presented order (ms): [2, 30, 50, 15, 80]
+  clip_1  2 ms: rms -23.85 dBFS peak -10.46 dBFS, diff from 2 ms vs mix nan dB
+  clip_2 30 ms: rms -23.81 dBFS peak -10.04 dBFS, diff from 2 ms vs mix -19.90 dB
+  clip_3 50 ms: rms -23.78 dBFS peak -9.86 dBFS, diff from 2 ms vs mix -17.42 dB
+  clip_4 15 ms: rms -23.84 dBFS peak -10.40 dBFS, diff from 2 ms vs mix -23.56 dB
+  clip_5 80 ms: rms -23.74 dBFS peak -9.77 dBFS, diff from 2 ms vs mix -15.23 dB
+  adjacent 2->30 ms: diff vs mix -19.90 dB
+  adjacent 30->50 ms: diff vs mix -24.77 dB
+  adjacent 50->15 ms: diff vs mix -20.05 dB
+  adjacent 15->80 ms: diff vs mix -16.72 dB
+frase_B presented order (ms): [30, 80, 2, 15, 50]
+  clip_1 30 ms: rms -23.72 dBFS peak -11.55 dBFS, diff from 2 ms vs mix -18.65 dB
+  clip_2 80 ms: rms -23.65 dBFS peak -10.44 dBFS, diff from 2 ms vs mix -13.99 dB
+  clip_3  2 ms: rms -23.74 dBFS peak -11.95 dBFS, diff from 2 ms vs mix nan dB
+  clip_4 15 ms: rms -23.74 dBFS peak -11.95 dBFS, diff from 2 ms vs mix -22.28 dB
+  clip_5 50 ms: rms -23.69 dBFS peak -10.79 dBFS, diff from 2 ms vs mix -16.17 dB
+  adjacent 30->80 ms: diff vs mix -17.70 dB
+  adjacent 80->2 ms: diff vs mix -14.09 dB
+  adjacent 2->15 ms: diff vs mix -22.28 dB
+  adjacent 15->50 ms: diff vs mix -18.71 dB
+== plan at the section boundaries
+A last
+  Pulso: events 16, steps [0, 4, 8, 12], vel [0.75, 0.95], pitches [73.42]
+  Corpo: events 8, steps [0], vel [0.75, 0.85], pitches [146.83, 196.0, 220.0, 440.0, 493.88, 523.25]
+  Trama: events 20, steps [2, 5, 7, 9, 14], vel [0.7], pitches [587.33, 659.26, 698.46, 880.0, 987.77, 1046.5]
+  Vettore: events 16, steps [0, 4, 8, 12], vel [0.7, 0.75, 0.8, 0.85], pitches [293.66, 349.23, 392.0, 440.0]
+B first
+  Pulso: events 16, steps [2, 6, 10, 14], vel [0.75], pitches [49.0]
+  Corpo: events 8, steps [0, 4], vel [0.75, 0.85], pitches [98.0, 155.56, 174.61, 233.08, 261.63, 293.66]
+  Trama: events 20, steps [0, 3, 5, 7, 12], vel [0.7], pitches [392.0, 440.0, 466.16, 523.25, 587.33]
+  Vettore: events 16, steps [0, 4, 8, 12], vel [0.7, 0.75, 0.8, 0.85], pitches [261.63, 293.66, 392.0]
+B last
+  Pulso: events 16, steps [2, 6, 10, 14], vel [0.75], pitches [49.0]
+  Corpo: events 8, steps [0], vel [0.75, 0.85], pitches [98.0, 155.56, 174.61, 233.08, 261.63, 293.66]
+  Trama: events 20, steps [0, 3, 5, 7, 12], vel [0.7], pitches [392.0, 440.0, 466.16, 523.25, 587.33]
+  Vettore: events 16, steps [0, 4, 8, 12], vel [0.7, 0.75, 0.8, 0.85], pitches [261.63, 293.66, 392.0]
+A' first
+  Pulso: events 16, steps [2, 6, 10, 14], vel [0.75], pitches [73.42]
+  Corpo: events 8, steps [0, 4], vel [0.75, 0.85], pitches [146.83, 196.0, 220.0, 440.0, 493.88, 523.25]
+  Trama: events 20, steps [0, 3, 5, 7, 12], vel [0.7], pitches [587.33, 659.26, 698.46, 880.0, 987.77, 1046.5]
+  Vettore: events 16, steps [0, 4, 8, 12], vel [0.7, 0.75, 0.8, 0.85], pitches [146.83, 174.61, 196.0, 220.0]
+== presence per phrase
+<class 'dict'> ['phrases', 'profile', 'status', 'validated']
+{
+"phrases": [
+{
+"phrase": 0,
+"roles": {
+"corpo": {
+"planned": true,
+"rms_dbfs": -27.50593938606758,
+"signal": "PRESENT",
+"stem_to_mix_db": -3.8600995084645158
+},
+"pulso": {
+"planned": true,
+"rms_dbfs": -34.505375482152715,
+"signal": "PRESENT",
+"stem_to_mix_db": -10.85953560454965
+},
+"trama": {
+"planned": false,
+"rms_dbfs": null,
+"signal": "EXACT_SILENCE",
+"stem_to_mix_db": null
+},
+"vettore": {
+"planned": true,
+"rms_dbfs": -26.83513632674401,
+"signal": "PRESENT",
+"stem_to_mix_db": -3.1892964491409446
+}
+},
+"section": 0,
+"start_bar": 0
+},
+{
+"phrase": 1,
+"roles": {
+"corpo": {
+"planned": true,
+"rms_dbfs": -27.521153021753953,
+"signal": "PRESENT",
+"stem_to_mix_db": -3.575577477500436
+},
+"pulso": {
+"planned": true,
+"rms_dbfs": -34.50795927656492,
+"signal": "PRESENT",
+"stem_to_mix_db": -10.562383732311396
+},
+"trama": {
+"planned": false,
+"rms_dbfs": null,
+"signal": "EXACT_SILENCE",
+"stem_to_mix_

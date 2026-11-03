@@ -1,0 +1,5 @@
+build_id fa8ac3c pcm 15126969907236845529 status {'status': 'MEASURED'} validated False
+A1 (0-3) | pulso -10.9..-10.6 dB (rms -34.5) | corpo -3.9..-3.6 dB (rms -27.5) | trama silence | vettore -3.2..-2.9 dB (rms -26.8)
+A2 (4-7) | pulso -12.2..-12.2 dB (rms -36.0) | corpo -3.5..-3.5 dB (rms -27.4) | trama -15.6..-15.5 dB (rms -39.4) | vettore -3.0..-3.0 dB (rms -26.8)
+B (8-15) | pulso -11.9..-11.9 dB (rms -35.7) | corpo -3.6..-3.5 dB (rms -27.3) | trama -15.9..-15.9 dB (rms -39.6) | vettore -3.1..-3.1 dB (rms -26.8)
+A' (16-23) | pulso -12.4..-12.4 dB (rms -36.3) | corpo -3.5..-3.4 dB (rms -27.3) | trama -15.5..-15.5 dB (rms -39.4) | vettore -3.0..-2.9 dB (rms -26.8)

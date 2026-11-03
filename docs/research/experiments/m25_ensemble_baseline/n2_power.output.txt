@@ -1,0 +1,48 @@
+2AFC/ABX one-tailed exact binomial, alpha=.05: min correct, exact alpha, power at true Pc
+n  kmin  alpha    P(.70)  P(.75)  P(.80)  P(.90)
+6  6    0.0156  0.118   0.178   0.262   0.531
+8  7    0.0352  0.255   0.367   0.503   0.813
+10 9    0.0107  0.149   0.244   0.376   0.736
+12 10   0.0193  0.253   0.391   0.558   0.889
+14 11   0.0287  0.355   0.521   0.698   0.956
+16 12   0.0384  0.450   0.630   0.798   0.983
+20 15   0.0207  0.416   0.617   0.804   0.989
+24 17   0.0320  0.565   0.766   0.911   0.998
+30 20   0.0494  0.730   0.894   0.974   1.000
+40 26   0.0403  0.807   0.946   0.992   1.000
+
+Trials needed for 80% power, alpha .05 one-tailed
+Pc=0.65: n=76, kmin=46
+Pc=0.7: n=42, kmin=27
+Pc=0.75: n=28, kmin=19
+Pc=0.8: n=18, kmin=13
+Pc=0.9: n=11, kmin=9
+
+Oddity (triangle) chance=1/3: min correct for alpha .05
+6 5 0.0178
+9 6 0.0424
+12 8 0.0188
+15 9 0.0308
+18 10 0.0433
+24 13 0.0284
+
+Min achievable two-tailed p of exact sign test with K pairs all same direction
+3 0.25
+4 0.125
+5 0.0625
+6 0.03125
+8 0.0078125
+10 0.001953125
+
+Beta(1,1) posterior for Pc after s/n: P(Pc>.5), 95% CrI by numeric
+9 12 [0.954, 0.462, 0.909]
+10 12 [0.989, 0.546, 0.95]
+12 16 [0.975, 0.501, 0.897]
+13 16 [0.994, 0.566, 0.932]
+15 20 [0.987, 0.528, 0.887]
+
+Chance that two independent listeners agree on same pick in K binary choices all (p=.5):
+4 0.0625
+6 0.015625
+8 0.00390625
+10 0.0009765625

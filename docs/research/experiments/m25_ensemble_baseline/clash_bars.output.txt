@@ -1,0 +1,15 @@
+section 0 phrase 1
+  bar 0: Corpo ['D', 'A']  Vettore ['A', 'F', 'D', 'E']
+  bar 1: Corpo ['G', 'B']  Vettore ['A', 'F', 'D', 'E']
+  bar 2: Corpo ['A', 'C']  Vettore ['A', 'F', 'D', 'E']
+  bar 3: Corpo ['D', 'A']  Vettore ['A', 'F', 'D', 'E']
+section 1 phrase 1
+  bar 0: Corpo ['G', 'D']  Vettore ['G', 'D', 'C', 'D']
+  bar 1: Corpo ['Eb', 'Bb']  Vettore ['G', 'D', 'C', 'D']
+  bar 2: Corpo ['F', 'C']  Vettore ['G', 'D', 'C', 'D']
+  bar 3: Corpo ['G', 'D']  Vettore ['G', 'D', 'C', 'D']
+section 2 phrase 1
+  bar 0: Corpo ['D', 'A']  Vettore ['D', 'F', 'A', 'G']
+  bar 1: Corpo ['G', 'B']  Vettore ['D', 'F', 'A', 'G']
+  bar 2: Corpo ['A', 'C']  Vettore ['D', 'F', 'A', 'G']
+  bar 3: Corpo ['D', 'A']  Vettore ['D', 'F', 'A', 'G']

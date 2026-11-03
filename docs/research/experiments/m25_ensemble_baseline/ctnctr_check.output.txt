@@ -1,0 +1,9 @@
+sec 0 all {'n': 128, 'ct_rate': 0.562, 'ctnctr': 0.633, 'pcs': 1.062}
+   beats1,3 {'n': 64, 'ct_rate': 0.75, 'ctnctr': 0.875, 'pcs': 1.5}
+   beats2,4 {'n': 64, 'ct_rate': 0.375, 'ctnctr': 0.391, 'pcs': 0.625}
+sec 1 all {'n': 128, 'ct_rate': 0.5, 'ctnctr': 0.812, 'pcs': 1.188}
+   beats1,3 {'n': 64, 'ct_rate': 0.5, 'ctnctr': 0.875, 'pcs': 0.625}
+   beats2,4 {'n': 64, 'ct_rate': 0.5, 'ctnctr': 0.75, 'pcs': 1.75}
+sec 2 all {'n': 128, 'ct_rate': 0.562, 'ctnctr': 0.625, 'pcs': 1.0}
+   beats1,3 {'n': 64, 'ct_rate': 0.75, 'ctnctr': 0.875, 'pcs': 1.5}
+   beats2,4 {'n': 64, 'ct_rate': 0.375, 'ctnctr': 0.375, 'pcs': 0.5}

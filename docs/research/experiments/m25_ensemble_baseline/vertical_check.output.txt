@@ -1,0 +1,30 @@
+rows 1392 roles [0, 1, 2, 3] secs [0, 1, 2]
+(0, 'all') 72 128 0.562
+(0, 'even') 24 64 0.375
+(0, 'odd') 48 64 0.75
+(1, 'all') 64 128 0.5
+(1, 'even') 32 64 0.5
+(1, 'odd') 32 64 0.5
+(2, 'all') 72 128 0.562
+(2, 'even') 24 64 0.375
+(2, 'odd') 48 64 0.75
+--- beat 1 by chord (chord tone / total)
+(0, 'Am') 4 8 0.5
+(0, 'Dm') 16 16 1.0
+(0, 'G') 4 8 0.5
+(1, 'Eb') 8 8 1.0
+(1, 'F') 0 8 0.0
+(1, 'Gm') 16 16 1.0
+(2, 'Am') 0 8 0.0
+(2, 'Dm') 16 16 1.0
+(2, 'G') 8 8 1.0
+--- distinct per-bar ostinati
+0 [('A F D E', 16), ('D F A G', 16)]
+1 [('G D C D', 32)]
+2 [('D F A G', 32)]
+--- role-wise: which Vettore pattern per bar, per chord, with chord-tone flags (sec 1)
+('Eb', 'G D C D') 8
+('F', 'G D C D') 8
+('Gm', 'G D C D') 16
+--- strong-beat rule (tempo 1) on chord-change bars: bars where chord differs from previous bar
+chord-change downbeats total {0: 25, 1: 25, 2: 25} Vettore non-chord tone {0: 8, 1: 8, 2: 8}

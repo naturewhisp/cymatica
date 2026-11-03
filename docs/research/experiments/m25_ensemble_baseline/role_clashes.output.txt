@@ -1,0 +1,21 @@
+note-ons 1392 duration 0: 4
+share of overlap time per interval class (ic1 = semitone/maj7, ic6 = tritone)
+  Corpo-Trama   sec0: ic0=30.0% ic1= 0.0% ic2= 0.0% ic3=22.5% ic4=22.5% ic5=25.0% ic6= 0.0%
+  Corpo-Trama   sec1: ic0=30.0% ic1= 0.3% ic2= 0.0% ic3=19.7% ic4=20.0% ic5=30.0% ic6= 0.0%
+  Corpo-Trama   sec2: ic0=29.7% ic1= 0.0% ic2= 0.6% ic3=22.5% ic4=22.2% ic5=25.0% ic6= 0.0%
+  Corpo-Vettore sec0: ic0=17.2% ic1= 0.0% ic2=20.3% ic3=14.1% ic4=12.5% ic5=32.8% ic6= 3.1%
+  Corpo-Vettore sec1: ic0=21.5% ic1= 6.2% ic2=19.1% ic3=12.5% ic4= 9.4% ic5=31.2% ic6= 0.0%
+  Corpo-Vettore sec2: ic0=18.8% ic1= 0.0% ic2=21.9% ic3=12.5% ic4=12.5% ic5=31.2% ic6= 3.1%
+  Trama-Vettore sec0: ic0=15.0% ic1= 0.0% ic2=20.0% ic3=20.0% ic4=20.0% ic5=15.0% ic6=10.0%
+  Trama-Vettore sec1: ic0=25.0% ic1= 0.0% ic2=15.0% ic3=15.0% ic4=20.0% ic5=25.0% ic6= 0.0%
+  Trama-Vettore sec2: ic0= 5.0% ic1= 0.0% ic2=20.0% ic3=20.0% ic4=20.0% ic5=25.0% ic6=10.0%
+largest ic1/ic6 pairs (seconds)
+  Corpo-Vettore ic6 B/F: 8.0 s
+  Corpo-Vettore ic1 Eb/D: 6.9 s
+  Trama-Vettore ic6 F/B: 3.0 s
+  Corpo-Trama ic1 A/Bb: 0.1 s
+register by role and section (midi min..max)
+0 {'Pulso': (38, 38), 'Corpo': (50, 72), 'Trama': (74, 84), 'Vettore': (62, 69)}
+1 {'Pulso': (31, 31), 'Corpo': (43, 62), 'Trama': (67, 74), 'Vettore': (60, 67)}
+2 {'Pulso': (38, 38), 'Corpo': (50, 72), 'Trama': (74, 84), 'Vettore': (50, 57)}
+Vettore onsets sharing a pitch class with Corpo: {0: '44/128', 1: '55/128', 2: '48/128'}

@@ -226,6 +226,8 @@ Da fissare nella review di 5d. Le misure di [ADR-0006](../adr/0006-m2-4-inc5-ent
 
 ## 5. Q4 — Stato dell'arte nei giochi con musica procedurale o adattiva
 
+> **Erratum (2026-11-04).** G19, G21 e G22 erano qui al livello AM. Una lettura più ampia ne precisa e ridimensiona le conclusioni: vedi il [dossier R-M25-7](M2_5_F5_Music_Director_Research.md), paragrafo «Correzioni». In particolare, i confronti di immersione di G19 fra gruppi non sono significativi a 0,05.
+
 Integra lo stato dell'arte già raccolto (§0: Just Shapes & Beats, Audiosurf, Fournel GDC 2010, Talakat). I livelli **FT\*** indicano un testo completo letto tramite un estrattore automatico. Le citazioni sono quelle restituite dall'estrattore.
 
 ### 5.1 Fonti

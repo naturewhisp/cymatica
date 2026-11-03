@@ -4,6 +4,7 @@
 - **Origine:** considerazioni consegnate dal titolare il 2026-11-03, di provenienza esterna, scritte sul repository a `b8b811f`. Il testo originale è nell'[appendice A](#appendice-a--testo-originale), con il testo invariato.
 - **Verifica:** ogni citazione è stata confrontata con la specifica, l'addendum di roadmap musicale e i documenti di M2.4. Le correzioni sono nel §6.
 - **Status:** **proposed**, non normativo. Non modifica decisioni, contratti, criteri di accettazione né golden. Le decisioni dei §7–§8 si prendono all'ingresso di M2.5 (AGENTS §1.1), dopo la chiusura di M2.4; fino ad allora nessuna si applica.
+- **Seguito:** [ADR-0007](../adr/0007-m2-5-entry-decisions.md) (`accepted for implementation`) organizza M2.5 in sotto-fasi e assegna P-M25-01..08 ai checkpoint.
 - **Aggiornamento:** il §8 riesamina le priorità dopo l'[ascolto dell'esperto del 2026-11-03](../m2_4_human_listening_2026-11-03.md). I §1–§7 restano come scritti.
 
 ## 1. Sintesi
@@ -112,6 +113,23 @@ L'[ascolto dell'esperto](../m2_4_human_listening_2026-11-03.md) riguarda lo stes
 | Da rivalutare | F1 — Kick e metro (era Alta) | Risposta «Sì» a Q3. Il metro può reggersi su Vettore e Corpo | Valutare insieme a F4: alzando il kick il controtempo diventerà più evidente |
 | Bassa | F6 — Rilascio (era Media) | Nessuna differenza significativa fra 2 e 80 ms, nessun click | Decidere H-03 sulle misure |
 | Strategica | F5 — Sviluppo | Dopo il secondo loop serve una «decisa variazione melodica» o un nuovo suono | Definire in P-M25-05 e P-M25-06 cosa si può ottenere in M2.5 con l'arrangiamento e cosa resta a M6 |
+
+**Rettifica su F5 e P-M25-06.** Il §2 e P-M25-06 indicano di ampliare il CIE Director. È un'impostazione troppo forte: la specifica prevede già un posto diverso.
+
+- Il Pacing Director tiene distinti `musicalTension` e `gameplayPressure` (§9.4): legge la forma musicale, non la compone.
+- Il Form planner produce la curva di energia, tensione e densità e, in modalità infinita, usa «una grammatica con memoria per evitare cicli identici» (§16.3).
+- La probabilità di trasformazione del motivo dipende da novelty budget e pacing (§16.4).
+
+La lacuna è un'altra: M2 chiede solo lo scheletro di forma e frase, e nessuna milestone ha come deliverable il §16.3–§16.4 completo, mentre M7 chiede «sessione infinita di almeno 10 minuti» e «run diverse mostrano diversità misurabile». P-M25-06 va quindi letta così: **quale milestone attua il §16.3–§16.4**, con il direttore musicale come strato distinto e subordinato al Pacing Director, come già indicato per F5 in [progress.md](../progress.md).
+
+**Coerenza fra i ruoli (idea del titolare, 2026-11-03).** Il direttore dovrebbe garantire l'armonia fra i quattro ruoli, che oggi non si «sentono» fra loro. Riscontro sul codice e sul piano:
+
+- legami già presenti: scala condivisa da tutti, accordo condiviso solo da Corpo e Trama, la Trama evita i passi di Pulso, Pulso abbassa Corpo di 3 dB;
+- legame assente: nessun termine di punteggio né vincolo confronta i ruoli fra loro, e rotazioni e ricette dipendono dall'indice del candidato;
+- esempio: Vettore ripete le stesse quattro note in ogni battuta anche quando l'accordo cambia. In A suona Fa sopra il Si di Corpo, in B Re sopra il Mib;
+- `dominantRole` è dichiarato nel piano ma non guida la generazione, mentre DESIGN §8.5 chiede di distinguere canale dominante, supporto, atmosfera e opportunità.
+
+L'idea rientra nelle domande di R-M25-7, ora nel [dossier sul direttore musicale](M2_5_F5_Music_Director_Research.md). Sono da distinguere le scelte sopra la frase (chi guida, chi tiene il riferimento metrico) dal controllo del risultato dentro la frase, e la gestione della tensione dal divieto della dissonanza.
 
 **Decisione aggiuntiva proposta:**
 

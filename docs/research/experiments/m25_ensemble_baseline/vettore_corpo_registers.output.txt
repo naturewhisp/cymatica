@@ -1,0 +1,18 @@
+(0, 'beat13') CTnCTR 0.871 CTrate 0.742 PCS 1.47 {} meanDistUpper 0.0
+(0, 'beat24') CTnCTR 0.387 CTrate 0.371 PCS 0.63 {} meanDistUpper 0.0
+(1, 'beat13') CTnCTR 1.0 CTrate 1.0 PCS 2.0 {} meanDistUpper 0.0
+(1, 'beat24') CTnCTR 0.803 CTrate 0.484 PCS 1.16 {} meanDistUpper 0.0
+(2, 'beat13') CTnCTR 0.873 CTrate 0.746 PCS 1.49 {} meanDistUpper 0.0
+(2, 'beat24') CTnCTR 0.391 CTrate 0.375 PCS 0.5 {} meanDistUpper 0.0
+0 CTnCTR 0.629 CTrate 0.556 PCS 1.05 {'above_upper': 0, 'below_upper': 109, 'eq_upper': 15, 'eq_any': 15, 'le2st': 15, 'noCorpo': 4} meanDistUpper 4.9
+1 CTnCTR 0.805 CTrate 0.488 PCS 1.17 {'noCorpo': 5, 'above_upper': 70, 'below_upper': 15, 'eq_upper': 38, 'eq_any': 38, 'le2st': 39} meanDistUpper 2.8
+2 CTnCTR 0.63 CTrate 0.559 PCS 0.99 {'noCorpo': 1, 'above_upper': 0, 'below_upper': 127, 'eq_upper': 0, 'eq_any': 31, 'le2st': 24} meanDistUpper 16.5
+0 [(('A', 'F', 'D', 'E'), 16), (('D', 'F', 'A', 'G'), 15)]
+1 [(('G', 'D', 'C', 'D'), 10), (('D', 'C', 'D'), 8), (('G', 'D', 'C', 'D', 'G'), 7), (('D', 'C', 'D', 'G'), 6)]
+2 [(('D', 'F', 'A', 'G'), 31), (('F', 'A', 'G'), 1)]
+[((0, 0), ['A4', 'D3']), ((0, 1), ['B4', 'G3']), ((0, 2), ['A3', 'C5']), ((0, 3), ['A4', 'D3']), ((0, 4), ['A4', 'D3']), ((0, 5), ['B4', 'G3']), ((0, 6), ['A3', 'C5']), ((0, 7), ['A4', 'D3'])]
+[((1, 0), ['Bb3', 'D4', 'Eb3', 'G2']), ((1, 1), ['C4', 'F3']), ((1, 3), ['D4', 'D4', 'G2', 'G2']), ((1, 4), ['Bb3', 'Eb3']), ((1, 5), ['C4', 'F3']), ((1, 7), ['D4', 'D4', 'G2', 'G2']), ((1, 8), ['Bb3', 'Eb3']), ((1, 10), ['C4', 'D4', 'F3', 'G2'])]
+sec 0 P&V/P 0.4 V&P/V 0.5 T&P/T 0.0 T&V/T 0.0
+sec 1 P&V/P 0.0 V&P/V 0.0 T&P/T 0.0 T&V/T 0.4
+sec 2 P&V/P 0.0 V&P/V 0.0 T&P/T 0.0 T&V/T 0.4
+[((0, 3), 16), ((0, 4), 16), ((1, 3), 8), ((1, 4), 24), ((2, 4), 32)]
