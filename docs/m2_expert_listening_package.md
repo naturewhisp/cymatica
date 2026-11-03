@@ -4,6 +4,7 @@
 - **Fase:** M2.4 Inc-5, 5e.4b (ADR-0006 5e-10)
 - **Status:** materiale di lavoro per una revisione **qualitativa**. Non è un gate e non è una sessione alla cieca, rinviata a M2.5. L'esito si registra, anche se negativo o inconcludente, nel formato del §4, e alimenta le decisioni di M2.5 ([dossier delle evidenze](m2_procedural_evidence.md) §4).
 - **Ascolto precedente:** [2026-10-28](m2_4_human_listening_2026-10-28.md), da cui F1–F4.
+- **Esito:** ascolto eseguito il 2026-11-03, [registro](m2_4_human_listening_2026-11-03.md).
 
 ## 1. Materiali
 

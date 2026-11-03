@@ -3,7 +3,8 @@
 - **Data:** 2026-11-03
 - **Origine:** considerazioni consegnate dal titolare il 2026-11-03, di provenienza esterna, scritte sul repository a `b8b811f`. Il testo originale è nell'[appendice A](#appendice-a--testo-originale), con il testo invariato.
 - **Verifica:** ogni citazione è stata confrontata con la specifica, l'addendum di roadmap musicale e i documenti di M2.4. Le correzioni sono nel §6.
-- **Status:** **proposed**, non normativo. Non modifica decisioni, contratti, criteri di accettazione né golden. Le decisioni del §7 si prendono all'ingresso di M2.5 (AGENTS §1.1), dopo la chiusura di M2.4; fino ad allora nessuna si applica.
+- **Status:** **proposed**, non normativo. Non modifica decisioni, contratti, criteri di accettazione né golden. Le decisioni dei §7–§8 si prendono all'ingresso di M2.5 (AGENTS §1.1), dopo la chiusura di M2.4; fino ad allora nessuna si applica.
+- **Aggiornamento:** il §8 riesamina le priorità dopo l'[ascolto dell'esperto del 2026-11-03](../m2_4_human_listening_2026-11-03.md). I §1–§7 restano come scritti.
 
 ## 1. Sintesi
 
@@ -98,6 +99,29 @@ Numerazione e cause dal [dossier delle evidenze](../m2_procedural_evidence.md) �
 | P-M25-05 | Perimetro degli interventi F1–F4 e F6 | Modifiche piccole, misurabili e reversibili, ciascuna con A/B, evidenze e golden aggiornati con il motivo, in un ADR d'ingresso |
 | P-M25-06 | Collocazione di F5 e dell'ablazione (5e-07) | Spostarle esplicitamente a M6, ampliando il perimetro del CIE Director allo stato musicale sopra la frase, oppure fissare un'altra milestone. Vincolo: arrivare al gate di M7 «run diverse mostrano diversità misurabile» con diversità musicale autentica, non fittizia |
 | P-M25-07 | Declinazione del criterio artistico | M2.5: qualcosa da ricordare e una forma da riconoscere. M6: sviluppare il materiale e sorprendere intenzionalmente. M7: esperienza audiovisiva coinvolgente e giocabile. M8 e oltre: varietà e qualità ripetibili, non legate a un seed curato |
+
+## 8. Aggiornamento dopo l'ascolto del 2026-11-03
+
+L'[ascolto dell'esperto](../m2_4_human_listening_2026-11-03.md) riguarda lo stesso PCM del 2026-10-28: non valuta interventi, ma precisa dove intervenire. Le priorità del §4 diventano:
+
+| Priorità | Questione | Motivo | Prima prova proposta |
+|---|---|---|---|
+| Alta | F4 — Livello del kick | «TROOOPPO basso» con forte enfasi; misurato 7–9 dB sotto Corpo e Vettore, con circa 9 dB di margine al ceiling | Alzare Pulso e confrontare con il WAV di riferimento |
+| Alta | F2 — Trama lateralizzata | Seconda segnalazione: «ancora fastidiosa», con il ruolo già il più basso del mix | Correggere l'immagine stereo, non il livello |
+| Alta | F3 — Transizione A→B | «Molto brusca», mentre B→A′, dove i pattern proseguono, è «più fluida» | Non cambiare i pattern di Pulso e Trama sullo stesso confine del tempo, prima di valutare rampe di BPM |
+| Da rivalutare | F1 — Kick e metro (era Alta) | Risposta «Sì» a Q3. Il metro può reggersi su Vettore e Corpo | Valutare insieme a F4: alzando il kick il controtempo diventerà più evidente |
+| Bassa | F6 — Rilascio (era Media) | Nessuna differenza significativa fra 2 e 80 ms, nessun click | Decidere H-03 sulle misure |
+| Strategica | F5 — Sviluppo | Dopo il secondo loop serve una «decisa variazione melodica» o un nuovo suono | Definire in P-M25-05 e P-M25-06 cosa si può ottenere in M2.5 con l'arrangiamento e cosa resta a M6 |
+
+**Decisione aggiuntiva proposta:**
+
+| ID | Decisione da prendere | Proposta |
+|---|---|---|
+| P-M25-08 | Leggibilità delle viste per l'ascolto umano | Etichette con strumenti riconoscibili e griglia di quarti, ottavi o sedicesimi nelle viste a pentagramma, come strumento offline senza effetti sul percorso realtime |
+
+**Precisazioni a P-M25-03:** il prossimo pacchetto deve dire cosa è cambiato rispetto all'ascolto precedente, riusare le scale 1–7 del 2026-10-28 e chiedere Q3 per sezione.
+
+**Per la regola di chiusura (§5):** sul materiale attuale l'esperto giudica le sezioni distinguibili e non sente click. Il caso più vicino è quindi la terza riga, «chiudibile sul piano tecnico con i limiti artistici registrati». L'indicazione vale solo per questo materiale: gli interventi di M2.5 richiedono un nuovo ascolto sulla build finale.
 
 ## Appendice A — Testo originale
 

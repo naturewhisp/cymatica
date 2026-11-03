@@ -75,8 +75,8 @@ Riduzione del limiter 0 dB; prova −23 ± 2 LU: −21,25 − (−23) = **+1,75 
 |---|---|---|---|
 | **AC-AO-01A** (mandatory, specifica §31.5 e §32): controllo del tono via runner e via input fisico, tap PCM/WAV, verifica quantitativa 220 → 440 → 220 Hz, manifest, gap/overflow e RT safety, prova SPACE dell'OS distinta dallo smoke sintetico | Evidenza storica di M2.2 in [m2_tone_probe_evidence.md](m2_tone_probe_evidence.md) §1.1, esito **PASS**, prova fisica SPACE distinta dallo smoke (DIF-M2-05); `tone_test` PASS in ogni CI ordinaria e in `full_m2_suite` | **PASS storico** (M2.2), con regressione automatica per la parte offline | Riverifica integrata al gate M2.5 sulla build finale, compresa la prova fisica SPACE con tastiera: la CI copre solo la parte offline |
 | **AC-AO-01B** (supplementare, dipendente dalle capacità dell'agente; **non** un gate mandatory): audio consegnato al client e giudizio d'agente registrato | Evidenza storica di M2.2 in [m2_tone_probe_evidence.md](m2_tone_probe_evidence.md) §1.2, esito PASS con l'artefatto tracciato per hash | **PASS storico**, supplementare | Facoltativo; l'agente di Inc-5 non ha un canale audio |
-| Tre minuti di musica continua senza crackle | Render continuo di 182,857 s (`procedural_v1`); 0 frame persi, 0 clipping, guardia sui non finiti, silenzio esatto dopo lo Stop, golden PCM | **evidenza tecnica disponibile** | «senza crackle» è anche percettivo: l'agente non ascolta, quindi serve l'ascolto dell'esperto e la verifica sul percorso realtime (device), non solo offline |
-| Due sezioni distinguibili con transizione tempo/metrica | Sezioni A, B e A' con cambio di tempo 120 → 140 → 120 BPM, modo e motivo diversi; il cambio di metro è supportato e testato in `MusicClock` (`test_music_clock.cpp`) | **parziale** | La fixture non contiene un cambio di **metro** (tutto 4/4). La «distinguibilità» è percettiva. Le transizioni sono istantanee (F3) |
+| Tre minuti di musica continua senza crackle | Render continuo di 182,857 s (`procedural_v1`); 0 frame persi, 0 clipping, guardia sui non finiti, silenzio esatto dopo lo Stop, golden PCM | **evidenza tecnica disponibile** | «senza crackle» è anche percettivo: l'[ascolto del 2026-11-03](m2_4_human_listening_2026-11-03.md) sul WAV offline non rileva click né artefatti, ma resta la verifica sul percorso realtime (device) e sulla build finale |
+| Due sezioni distinguibili con transizione tempo/metrica | Sezioni A, B e A' con cambio di tempo 120 → 140 → 120 BPM, modo e motivo diversi; il cambio di metro è supportato e testato in `MusicClock` (`test_music_clock.cpp`) | **parziale** | La fixture non contiene un cambio di **metro** (tutto 4/4). La «distinguibilità» è percettiva: l'esperto (2026-11-03) giudica le sezioni tutte distinguibili, con A→B «molto brusca» e B→A′ «più fluida»; va riconfermata sulla build finale. Le transizioni sono istantanee (F3) |
 | Sincronismo intent/audio | Catena O3 esatta (2.784/2.784); onset per ruolo `MEASURED` su stem con profilo congelato | **evidenza tecnica disponibile** | AC-AO-02: ratificare le soglie proposte e la scelta fra precisione grezza e precisione senza rilasci (§4) |
 | Trace deterministico | Golden di trace, piano e PCM; JIT = offline; determinismo su due esecuzioni; riproducibilità dei pacchetti al byte | **evidenza tecnica disponibile** | Valida per la toolchain fissata (ADR-0001) |
 | Callback che esegue soltanto | `profile_test` PASS (Release, gate dei tempi); test di zero allocazioni nella callback; planner e analisi fuori dalla callback; sink e log offline installati solo in quiescenza | **evidenza tecnica disponibile** | Verifica sul device reale con la build Release del gate finale |
@@ -86,7 +86,7 @@ Riduzione del limiter 0 dB; prova −23 ± 2 LU: −21,25 − (−23) = **+1,75 
 | — onset correlati all'intent | O3 PASS; precisione e richiamo per ruolo `MEASURED` sugli stem; soglie **proposte** dalla calibrazione 5c | **proposto, non ratificato** | Ratifica delle soglie al gate (§4, H-01/H-02) |
 | — l'adapter dichiara capacità e limiti | `evaluation_result_v0`: il checker rende inammissibile un risultato senza valutatore, canale (`audio_channels`, `tokens_per_s`) e accessi dichiarati (D-M2-15, 5d) | **contratto e checker disponibili**; nessuna sessione reale (rinviata) | Sessione alla cieca di M2.5 |
 | Build, configurazioni e review indipendente (AGENTS §5.1) | Release, Debug e Headless con 0 warning; CI ordinaria e completa; review indipendente per ogni sottofase di Inc-5 | **in corso** | Il gate finale M2.5 con la sua review iterativa |
-| Prova d'ascolto e confronto (specifica §32, raccordo con la ricerca) | Ascolto dell'esperto del 2026-10-28 (F1–F4); pacchetto per l'ascolto di fine Inc-5 ([m2_expert_listening_package.md](m2_expert_listening_package.md)) | **da eseguire** (fine Inc-5) | Il risultato, anche negativo, va registrato; non è un gate mandatory senza decisione esplicita |
+| Prova d'ascolto e confronto (specifica §32, raccordo con la ricerca) | Ascolto dell'esperto del 2026-10-28 (F1–F4); [ascolto di fine Inc-5 del 2026-11-03](m2_4_human_listening_2026-11-03.md), sul [pacchetto](m2_expert_listening_package.md) | **eseguita e registrata** per M2.4 | Non è un gate mandatory senza decisione esplicita. L'ascolto formale resta al gate M2.5, sulla build finale |
 
 ## 4. Handoff M2.5
 
@@ -96,7 +96,7 @@ Riduzione del limiter 0 dB; prova −23 ± 2 LU: −21,25 − (−23) = **+1,75 
 |---|---|---|
 | H-01 | Ratifica delle soglie AC-AO-02 proposte (richiamo / precisione grezza): Pulso 0,90/0,95, Corpo 0,75/0,50, Trama 0,70/0,40, Vettore 0,90/0,45 | [calibrazione](research/M2_4_Inc5_AC-AO-02_Calibration.md) §3.5 |
 | H-02 | Precisione grezza contro precisione senza rilevazioni sui rilasci (1,000 in tutti gli insiemi; soglia proposta 0,95 per ruolo) | idem; 5e.3, 5e.3b |
-| H-03 | Release dei NoteOff per ruolo (F6): sulla base di 5e.3 (pendenze, rilevazioni) e dell'ascolto A/B dell'esperto; nessun valore è adottato in Inc-5 | [release A/B](research/experiments/inc5_release_ab/README.md), dossier A §6.4 |
+| H-03 | Release dei NoteOff per ruolo (F6): sulla base di 5e.3 (pendenze, rilevazioni) e dell'ascolto A/B dell'esperto, che il 2026-11-03 non ha rilevato differenze significative fra 2 e 80 ms né espresso preferenze; nessun valore è adottato in Inc-5 | [release A/B](research/experiments/inc5_release_ab/README.md), dossier A §6.4 |
 | H-04 | Rivelatore: normalizzazione globale (M-NORM) contro normalizzazione locale o robusta in un `descriptors_v2`; ricalibrazione di δ dopo H-03 | 5e.3b, riconciliazione R-03 |
 | H-05 | Statistica di presenza: dipendenza fra gruppi con materiale imparentato (CL-MM-10), test con gruppi condivisi fra sezioni | riconciliazione R-01, review di `794b642` |
 
@@ -110,6 +110,14 @@ Riduzione del limiter 0 dB; prova −23 ± 2 LU: −21,25 − (−23) = **+1,75 
 | F4 | Mix e timbro (kick basso, FM «dissonante») | costanti di sintesi e di bus (dossier A §6) |
 | F5 | «Direttore musicale»: stato sopra la frase | assenza di stato lungo la sezione, varietà nulla dal seed (Teorema D) |
 | F6 | Rilascio di 2 ms | ρ = 6,5 per la Trama (dossier A §6.4), 5e.3, 5e.3b |
+
+**Dopo l'[ascolto del 2026-11-03](m2_4_human_listening_2026-11-03.md)** (stesso PCM del 2026-10-28, proposte e non decisioni):
+- F2, F3 ed F5 sono confermati;
+- F4 è rafforzato e misurato: Pulso −10,6…−12,4 dB rispetto al mix, Corpo e Vettore circa −3 dB;
+- F1 e F6 sono ridimensionati: il metro si percepisce, e fra i rilasci non emergono differenze significative né click;
+- F1 e F4 vanno valutati insieme, perché alzare il kick rende più evidente il suo spostamento.
+
+Priorità aggiornate: [proposta per l'ingresso di M2.5](research/M2_5_Entry_Music_Quality_Proposal.md) §8.
 
 ### 4.3 Profili non validati (accettati per l'implementazione, da valutare)
 
