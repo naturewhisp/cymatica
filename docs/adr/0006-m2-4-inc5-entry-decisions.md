@@ -1,7 +1,7 @@
 # ADR-0006 — Decisioni d'ingresso M2.4 Inc-5 (catena degli eventi, stem, descrittori, pacchetto di valutazione, calibrazione)
 
 - **Data:** 2026-10-26
-- **Stato:** `accepted for implementation` (decisioni d'ingresso di Inc-5), **in review del titolare** come fase 5.0. Nessun valore qui riportato è `validated`: i parametri sono profili iniziali versionati, da calibrare e verificare durante le fasi 5a–5e e al gate M2.5.
+- **Stato:** `accepted for implementation` (decisioni d'ingresso di Inc-5), **ratificato dal titolare il 2026-11-03** con il perimetro e le esclusioni del [registro di ratifica](../m2_4_decision_ratification.md) (§4, §5). La review della fase 5.0 è OK dal 2026-10-26 (`1d39e88`); le decisioni sono attuate nelle fasi 5a–5e.4b, ciascuna chiusa con review OK e CI verde. Nessun valore qui riportato è `validated`: i parametri sono profili iniziali versionati, da calibrare e verificare durante le fasi 5a–5e e al gate M2.5.
 - **Milestone:** M2 — sottofase M2.4, incremento Inc-5.
 - **Owner:** coordinatore dello sviluppo M2.4, nell'ambito autorizzato dal titolare il 2026-10-26 («procediamo con Inc-5»; piano «approvabile con correzioni preliminari circoscritte a 5.0»). La ratifica esplicita del titolare è richiesta prima della chiusura di M2.4, insieme a quella di [ADR-0005](0005-m2-4-inc4-entry-decisions.md).
 - **Gerarchia:** Specifica > DESIGN > AGENTS > ADR > piano operativo > ricerca. Questo ADR **attua** le raccomandazioni R2–R6 approvate il 2026-10-21 ([dossier sui metodi CACP](../research/M2_4_CACP_Evaluation_Methods.md) §6) e **precisa** D-M2-11 di ADR-0005. Non modifica:

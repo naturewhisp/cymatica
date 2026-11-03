@@ -80,7 +80,11 @@ Riduzione del limiter 0 dB; prova −23 ± 2 LU: −21,25 − (−23) = **+1,75 
 | Sincronismo intent/audio | Catena O3 esatta (2.784/2.784); onset per ruolo `MEASURED` su stem con profilo congelato | **evidenza tecnica disponibile** | AC-AO-02: ratificare le soglie proposte e la scelta fra precisione grezza e precisione senza rilasci (§4) |
 | Trace deterministico | Golden di trace, piano e PCM; JIT = offline; determinismo su due esecuzioni; riproducibilità dei pacchetti al byte | **evidenza tecnica disponibile** | Valida per la toolchain fissata (ADR-0001) |
 | Callback che esegue soltanto | `profile_test` PASS (Release, gate dei tempi); test di zero allocazioni nella callback; planner e analisi fuori dalla callback; sink e log offline installati solo in quiescenza | **evidenza tecnica disponibile** | Verifica sul device reale con la build Release del gate finale |
-| AC-AO-02 | O3 PASS; precisione e richiamo per ruolo `MEASURED`; soglie **proposte** dalla calibrazione 5c | **proposto, non ratificato** | Ratifica al gate (§4) |
+| AC-AO-02 (definizione normativa in [agent_control_observability](agent_control_observability.md), tabella delle estensioni): elementi sotto | | | |
+| — cattura bounded | `AudioProbe` e registro degli eventi applicati preallocati; `droppedFrames == 0` e catena O3 esatta in `fixture_test` | **evidenza tecnica disponibile** | Ripetere sul percorso realtime (device) |
+| — overflow e lifecycle testati | Overflow vincolante del registro O3 (overflow > 0 dà FAIL) e installazione solo in quiescenza (`test_event_chain.cpp`, «Applied-event log: dispositions, drop reasons, overflow and quiescence»); overflow e lifecycle della probe in AC-AO-01A (M2.2) | **evidenza tecnica disponibile** | Nessuna oltre al device |
+| — onset correlati all'intent | O3 PASS; precisione e richiamo per ruolo `MEASURED` sugli stem; soglie **proposte** dalla calibrazione 5c | **proposto, non ratificato** | Ratifica delle soglie al gate (§4, H-01/H-02) |
+| — l'adapter dichiara capacità e limiti | `evaluation_result_v0`: il checker rende inammissibile un risultato senza valutatore, canale (`audio_channels`, `tokens_per_s`) e accessi dichiarati (D-M2-15, 5d) | **contratto e checker disponibili**; nessuna sessione reale (rinviata) | Sessione alla cieca di M2.5 |
 | Build, configurazioni e review indipendente (AGENTS §5.1) | Release, Debug e Headless con 0 warning; CI ordinaria e completa; review indipendente per ogni sottofase di Inc-5 | **in corso** | Il gate finale M2.5 con la sua review iterativa |
 | Prova d'ascolto e confronto (specifica §32, raccordo con la ricerca) | Ascolto dell'esperto del 2026-10-28 (F1–F4); pacchetto per l'ascolto di fine Inc-5 ([m2_expert_listening_package.md](m2_expert_listening_package.md)) | **da eseguire** (fine Inc-5) | Il risultato, anche negativo, va registrato; non è un gate mandatory senza decisione esplicita |
 
@@ -119,6 +123,8 @@ Riduzione del limiter 0 dB; prova −23 ± 2 LU: −21,25 − (−23) = **+1,75 
 - **Sessione alla cieca di Antigravity**, sensibilità e specificità: richiede materiale più vario e almeno 4 gruppi negativi indipendenti. `evaluation_pack_v3` è pronto, da rigenerare con un seed nuovo e non registrato.
 - **Ablazione** (5e-07) e **direttore musicale** (F5).
 - **Staging transazionale** della scrittura dei pacchetti su più directory (OSS-5e.2-R2-01).
+- **Qualificazione realtime su device** (ADR-0005 D-M2-10, fuori da Inc-4): corsa WASAPI ≥ 180 s con periodo effettivo, MMCSS e conteggio degli underrun. È un gate distinto dal profiling offline di `profile_test`, che non la sostituisce (precisazione R6-03).
+- **DIF-INC4-R3-05**, prima dei test su device: `callbackProfileHistogram()` e `resetCallbackProfileHistogram()` vanno resi sicuri, con uno snapshot pubblicato in uno slot dedicato oppure con un'asserzione di quiescenza, senza lock nella callback.
 
 ### 4.5 Ricerche aperte e punti del modello
 
@@ -134,7 +140,12 @@ Riduzione del limiter 0 dB; prova −23 ± 2 LU: −21,25 − (−23) = **+1,75 
   - vettore f_s/4 nel test del limiter.
 - **Osservazioni aperte:**
   - OSS-5e.3b-R2-01: campo causale `NOT_RUN` senza profilo congelato;
-  - nel manifest di `procedural_v1` il campo `measures.loudness.note` mostra «Â§» al posto di «§», per una doppia codifica del letterale. È cosmetico, rilevato nella preparazione di questo dossier.
+  - nel manifest di `procedural_v1` il campo `measures.loudness.note` mostra «Â§» al posto di «§», per una doppia codifica del letterale. È cosmetico, rilevato nella preparazione di questo dossier;
+  - AG-ADR-03 (informativa): l'impegno del seed (`packSeedCommitment`) usa il prefisso `evaluation_pack_v1` anche per v2 e v3. Resta verificabile, perché generazione e checker usano la stessa funzione; manca solo la separazione di dominio per versione.
+- **Proposte della review di ADR-0006** ([verifica](research/M2_4_Inc5_ADR0006_Review_Verification.md) §4), da istruire con fonti lette:
+  - normalizzazione robusta o locale dell'onset, insieme a H-04;
+  - statistica per gruppo con test di permutazione, insieme a H-05;
+  - varietà per stato e selezione deterministica fra candidati quasi ottimi, per F5.
 
 ## 5. Limiti di queste evidenze
 
