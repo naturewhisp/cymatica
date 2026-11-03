@@ -17,9 +17,11 @@ I file non sono versionati (dimensioni); si rigenerano in modo deterministico da
 
 Le clip M3 differiscono **solo** nella durata del rilascio dei NoteOff ordinari:
 - eventi, seed e rendering sono identici (5e.3);
-- l'RMS del mix è uguale;
+- l'RMS del mix è sostanzialmente invariato, −23,9 / −23,8 dBFS nelle clip misurate, cioè entro circa 0,1 dB (rettifica OSS-5e.4b-02: la prima versione diceva «uguale»);
 - il segnale differenza rispetto alla variante di 2 ms sta 15–24 dB sotto il mix;
 - il picco cresce fino a +1,5 dB a 80 ms.
+
+È un esperimento su rilasci diversi, non un confronto fra PCM identici: le clip differiscono per costruzione proprio nel rilascio.
 
 ## 2. Procedura proposta
 

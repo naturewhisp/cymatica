@@ -52,7 +52,7 @@ Alle evidenze di Inc-5 si aggiungono quelle di Inc-1..Inc-4, registrate in [prog
 | B | −21,27 LUFS | −20,10 LUFS | −11,68 dBTP |
 | A' | −21,35 LUFS | −20,12 LUFS | −11,07 dBTP |
 
-Riduzione del limiter 0 dB; prova −23 ± 2 LU, cioè 2,25 LU sopra il centro e dentro la tolleranza di prova.
+Riduzione del limiter 0 dB; prova −23 ± 2 LU: −21,25 − (−23) = **+1,75 LU**, dentro la tolleranza di prova (rettifica OSS-5e.4b-01: la prima versione indicava per errore +2,25 LU).
 
 **Onset per ruolo** (±50 ms, profilo congelato `stem_onset_profile_v1`):
 
@@ -73,6 +73,8 @@ Riduzione del limiter 0 dB; prova −23 ± 2 LU, cioè 2,25 LU sopra il centro e
 
 | Criterio di M2.5 | Evidenza disponibile | Stato | Cosa resta per M2.5 |
 |---|---|---|---|
+| **AC-AO-01A** (mandatory, specifica §31.5 e §32): controllo del tono via runner e via input fisico, tap PCM/WAV, verifica quantitativa 220 → 440 → 220 Hz, manifest, gap/overflow e RT safety, prova SPACE dell'OS distinta dallo smoke sintetico | Evidenza storica di M2.2 in [m2_tone_probe_evidence.md](m2_tone_probe_evidence.md) §1.1, esito **PASS**, prova fisica SPACE distinta dallo smoke (DIF-M2-05); `tone_test` PASS in ogni CI ordinaria e in `full_m2_suite` | **PASS storico** (M2.2), con regressione automatica per la parte offline | Riverifica integrata al gate M2.5 sulla build finale, compresa la prova fisica SPACE con tastiera: la CI copre solo la parte offline |
+| **AC-AO-01B** (supplementare, dipendente dalle capacità dell'agente; **non** un gate mandatory): audio consegnato al client e giudizio d'agente registrato | Evidenza storica di M2.2 in [m2_tone_probe_evidence.md](m2_tone_probe_evidence.md) §1.2, esito PASS con l'artefatto tracciato per hash | **PASS storico**, supplementare | Facoltativo; l'agente di Inc-5 non ha un canale audio |
 | Tre minuti di musica continua senza crackle | Render continuo di 182,857 s (`procedural_v1`); 0 frame persi, 0 clipping, guardia sui non finiti, silenzio esatto dopo lo Stop, golden PCM | **evidenza tecnica disponibile** | «senza crackle» è anche percettivo: l'agente non ascolta, quindi serve l'ascolto dell'esperto e la verifica sul percorso realtime (device), non solo offline |
 | Due sezioni distinguibili con transizione tempo/metrica | Sezioni A, B e A' con cambio di tempo 120 → 140 → 120 BPM, modo e motivo diversi; il cambio di metro è supportato e testato in `MusicClock` (`test_music_clock.cpp`) | **parziale** | La fixture non contiene un cambio di **metro** (tutto 4/4). La «distinguibilità» è percettiva. Le transizioni sono istantanee (F3) |
 | Sincronismo intent/audio | Catena O3 esatta (2.784/2.784); onset per ruolo `MEASURED` su stem con profilo congelato | **evidenza tecnica disponibile** | AC-AO-02: ratificare le soglie proposte e la scelta fra precisione grezza e precisione senza rilasci (§4) |
