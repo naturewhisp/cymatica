@@ -187,7 +187,7 @@ json role(const char* r) { return json{{"role", r}}; }
 
 } // namespace
 
-TEST_CASE("evaluation_pack_v1 is deterministic and the selection stream is isolated (D-M2-15)", "[evaluation_pack]") {
+TEST_CASE("evaluation_pack_v1 is deterministic and the selection stream is isolated (D-M2-15)", "[evaluation_pack][slow]") {
     auto a = plannerSource();
     auto b = plannerSource(); // second independent render
     const PackBuild p1 = buildEvaluationPack(a->src, 424242);
@@ -210,7 +210,7 @@ TEST_CASE("evaluation_pack_v1 is deterministic and the selection stream is isola
     CHECK(truth->blind.size() == p1.truth.blind.size());
 }
 
-TEST_CASE("evaluation_pack_v1 blind mode does not leak the ground truth (D-M2-15 leakage test)", "[evaluation_pack][leakage]") {
+TEST_CASE("evaluation_pack_v1 blind mode does not leak the ground truth (D-M2-15 leakage test)", "[evaluation_pack][leakage][slow]") {
     auto ps = plannerSource();
     const std::uint64_t seed = 31415926535ULL;
     const PackBuild p = buildEvaluationPack(ps->src, seed);
@@ -526,7 +526,7 @@ TEST_CASE("claims_v0 checker: catch trial, altered item, duplicates and the triv
     CHECK(std::abs(half.high - 0.7634) < 1e-3);
 }
 
-TEST_CASE("Sealed truth integrity is verified against sealed/SHA256SUMS before checking (D-M2-15)", "[evaluation_pack][checker]") {
+TEST_CASE("Sealed truth integrity is verified against sealed/SHA256SUMS before checking (D-M2-15)", "[evaluation_pack][checker][slow]") {
     auto ps = plannerSource();
     const PackBuild p = buildEvaluationPack(ps->src, 77);
     REQUIRE(p.ok);
@@ -829,7 +829,7 @@ TEST_CASE("Pack output directories are isolated and never removed blindly (DIF-5
     fs::remove_all(base);
 }
 
-TEST_CASE("evaluation_pack_v2: groups, removal negatives, staff view; v1 unchanged (5e-11, DIF-5e.0-02)", "[evaluation_pack][v2]") {
+TEST_CASE("evaluation_pack_v2: groups, removal negatives, staff view; v1 unchanged (5e-11, DIF-5e.0-02)", "[evaluation_pack][v2][slow]") {
     auto ps = plannerSource();
     // v1 output does not depend on the plan carried by the source: byte-identical with and without it
     PackSource noPlan = ps->src;
@@ -911,7 +911,7 @@ TEST_CASE("evaluation_pack_v2: groups, removal negatives, staff view; v1 unchang
     CHECK(rep.presence.removalNegatives.claims == removals);
 }
 
-TEST_CASE("The checker keeps reading evaluation_pack_v1 truths (5e-11 compatibility)", "[evaluation_pack][v2]") {
+TEST_CASE("The checker keeps reading evaluation_pack_v1 truths (5e-11 compatibility)", "[evaluation_pack][v2][slow]") {
     auto ps = plannerSource();
     const PackBuild v1 = buildEvaluationPack(ps->src, 99);
     REQUIRE(v1.ok);
@@ -931,7 +931,7 @@ TEST_CASE("The checker keeps reading evaluation_pack_v1 truths (5e-11 compatibil
     CHECK(rep.presence.positives.claims + rep.presence.negatives.claims >= 1);
 }
 
-TEST_CASE("v2 pack directories are regenerable in place; versions never replace each other (DIF-5e.2-01)", "[evaluation_pack][v2][dirs]") {
+TEST_CASE("v2 pack directories are regenerable in place; versions never replace each other (DIF-5e.2-01)", "[evaluation_pack][v2][dirs][slow]") {
     namespace fs = std::filesystem;
     auto ps = plannerSource();
     const PackBuild v1 = buildEvaluationPack(ps->src, 5), v2 = buildEvaluationPackV2(ps->src, 5);
@@ -984,7 +984,7 @@ TEST_CASE("v2 pack directories are regenerable in place; versions never replace 
     fs::remove_all(base);
 }
 
-TEST_CASE("A plan whose fingerprint cannot be computed stops v2; v1 compatibility unaffected (DIF-5e.2-03)", "[evaluation_pack][v2]") {
+TEST_CASE("A plan whose fingerprint cannot be computed stops v2; v1 compatibility unaffected (DIF-5e.2-03)", "[evaluation_pack][v2][slow]") {
     auto ps = plannerSource();
     PackSource bad = ps->src;
     REQUIRE_FALSE(bad.intents.empty());

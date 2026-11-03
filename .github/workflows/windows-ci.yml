@@ -47,10 +47,22 @@ jobs:
           Get-Command ninja -ErrorAction SilentlyContinue | Format-Table -AutoSize
           ninja --version
 
-      - name: Clean Build and Headless CTest (${{ matrix.config }})
+      # Ordinary CI (every push/PR): the Release path is the full headless suite, unchanged. Debug builds everything and
+      # runs the headless tests except those tagged [slow] (the heavy evaluation-pack generations, about 91 % of the
+      # Debug CTest time); they run in Debug and Release in windows-ci-full.yml (nightly and on demand).
+      - name: Clean Build and Headless CTest (Release)
+        if: matrix.config == 'Release'
         shell: pwsh
         run: |
-          .\scripts\build.ps1 -Clean -Config ${{ matrix.config }} -Test -Headless
+          .\scripts\build.ps1 -Clean -Config Release -Test -Headless
+
+      - name: Clean Build and fast Headless CTest (Debug, without [slow])
+        if: matrix.config == 'Debug'
+        shell: pwsh
+        run: |
+          .\scripts\build.ps1 -Clean -Config Debug
+          ctest --preset x64-debug-fast
+          if ($LASTEXITCODE -ne 0) { throw "ctest --preset x64-debug-fast failed with exit code $LASTEXITCODE" }
 
       - name: Run CACP Diagnostic Tone Test (Release only)
         if: matrix.config == 'Release'

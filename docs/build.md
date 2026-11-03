@@ -43,8 +43,9 @@ Da una **Developer PowerShell for VS** (Build Tools 2026), nella radice del repo
 cmake --preset x64-release            # oppure x64-debug
 cmake --build --preset x64-release
 ctest --preset x64-release            # tutti i test (Release)
-ctest --preset x64-release-headless   # esclude label "device" (Release)
-ctest --preset x64-debug-headless     # esclude label "device" (Debug)
+ctest --preset x64-release-headless   # esclude label "device" e "perf" (Release)
+ctest --preset x64-debug-headless     # esclude label "device" e "perf" (Debug): suite headless completa
+ctest --preset x64-debug-fast         # esclude anche "slow" (Debug): la suite rapida della CI ordinaria
 .\build\x64-release\apps\cymatica_game\cymatica_game.exe
 ```
 

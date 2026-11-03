@@ -590,6 +590,19 @@ Fissano ciò che D-M2-15 e D-M2-16 rimandano a 5e e stabiliscono il perimetro de
   - *Tipi di negativo:* i negativi naturali (ruolo non pianificato) e quelli per rimozione dall'audio restano distinguibili nella ground truth. Possono entrambi entrare nell'esperimento, ma si riportano anche separatamente, e il bilanciamento si controlla per ruolo, non solo nell'aggregato.
   - *Versionamento:* la modifica di 5d-09 introduce una nuova versione del protocollo del pacchetto (`evaluation_pack_v2`). `evaluation_pack_v1` resta generabile e leggibile dal checker, così le evidenze di 5d restano confrontabili.
 
+**Precisazione del titolare (2026-11-03): livelli di CI** (precisa 5e-03 e la nota CI di D-M2-16, prima di 5e.3):
+
+- **Motivo:** nella CI di `f649786` ([run 41599948296](https://github.com/naturewhisp/cymatica/actions/runs/41599948296)) il workflow dura 27 min 12 s. CTest impiega 77 s in Release e 1.444 s in Debug; sette test di generazione dei pacchetti di valutazione assorbono circa il 91 % del tempo Debug. Il costo è nella Debug non ottimizzata, non nell'analisi musicale, che la CI non esegue.
+- **Scelta:** quattro livelli con frequenza diversa; nessun test eliminato né indebolito.
+  - *CI ordinaria* (ogni push e PR): percorso Release invariato (tutti i test headless, `tone_test`, `fixture_test` con catena O3 e golden PCM). In Debug build pulita completa e test headless senza tag `[slow]` (preset `x64-debug-fast`, label escluse `device|perf|slow`).
+  - *CI completa* (`windows-ci-full.yml`, ogni notte su `main` e manuale): tutti i test headless in Release e Debug, compresi gli `[slow]`.
+  - *Gate locale M2* (chiusura di sottofasi e milestone): suite headless completa nelle due configurazioni e scenari CACP (`full_m2_suite`, profiling, pacchetti, `release_ab_v1`, riproducibilità), come da 5e-02.
+  - *Validazione percettiva*: sessioni dedicate (5e-10).
+- **Tag `[slow]`:** sui sette test individuati dalla misura (determinismo e leakage di v1, integrità della verità sigillata, gruppi e staff view di v2, compatibilità del checker con v1, rigenerazione delle directory v2, fingerprint non calcolabile). Si assegna solo a test lenti in Debug e già coperti dalla Release ordinaria; mai per escludere test instabili. Asserzioni invariate.
+- **Invarianti:** `scripts/build.ps1 -Test -Headless` resta la validazione completa e non cambia comportamento; ogni test resta eseguito almeno dalla Release ordinaria; il gate di sottofase continua a richiedere la CI ordinaria verde e, alla chiusura di una milestone, anche la CI completa verde.
+- **Alternative scartate:** eliminare o ridurre i test pesanti (perdita di copertura); cache del compilatore e CTest parallelo subito (seconda fase eventuale: i test condividono directory e artefatti, il parallelismo rischia interferenze); escludere la Debug dalla CI ordinaria (perde la build Debug e le asserzioni di debug ad ogni push).
+- **Verifica:** conteggi dei preset (`ctest -N`), durata della CI ordinaria dopo il push, primo run verde della CI completa. Stima della CI ordinaria: 6–8 min, da misurare.
+
 **Precisazioni della review di 5e.0 (`d08187d`, DIF-5e.0-02, vincolanti per 5e.2; fissate prima della misura):**
 
 - **Regola deterministica di raggruppamento.** L'unità d'indipendenza è il **gruppo musicale**, non la finestra.

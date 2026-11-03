@@ -1,0 +1,45 @@
+name: Windows CI (full)
+
+# Full headless validation (ADR-0006, CI frequency tiers): every headless test in Release and Debug, including the
+# tests tagged [slow] that the ordinary CI skips in Debug. Nightly on main and on demand; not run on every push.
+on:
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  full-suite:
+    name: ${{ matrix.config }} full (windows-2025)
+    runs-on: windows-2025
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [Release, Debug]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Clean Build and full Headless CTest (${{ matrix.config }})
+        shell: pwsh
+        run: |
+          .\scripts\build.ps1 -Clean -Config ${{ matrix.config }} -Test -Headless
+
+      - name: Upload Diagnostic Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostic-logs-full-${{ matrix.config }}
+          path: |
+            build/**/Testing/Temporary/*.log
+          retention-days: 3
+          if-no-files-found: ignore

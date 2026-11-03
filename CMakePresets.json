@@ -45,6 +45,19 @@
       "filter": { "exclude": { "label": "(device|perf)" } }
     },
     {
+      "name": "x64-debug-fast",
+      "displayName": "Debug tests for the ordinary CI: headless, without the [slow] pack generations",
+      "configurePreset": "x64-debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "exclude": {
+          "label": "(device|perf|slow)"
+        }
+      }
+    },
+    {
       "name": "x64-release-headless",
       "displayName": "Release tests without audio hardware",
       "configurePreset": "x64-release",
