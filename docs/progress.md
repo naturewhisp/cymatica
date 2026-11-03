@@ -2537,3 +2537,35 @@ CI di `6930652` ([run 41658678635](https://github.com/naturewhisp/cymatica/actio
 2. ascolto dell'esperto del materiale M1–M3 ([pacchetto](m2_expert_listening_package.md));
 3. ratifica documentale delle decisioni pertinenti e verifica finale dell'handoff M2.5, senza anticipare le validazioni rinviate a M2.5.
 
+**Pacchetto per l'esperto preparato (2026-11-03, fuori da git):** `artifacts/expert_listening/cymatica_ascolto_esperto_2026-11-03.zip`, 38 file, 43,9 MB, SHA-256 `f6b3e079c0d835461aaddc4eb274d6f299ec09d5caeb71e4752f388eb5441f27`.
+- **Contenuto:**
+  - M1, il brano completo;
+  - M2, le 24 viste a pentagramma;
+  - M3, le 10 clip A/B rinominate `clip_1..5` per frase in ordine casuale;
+  - `LEGGIMI.html`, portabile: percorsi relativi, nessuna risorsa esterna, player, modulo di risposta e pulsante «Copia le risposte»;
+  - `LEGGIMI.txt` di riserva e `SHA256SUMS.txt`.
+- **Chiave delle clip:** `artifacts/expert_listening/CHIAVE_clip_NON_INVIARE.txt`, fuori dallo zip, con il seed del mescolamento.
+- **Verifiche:**
+  - i materiali coincidono con gli SHA-256 archiviati delle clip e con il golden PCM del brano;
+  - nessun nome di file nello zip rivela le durate;
+  - le 35 risorse della pagina sono state controllate servendo la cartella in locale, solo per il test.
+- **Viste a pentagramma:** ricompresse senza perdita (pixel identici, verificati), da 17 MB a 96 KB; il generatore le scrive con deflate *stored*. Sono incorporate come miniature nella pagina (data URI, nessun lazy loading), così si vedono anche nell'anteprima e senza estrarre lo zip. Il titolare aveva visto solo la prima vista in anteprima.
+- **Audio:** resta collegato ai file della cartella, quindi per ascoltarlo bisogna estrarre lo zip. Lo dicono entrambi i README.
+
+
+**Review di ADR-0006 di Antigravity (attività 1 di chiusura, 2026-11-03):** consegnata in [`M2_4_Inc5_ADR0006_Review_Antigravity.md`](research/M2_4_Inc5_ADR0006_Review_Antigravity.md) su `a5ee6b8`, rilievi AG-ADR-01..09. Verificata sul repository: [verifica](research/M2_4_Inc5_ADR0006_Review_Verification.md).
+- **Affidabilità:** come nel dossier sul modello matematico, gran parte dei numeri e degli estratti non esiste nel repository. Esempi:
+  - H1 sulla fixture `54/250` invece di `245/402`;
+  - una previsione di «4 gruppi smentita» invece di 8 confermati;
+  - `n_eff` 5,793 invece di 4,93;
+  - un `classStats` riscritto;
+  - passi di ADR-0006 mai scritti.
+- **Rilievi validi:**
+  - AG-ADR-01 = OSS-5e.3b-R2-01 e AG-ADR-02 = OSS-5e.2-R2-01, già aperte;
+  - AG-ADR-03, nuovo e informativo: l'impegno del seed usa il prefisso `evaluation_pack_v1` anche per v2 e v3, senza rischio per la verificabilità.
+- **Premesse false:** AG-ADR-05 (Wilson centrato su una media non pesata: il codice usa il tasso aggregato; J_L è già un limite al 95 % per Boole), AG-ADR-06 e AG-ADR-08 (il fallimento di H1 sulla fixture è della Trama, non di Corpo).
+- **Utilizzabile per M2.5**, previa lettura delle fonti:
+  - normalizzazione robusta o locale dell'onset (AG-ADR-07, con H-04);
+  - statistica per gruppo con permutazioni (AG-ADR-05);
+  - varietà per stato e selezione deterministica fra quasi-ottimi (AG-ADR-09, F5).
+- **Esito:** nessun difetto nuovo bloccante; nessuna decisione, contratto o stato di Inc-5 cambia. **L'attività 1 è eseguita**, in attesa della presa d'atto del titolare. Restano l'ascolto dell'esperto e la ratifica documentale con la verifica finale dell'handoff.
