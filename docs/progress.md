@@ -2349,3 +2349,12 @@ Per avere evidenze di specificità serve materiale musicale più vario: per il T
 
 **Stato:** 5e.3c committata su approvazione del titolare («OK, commit»), in un commit separato da quello dei documenti del modello matematico (indagini A e B, riconciliazione); l'esito della review si registrerà quando sarà comunicato (DIF-5a-02).
 
+**Decisione del titolare (2026-11-03): specificità rimandata a M2.5.** La misura della specificità del valutatore nella sessione alla cieca (5e-10) passa a M2.5. Servirà un pacchetto con materiale musicale più vario, prodotto dal generatore dopo F5, e con almeno 4 gruppi negativi indipendenti (n_eff ≥ 4). In Inc-5 nessuna affermazione di specificità è attesa né riportata come misurata. La decisione è registrata in ADR-0006 («5e.3c»).
+
+**Precisazione del titolare (stesso giorno): l'intera sessione alla cieca passa a M2.5**, sensibilità compresa.
+- In Inc-5 restano:
+  - la revisione qualitativa e tecnica di ADR-0006 da parte di Antigravity, con eventuali ricerche approfondite sui punti aperti;
+  - l'ascolto dell'esperto: clip A/B di `release_ab_v1`, viste a pentagramma, riascolto F1–F4, immagine stereo della Trama (R-05).
+- `evaluation_pack_v3` resta pronto e versionato per M2.5, da rigenerare con un seed nuovo e non registrato.
+- 5e.4 non prepara quindi materiali per una sessione alla cieca.
+
