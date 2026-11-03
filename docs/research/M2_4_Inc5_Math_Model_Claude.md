@@ -5,7 +5,7 @@
 - **Autore:** agente Claude (indagine A), in parallelo e in modo indipendente dall'indagine B di Antigravity (`M2_4_Inc5_Math_Model_Antigravity.md`), che non è stata letta. Protocollo in [progress.md](../progress.md), «Consolidamento del modello matematico».
 - **Status:** **descrittivo, non normativo.** La specifica e gli ADR restano l'autorità sulle intenzioni; il codice al commit indicato è la fonte di verità sul comportamento. Le divergenze sono rilievi, non correzioni. Nessun tuning, nessuna scelta algoritmica nuova.
 
-> **Erratum (2026-11-03, dopo la riconciliazione).** Il §4.5 (CL-MM-05) attribuisce allo stato di voice leading e ai flag di frase i 14 gruppi musicali su 24 frasi. Nella sezione B (140 BPM) la distinzione fra le frasi 9–14 è invece un artefatto di arrotondamento di ±1 campione nei frame relativi alla frase (AG-MM-07 dell'indagine B, verificato dall'agente A). Con una griglia simbolica i gruppi sarebbero 9. Dettagli e conseguenze per `evaluation_pack_v2` in [M2_4_Inc5_Math_Model_Reconciliation.md](M2_4_Inc5_Math_Model_Reconciliation.md) §4.1. Il resto del testo è lasciato come consegnato.
+> **Erratum (2026-11-03, dopo la riconciliazione).** Il §4.5 (CL-MM-05) attribuisce allo stato di voice leading e ai flag di frase i 14 gruppi musicali su 24 frasi. Nella sezione B (140 BPM) la distinzione fra le frasi 9–14 è invece un artefatto di arrotondamento di ±1 campione nei frame relativi alla frase (AG-MM-07 dell'indagine B, verificato dall'agente A). Una prima stima esplorativa, che teneva distinta la frase 23, dava 9 gruppi con una griglia simbolica. La regola effettivamente adottata (Q = 32 unità per battuta, ADR-0006 «5e.3c») ne dà **8**: il rilascio anticipato di 400 frame della frase 23 vale 0,13 unità e la riporta nel gruppo delle 17–22 (MM-REV-02). Dettagli e conseguenze per `evaluation_pack_v2` in [M2_4_Inc5_Math_Model_Reconciliation.md](M2_4_Inc5_Math_Model_Reconciliation.md) §4.1. Il resto del testo è lasciato come consegnato.
 
 ## 0. Sommario
 
@@ -21,7 +21,7 @@ Il motore è una catena **deterministica a stati finiti**, con un solo punto di 
 1. **Tempo** (blocco 1). Tutte le conversioni musica → frame sono razionali, del tipo f = f_j + ⌊Δ·N/D⌋, ancorate al segmento di tempo; l'errore per beat è < 1 frame e non si accumula. L'inversione del confine di beat ha forma chiusa esatta, verificata contro la forza bruta su 2·10⁵ casi.
 2. **Il seed tocca solo i pareggi** (blocchi 2 e 4). `runSeed` entra nel planner soltanto in `tieBreakHash`, mentre candidati, vincoli e punteggio sono funzioni deterministiche del piano di frase e dello stato.
    - Misura: **0 pareggi** in 24 decisioni della fixture, scarto minimo fra primo e secondo 400 punti; 0 pareggi in `planner_probe_v1`, scarto minimo 300.
-   - Ne segue, come teorema e non come statistica, che **la diversità fra seed è nulla per costruzione**: la `NULL_DIVERSITY` misurata in 5e.2 è una conseguenza strutturale, non un caso.
+   - Per una condizione sufficiente dimostrata (Teorema D) e non per una statistica, sulla fixture **la diversità fra seed è nulla per costruzione**: la `NULL_DIVERSITY` misurata in 5e.2 è una conseguenza strutturale, non un caso.
 3. **Ripetizione strutturale** (blocchi 3 e 4).
    - Dentro una frase, Pulso, Trama e Vettore ripetono lo stesso pattern a ogni battuta (periodo 1 battuta); solo il Corpo segue la progressione di 4 accordi.
    - Dentro una sezione il vettore dei punteggi è identico in tutte le frasi, quindi vince sempre la stessa ricetta: l'unica variazione fra frasi viene dallo stato di voice leading e dai flag di frase.
@@ -277,12 +277,18 @@ Per ogni frase φ, con stato σ (voice leading precedente, tracker delle voci si
 
 ### 4.2 Proprietà derivate
 
-**Teorema D (diversità fra seed).** Per un piano di forma fissato, il contenuto musicale prodotto è indipendente dal seed se e solo se ogni decisione ha un unico candidato di punteggio massimo, oppure tutti i candidati in pareggio producono lo stesso contenuto.
+**Teorema D (diversità fra seed; condizione sufficiente).** Si fissino il piano di forma e un seed s₀. Supponiamo che lungo la sequenza di decisioni prodotta da s₀ ogni decisione:
+- abbia un unico candidato di punteggio massimo, oppure
+- abbia candidati in pareggio che producono tutti lo stesso contenuto e lo stesso stato successivo.
 
-*Dimostrazione:*
-- G, V e S non leggono il seed (`runSeed` compare solo in `tieBreakHash`, `music_planner.cpp`), e lo stato σ dopo la decisione dipende solo dal vincitore.
-- Per induzione sulle frasi: se nessuna decisione dipende dal seed, nemmeno σ ne dipende.
-- Il seed entra quindi solo nel secondo criterio dell'ordine, che conta solo a parità del primo. ∎
+Allora il contenuto musicale prodotto è lo stesso per ogni seed.
+
+*Dimostrazione* (per induzione sulle frasi):
+- G, V e S non leggono il seed (`runSeed` compare solo in `tieBreakHash`, `music_planner.cpp`), quindi a parità di stato σ i punteggi sono gli stessi per ogni seed.
+- Alla prima frase σ è lo stesso per ogni seed. Se la decisione ha un massimo unico, vince lo stesso candidato per ogni seed. Se i candidati in pareggio sono equivalenti, il contenuto e lo stato successivo non dipendono da quale vince.
+- Lo stato σ dopo la decisione dipende solo dal vincitore, quindi coincide per ogni seed, e la frase successiva parte dallo stesso stato e dalla stessa sequenza di decisioni verificata su s₀. ∎
+
+*Revisione (MM-REV-01, 2026-11-03).* Una prima versione enunciava un «se e solo se». La dimostrazione copre solo la sufficienza. Il viceversa richiederebbe di provare che, con candidati di contenuto diverso in pareggio, esistano seed capaci di selezionare ciascuno di essi; con un hash di spareggio ben mescolante è plausibile, ma non è dimostrato. Le conclusioni sulla fixture usano solo la sufficienza.
 
 **Misura** (programma `tie_probe`, §0.1):
 
@@ -337,7 +343,7 @@ Il planner **non ha uno stato che vari lungo la sezione**: niente arco di tensio
 - **CL-MM-05, assenza di variazione nella sezione.** Conseguenza diretta del §4.2. Per una sezione di n frasi il numero di contenuti distinti è limitato dalle varianti di stato, voice leading e flag di frase, non dal planner. In 5e.2 la fixture conta 14 gruppi musicali su 24 frasi.
   - Effetto musicale: ripetizione percepita, F1–F4.
   - Effetto sulle misure: pochi gruppi indipendenti, quindi `n_eff` basso (ADR-0006 5e-11).
-- **CL-MM-06, il seed non è una sorgente di varietà.** Ogni affermazione del tipo «seed diversi → musica diversa» è falsa per il modello attuale (Teorema D). Il RunRecord e la diversità fra seed vanno letti di conseguenza: il seed serve all'identità e alla riproducibilità, non alla varietà.
+- **CL-MM-06, il seed non è una sorgente di varietà.** Per la fixture e per `planner_probe_v1` ogni affermazione del tipo «seed diversi → musica diversa» è falsa: lo garantiscono il Teorema D (condizione sufficiente) e gli 0 pareggi misurati. Il RunRecord e la diversità fra seed vanno letti di conseguenza: il seed serve all'identità e alla riproducibilità, non alla varietà.
 
 ---
 
@@ -669,7 +675,7 @@ Sono separate dai rilievi: non sono decisioni, ma punti per l'ingresso di M2.5.
 ## 12. Riproducibilità
 
 - **Commit:** `df0bcbe`; Windows 11, MSVC della toolchain fissata (ADR-0001), build `scripts/build.ps1 -Config Release`.
-- **Strumenti fuori dal repository** (scratchpad della sessione, non versionati):
+- **Strumenti** (scritti fuori dal repository; dopo la review archiviati in [experiments/inc5_math_model](experiments/inc5_math_model/README.md)):
   - `tie_probe.cpp`: compilato con `cl /std:c++20 /O2 /EHsc /MD` contro `cymatica_audio.lib` e `cymatica_core.lib` di `build/x64-release`. Pianifica la fixture (8 candidati) e `planner_probe_v1` (6 e 8 candidati) con i seed 1337 e 1..64, stampa per ogni decisione punteggi, pareggi e vincitore, e confronta il contenuto degli eventi fra seed. I risultati sono al §4.2.
   - Script Python per le formule del clock (inversione su 2·10⁵ casi, confini della fixture) e per le pendenze degli inviluppi (§6.4).
 - **Evidenze del repository riusate:**

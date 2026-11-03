@@ -53,7 +53,7 @@ Molti rimandi `file:riga` di B puntano a funzioni inesistenti e non sono stati c
 
 | Tema | A | B | Verifica | Esito |
 |---|---|---|---|---|
-| Diversità fra seed nulla per costruzione: il seed entra solo nello spareggio, i pareggi sono 0 | CL-MM-06, Teorema D, `tie_probe` (0/24 e 0/2 pareggi, scarto ≥ 300, contenuto identico sui seed 1..64) | AG-MM-06 (stessa dimostrazione, `tiedTopCandidates == 1`) | codice `music_planner.cpp` e misura di A | **confermato** |
+| Diversità fra seed nulla per costruzione: il seed entra solo nello spareggio, i pareggi sono 0 | CL-MM-06, Teorema D (condizione sufficiente, MM-REV-01), `tie_probe` (0/24 e 0/2 pareggi, scarto ≥ 300, contenuto identico sui seed 1..64) | AG-MM-06 (stessa dimostrazione, `tiedTopCandidates == 1`) | codice `music_planner.cpp` e misura di A | **confermato** |
 | Indici di frase incoerenti se `barsPerPhrase` cambia fra segmenti | CL-MM-01 | AG-MM-01 (stesso meccanismo; aggiunge l'identità `positionAtFrame(frameAtPhrase(P)).phrase == P` come invariante da testare) | `music_clock.cpp` | **confermato, latente**; B ne alza la severità a MED, A la teneva LOW perché la fixture non lo attiva |
 | Trasposizione modale ripiegata nota per nota | CL-MM-02 | AG-MM-04 | `applyModalTranspose` | **confermato, latente** |
 | Densità SPSC dei pad incrociati contata alla fine della frase | CL-MM-04 | AG-MM-05 | `validateHardConstraints` contro `planPhrase` | **confermato** |
@@ -77,7 +77,7 @@ Molti rimandi `file:riga` di B puntano a funzioni inesistenti e non sono stati c
   | A' (120 BPM) | 16 / 17–22 / 23 | 11 / 12 / 13 |
 
   Le frasi 9–14 di B, simbolicamente uguali come le 17–22 di A', ricevono 6 gruppi distinti.
-- Con una griglia simbolica i gruppi sarebbero 9, non 14.
+- Con una griglia simbolica la stima esplorativa era di 9 gruppi invece di 14, con la frase 23 tenuta distinta. La regola adottata in 5e.3c (Q = 32 unità per battuta) ne dà **8**: il rilascio anticipato di 400 frame della frase 23 vale 0,13 unità e la riporta nel gruppo delle 17–22 (rettifica MM-REV-02 della review).
 
 **Correzione ad A.** Il §4.5 (CL-MM-05) attribuiva la varietà fra frasi della stessa sezione allo stato di voice leading e ai flag di frase. Nella sezione B la distinzione è invece un artefatto di arrotondamento di 20,8 µs, musicalmente nullo. Il dossier A riceve un erratum che rimanda qui.
 
@@ -181,7 +181,7 @@ Per le prossime consegne di Antigravity si propone di chiedere:
 ## 9. Riproducibilità
 
 - **Commit:** `df0bcbe`.
-- **Strumenti dell'agente A** (scratchpad della sessione, non versionati):
+- **Strumenti dell'agente A** (archiviati dopo la review in [experiments/inc5_math_model](experiments/inc5_math_model/README.md)):
   - `tie_probe.cpp` (pareggi e seed, dossier A §4.2);
   - `limiter_probe.cpp`: compilato con `cl /std:c++20 /O2 /EHsc /MD` contro `cymatica_audio.lib` e `cymatica_core.lib` di `build/x64-release`; applica `MasterLimiter` a 1 s di segnale stereo e misura il true peak prima e dopo;
   - script Python per la griglia a 140 BPM (§4.1) e per `phrasePhase` in float32 (§5).
