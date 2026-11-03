@@ -8,4 +8,5 @@ Previsioni e regole sono fissate in [ADR-0006](../../../adr/0006-m2-4-inc5-entry
   - gli esiti di P1–P4 e l'esito causale.
 
   Si rigenera con `cymatica_game --cacp-run trama_miss_diagnosis_v1` (Release, circa 1 s). Il `build_id` `c4857b2` è quello compilato, più il working tree di 5e.3b.
+- `trama_miss_diagnosis_v1_2026-11-03_dif5e3b.json`: lo stesso scenario dopo la micro-remediation DIF-5e.3b-01..03 (build `c51b2b5` più il working tree della remediation). Rendering, misure ed esiti di P1–P4 e M-NORM sono identici al file precedente, che resta invariato; cambiano solo le regole dichiarate (`rules`) e la qualifica `strength`.
 - `trama_miss_diagnosis_v1_curves_2026-11-03.csv`: curve per frame (3.119 frame, hop 256): novelty e soglia a 2 ms, novelty controfattuale a 2 ms, novelty e soglia a 30 ms.

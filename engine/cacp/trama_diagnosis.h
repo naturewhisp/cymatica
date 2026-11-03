@@ -17,11 +17,15 @@ namespace cymatica::cacp {
 //       max F(2 ms) >= 1.2 x max F(30 ms).
 //   P2: renormalising the 2 ms flux by its maximum outside +-50 ms of the Trama NoteOffs gives recall >= 0.95;
 //       control: the same recomputation at 30 ms keeps recall 1.000, otherwise INCONCLUSIVE.
-//   P3: at least 8 of the 10 references missed at 2 ms are among the 12 lowest raw attack peaks of the 40.
+//   P3: at least 8 of the 10 references missed at 2 ms are among the 12 lowest raw attack peaks of the 40; every raw
+//       peak must be measured, finite and non-negative, otherwise INCONCLUSIVE (DIF-5e.3b-02).
 //   P4 (alternative, minimum-separation merge): NOT_SUPPORTED when no missed reference has an above-threshold local
 //       maximum in its window dropped by the merge; SUPPORTED when at least 5 have one; INCONCLUSIVE in between.
-//   Causal (M-NORM): SUPPORTED when P1, P2 and P3 are SUPPORTED and P4 is not; NOT_SUPPORTED when P2 is
-//       NOT_SUPPORTED with a valid control; INCONCLUSIVE otherwise.
+//   Causal (M-NORM): INCONCLUSIVE when any validity condition fails (capture, analysis, parity with
+//       evaluateRoleOnsets, identical repeat; DIF-5e.3b-03). Otherwise SUPPORTED when P1, P2 and P3 are SUPPORTED and
+//       P4 is NOT_SUPPORTED (DIF-5e.3b-01); NOT_SUPPORTED when P2 is NOT_SUPPORTED with a valid control; else INCONCLUSIVE.
+// Strength: a retrospective mechanistic experiment on set B (the hypothesis came from 5e.3 data), not an independent
+// confirmation on new data.
 
 inline constexpr double kDiagWindowS = 0.050;          // matching and release windows (+-50 ms)
 inline constexpr double kP1MinNormaliserRatio = 1.2;
@@ -78,8 +82,9 @@ struct PredictionOutcome {
 [[nodiscard]] PredictionOutcome evaluateP2(const TramaRenderDiagnosis& at2, const TramaRenderDiagnosis& at30);
 [[nodiscard]] PredictionOutcome evaluateP3(const TramaRenderDiagnosis& at2);
 [[nodiscard]] PredictionOutcome evaluateP4(const TramaRenderDiagnosis& at2);
+// validityFailures: the reasons a mandatory validity condition failed (empty when the evidence is valid)
 [[nodiscard]] PredictionOutcome evaluateCausal(const PredictionOutcome& p1, const PredictionOutcome& p2, const PredictionOutcome& p3,
-                                               const PredictionOutcome& p4);
+                                               const PredictionOutcome& p4, const std::vector<std::string>& validityFailures);
 
 struct TramaDiagnosisResult {
     std::string status{"NOT_RUN"};                 // MEASURED or INCONCLUSIVE with reasons

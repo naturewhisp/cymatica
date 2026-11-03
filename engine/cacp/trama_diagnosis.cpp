@@ -226,11 +226,16 @@ PredictionOutcome evaluateP3(const TramaRenderDiagnosis& at2) {
         return {"INCONCLUSIVE", std::to_string(missed.size()) + " missed references, the rule is fixed for " +
                                     std::to_string(kExpectedMissed)};
     }
-    // Rank by raw attack peak; a reference without a peak ranks lowest
+    // Every reference needs a measured raw peak, finite and non-negative: a missing peak is a missing measure, never
+    // the weakest attack (DIF-5e.3b-02)
+    for (const auto& r : at2.refs) {
+        if (!r.peakRaw || !std::isfinite(*r.peakRaw) || *r.peakRaw < 0.0) {
+            return {"INCONCLUSIVE", "raw attack peak not measured for reference " + std::to_string(r.index)};
+        }
+    }
     std::vector<std::size_t> order(at2.refs.size());
     std::iota(order.begin(), order.end(), std::size_t{0});
-    auto key = [&](std::size_t i) { return at2.refs[i].peakRaw.value_or(-std::numeric_limits<double>::infinity()); };
-    std::stable_sort(order.begin(), order.end(), [&](std::size_t a, std::size_t b) { return key(a) < key(b); });
+    std::stable_sort(order.begin(), order.end(), [&](std::size_t a, std::size_t b) { return *at2.refs[a].peakRaw < *at2.refs[b].peakRaw; });
     std::size_t among = 0;
     for (std::size_t k = 0; k < kP3LowestCount && k < order.size(); ++k) {
         if (!at2.refs[order[k]].matched) ++among;
@@ -252,9 +257,13 @@ PredictionOutcome evaluateP4(const TramaRenderDiagnosis& at2) {
 }
 
 PredictionOutcome evaluateCausal(const PredictionOutcome& p1, const PredictionOutcome& p2, const PredictionOutcome& p3,
-                                 const PredictionOutcome& p4) {
+                                 const PredictionOutcome& p4, const std::vector<std::string>& validityFailures) {
+    // Fail-closed (DIF-5e.3b-03): any failed validity condition (capture, analysis, parity with evaluateRoleOnsets,
+    // identical repeat) leaves the causal outcome INCONCLUSIVE; the predictions stay available as diagnostics
+    if (!validityFailures.empty()) return {"INCONCLUSIVE", "validity failed: " + validityFailures.front()};
     if (p2.outcome == "NOT_SUPPORTED") return {"NOT_SUPPORTED", "the counterfactual normalisation does not recover the missed references"};
-    if (p1.outcome == "SUPPORTED" && p2.outcome == "SUPPORTED" && p3.outcome == "SUPPORTED" && p4.outcome != "SUPPORTED") {
+    // The alternative mechanism must be excluded, not merely unproven (DIF-5e.3b-01)
+    if (p1.outcome == "SUPPORTED" && p2.outcome == "SUPPORTED" && p3.outcome == "SUPPORTED" && p4.outcome == "NOT_SUPPORTED") {
         return {"SUPPORTED", "M-NORM: global flux normalisation set by the release transients, with weak attacks"};
     }
     return {"INCONCLUSIVE", "P1 " + p1.outcome + ", P2 " + p2.outcome + ", P3 " + p3.outcome + ", P4 " + p4.outcome};
@@ -286,7 +295,7 @@ TramaDiagnosisResult runTramaMissDiagnosisV1(const std::string& outputDir, bool 
         r.p2 = evaluateP2(r.at2, r.at30);
         r.p3 = evaluateP3(r.at2);
         r.p4 = evaluateP4(r.at2);
-        r.causal = evaluateCausal(r.p1, r.p2, r.p3, r.p4);
+        r.causal = evaluateCausal(r.p1, r.p2, r.p3, r.p4, r.reasons);
         r.status = r.reasons.empty() ? "MEASURED" : "INCONCLUSIVE";
         return r;
     };
@@ -297,6 +306,7 @@ TramaDiagnosisResult runTramaMissDiagnosisV1(const std::string& outputDir, bool 
     if (!r.repeatIdentical) {
         r.reasons.emplace_back("repeat run differs");
         r.status = "INCONCLUSIVE";
+        r.causal = evaluateCausal(r.p1, r.p2, r.p3, r.p4, r.reasons); // the repeat is a validity condition too
     }
     if (writeFiles) {
         namespace fs = std::filesystem;
@@ -350,9 +360,13 @@ std::string TramaDiagnosisResult::toJson() const {
         {"p1", "SUPPORTED when the 2 ms global flux maximum is within +-50 ms of a Trama NoteOff and max F(2 ms) >= 1.2 max F(30 ms)"},
         {"p2", "SUPPORTED when the 2 ms recall after renormalising by the max outside +-50 ms of the NoteOffs is >= 0.95; "
                "the 30 ms control must keep 1.000"},
-        {"p3", "SUPPORTED when >= 8 of the 10 references missed at 2 ms are among the 12 lowest raw attack peaks"},
-        {"p4", "NOT_SUPPORTED with no missed reference having a dropped above-threshold local maximum; SUPPORTED with >= 5"},
-        {"causal", "SUPPORTED when P1, P2, P3 SUPPORTED and P4 not; NOT_SUPPORTED when P2 NOT_SUPPORTED; else INCONCLUSIVE"},
+        {"p3", "SUPPORTED when >= 8 of the 10 references missed at 2 ms are among the 12 lowest raw attack peaks; every "
+               "raw peak must be measured, finite and non-negative, otherwise INCONCLUSIVE"},
+        {"p4", "NOT_SUPPORTED with no missed reference having a dropped above-threshold local maximum; SUPPORTED with >= 5; "
+               "INCONCLUSIVE from 1 to 4"},
+        {"causal", "INCONCLUSIVE when any validity condition fails (capture, analysis, parity, identical repeat); otherwise "
+                   "SUPPORTED when P1, P2, P3 SUPPORTED and P4 NOT_SUPPORTED; NOT_SUPPORTED when P2 NOT_SUPPORTED; else INCONCLUSIVE"},
+        {"strength", "retrospective mechanistic experiment on set B: not an independent confirmation on new data"},
         {"provenance", "hypothesis formed a posteriori from 5e.3 data (velocity and timbre of the missed notes); those "
                        "associations are not a test"}};
     return j.dump(2) + "\n";

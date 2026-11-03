@@ -155,10 +155,41 @@ TEST_CASE("5e.3b P4 and the causal outcome", "[trama_diagnosis]") {
     CHECK(evaluateP4(at2).detail.rfind("5 ", 0) == 0);
 
     const PredictionOutcome s{"SUPPORTED", ""}, n{"NOT_SUPPORTED", ""}, i{"INCONCLUSIVE", ""};
-    CHECK(evaluateCausal(s, s, s, n).outcome == "SUPPORTED");
-    CHECK(evaluateCausal(s, s, s, i).outcome == "SUPPORTED");
-    CHECK(evaluateCausal(s, s, s, s).outcome == "INCONCLUSIVE"); // the alternative mechanism is also supported
-    CHECK(evaluateCausal(s, n, s, n).outcome == "NOT_SUPPORTED");
-    CHECK(evaluateCausal(n, s, s, n).outcome == "INCONCLUSIVE");
-    CHECK(evaluateCausal(s, i, s, n).outcome == "INCONCLUSIVE");
+    const std::vector<std::string> valid{};
+    CHECK(evaluateCausal(s, s, s, n, valid).outcome == "SUPPORTED");
+    CHECK(evaluateCausal(s, s, s, s, valid).outcome == "INCONCLUSIVE"); // the alternative mechanism is also supported
+    CHECK(evaluateCausal(s, n, s, n, valid).outcome == "NOT_SUPPORTED");
+    CHECK(evaluateCausal(n, s, s, n, valid).outcome == "INCONCLUSIVE");
+    CHECK(evaluateCausal(s, i, s, n, valid).outcome == "INCONCLUSIVE");
+}
+
+TEST_CASE("5e.3b causal outcome is fail-closed: P4 not excluded, invalid parity or repeat (DIF-5e.3b-01, -03)", "[trama_diagnosis]") {
+    const PredictionOutcome s{"SUPPORTED", ""}, n{"NOT_SUPPORTED", ""}, i{"INCONCLUSIVE", ""};
+    // An inconclusive P4 has not excluded the merge mechanism
+    CHECK(evaluateCausal(s, s, s, i, {}).outcome == "INCONCLUSIVE");
+    // Parity with evaluateRoleOnsets failed: every prediction supported, the causal outcome is still INCONCLUSIVE
+    const auto parity = evaluateCausal(s, s, s, n, {"2.000 ms: step-by-step recall differs from evaluateRoleOnsets"});
+    CHECK(parity.outcome == "INCONCLUSIVE");
+    CHECK(parity.detail.find("recall differs") != std::string::npos);
+    // Repeat not identical
+    CHECK(evaluateCausal(s, s, s, n, {"repeat run differs"}).outcome == "INCONCLUSIVE");
+    // Invalid evidence also blocks NOT_SUPPORTED
+    CHECK(evaluateCausal(s, n, s, n, {"repeat run differs"}).outcome == "INCONCLUSIVE");
+}
+
+TEST_CASE("5e.3b P3 needs every raw peak measured: a missing peak is never the weakest attack (DIF-5e.3b-02)", "[trama_diagnosis]") {
+    // Counterexample of the review: the ten missed references without a raw peak
+    auto at2 = render(2.0, 40, 10, 12.0);
+    for (std::size_t k = 0; k < 10; ++k) at2.refs[k].peakRaw.reset();
+    CHECK(evaluateP3(at2).outcome == "INCONCLUSIVE");
+    // A single missing, non-finite or negative peak, even on a matched reference
+    auto one = render(2.0, 40, 10, 12.0);
+    one.refs[25].peakRaw.reset();
+    CHECK(evaluateP3(one).outcome == "INCONCLUSIVE");
+    one = render(2.0, 40, 10, 12.0);
+    one.refs[3].peakRaw = std::nan("");
+    CHECK(evaluateP3(one).outcome == "INCONCLUSIVE");
+    one = render(2.0, 40, 10, 12.0);
+    one.refs[3].peakRaw = -1.0;
+    CHECK(evaluateP3(one).outcome == "INCONCLUSIVE");
 }

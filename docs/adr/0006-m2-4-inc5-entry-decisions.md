@@ -652,15 +652,17 @@ Fissano ciò che D-M2-15 e D-M2-16 rimandano a 5e e stabiliscono il perimetro de
 - **Previsioni e regole** (fissate ora):
   - **P1, normalizzatore dominato dai rilasci:** `SUPPORTED` se a 2 ms il massimo globale di F cade entro ±50 ms da un NoteOff della Trama **e** max F(2 ms) ≥ 1,2 × max F(30 ms).
   - **P2, controfattuale di normalizzazione:** a 2 ms si ricalcola n dividendo F per il suo massimo fuori dalle finestre di ±50 ms attorno ai NoteOff della Trama. Restano invariati δ, offset, finestra della media, distanza minima e abbinamento. `SUPPORTED` se il richiamo della Trama vale ≥ 0,95 (≥ 38 su 40). *Controllo:* lo stesso ricalcolo a 30 ms deve mantenere il richiamo a 1,000; altrimenti P2 è `INCONCLUSIVE`.
-  - **P3, attacchi deboli:** `SUPPORTED` se almeno 8 dei 10 riferimenti mancati a 2 ms stanno fra i 12 con il picco grezzo di F più basso dei 40.
+  - **P3, attacchi deboli:** `SUPPORTED` se almeno 8 dei 10 riferimenti mancati a 2 ms stanno fra i 12 con il picco grezzo di F più basso dei 40. Ogni picco grezzo dev'essere misurato, finito e non negativo, altrimenti `INCONCLUSIVE`: un picco mancante è una misura mancante, non l'attacco più debole (DIF-5e.3b-02).
   - **P4, fusione per distanza minima** (meccanismo alternativo): `NOT_SUPPORTED` se nessun riferimento mancato ha nella sua finestra un massimo locale sopra soglia scartato dalla fusione a 30 ms; `SUPPORTED` se lo hanno almeno 5 dei 10; `INCONCLUSIVE` da 1 a 4.
   - *Validità:* la prova richiede catture e analisi valide, un riferimento per nota e un richiamo ricostruito passo per passo identico a quello di `evaluateRoleOnsets`. Con 2 ms e 30 ms rieseguiti, la ripetizione dev'essere identica. P3 è fissata per 10 mancati: un numero diverso la rende `INCONCLUSIVE`.
   - **Esito causale:**
-    - `SUPPORTED` per M-NORM se P1, P2 e P3 sono `SUPPORTED` e P4 no;
+    - `INCONCLUSIVE` se fallisce una qualunque condizione di validità (catture, analisi, parità con `evaluateRoleOnsets`, ripetizione identica); le previsioni restano disponibili come diagnostica (DIF-5e.3b-03);
+    - altrimenti `SUPPORTED` per M-NORM se P1, P2 e P3 sono `SUPPORTED` e P4 è `NOT_SUPPORTED`: il meccanismo alternativo dev'essere escluso, non solo non dimostrato (DIF-5e.3b-01);
     - `NOT_SUPPORTED` se P2 è `NOT_SUPPORTED` con controllo valido;
     - altrimenti `INCONCLUSIVE`, con le previsioni riportate singolarmente.
 - **Conseguenze ammesse:** solo documentali (dossier di calibrazione, punti aperti per M2.5 e per il consolidamento del modello matematico). Un'eventuale modifica del rivelatore (per esempio una normalizzazione locale) è una decisione di M2.5 con una nuova versione di `descriptors_v1`.
-- **Esito (2026-11-03, `trama_miss_diagnosis_v1`, `MEASURED`):** P1, P2 e P3 sono `SUPPORTED`, P4 è `NOT_SUPPORTED`; l'esito causale M-NORM è **`SUPPORTED`**. I dati sono in `progress.md` (5e.3b). Restano aperti per M2.5 e per il modello matematico:
+- **Esito (2026-11-03, `trama_miss_diagnosis_v1`, `MEASURED`):** P1, P2 e P3 sono `SUPPORTED`, P4 è `NOT_SUPPORTED`; l'esito causale M-NORM è **`SUPPORTED`**, invariato con le regole fail-closed della review (DIF-5e.3b-01..03).
+  - *Forza dell'evidenza:* è un esperimento meccanicistico **retrospettivo** sul set B, perché l'ipotesi nasce dai dati di 5e.3. Dimostra il meccanismo per i segnali studiati e il rivelatore congelato, non la generalizzazione ad altri contenuti, livelli o profili. La verifica su contenuti realmente diversi resta per M2.5, quando il generatore supererà la diversità nulla fra seed. I dati sono in `progress.md` (5e.3b). Restano aperti per M2.5 e per il modello matematico:
   - la dipendenza delle misure di onset dal contenuto dell'intero stem;
   - il δ della Trama, calibrato in presenza dei transitori di rilascio;
   - la scelta fra normalizzazione globale e locale in un futuro `descriptors_v2`.
