@@ -3,6 +3,8 @@
 add_library(cymatica_cacp STATIC
     acao02_calibration.cpp
     acao02_calibration.h
+    check_selftest.cpp
+    check_selftest.h
     analysis_status.h
     diversity.cpp
     diversity.h
@@ -12,6 +14,8 @@ add_library(cymatica_cacp STATIC
     fft.h
     loudness.cpp
     loudness.h
+    m2_suite.cpp
+    m2_suite.h
     mel.cpp
     mel.h
     onset.cpp

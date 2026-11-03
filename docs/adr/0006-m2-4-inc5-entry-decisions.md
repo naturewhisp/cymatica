@@ -629,6 +629,38 @@ Fissano ciò che D-M2-15 e D-M2-16 rimandano a 5e e stabiliscono il perimetro de
 - **Clip A/B:** frasi 5 e 10 della fixture per ogni variante, dal PCM finale, con dissolvenze di 10 ms, per la revisione dell'esperto.
 - **Nessun release di produzione è adottato in Inc-5:** la decisione resta a M2.5. Risultati in `progress.md` (5e.3).
 
+**5e.4a — `full_m2_suite` ed `evaluation_check_selftest_v1` (2026-11-03; regole ed esiti attesi registrati prima dell'implementazione):**
+
+- **Divisione di 5e.4:** 5e.4a (codice: suite e self-test) e 5e.4b (documenti: dossier delle evidenze, materiali per l'esperto e per la review di Antigravity, handoff M2.5), ciascuna con la propria review. Il dossier delle evidenze cita i risultati della suite.
+- **`full_m2_suite`** (5e-02, aggiornato con 5e.3, 5e.3b e 5e.3c): esecuzione in sequenza nello stesso processo, Release, sull'hardware del titolare; **mai in CI**.
+
+  | Classe | Scenari | Condizione |
+  |---|---|---|
+  | Vincolanti | `tone_test`, `voice_test`, `timbre_test`, `planner_test`, `fixture_test` (golden di trace, piano e PCM), `profile_test`, `procedural_v1`, `evaluation_check_selftest_v1` | PASS |
+  | Misure | `onset_parity_v1` (completata, ingresso valido), `acao02_v1` (`MEASURED`), `release_ab_v1` (`MEASURED`), `trama_miss_diagnosis_v1` (`MEASURED`) | misura valida |
+  | Pacchetti | `evaluation_pack_v1`, `evaluation_pack_v2` ed `evaluation_pack_v3` | `GENERATED`, con ripetizione identica al byte, seed passato dall'operatore |
+
+  - **Uscita 0** solo se ogni scenario vincolante è PASS e ogni misura o pacchetto è valido.
+  - **Esiti esplorativi:** non rendono mai rossa la suite, ma sono riportati nel manifest aggregato. Sono H1/H2/R2 di 5e.3, M-NORM di 5e.3b, `NULL_DIVERSITY`, la generalizzazione `INCONCLUSIVE` della calibrazione, la specificità `INSUFFICIENT_DATA` e il giudizio artistico.
+  - **Seed di default:** con il seed di default del pacchetto la suite gira, ma il manifest dichiara che i pacchetti non valgono per una sessione alla cieca.
+  - **Manifest aggregato** `artifacts/cacp/full_m2_suite_manifest.json`: per ogni scenario classe, verdetto, validità, durata e percorso del manifest.
+- **`evaluation_check_selftest_v1`:** risultati prefabbricati contro la verità sigillata di **v1, v2 e v3** prodotta dalla suite. Ogni risultato è scritto su file e passa da `runEvaluationCheck`, che verifica anche l'integrità di `sealed/SHA256SUMS`. Esiti attesi:
+
+  | Caso | Contenuto | Esito atteso |
+  |---|---|---|
+  | S1 oracolo | `role_signal_present` per `listening` su ogni ruolo misurabile di ogni finestra alla cieca non catch, con il valore vero; ruoli della catch tutti falsi | risultato ammissibile e qualificato alla cieca, ogni affermazione `supported`, catch superata. Statistiche di presenza **identiche a un ricalcolo indipendente** (gruppi, conteggi, `n_eff` = (Σm)²/Σm², tasso, Wilson al 95 % su (p·n_eff, n_eff), J_L quando entrambe le classi sono `MEASURED`) entro 10⁻¹²; stato secondo la regola di 5e-11 applicata al ricalcolo |
+  | S2 sempre presente | tutto vero, catch compresa | `catchTrialFailed`, stato `EXCLUDED_BY_CATCH_RULE`, nessun confronto con la baseline |
+  | S3 sempre assente | tutto falso | catch superata, tasso dei positivi 0, tasso dei negativi 1, statistiche identiche al ricalcolo; con entrambe le classi `MEASURED`, J_L ≤ 0 e mai sopra la baseline |
+  | S4 descrittivo | positivi veri sulle finestre di test di esattamente 3 gruppi, nessun negativo | positivi `DESCRIPTIVE_ONLY`, negativi `NOT_RUN`, stato complessivo `DESCRIPTIVE_ONLY` |
+  | S5 dati insufficienti | 4 gruppi di test: nel gruppo A tutti i k ≥ 2 ruoli presenti della finestra di test, nei gruppi B, C e D un solo ruolo presente | n_eff = (k + 3)²/(k² + 3) < 4 per ogni k ≥ 2, quindi positivi `INSUFFICIENT_DATA`; negativi `NOT_RUN`; stato complessivo `DESCRIPTIVE_ONLY` |
+  | S6 compatibilità v1 | regola di raggruppamento della verità v1 | il checker la legge con `source_phrase_only` |
+
+  - S1–S3 si eseguono su v1, v2 e v3; S4 ed S5 su v2 e v3.
+  - **PASS** solo se ogni attesa è soddisfatta.
+  - **INCONCLUSIVE** (e la suite fallisce) se una verità manca o se la composizione non offre i gruppi richiesti da S4 o S5.
+  - *Precisazione emersa in implementazione* (non fissata prima): un caso componibile che manca un'attesa dà **FAIL** anche quando altri casi sono INCONCLUSIVE; INCONCLUSIVE non nasconde mai un FAIL. Il test unitario su `planner_probe_v1` (2 gruppi) l'ha reso necessario: una verità manomessa deve dare FAIL anche se S4 ed S5 non sono componibili.
+  - Le attese sono indipendenti dal seed: dipendono dalla verità generata, non da valori numerici fissati.
+
 **5e.3c — raggruppamento musicale simbolico ed `evaluation_pack_v3` (decisione del titolare R-01, 2026-11-03; regola e previsione registrate prima di qualunque misura della fase):**
 
 - **Problema** (riconciliazione del modello matematico, AG-MM-07): il fingerprint per frase di DIF-5e.0-02 usa i frame relativi all'inizio della frase. A 140 BPM i confini oscillano di ±1 campione con periodo 7 frasi, quindi frasi simbolicamente identiche finiscono in gruppi diversi: 14 gruppi invece di quelli musicali. Ne seguono un `n_eff` sovrastimato e intervalli anti-conservativi. Il titolare ha scelto di correggere **prima** della sessione alla cieca (opzione a).

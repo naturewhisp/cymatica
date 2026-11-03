@@ -9,6 +9,7 @@
 #include "procedural_scenario.h"
 #include "release_ab.h"
 #include "trama_diagnosis.h"
+#include "m2_suite.h"
 #include "raylib.h"
 #include "run_record.h"
 
@@ -194,6 +195,16 @@ int main(int argc, char** argv) {
                 std::printf("[cacp] Verdict: %s\n", res.status.c_str());
                 std::printf("%s\n", res.toJson().c_str());
                 return (res.status == "MEASURED" && res.manifestWriteSuccess && res.curvesWriteSuccess) ? 0 : 1;
+            } else if (std::strcmp(scenario, "full_m2_suite") == 0) {
+                std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5e.4a: every M2 scenario, local gate, never in CI)...\n", scenario);
+                if (packSeed == cymatica::cacp::kDefaultPackSeed) {
+                    std::printf("[cacp] Default public selection seed: the packs are reproducible but never valid for a blind session "
+                                "(pass --pack-seed)\n");
+                }
+                auto res = cymatica::cacp::runFullM2Suite(packSeed, "artifacts/cacp", "artifacts/sealed");
+                std::printf("[cacp] Verdict: %s\n", res.status.c_str());
+                std::printf("[cacp] Manifest: %s\n", res.manifestFilePath.c_str());
+                return (res.status == "PASS" && res.manifestWriteSuccess) ? 0 : 1;
             } else if (std::strcmp(scenario, "onset_parity") == 0 ||
                        std::strcmp(scenario, "onset_parity_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5b onset_parity_v1, not a gate)...\n", scenario);
@@ -203,7 +214,7 @@ int main(int argc, char** argv) {
                 return (res.completed && res.inputValid) ? 0 : 1;
             } else {
                 std::fprintf(stderr, "[cacp] ERROR: unknown scenario '%s' (known: tone_test, voice_test, "
-                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, onset_parity, acao02, evaluation_pack, procedural, release_ab, trama_miss_diagnosis "
+                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, onset_parity, acao02, evaluation_pack, procedural, release_ab, trama_miss_diagnosis, full_m2_suite "
                                      "and their *_v* aliases)\n",
                              scenario);
                 return 2;

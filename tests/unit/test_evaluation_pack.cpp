@@ -4,6 +4,7 @@
 #include "audio_engine.h"
 #include "audio_probe.h"
 #include "audio_scheduler.h"
+#include "check_selftest.h"
 #include "evaluation_pack.h"
 #include "music_planner.h"
 #include "sha256.h"
@@ -13,6 +14,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <set>
 #include <functional>
 #include <limits>
 #include <iterator>
@@ -975,6 +977,66 @@ TEST_CASE("evaluation_pack_v3: symbolic musical groups, read by the checker; v2 
     CHECK_FALSE(writePackDirectory(dir, v2.publicBlind).empty());
     CHECK(writePackDirectory(dir, v3.publicBlind).empty());
     std::filesystem::remove_all(dir, ec);
+}
+
+TEST_CASE("evaluation_check_selftest_v1 runs on the sealed truths of v1, v2 and v3 and fails closed (5e.4a)",
+          "[evaluation_pack][selftest][slow]") {
+    auto ps = plannerSource();
+    const auto root = std::filesystem::temp_directory_path() / "cymatica_selftest";
+    std::error_code ec;
+    std::filesystem::remove_all(root, ec);
+    const PackBuild b1 = buildEvaluationPack(ps->src, 31), b2 = buildEvaluationPackV2(ps->src, 31), b3 = buildEvaluationPackV3(ps->src, 31);
+    REQUIRE(b1.ok);
+    REQUIRE(b2.ok);
+    REQUIRE(b3.ok);
+    const std::vector<std::string> dirs{(root / "v1").string(), (root / "v2").string(), (root / "v3").string()};
+    REQUIRE(writePackDirectory(dirs[0], b1.sealed).empty());
+    REQUIRE(writePackDirectory(dirs[1], b2.sealed).empty());
+    REQUIRE(writePackDirectory(dirs[2], b3.sealed).empty());
+
+    // planner_probe_v1 has 2 phrases, hence 2 musical groups: S4 and S5 cannot be composed here (INCONCLUSIVE, never
+    // PASS); every other case runs and passes. The full PASS is shown by full_m2_suite on the 24-phrase fixture.
+    const auto ok = runEvaluationCheckSelftestV1(dirs, (root / "work").string(), root.string(), false);
+    CHECK(ok.status == "INCONCLUSIVE");
+    std::set<std::string> statuses;
+    std::size_t notComposable = 0;
+    for (const auto& c : ok.cases) {
+        INFO(c.version << " " << c.name << " " << (c.failures.empty() ? std::string{} : c.failures.front()));
+        if (c.composable) {
+            CHECK(c.passed);
+            statuses.insert(c.presenceStatus);
+        } else {
+            CHECK((c.name == "S4_descriptive_only" || c.name == "S5_insufficient_data"));
+            ++notComposable;
+        }
+    }
+    CHECK(ok.cases.size() == 3 * 3 + 1 + 2 * 2);   // S1-S3 on three versions, S6 on v1, S4-S5 on v2 and v3
+    CHECK(notComposable == 4);
+    CHECK(statuses.contains("EXCLUDED_BY_CATCH_RULE"));
+
+    // A tampered sealed truth breaks the integrity check: the selftest fails, it never passes on altered data
+    {
+        auto tampered = b2.sealed;
+        auto& bytes = tampered.at("evaluation_truth.json");
+        bytes.push_back(' ');
+        const auto dir = (root / "v2t").string();
+        std::filesystem::create_directories(dir, ec);
+        for (const auto& [name, data] : tampered) {
+            std::ofstream out(std::filesystem::path(dir) / name, std::ios::binary);
+            out.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
+        }
+        const auto bad = runEvaluationCheckSelftestV1({dirs[0], dir, dirs[2]}, (root / "work2").string(), root.string(), false);
+        CHECK(bad.status == "FAIL");
+    }
+    // A missing truth: INCONCLUSIVE, never PASS
+    {
+        const auto missing = runEvaluationCheckSelftestV1({dirs[0], dirs[1], (root / "absent").string()}, (root / "work3").string(),
+                                                          root.string(), false);
+        CHECK(missing.status == "INCONCLUSIVE");
+        const auto wrongCount = runEvaluationCheckSelftestV1({dirs[0]}, (root / "work4").string(), root.string(), false);
+        CHECK(wrongCount.status == "INCONCLUSIVE");
+    }
+    std::filesystem::remove_all(root, ec);
 }
 
 TEST_CASE("v2 pack directories are regenerable in place; versions never replace each other (DIF-5e.2-01)", "[evaluation_pack][v2][dirs][slow]") {

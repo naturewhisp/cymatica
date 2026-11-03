@@ -1,0 +1,123 @@
+{
+  "build_id": "31b6c43",
+  "cases": [
+    {
+      "case": "S1_oracle",
+      "composable": true,
+      "failures": [],
+      "passed": true,
+      "presence_status": "DESCRIPTIVE_ONLY",
+      "version": "evaluation_pack_v1"
+    },
+    {
+      "case": "S2_always_present",
+      "composable": true,
+      "failures": [],
+      "passed": true,
+      "presence_status": "EXCLUDED_BY_CATCH_RULE",
+      "version": "evaluation_pack_v1"
+    },
+    {
+      "case": "S3_always_absent",
+      "composable": true,
+      "failures": [],
+      "passed": true,
+      "presence_status": "DESCRIPTIVE_ONLY",
+      "version": "evaluation_pack_v1"
+    },
+    {
+      "case": "S6_v1_compatibility",
+      "composable": true,
+      "failures": [],
+      "passed": true,
+      "presence_status": "",
+      "version": "evaluation_pack_v1"
+    },
+    {
+      "case": "S1_oracle",
+      "composable": true,
+      "failures": [],
+      "passed": true,
+      "presence_status": "MEASURED",
+      "version": "evaluation_pack_v2"
+    },
+    {
+      "case": "S2_always_present",
+      "composable": true,
+      "failures": [],
+      "passed": true,
+      "presence_status": "EXCLUDED_BY_CATCH_RULE",
+      "version": "evaluation_pack_v2"
+    },
+    {
+      "case": "S3_always_absent",
+      "composable": true,
+      "failures": [],
+      "passed": true,
+      "presence_status": "MEASURED",
+      "version": "evaluation_pack_v2"
+    },
+    {
+      "case": "S4_descriptive_only",
+      "composable": true,
+      "failures": [],
+      "passed": true,
+      "presence_status": "DESCRIPTIVE_ONLY",
+      "version": "evaluation_pack_v2"
+    },
+    {
+      "case": "S5_insufficient_data",
+      "composable": true,
+      "failures": [],
+      "passed": true,
+      "presence_status": "DESCRIPTIVE_ONLY",
+      "version": "evaluation_pack_v2"
+    },
+    {
+      "case": "S1_oracle",
+      "composable": true,
+      "failures": [],
+      "passed": true,
+      "presence_status": "INSUFFICIENT_DATA",
+      "version": "evaluation_pack_v3"
+    },
+    {
+      "case": "S2_always_present",
+      "composable": true,
+      "failures": [],
+      "passed": true,
+      "presence_status": "EXCLUDED_BY_CATCH_RULE",
+      "version": "evaluation_pack_v3"
+    },
+    {
+      "case": "S3_always_absent",
+      "composable": true,
+      "failures": [],
+      "passed": true,
+      "presence_status": "INSUFFICIENT_DATA",
+      "version": "evaluation_pack_v3"
+    },
+    {
+      "case": "S4_descriptive_only",
+      "composable": true,
+      "failures": [],
+      "passed": true,
+      "presence_status": "DESCRIPTIVE_ONLY",
+      "version": "evaluation_pack_v3"
+    },
+    {
+      "case": "S5_insufficient_data",
+      "composable": true,
+      "failures": [],
+      "passed": true,
+      "presence_status": "DESCRIPTIVE_ONLY",
+      "version": "evaluation_pack_v3"
+    }
+  ],
+  "gate": true,
+  "manifest_version": "1.0",
+  "reasons": [],
+  "rules": "ADR-0006 5e.4a: S1-S3 on v1, v2, v3; S4-S5 on v2, v3; S6 on v1; recomputation tolerance 1e-12",
+  "scenario": "evaluation_check_selftest_v1",
+  "verdict": "PASS"
+}
