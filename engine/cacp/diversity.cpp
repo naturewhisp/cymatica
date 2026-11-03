@@ -86,6 +86,69 @@ std::vector<std::string> phraseGroupIds(const FixturePlan& plan, std::uint32_t s
     return ids;
 }
 
+std::optional<std::uint64_t> symbolicPhraseFingerprint(const std::vector<audio::MusicIntentEvent>& phraseIntents,
+                                                       const std::vector<audio::PlannedNoteOff>& noteOffs, std::uint64_t phraseStartFrame,
+                                                       std::uint64_t phraseEndFrame, std::uint32_t barCount) {
+    if (barCount == 0 || phraseEndFrame <= phraseStartFrame) return std::nullopt;
+    const double unitsPerFrame = static_cast<double>(kSymbolicGridPerBar) * static_cast<double>(barCount) /
+                                 static_cast<double>(phraseEndFrame - phraseStartFrame);
+    const auto grid = [&](std::uint64_t frame) {
+        const double rel = static_cast<double>(frame) - static_cast<double>(phraseStartFrame);
+        return static_cast<std::int64_t>(std::llround(rel * unitsPerFrame));
+    };
+    // (role, q_on, cents, velocity x1000, timbre x1000, q_end of the duration NoteOff or -1, sorted explicit releases)
+    using Note = std::tuple<int, std::int64_t, std::int64_t, std::int64_t, std::int64_t, std::int64_t, std::vector<std::int64_t>>;
+    std::vector<Note> notes;
+    for (const auto& e : phraseIntents) {
+        if (!std::isfinite(e.pitchHz) || !std::isfinite(e.velocity) || !std::isfinite(e.timbreParam) || e.pitchHz < 0.0f) return std::nullopt;
+        const std::int64_t cents = e.pitchHz > 0.0f
+                                       ? std::llround(1200.0 * std::log2(static_cast<double>(e.pitchHz) / 440.0))
+                                       : static_cast<std::int64_t>(INT32_MIN);
+        std::vector<std::int64_t> releases;
+        for (const auto& o : noteOffs) {
+            if (o.eventId == e.eventId && o.role == e.role) releases.push_back(grid(o.sampleFrame));
+        }
+        std::sort(releases.begin(), releases.end());
+        notes.emplace_back(static_cast<int>(e.role), grid(e.sampleFrame), cents, std::llround(1000.0 * e.velocity),
+                           std::llround(1000.0 * e.timbreParam), e.durationFrames > 0 ? grid(e.sampleFrame + e.durationFrames) : -1,
+                           std::move(releases));
+    }
+    std::sort(notes.begin(), notes.end());
+    std::uint64_t h = 1469598103934665603ULL;
+    auto mix = [&h](std::int64_t v) {
+        const auto u = static_cast<std::uint64_t>(v);
+        for (int i = 0; i < 8; ++i) {
+            h ^= (u >> (8 * i)) & 0xFFU;
+            h *= 1099511628211ULL;
+        }
+    };
+    mix(static_cast<std::int64_t>(kSymbolicGridPerBar));
+    mix(static_cast<std::int64_t>(barCount));
+    mix(static_cast<std::int64_t>(notes.size()));
+    for (const auto& [role, on, cents, vel, timbre, end, releases] : notes) {
+        mix(role);
+        mix(on);
+        mix(cents);
+        mix(vel);
+        mix(timbre);
+        mix(end);
+        mix(static_cast<std::int64_t>(releases.size()));
+        for (const auto r : releases) mix(r);
+    }
+    return h;
+}
+
+std::vector<std::string> symbolicPhraseGroupIds(const FixturePlan& plan) {
+    std::vector<std::string> ids;
+    for (std::size_t i = 0; i < plan.phrases.size() && i < plan.intentsPerPhrase.size(); ++i) {
+        const auto& p = plan.phrases[i];
+        const auto fp = symbolicPhraseFingerprint(plan.intentsPerPhrase[i], plan.noteOffs, p.startFrame, p.endFrame, p.barCount);
+        if (!fp) return {}; // fail-closed
+        ids.push_back("s" + hex16(*fp));
+    }
+    return ids;
+}
+
 std::vector<NoteToken> planTokens(const FixturePlan& plan) {
     std::map<std::pair<std::uint64_t, int>, std::uint64_t> release;
     for (const auto& o : plan.noteOffs) release[{o.eventId, static_cast<int>(o.role)}] = o.sampleFrame;
@@ -274,6 +337,8 @@ DiversityResult measureSeedDiversity() {
     if (p1337.ok) {
         const auto groups = phraseGroupIds(p1337);
         d.phraseGroups1337 = std::set<std::string>(groups.begin(), groups.end()).size();
+        const auto symbolic = symbolicPhraseGroupIds(p1337);
+        d.phraseGroups1337Symbolic = std::set<std::string>(symbolic.begin(), symbolic.end()).size();
     }
     d.status = "MEASURED";
     if (d.distinctFingerprints <= 1) {
@@ -310,6 +375,7 @@ std::string diversityJson(const DiversityResult& d) {
            {"m2_feature_distance", summary(d.m2Distances)},
            {"roles", roles},
            {"phrase_groups_seed_1337", d.phraseGroups1337},
+           {"phrase_groups_seed_1337_symbolic", d.phraseGroups1337Symbolic},
            {"note", "identical pairs are 0 by identity for M2-M4 and are not recomputed; diversity is not a gate and is not "
                     "to be maximised (ADR-0006 D-M2-16)"}};
     if (!d.error.empty()) j["error"] = d.error;

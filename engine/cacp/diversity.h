@@ -46,6 +46,20 @@ struct FixturePlan {
 // unverifiable phrase is never counted as an independent group.
 [[nodiscard]] std::vector<std::string> phraseGroupIds(const FixturePlan& plan, std::uint32_t sampleRate = 48000);
 
+// Symbolic per-phrase fingerprint (ADR-0006 5e.3c, AG-MM-07): every note on a grid of Q = 32 units per bar of the
+// phrase, q = round((frame - start) * 32 * barCount / (end - start)) for the onset and the end (duration NoteOff or
+// the planner NoteOffs bound to the note), plus role, pitch in cents re 440 Hz, velocity and timbre x1000; canonical
+// order, FNV-1a 64. The +-1-sample floor jitter of a fractional tempo (e.g. 140 BPM) vanishes, so symbolically equal
+// phrases share the fingerprint; differences under half a unit merge (conservative). nullopt on an empty phrase
+// span, zero bars or a non-finite field (fail-closed).
+inline constexpr std::uint32_t kSymbolicGridPerBar = 32;
+[[nodiscard]] std::optional<std::uint64_t> symbolicPhraseFingerprint(const std::vector<audio::MusicIntentEvent>& phraseIntents,
+                                                                     const std::vector<audio::PlannedNoteOff>& noteOffs,
+                                                                     std::uint64_t phraseStartFrame, std::uint64_t phraseEndFrame,
+                                                                     std::uint32_t barCount);
+// Musical group of every phrase by the symbolic fingerprint ("s<16 hex>"); empty when one is not computable
+[[nodiscard]] std::vector<std::string> symbolicPhraseGroupIds(const FixturePlan& plan);
+
 // Token of a note for M2-M4, on a grid of sixteenths of the phrase's bar
 struct NoteToken {
     std::size_t role{0};
@@ -80,7 +94,8 @@ struct DiversityResult {
     std::vector<double> m2Distances{};
     std::array<std::vector<double>, kRoleCount> m3Distances{};
     std::array<std::vector<double>, kRoleCount> m4Distances{};
-    std::size_t phraseGroups1337{0};          // distinct musical groups among the phrases of seed 1337
+    std::size_t phraseGroups1337{0};          // distinct musical groups among the phrases of seed 1337 (frame rule, v2)
+    std::size_t phraseGroups1337Symbolic{0};  // the same with the symbolic rule (v3, ADR-0006 5e.3c)
     std::string error{};
 };
 [[nodiscard]] DiversityResult measureSeedDiversity();

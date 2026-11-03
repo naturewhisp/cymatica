@@ -931,6 +931,52 @@ TEST_CASE("The checker keeps reading evaluation_pack_v1 truths (5e-11 compatibil
     CHECK(rep.presence.positives.claims + rep.presence.negatives.claims >= 1);
 }
 
+TEST_CASE("evaluation_pack_v3: symbolic musical groups, read by the checker; v2 unchanged (ADR-0006 5e.3c)", "[evaluation_pack][v3][slow]") {
+    auto ps = plannerSource();
+    const PackBuild v2 = buildEvaluationPackV2(ps->src, 77);
+    const PackBuild v3 = buildEvaluationPackV3(ps->src, 77);
+    INFO((v3.errors.empty() ? std::string{} : v3.errors.front()));
+    REQUIRE(v2.ok);
+    REQUIRE(v3.ok);
+    CHECK(v2.truth.groupingRule == "per_phrase_content_fingerprint");
+    CHECK(v3.truth.packVersion == kEvaluationPackVersionV3);
+    CHECK(v3.truth.groupingRule == "per_phrase_symbolic_fingerprint");
+    CHECK(isGroupedPackVersion(v3.truth.packVersion));
+    CHECK_FALSE(isGroupedPackVersion(kEvaluationPackVersion));
+    std::string rule;
+    const auto groups = sourcePhraseGroups(ps->src, &rule, nullptr, true);
+    CHECK(rule == "per_phrase_symbolic_fingerprint");
+    for (const auto& w : v3.truth.blind) {
+        if (w.kind == "catch") continue;
+        REQUIRE(w.phrase >= 0);
+        CHECK(w.groupId == groups[static_cast<std::size_t>(w.phrase)]);
+        CHECK(w.groupId.rfind("s", 0) == 0);
+    }
+    // The sealed truth round-trips and the checker uses the v3 groups
+    const auto truth = truthFromJson(str(v3.sealed.at("evaluation_truth.json")));
+    REQUIRE(truth.has_value());
+    CHECK(truth->packVersion == kEvaluationPackVersionV3);
+    CHECK(truth->groupingRule == "per_phrase_symbolic_fingerprint");
+    json r = resultBase(*truth);
+    for (const auto& w : truth->blind) {
+        if (w.kind == "catch") continue;
+        r["claims"].push_back(claim(w.id.c_str(), "listening", "role_signal_present", role("pulso"),
+                                    w.roles[0].signal == SignalLevel::Present));
+    }
+    const auto rep = checkEvaluation(*truth, r.dump(), kSealedHashes);
+    CHECK(rep.checked);
+    CHECK(rep.resultAdmissible);
+    CHECK(rep.groupingRule == "per_phrase_symbolic_fingerprint");
+    // A v3 directory is never replaced by v2 (and vice versa): the ownership check is version-aware
+    const auto dir = (std::filesystem::temp_directory_path() / "cymatica_v3_dir_test").string();
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
+    CHECK(writePackDirectory(dir, v3.publicBlind).empty());
+    CHECK_FALSE(writePackDirectory(dir, v2.publicBlind).empty());
+    CHECK(writePackDirectory(dir, v3.publicBlind).empty());
+    std::filesystem::remove_all(dir, ec);
+}
+
 TEST_CASE("v2 pack directories are regenerable in place; versions never replace each other (DIF-5e.2-01)", "[evaluation_pack][v2][dirs][slow]") {
     namespace fs = std::filesystem;
     auto ps = plannerSource();

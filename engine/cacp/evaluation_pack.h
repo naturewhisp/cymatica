@@ -30,6 +30,13 @@ inline constexpr const char* kEvaluationPackVersion = "evaluation_pack_v1";
 // references from reserved groups, group_id and negative_kind in the sealed truth, staff view in the diagnostic pack.
 // v1 stays generable and readable, unchanged byte for byte.
 inline constexpr const char* kEvaluationPackVersionV2 = "evaluation_pack_v2";
+// v3 (ADR-0006 5e.3c, AG-MM-07): v2 with the musical groups of the symbolic per-phrase fingerprint
+// (per_phrase_symbolic_fingerprint) instead of the frame-relative one; v1 and v2 stay generable and readable.
+inline constexpr const char* kEvaluationPackVersionV3 = "evaluation_pack_v3";
+// Versions with musical groups in the sealed truth (v2, v3)
+[[nodiscard]] inline bool isGroupedPackVersion(const std::string& v) noexcept {
+    return v == kEvaluationPackVersionV2 || v == kEvaluationPackVersionV3;
+}
 inline constexpr const char* kEvaluationResultSchema = "evaluation_result_v0";
 inline constexpr const char* kClaimsVersion = "claims_v0";
 inline constexpr std::uint64_t kDefaultPackSeed = 20261029ULL; // public: never valid for a blind session
@@ -199,12 +206,14 @@ struct PackBuild {
                                             const PresenceProfile& profile = presenceProfileV1());
 [[nodiscard]] PackBuild buildEvaluationPackV2(const PackSource& src, std::uint64_t packSeed, const PackConfig& cfg = {},
                                               const PresenceProfile& profile = presenceProfileV1());
+[[nodiscard]] PackBuild buildEvaluationPackV3(const PackSource& src, std::uint64_t packSeed, const PackConfig& cfg = {},
+                                              const PresenceProfile& profile = presenceProfileV1());
 // Musical group of every phrase of a source: per-phrase content fingerprint of its plan, or "p<index>" when the
 // source carries no plan (rule source_phrase_only, the v1 compatibility case). With a plan, a fingerprint that
 // cannot be computed is an error (DIF-5e.2-03): an empty vector and the reason, never a group of its own that
-// would count as independent.
+// would count as independent. symbolic selects the symbolic per-phrase fingerprint (v3, ADR-0006 5e.3c).
 [[nodiscard]] std::vector<std::string> sourcePhraseGroups(const PackSource& src, std::string* rule = nullptr,
-                                                          std::string* error = nullptr);
+                                                          std::string* error = nullptr, bool symbolic = false);
 
 // 16-bit PCM stereo WAV with only the RIFF, fmt and data chunks (same quantization as writeWavStereo16)
 [[nodiscard]] std::vector<std::uint8_t> encodeWavStereo16(std::span<const float> interleaved, std::uint32_t sampleRate);
@@ -310,6 +319,8 @@ struct EvaluationPackRun {
 [[nodiscard]] EvaluationPackRun runEvaluationPackV1(const std::string& publicRoot, const std::string& sealedDir,
                                                     std::uint64_t packSeed);
 [[nodiscard]] EvaluationPackRun runEvaluationPackV2(const std::string& publicRoot, const std::string& sealedDir,
+                                                    std::uint64_t packSeed);
+[[nodiscard]] EvaluationPackRun runEvaluationPackV3(const std::string& publicRoot, const std::string& sealedDir,
                                                     std::uint64_t packSeed);
 
 // Reads the sealed truth (verified against sealed/SHA256SUMS) and a result file, checks it, writes the report

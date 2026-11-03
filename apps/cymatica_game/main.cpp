@@ -164,6 +164,18 @@ int main(int argc, char** argv) {
                 std::printf("[cacp] Verdict: %s\n", res.status.c_str());
                 std::printf("%s\n", res.toJson().c_str());
                 return (res.ok && res.manifestWriteSuccess) ? 0 : 1;
+            } else if (std::strcmp(scenario, "evaluation_pack_v3") == 0) {
+                std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5e.3c evaluation_pack_v3, symbolic groups, not a gate)...\n", scenario);
+                if (packSeed == cymatica::cacp::kDefaultPackSeed) {
+                    std::printf("[cacp] Default public selection seed: the pack is reproducible but never valid for a blind session "
+                                "(pass --pack-seed)\n");
+                }
+                // v3 has its own sealed default, so that it never overwrites the v1 or v2 truth
+                const std::string sealedV3 = sealedDirGiven ? sealedDir : std::string("artifacts/sealed/evaluation_pack_v3");
+                auto res = cymatica::cacp::runEvaluationPackV3("artifacts/cacp/evaluation_pack_v3", sealedV3, packSeed);
+                std::printf("[cacp] Verdict: %s\n", res.status.c_str());
+                std::printf("%s\n", res.toJson().c_str());
+                return (res.ok && res.manifestWriteSuccess) ? 0 : 1;
             } else if (std::strcmp(scenario, "procedural") == 0 || std::strcmp(scenario, "procedural_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5e.1 procedural_v1: binding checks + MEASURED)...\n", scenario);
                 auto res = cymatica::cacp::runProceduralV1("artifacts/cacp", true);

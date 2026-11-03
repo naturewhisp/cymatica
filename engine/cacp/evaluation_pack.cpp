@@ -28,6 +28,10 @@ using nlohmann::json;
 
 namespace {
 
+const char* packVersionName(int version) noexcept {
+    return version == 3 ? kEvaluationPackVersionV3 : version == 2 ? kEvaluationPackVersionV2 : kEvaluationPackVersion;
+}
+
 constexpr std::array<const char*, 4> kMethods{"listening", "spectrogram", "descriptor", "code"};
 constexpr std::array<const char*, 7> kPredicates{"role_signal_present", "role_onset_detected", "role_audible",
                                                  "role_planned",        "stereo_wider_than",   "artifact_present",
@@ -475,7 +479,7 @@ std::string truthToJson(const TruthBundle& t) {
                    {"onset_tolerance_s", t.config.onsetToleranceS},
                    {"click_resolution_s", t.config.clickResolutionS}};
     j["onset_profile_sha256"] = t.onsetProfileSha256;
-    const bool v2 = t.packVersion == kEvaluationPackVersionV2;
+    const bool v2 = isGroupedPackVersion(t.packVersion); // v2 and v3 carry the musical groups
     j["blind"] = windowsJson(t.blind, v2);
     j["diagnostic"] = windowsJson(t.diagnostic, v2);
     j["phrases"] = windowsJson(t.phrases, v2);
@@ -500,7 +504,7 @@ std::optional<TruthBundle> truthFromJson(std::string_view text, std::string* err
         const json j = json::parse(text);
         TruthBundle t;
         t.packVersion = j.at("pack_version").get<std::string>();
-        if (t.packVersion != kEvaluationPackVersion && t.packVersion != kEvaluationPackVersionV2) {
+        if (t.packVersion != kEvaluationPackVersion && !isGroupedPackVersion(t.packVersion)) {
             throw std::runtime_error("unsupported pack version " + t.packVersion);
         }
         t.sourceName = j.at("source").get<std::string>();
@@ -525,7 +529,7 @@ std::optional<TruthBundle> truthFromJson(std::string_view text, std::string* err
         t.diagnostic = windowsFrom(j.at("diagnostic"));
         t.phrases = windowsFrom(j.at("phrases"));
         t.alteredMaskNovel = j.at("altered_mask_novel").get<bool>();
-        if (t.packVersion == kEvaluationPackVersionV2) {
+        if (isGroupedPackVersion(t.packVersion)) {
             t.groupingRule = j.at("grouping_rule").get<std::string>();
             t.musicalGroups = j.at("musical_groups").get<std::size_t>();
             t.referenceGroups = j.at("reference_groups").get<std::size_t>();
@@ -542,26 +546,27 @@ std::optional<TruthBundle> truthFromJson(std::string_view text, std::string* err
     }
 }
 
-std::vector<std::string> sourcePhraseGroups(const PackSource& src, std::string* rule, std::string* error) {
+std::vector<std::string> sourcePhraseGroups(const PackSource& src, std::string* rule, std::string* error, bool symbolic) {
     std::vector<std::string> ids;
     if (src.intents.empty()) {
         if (rule != nullptr) *rule = "source_phrase_only";
         for (const auto& p : src.phrases) ids.push_back("p" + std::to_string(p.index));
         return ids;
     }
-    if (rule != nullptr) *rule = "per_phrase_content_fingerprint";
+    if (rule != nullptr) *rule = symbolic ? "per_phrase_symbolic_fingerprint" : "per_phrase_content_fingerprint";
     for (const auto& p : src.phrases) {
         std::vector<audio::MusicIntentEvent> own;
         for (const auto& e : src.intents) {
             if (e.sampleFrame >= p.startFrame && e.sampleFrame < p.endFrame) own.push_back(e);
         }
-        const auto fp = phraseContentFingerprint(own, src.noteOffs, p.startFrame, src.sampleRate);
+        const auto fp = symbolic ? symbolicPhraseFingerprint(own, src.noteOffs, p.startFrame, p.endFrame, p.barCount)
+                                 : phraseContentFingerprint(own, src.noteOffs, p.startFrame, src.sampleRate);
         if (!fp) {
             if (error != nullptr) *error = "per-phrase content fingerprint not computable for phrase " + std::to_string(p.index);
             return {};
         }
         std::ostringstream id;
-        id << 'g' << std::hex << std::setw(16) << std::setfill('0') << *fp;
+        id << (symbolic ? 's' : 'g') << std::hex << std::setw(16) << std::setfill('0') << *fp;
         ids.push_back(id.str());
     }
     return ids;
@@ -573,7 +578,7 @@ PackBuild buildPackImpl(const PackSource& src, std::uint64_t packSeed, const Pac
                         int version) {
     PackBuild b;
     TruthBundle& truth = b.truth;
-    truth.packVersion = version == 2 ? kEvaluationPackVersionV2 : kEvaluationPackVersion;
+    truth.packVersion = packVersionName(version);
     truth.sourceName = src.name;
     truth.packSeed = packSeed;
     truth.seedSha256 = packSeedCommitment(packSeed);
@@ -656,9 +661,9 @@ PackBuild buildPackImpl(const PackSource& src, std::uint64_t packSeed, const Pac
     };
     const auto duplicateShift = static_cast<std::uint64_t>(std::llround(cfg.duplicateShiftS * src.sampleRate));
     std::vector<std::string> groupOf;
-    if (version == 2) {
+    if (version >= 2) {
         std::string groupError;
-        groupOf = sourcePhraseGroups(src, &truth.groupingRule, &groupError);
+        groupOf = sourcePhraseGroups(src, &truth.groupingRule, &groupError, version == 3);
         if (groupOf.size() != src.phrases.size()) {
             b.errors.push_back("musical grouping failed: " + (groupError.empty() ? std::string("size mismatch") : groupError));
             return b;
@@ -875,7 +880,7 @@ PackBuild buildPackImpl(const PackSource& src, std::uint64_t packSeed, const Pac
         t.startBar = it.meta.startBar;
         t.barCount = it.meta.barCount;
         t.groupId = it.meta.groupId;
-        if (version == 2 && t.kind != "catch") {
+        if (version >= 2 && t.kind != "catch") {
             for (std::size_t r = 0; r < kRoleCount; ++r) {
                 if (t.removedRole == static_cast<int>(r)) t.roles[r].negativeKind = "removal";
                 else if (t.roles[r].signal != SignalLevel::Present) t.roles[r].negativeKind = "natural";
@@ -898,7 +903,7 @@ PackBuild buildPackImpl(const PackSource& src, std::uint64_t packSeed, const Pac
         truth.blind.push_back(t);
     }
     std::sort(truth.blind.begin(), truth.blind.end(), [](const WindowTruth& a, const WindowTruth& c) { return a.id < c.id; });
-    if (version == 2) {
+    if (version >= 2) {
         // Expected n_eff with one claim per (window, role) on the test and removal windows (DIF-5e.0-02)
         std::map<std::string, std::size_t> pos, neg;
         for (const auto& t : truth.blind) {
@@ -931,7 +936,7 @@ PackBuild buildPackImpl(const PackSource& src, std::uint64_t packSeed, const Pac
 
     auto commonPack = [&](const char* mode) {
         json j;
-        j["pack_version"] = version == 2 ? kEvaluationPackVersionV2 : kEvaluationPackVersion;
+        j["pack_version"] = packVersionName(version);
         j["mode"] = mode;
         j["result_schema"] = kEvaluationResultSchema;
         j["claims_version"] = kClaimsVersion;
@@ -967,7 +972,7 @@ PackBuild buildPackImpl(const PackSource& src, std::uint64_t packSeed, const Pac
     json windowsDiag = json::array();
     std::vector<StaffOnset> detected;
     std::array<std::pair<float, float>, kRoleCount> pitchRange{};
-    if (version == 2) {
+    if (version >= 2) {
         for (std::size_t r = 0; r < kRoleCount; ++r) {
             const auto releases = roleReleaseTimesS(src.applied, static_cast<audio::MusicRole>(r), src.sampleRate);
             const auto d = classifyRoleOnsets(r, src.stems[r], src.onsetProfile[r], onsets.referencesS[r], releases, src.sampleRate,
@@ -1015,7 +1020,7 @@ PackBuild buildPackImpl(const PackSource& src, std::uint64_t packSeed, const Pac
         json entry{{"id", t.id}, {"audio", t.id + ".wav"}, {"mel_mid", t.id + "_mid.png"}, {"mel_side", t.id + "_side.png"},
                    {"stem_mel_mid", stems}, {"phrase", p.index}, {"section", p.section}, {"start_bar", p.startBar},
                    {"bar_count", p.barCount}, {"start_frame", p.startFrame}, {"end_frame", p.endFrame}};
-        if (version == 2) {
+        if (version >= 2) {
             t.groupId = groupOf[i];
             entry["group_id"] = t.groupId;
             // Staff view (5e-06): diagnostic only, never in the blind pack
@@ -1054,7 +1059,7 @@ PackBuild buildPackImpl(const PackSource& src, std::uint64_t packSeed, const Pac
                                  {"stem_to_mix_db", profile.stemToMixDb}, {"numerical_floor_dbfs", profile.numericalFloorDbfs}};
         j["windows"] = windowsDiag;
         j["never_blind"] = true;
-        if (version == 2) {
+        if (version >= 2) {
             j["staff_view_legend"] = {{"lanes_top_to_bottom", json::array({"pulso", "corpo", "trama", "vettore"})},
                                       {"top_strip_white", "applied NoteOn"},
                                       {"middle_bars", "planned notes by log pitch"},
@@ -1062,7 +1067,7 @@ PackBuild buildPackImpl(const PackSource& src, std::uint64_t packSeed, const Pac
                                       {"grey_vertical_lines", "bar lines"}};
         }
         b.publicDiagnostic["pack.json"] = bytesOf(dump(j));
-        b.publicDiagnostic["truth.json"] = bytesOf(dump(windowsJson(truth.diagnostic, version == 2)));
+        b.publicDiagnostic["truth.json"] = bytesOf(dump(windowsJson(truth.diagnostic, version >= 2)));
     }
     truth.publicDiagnosticFiles = hashMap(b.publicDiagnostic);
     b.publicDiagnostic["SHA256SUMS"] = bytesOf(sha256Sums(b.publicDiagnostic));
@@ -1083,6 +1088,10 @@ PackBuild buildEvaluationPack(const PackSource& src, std::uint64_t packSeed, con
 
 PackBuild buildEvaluationPackV2(const PackSource& src, std::uint64_t packSeed, const PackConfig& cfg, const PresenceProfile& profile) {
     return buildPackImpl(src, packSeed, cfg, profile, 2);
+}
+
+PackBuild buildEvaluationPackV3(const PackSource& src, std::uint64_t packSeed, const PackConfig& cfg, const PresenceProfile& profile) {
+    return buildPackImpl(src, packSeed, cfg, profile, 3);
 }
 
 // ---- checker ----
@@ -1407,7 +1416,7 @@ CheckReport checkEvaluation(const TruthBundle& truth, std::string_view resultJso
             }
         }
     }
-    rep.groupingRule = truth.packVersion == kEvaluationPackVersionV2 ? truth.groupingRule : "source_phrase_only (evaluation_pack_v1)";
+    rep.groupingRule = isGroupedPackVersion(truth.packVersion) ? truth.groupingRule : "source_phrase_only (evaluation_pack_v1)";
     rep.presence = computePresenceStats(presenceObs);
     rep.presenceAbstained = abstainedPositives + abstainedNegatives;
     // Worst case (STARD item 15): abstentions counted as errors, reported beside the primary rates, never instead
@@ -1670,7 +1679,7 @@ std::string writePackDirectory(const std::string& dir, const std::map<std::strin
         if (j.is_object() && j.contains("pack_version") && j["pack_version"].is_string()) expected = j["pack_version"].get<std::string>();
         break;
     }
-    if (expected != kEvaluationPackVersion && expected != kEvaluationPackVersionV2) {
+    if (expected != kEvaluationPackVersion && !isGroupedPackVersion(expected)) {
         return dir + ": the files to write carry no known pack version: refused";
     }
     if (fs::is_symlink(d, ec)) return dir + " is a symbolic link";
@@ -1714,9 +1723,9 @@ namespace {
 
 EvaluationPackRun runEvaluationPackImpl(int version, const std::string& publicRoot, const std::string& sealedDir, std::uint64_t packSeed) {
     EvaluationPackRun run;
-    run.scenario = version == 2 ? kEvaluationPackVersionV2 : kEvaluationPackVersion;
+    run.scenario = packVersionName(version);
     auto buildOf = [version](const PackSource& src, std::uint64_t seed) {
-        return version == 2 ? buildEvaluationPackV2(src, seed) : buildEvaluationPack(src, seed);
+        return version == 3 ? buildEvaluationPackV3(src, seed) : version == 2 ? buildEvaluationPackV2(src, seed) : buildEvaluationPack(src, seed);
     };
     run.packSeed = packSeed;
     run.defaultSeed = (packSeed == kDefaultPackSeed);
@@ -1813,11 +1822,15 @@ EvaluationPackRun runEvaluationPackV2(const std::string& publicRoot, const std::
     return runEvaluationPackImpl(2, publicRoot, sealedDir, packSeed);
 }
 
+EvaluationPackRun runEvaluationPackV3(const std::string& publicRoot, const std::string& sealedDir, std::uint64_t packSeed) {
+    return runEvaluationPackImpl(3, publicRoot, sealedDir, packSeed);
+}
+
 std::string EvaluationPackRun::toJson() const {
     json j;
     j["manifest_version"] = "1.0";
     j["scenario"] = scenario;
-    if (scenario == kEvaluationPackVersionV2) {
+    if (isGroupedPackVersion(scenario)) {
         j["grouping_rule"] = groupingRule;
         j["musical_groups"] = musicalGroups;
         j["reference_groups"] = referenceGroups;

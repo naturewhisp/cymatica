@@ -629,6 +629,40 @@ Fissano ciò che D-M2-15 e D-M2-16 rimandano a 5e e stabiliscono il perimetro de
 - **Clip A/B:** frasi 5 e 10 della fixture per ogni variante, dal PCM finale, con dissolvenze di 10 ms, per la revisione dell'esperto.
 - **Nessun release di produzione è adottato in Inc-5:** la decisione resta a M2.5. Risultati in `progress.md` (5e.3).
 
+**5e.3c — raggruppamento musicale simbolico ed `evaluation_pack_v3` (decisione del titolare R-01, 2026-11-03; regola e previsione registrate prima di qualunque misura della fase):**
+
+- **Problema** (riconciliazione del modello matematico, AG-MM-07): il fingerprint per frase di DIF-5e.0-02 usa i frame relativi all'inizio della frase. A 140 BPM i confini oscillano di ±1 campione con periodo 7 frasi, quindi frasi simbolicamente identiche finiscono in gruppi diversi: 14 gruppi invece di quelli musicali. Ne seguono un `n_eff` sovrastimato e intervalli anti-conservativi. Il titolare ha scelto di correggere **prima** della sessione alla cieca (opzione a).
+- **Regola** (`per_phrase_symbolic_fingerprint`): ogni frase è descritta su una griglia simbolica di Q = 32 unità per battuta, cioè trentaduesimi in 4/4. Per ogni nota:
+  - ruolo, altezza in cent rispetto a 440 Hz, velocity e timbro ×1000;
+  - posizione d'inizio q_on = round((f_on − f_start) · Q · battute / (f_end − f_start));
+  - posizione di fine q_end calcolata allo stesso modo, sul NoteOff da durata o sui NoteOff espliciti del planner legati alla nota.
+
+  Il tutto in ordine canonico, con hash FNV-1a 64. Due frasi con lo stesso hash simbolico stanno nello stesso gruppo, insieme alle varianti per rimozione e al duplicato come in v2.
+  - *Proprietà:* l'errore di floor dei frame (≤ 1 campione) vale ≤ 0,0004 unità, quindi le frasi simbolicamente uguali coincidono.
+  - *Arrotondamento:* una differenza sotto mezza unità (31,25 ms a 120 BPM) è assorbita, e unisce frasi quasi identiche. È una fusione **conservativa**: riduce i gruppi, non li aumenta.
+  - *Fail-closed:* una frase senza battute o con fine ≤ inizio non produce un fingerprint, e la costruzione si interrompe.
+- **Versionamento:** la regola cambia il protocollo, quindi nasce `evaluation_pack_v3`, identico a v2 salvo il raggruppamento. v1 e v2 restano generabili e leggibili dal checker; le directory restano separate per versione (DIF-5e.2-01). Il rapporto della diversità riporta anche i gruppi simbolici, accanto a quelli di v2.
+- **Fuori perimetro** (dichiarato): CL-MM-10, la dipendenza fra gruppi diversi con materiale imparentato (trasposto o variato), non è corretta qui. Resta un limite dichiarato di `presence_stats_v1` e un punto aperto per M2.5.
+- **Previsione**, fissata prima della misura, fixture seed 1337:
+
+  | Sezione | Frasi | Gruppo |
+  |---|---|---|
+  | A | 0–3 / 4–6 / 7 | 0 / 1 / 2 |
+  | B | 8 / 9–14 / 15 | 3 / 4 / 5 |
+  | A' | 16 / 17–23 | 6 / 7 |
+
+  - **8 gruppi**. La frase 23 si unisce alle 17–22: il suo rilascio anticipato di 400 frame vale 0,13 unità.
+  - In v3: 3 gruppi di riferimento (uno per sezione, perché ogni sezione ha almeno 2 gruppi) e **5 gruppi di test**.
+  - `n_eff` atteso ≤ 5 in ciascuna classe e non superiore a quello di v2 (10,9 positivi, 8,9 negativi).
+- **Esito:** `CONFIRMED` se gruppi e `n_eff` rispettano la previsione; altrimenti la differenza si registra e si spiega prima di usare v3. La misura non è un gate; il pacchetto resta `GENERATED` o `FAILED` come in v2.
+- **Conseguenza dichiarata:** con 5 gruppi di test la sessione alla cieca potrà dare al più evidenze deboli (n_eff ≤ 5). È il limite reale della fixture, non della statistica.
+- **Esito (2026-11-03): previsione `CONFIRMED`.**
+  - Partizione esatta di 8 gruppi, verificata dal test «Symbolic groups of fixture-m2-4-v1 follow the prediction…».
+  - `evaluation_pack_v3` (seed di verifica 1618033988): 3 gruppi di riferimento, 5 di test, 12 finestre alla cieca.
+  - `n_eff` atteso: 4,93 positivi e 3,77 negativi, entrambi ≤ 5 e sotto v2 (10,92 e 8,89).
+  - v1 e v2 si rigenerano identici byte per byte.
+- **Conseguenza misurata:** con n_eff dei negativi = 3,77 < 4, in v3 la specificità di qualunque valutatore, anche perfetto, risulta `INSUFFICIENT_DATA`; J_L e il confronto con la baseline banale non sono calcolabili. La fixture attuale sostiene al più la sensibilità (n_eff 4,93 ≥ 4, comunque debole). Una sessione alla cieca su v3 non può quindi dare evidenze di specificità: per averne servono più gruppi musicali indipendenti, cioè materiale diverso, che per il Teorema D il generatore attuale non produce. Va deciso prima della sessione (5e-10).
+
 **5e.3b — diagnostica causale dei 10 attacchi mancati della Trama (autorizzata il 2026-11-03; previsioni registrate prima di qualunque misura della fase):**
 
 - **Perimetro:** analisi offline del set sintetico B, ruolo Trama, nei rendering a 2 ms (produzione) e 30 ms (controllo) di `release_ab_v1`. Restano invariati:
