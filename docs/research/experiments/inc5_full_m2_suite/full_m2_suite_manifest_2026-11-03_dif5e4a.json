@@ -1,0 +1,170 @@
+{
+  "blind_session_valid_packs": false,
+  "build_id": "3cb620d",
+  "ci": false,
+  "default_pack_seed": false,
+  "local_gate": true,
+  "manifest_version": "1.0",
+  "pack_seed_commitment_sha256": "47b791e5e06903bfe9f48b6abc81203fc9bf40e2ec45195a61faa5364f83e8e4",
+  "rules": {
+    "exit_zero": "every binding scenario PASS and every measurement and pack valid",
+    "exploratory": "H1/H2/R2, M-NORM, NULL_DIVERSITY, calibration generalisation and specificity are reported, never a gate",
+    "packs": "the blind session is deferred to M2.5: these packs are never handed to a blind evaluator",
+    "source": "ADR-0006 5e-02, 5e.4a"
+  },
+  "scenario": "full_m2_suite",
+  "steps": [
+    {
+      "category": "binding",
+      "manifest": "artifacts\\cacp\\tone_probe_v0_manifest.json",
+      "name": "tone_test",
+      "notes": [],
+      "seconds": 0.0211725,
+      "valid": true,
+      "verdict": "PASS"
+    },
+    {
+      "category": "binding",
+      "manifest": "artifacts\\cacp\\voice_probe_v1_manifest.json",
+      "name": "voice_test",
+      "notes": [],
+      "seconds": 0.0067779,
+      "valid": true,
+      "verdict": "PASS"
+    },
+    {
+      "category": "binding",
+      "manifest": "artifacts\\cacp\\timbre_bus_probe_v1_manifest.json",
+      "name": "timbre_test",
+      "notes": [],
+      "seconds": 0.0303866,
+      "valid": true,
+      "verdict": "PASS"
+    },
+    {
+      "category": "binding",
+      "manifest": "artifacts\\cacp\\planner_probe_v1_manifest.json",
+      "name": "planner_test",
+      "notes": [],
+      "seconds": 0.1232784,
+      "valid": true,
+      "verdict": "PASS"
+    },
+    {
+      "category": "binding",
+      "manifest": "artifacts\\cacp\\fixture_probe_v1_manifest.json",
+      "name": "fixture_test",
+      "notes": [
+        "golden PCM PASS"
+      ],
+      "seconds": 1.3754492,
+      "valid": true,
+      "verdict": "PASS"
+    },
+    {
+      "category": "binding",
+      "manifest": "artifacts\\cacp\\profile_probe_v1_manifest.json",
+      "name": "profile_test",
+      "notes": [],
+      "seconds": 11.6200319,
+      "valid": true,
+      "verdict": "PASS"
+    },
+    {
+      "category": "measurement",
+      "manifest": "artifacts\\cacp\\onset_parity_v1_manifest.json",
+      "name": "onset_parity_v1",
+      "notes": [],
+      "seconds": 2.4913796,
+      "valid": true,
+      "verdict": "MEASURED"
+    },
+    {
+      "category": "measurement",
+      "manifest": "artifacts\\cacp\\acao02_v1_manifest.json",
+      "name": "acao02_v1",
+      "notes": [
+        "exploratory: multi-seed generalisation of the calibration INCONCLUSIVE (1 distinct content among the scanned seeds)"
+      ],
+      "seconds": 10.358944,
+      "valid": true,
+      "verdict": "MEASURED"
+    },
+    {
+      "category": "pack",
+      "manifest": "artifacts\\cacp\\evaluation_pack_v1_manifest.json",
+      "name": "evaluation_pack_v1",
+      "notes": [],
+      "seconds": 25.3995697,
+      "valid": true,
+      "verdict": "GENERATED"
+    },
+    {
+      "category": "pack",
+      "manifest": "artifacts\\cacp\\evaluation_pack_v2_manifest.json",
+      "name": "evaluation_pack_v2",
+      "notes": [
+        "musical groups 14, expected n_eff positives 10.922, negatives 8.895"
+      ],
+      "seconds": 40.466062,
+      "valid": true,
+      "verdict": "GENERATED"
+    },
+    {
+      "category": "pack",
+      "manifest": "artifacts\\cacp\\evaluation_pack_v3_manifest.json",
+      "name": "evaluation_pack_v3",
+      "notes": [
+        "musical groups 8, expected n_eff positives 4.928, negatives 3.769",
+        "exploratory: specificity INSUFFICIENT_DATA expected (n_eff 3.769 < 4)"
+      ],
+      "seconds": 29.7265738,
+      "valid": true,
+      "verdict": "GENERATED"
+    },
+    {
+      "category": "binding",
+      "manifest": "artifacts\\cacp\\evaluation_check_selftest_v1_manifest.json",
+      "name": "evaluation_check_selftest_v1",
+      "notes": [],
+      "seconds": 0.1263998,
+      "valid": true,
+      "verdict": "PASS"
+    },
+    {
+      "category": "measurement",
+      "manifest": "artifacts\\cacp\\release_ab_v1_manifest.json",
+      "name": "release_ab_v1",
+      "notes": [
+        "exploratory: H1 NOT_SUPPORTED, H2 SUPPORTED, R2 short-IOI NOT_SUPPORTED"
+      ],
+      "seconds": 65.8467501,
+      "valid": true,
+      "verdict": "MEASURED"
+    },
+    {
+      "category": "measurement",
+      "manifest": "artifacts\\cacp\\trama_miss_diagnosis_v1_manifest.json",
+      "name": "trama_miss_diagnosis_v1",
+      "notes": [
+        "exploratory: M-NORM SUPPORTED"
+      ],
+      "seconds": 0.9228148,
+      "valid": true,
+      "verdict": "MEASURED"
+    },
+    {
+      "category": "binding",
+      "manifest": "artifacts\\cacp\\procedural_v1_manifest.json",
+      "name": "procedural_v1",
+      "notes": [
+        "exploratory: seed diversity NULL_DIVERSITY"
+      ],
+      "seconds": 13.3329296,
+      "valid": true,
+      "verdict": "PASS"
+    }
+  ],
+  "total_seconds": 201.84851989999999,
+  "verdict": "PASS"
+}

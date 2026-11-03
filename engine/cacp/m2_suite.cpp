@@ -59,11 +59,27 @@ void packStep(SuiteResult& r, const char* name, const std::function<EvaluationPa
         if (run.musicalGroups > 0) {
             s.notes.push_back("musical groups " + std::to_string(run.musicalGroups) + ", expected n_eff positives " +
                               fmt3(run.expectedPositiveNeff) + ", negatives " + fmt3(run.expectedNegativeNeff));
+            // Exploratory (OSS-5e.4a-01): a class under the n_eff threshold cannot be MEASURED with this pack
+            for (const auto& [cls, neff] : {std::pair{"sensitivity", run.expectedPositiveNeff}, std::pair{"specificity", run.expectedNegativeNeff}}) {
+                if (neff < 4.0) s.notes.push_back(std::string("exploratory: ") + cls + " INSUFFICIENT_DATA expected (n_eff " + fmt3(neff) + " < 4)");
+            }
         }
     });
 }
 
 } // namespace
+
+bool onsetParityStepValid(const OnsetParityResult& r) noexcept { return r.completed && r.inputValid && r.manifestWriteSuccess; }
+
+bool acao02StepValid(const Acao02Result& r) noexcept { return r.completed && r.status == "MEASURED" && r.manifestWriteSuccess; }
+
+bool profileStepValid(const audio::ProfileProbeResult& r) noexcept { return r.passed && r.timingGated; }
+
+std::string suiteStatus(const std::vector<SuiteStep>& steps) {
+    bool ok = !steps.empty();
+    for (const auto& s : steps) ok = ok && s.valid;
+    return ok ? "PASS" : "FAIL";
+}
 
 SuiteResult runFullM2Suite(std::uint64_t packSeed, const std::string& outputDir, const std::string& sealedRoot) {
     SuiteResult r;
@@ -104,23 +120,32 @@ SuiteResult runFullM2Suite(std::uint64_t packSeed, const std::string& outputDir,
     });
     timed(r, "profile_test", "binding", [&](SuiteStep& s) {
         const auto res = audio::runProfileProbeV1Offline(outputDir, true);
-        s.verdict = res.passed ? "PASS" : "FAIL";
-        s.valid = res.passed;
+        s.valid = profileStepValid(res);
+        s.verdict = s.valid ? "PASS" : "FAIL";
         s.manifest = path(outputDir, "profile_probe_v1_manifest.json");
-        if (!res.timingGated) s.notes.emplace_back("timings not gated (not a Release build)");
+        if (!res.timingGated) {
+            s.notes.emplace_back("timings not gated (not a Release build): full_m2_suite is a Release gate (DIF-5e.4a-02)");
+        }
     });
     timed(r, "onset_parity_v1", "measurement", [&](SuiteStep& s) {
         const auto res = runOnsetParityV1(outputDir, true);
         s.verdict = res.status;
-        s.valid = res.completed && res.inputValid;
+        s.valid = onsetParityStepValid(res);
         s.manifest = path(outputDir, "onset_parity_v1_manifest.json");
+        if (!res.manifestWriteSuccess) s.notes.emplace_back("manifest not written (DIF-5e.4a-01)");
     });
     timed(r, "acao02_v1", "measurement", [&](SuiteStep& s) {
         const auto res = runAcao02V1(outputDir, true);
         s.verdict = res.status;
-        s.valid = res.completed && res.status == "MEASURED";
+        s.valid = acao02StepValid(res);
         s.manifest = path(outputDir, "acao02_v1_manifest.json");
+        if (!res.manifestWriteSuccess) s.notes.emplace_back("manifest not written (DIF-5e.4a-01)");
         for (const auto& why : res.inconclusiveReasons) s.notes.push_back(why);
+        // Exploratory (OSS-5e.4a-01): the multi-seed generalisation of the calibration
+        if (res.distinctFingerprints <= 1) {
+            s.notes.push_back("exploratory: multi-seed generalisation of the calibration INCONCLUSIVE (" +
+                              std::to_string(res.distinctFingerprints) + " distinct content among the scanned seeds)");
+        }
     });
     const std::string v1Sealed = path(sealedRoot, "evaluation_pack_v1");
     const std::string v2Sealed = path(sealedRoot, "evaluation_pack_v2");
@@ -157,11 +182,16 @@ SuiteResult runFullM2Suite(std::uint64_t packSeed, const std::string& outputDir,
         s.manifest = path(outputDir, "procedural_v1_manifest.json");
         for (const auto& f : res.failures) s.notes.push_back(f);
         for (const auto& f : res.findings) s.notes.push_back("finding: " + f);
+        // Exploratory (OSS-5e.4a-01): seed diversity outcome of the declared scan
+        if (!res.diversityJson.empty()) {
+            const json d = json::parse(res.diversityJson, nullptr, false);
+            if (d.is_object() && d.contains("outcome") && d["outcome"].is_string()) {
+                s.notes.push_back("exploratory: seed diversity " + d["outcome"].get<std::string>());
+            }
+        }
     });
 
-    bool ok = true;
-    for (const auto& s : r.steps) ok = ok && s.valid;
-    r.status = ok ? "PASS" : "FAIL";
+    r.status = suiteStatus(r.steps);
     r.manifestFilePath = path(outputDir, "full_m2_suite_manifest.json");
     std::ofstream mf(r.manifestFilePath);
     r.manifestWriteSuccess = mf.is_open();

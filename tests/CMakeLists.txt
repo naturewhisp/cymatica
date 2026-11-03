@@ -21,6 +21,7 @@ add_executable(cymatica_tests
     unit/test_presence_stats.cpp
     unit/test_release_ab.cpp
     unit/test_trama_diagnosis.cpp
+    unit/test_m2_suite.cpp
 )
 
 target_link_libraries(cymatica_tests

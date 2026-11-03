@@ -1,5 +1,9 @@
 #pragma once
 
+#include "acao02_calibration.h"
+#include "audio_probe.h"
+#include "onset_parity.h"
+
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -30,6 +34,15 @@ struct SuiteResult {
     bool manifestWriteSuccess{false};
     [[nodiscard]] std::string toJson() const;
 };
+
+// Validity rules of the steps whose runner can report success without its manifest or without gated timings
+// (DIF-5e.4a-01/02); pure, testable without running the suite
+[[nodiscard]] bool onsetParityStepValid(const OnsetParityResult& r) noexcept;   // completed, valid input, manifest written
+[[nodiscard]] bool acao02StepValid(const Acao02Result& r) noexcept;             // MEASURED and manifest written
+// full_m2_suite is a Release gate: profile_test counts only when its timings were gated (a Debug build fails the step)
+[[nodiscard]] bool profileStepValid(const audio::ProfileProbeResult& r) noexcept;
+// PASS only when there is at least one step and every step is valid
+[[nodiscard]] std::string suiteStatus(const std::vector<SuiteStep>& steps);
 
 [[nodiscard]] SuiteResult runFullM2Suite(std::uint64_t packSeed, const std::string& outputDir = "artifacts/cacp",
                                          const std::string& sealedRoot = "artifacts/sealed");
