@@ -203,6 +203,18 @@ public:
     [[nodiscard]] std::uint32_t orphanNoteRecoveredCount() const noexcept { return orphanNoteRecoveredCount_; }
     [[nodiscard]] std::uint32_t dspAnomalyCount() const noexcept { return dspAnomalyCount_; }
 
+    // Offline experimental release of ordinary NoteOffs (ADR-0006 5e-08, Inc-5 phase 5e.3). 0 (default) keeps the
+    // 2 ms de-click release, so production audio, goldens and callback are unchanged; steal tails, Pause and Stop
+    // always keep the 2 ms de-click. Set only in quiescence (AudioEngine::setNoteReleaseFrames).
+    void setNoteReleaseFrames(std::uint32_t frames) noexcept { noteReleaseOverride_ = frames; }
+    [[nodiscard]] std::uint32_t noteReleaseFrames() const noexcept {
+        return noteReleaseOverride_ > 0 ? noteReleaseOverride_ : declickFrames_;
+    }
+    // Confounders of a release experiment (5e-08): a NoteOn that steals a voice still in Release (its release cut
+    // short), and a NoteOn while the other voice of the same role is still in Release (overlap)
+    [[nodiscard]] std::uint32_t releaseCutCount() const noexcept { return releaseCutCount_; }
+    [[nodiscard]] std::uint32_t releaseOverlapCount() const noexcept { return releaseOverlapCount_; }
+
 private:
     std::array<VoiceSlot, kTotalSlots> slots_{};
     std::uint32_t sampleRate_{48000};
@@ -210,6 +222,9 @@ private:
     std::uint32_t voiceDropCount_{0};
     std::uint32_t orphanNoteRecoveredCount_{0};
     std::uint32_t dspAnomalyCount_{0};
+    std::uint32_t noteReleaseOverride_{0};
+    std::uint32_t releaseCutCount_{0};
+    std::uint32_t releaseOverlapCount_{0};
 
     // Inc-2 Role buses and Telemetry
     RoleBusProcessor roleBusProcessor_{};

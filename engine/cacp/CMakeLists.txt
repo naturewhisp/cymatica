@@ -24,6 +24,8 @@ add_library(cymatica_cacp STATIC
     presence_stats.h
     procedural_scenario.cpp
     procedural_scenario.h
+    release_ab.cpp
+    release_ab.h
     sha256.cpp
     sha256.h
     stereo.cpp

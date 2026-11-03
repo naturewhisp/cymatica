@@ -348,6 +348,7 @@ struct FixtureProbeResult {
     std::uint64_t canonicalPlanHash{0};
     bool goldenPlanPassed{false};
     std::string goldenPcmStatus{"NOT_RUN"};   // PASS / FAIL (seed 1337, nominal path) or NOT_APPLICABLE
+    std::uint32_t noteReleaseOverride{0};     // 5e-08 offline release experiment (0 = production release)
     std::uint64_t expectedEngineEvents{0}; // 2 x generatedEvents: one NoteOn and one NoteOff per intent
     // O3 chain and plan identities (ADR-0006 D-M2-12, Inc-5 phase 5a)
     std::uint64_t jitPlanHash{0};             // canonicalPlanHash of the intents the Coordinator planned just in time
@@ -460,14 +461,22 @@ struct ProfileProbeResult {
 // recovery and every phrase planned. Pure function so that negative cases can be tested directly.
 [[nodiscard]] bool fixtureSchedulingAccountingPassed(const FixtureProbeResult& r, std::size_t expectedPhrases) noexcept;
 
-// Golden PCM check of fixture_probe_v1 (DIF-5e.1-01): NOT_APPLICABLE for another seed or an injected fault (the
-// golden describes the nominal run of seed 1337 only), otherwise PASS when pcmContentHash equals expected.
+// Golden PCM check of fixture_probe_v1 (DIF-5e.1-01): NOT_APPLICABLE for another seed, an injected fault or an
+// offline release override (5e-08: the audio differs by design; the plan goldens still apply), otherwise PASS when
+// pcmContentHash equals expected.
 // Pure function so that a negative case (altered expected hash, every other check valid) can be tested directly.
 [[nodiscard]] std::string fixturePcmGoldenStatus(const FixtureProbeResult& r,
                                                  std::uint64_t expected = kFixtureProbeV1GoldenPcmHash);
 
 struct RoleStemSink;
 struct PlannedNoteOff;
+
+// Voice confounders of a release experiment (ADR-0006 5e-08)
+struct VoiceConfounders {
+    std::uint32_t voiceDrops{0};       // steals of an active (non-releasing) voice
+    std::uint32_t releaseCuts{0};      // steals of a voice still in Release
+    std::uint32_t releaseOverlaps{0};  // NoteOns while the other voice of the role is releasing
+};
 
 // Optional offline capture for CACP analysis (ADR-0006 D-M2-13/16, Inc-5 phase 5c). Every pointer may be null.
 // The stem sink is installed for the scenario render only (removed before the probe-only stale-event check).
@@ -479,6 +488,9 @@ struct ProbeAnalysisCapture {
     std::uint64_t* appliedOverflow{nullptr};               // overflow count of that applied-event log
     std::vector<MusicIntentEvent>* intents{nullptr};       // planned intents of the scenario (JIT plan for the fixture)
     std::vector<PlannedNoteOff>* noteOffs{nullptr};        // planner NoteOffs of the open pads
+    // Offline release experiment (5e-08): release of ordinary NoteOffs in frames, 0 = the 2 ms de-click
+    std::uint32_t noteReleaseFrames{0};
+    VoiceConfounders* confounders{nullptr};                // voice drops, release cuts and overlaps of the run
 };
 
 FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir = "artifacts/cacp",

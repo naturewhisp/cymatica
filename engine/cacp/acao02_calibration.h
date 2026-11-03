@@ -23,6 +23,20 @@ namespace cymatica::cacp {
 //   e. bus-mix reconstruction from the stems and stem presence measured on the PCM (OSS-5b-01).
 // Everything is MEASURED; thresholds are only proposed (D-M2-16) and ratified at the M2.5 gate.
 
+// Isolated note of a synthetic per-role set, rendered by the real synth (sets A and B of acao02_v1, also reused by
+// release_ab_v1 so that the release experiment measures exactly the 5c signals)
+struct SynthNote {
+    double timeS;
+    float pitchHz;
+    float velocity;
+    double durationS;
+    float timbre;
+};
+// Set A (intrinsic latency): 24 notes per role, every 0.5 s. Set B (verification): 40 notes per role, irregular
+// intervals {0.18, 0.31, 0.45, 0.27, 0.62, 0.22, 0.38, 0.70} s, duration 0.6 x interval.
+[[nodiscard]] std::vector<SynthNote> syntheticNotesSetA(std::size_t role);
+[[nodiscard]] std::vector<SynthNote> syntheticNotesSetB(std::size_t role);
+
 // Calibration grid and selection rule (declared before the measurement)
 inline constexpr std::array<double, 8> kCalibrationDeltas{0.02, 0.03, 0.05, 0.07, 0.10, 0.15, 0.20, 0.30};
 // Selection per role: maximum F at +-50 ms after subtracting the median signed error (nearest detection within

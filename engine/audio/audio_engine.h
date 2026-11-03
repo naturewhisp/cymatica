@@ -164,6 +164,9 @@ public:
     bool setAppliedEventLog(AppliedEventLog* log) noexcept;
     // Offline per-role stem tap (ADR-0006 D-M2-13): same quiescence contract as the applied-event log.
     bool setRoleStemSink(RoleStemSink* sink) noexcept;
+    // Offline release experiment (ADR-0006 5e-08): release of ordinary NoteOffs in frames, 0 = the 2 ms de-click.
+    // Same quiescence contract as the applied-event log; never used by the realtime path.
+    bool setNoteReleaseFrames(std::uint32_t frames) noexcept;
     // Quiescence only: true when the scheduled-event SPSC is empty (E_sent = E_cons is checked after the drain).
     [[nodiscard]] bool scheduledEventQueueEmpty() const noexcept;
 

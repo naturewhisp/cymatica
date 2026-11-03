@@ -9,7 +9,7 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 
 | Campo | Valore |
 |---|---|
-| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse; **M2.4: Inc-1..Inc-4 implementati e committati (CI verde su `8ba772e`); remediation R2 chiusa; revisione esterna R3 con R3-01..04 corretti in `b0f466f` (CI verde), R3-05 proposto per M2.5** ([Revisione esterna R3](#revisione-esterna-r3-post-inc-4-2026-10-21)); Inc-5 avviato a fasi: 5.0, 5a e 5b chiuse (review indipendente OK), 5c chiusa (review OK, `3f026c2`), 5d chiusa (review OK, `c8c1086`), 5e.0 chiusa, 5e.1 chiusa (review OK, `8671164`), 5e.2 con review NON OK, micro-remediation committata e in review ([piano a fasi](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26)); M2.5 gate d'integrazione finale. M2 complessiva non conclusa. |
+| Milestone attiva | **M2 — Music Intent e musica procedurale v1**; M2.1/M2.2/M2.3 concluse; **M2.4: Inc-1..Inc-4 implementati e committati (CI verde su `8ba772e`); remediation R2 chiusa; revisione esterna R3 con R3-01..04 corretti in `b0f466f` (CI verde), R3-05 proposto per M2.5** ([Revisione esterna R3](#revisione-esterna-r3-post-inc-4-2026-10-21)); Inc-5 avviato a fasi: 5.0, 5a e 5b chiuse (review indipendente OK), 5c chiusa (review OK, `3f026c2`), 5d chiusa (review OK, `c8c1086`), 5e.0 chiusa, 5e.1 chiusa (review OK, `8671164`), 5e.2 chiusa (review OK e CI verde, `f649786`), 5e.3 committata su approvazione del titolare, in attesa di review ([piano a fasi](#m24-inc-5--piano-a-fasi-e-revisione-del-piano-2026-10-26)); M2.5 gate d'integrazione finale. M2 complessiva non conclusa. |
 | Stato M0 | **Completata (tutti i criteri di accettazione verificati con evidenze)** |
 | Stato M1 | **Completata: review indipendente OK, zero difetti residui, gate round 3 passati** |
 | Specifica | Versione **0.8.3**, roadmap §32 invariata; ADR-0003, ADR-0004 (emendamento §4.3 del 2026-10-20) e ADR-0005 (ingresso Inc-4) specificano i contratti di M2.4 senza modificare i requisiti di milestone. |
@@ -18,7 +18,7 @@ Record di esecuzione richiesto da `AGENTS.md` §5.1. La roadmap autoritativa res
 | Ultima CI Headless verificata | [`8671164`](https://github.com/naturewhisp/cymatica/commit/8671164a1ffd290ab52ef45f6e7c84b1bc2ba280): [run 41514680994](https://github.com/naturewhisp/cymatica/actions/runs/41514680994), Release e Debug `success`, verificato con `gh run view` il 2026-11-02. Precedente: [`45b97a8`](https://github.com/naturewhisp/cymatica/commit/45b97a8946cb80fdeab01d5fe430708d398db66e): [run 41503820117](https://github.com/naturewhisp/cymatica/actions/runs/41503820117), Release e Debug `success`, con il passo `fixture_test` e il golden PCM verificato (riportato dalla review del 2026-11-02). Precedente: [`c8c1086`](https://github.com/naturewhisp/cymatica/commit/c8c1086f51d7f815ba62a775d801d0c1f154bc4c): [run 40953174094](https://github.com/naturewhisp/cymatica/actions/runs/40953174094), job Release e Debug (windows-2025) `success`, verificato con `gh run view` il 2026-11-02. Precedente: [`fdee350`](https://github.com/naturewhisp/cymatica/commit/fdee350908097c437e4de4f7213f36ef9d02707e), [run 40950275708](https://github.com/naturewhisp/cymatica/actions/runs/40950275708). Precedente: [`3f026c2`](https://github.com/naturewhisp/cymatica/commit/3f026c285c17cd9219eecb0168e048cf18cdb90b), [run 40937081552](https://github.com/naturewhisp/cymatica/actions/runs/40937081552). Precedente: [`0a1af41`](https://github.com/naturewhisp/cymatica/commit/0a1af41ad5f98b4977dea5d29da593e982f148dc), [run 40935971879](https://github.com/naturewhisp/cymatica/actions/runs/40935971879). Precedente: [`a6f360a`](https://github.com/naturewhisp/cymatica/commit/a6f360a8a4c60afc82df8a5e5a365d6245b81a89), [run 40933343552](https://github.com/naturewhisp/cymatica/actions/runs/40933343552). Precedente: [`b0f466f`](https://github.com/naturewhisp/cymatica/commit/b0f466f): [GitHub Actions run 39674430446](https://github.com/naturewhisp/cymatica/actions/runs/39674430446) «Windows CI», job Release (windows-2025) e Debug (windows-2025) `success`, verificato con `gh run view` il 2026-10-21. Precedente: `8ba772e`, [run 39671112436](https://github.com/naturewhisp/cymatica/actions/runs/39671112436); il dettaglio dei suoi log (140/140 headless per configurazione, CACP `tone_test` PASS) viene dalla revisione esterna R3. La CI esclude i test `perf`, valutati sulle misure locali archiviate. Non sostituisce collaudo hardware o giudizio artistico. |
 | Integrazione documentale M2.4 | Contratti D-M2-04..07 (ADR-0003); AUD-D-01..04 ed emendamento §4.3 (ADR-0004); D-M2-08..11 d'ingresso Inc-4 (ADR-0005); D-M2-12..16 d'ingresso Inc-5 (ADR-0006, in review); tutti `accepted for implementation`; nessun profilo sperimentale `validated`. |
 | Target prodotti | `cymatica_audio` (static lib), `cymatica_core` (static lib), `cymatica_replay` (static lib), `cymatica_game` (app), `cymatica_tests` (test runner) |
-| Ultimo aggiornamento | 2026-11-03 (Inc-5: 5e.2 chiusa, review OK e CI verde in Release e Debug su `f649786`; livelli di CI, con CI ordinaria rapida e CI completa notturna, implementati e non committati; 5e.3 in corso). Precedente: 2026-11-02 (Inc-5: review di 5e.2 NON OK, micro-remediation DIF-5e.2-01..03 e OSS-5e.2-01 committata su approvazione del titolare, 204/204 Release e Debug headless; review in attesa). Precedente: stesso giorno (Inc-5: 5e.1 chiusa con review OK su `8671164`; 5e.2 committata su approvazione del titolare, 200/200 Release e Debug headless, `evaluation_pack_v2` GENERATED; review indipendente in attesa). Precedente: stesso giorno (Inc-5: terza review di 5e.1 NON OK per DIF-5e.1-R3-01; correzione committata su approvazione del titolare, 193/193 Release e Debug headless; review in attesa). Precedente: stesso giorno (Inc-5: review mirata di 5e.1 NON OK per DIF-5e.1-R2-01; correzione committata su approvazione del titolare, 192/192 Release e Debug headless; review in attesa). Precedente: stesso giorno (Inc-5: review di 5e.1 NON OK, micro-remediation DIF-5e.1-01..03 committata su approvazione del titolare, 191/191 Release e Debug headless; review in attesa). Precedente: stesso giorno (Inc-5: 5e.0 chiusa con review OK su `fd8eb04`; 5e.1 committata su approvazione del titolare, 188/188 Release e Debug headless, `procedural_v1` PASS; review indipendente in attesa). Precedente: stesso giorno (Inc-5: 5d chiusa con review OK e CI verde su `c8c1086`; 5e autorizzata, ingresso in preparazione). Precedente: 2026-10-29 (Inc-5: review mirata di `fdee350` NON OK per DIF-5d-R2-01/02; correzione committata su approvazione del titolare, 186/186 Release e Debug headless; review in attesa). Precedente: stesso giorno (Inc-5: review indipendente di 5d NON OK, micro-remediation DIF-5d-01..03 e OSS-5d-01 committata su approvazione del titolare, 186/186 Release e Debug headless; review mirata in attesa). Precedente: stesso giorno (Inc-5: 5c chiusa con review OK su `3f026c2`; 5d implementata e corretta dopo il secondo parere di Antigravity (AG-5d-01/02/03/05/06/07), 183/183 Release e Debug headless, scenario `evaluation_pack_v1` GENERATED con ripetizione identica, committata su approvazione del titolare; review indipendente in attesa). Precedente: stesso giorno (Inc-5: review mirata di `0a1af41` NON OK per DIF-5c-R2-01; correzione committata su approvazione del titolare, 173/173 Release e Debug headless; review in attesa). Precedente: stesso giorno (Inc-5: review indipendente di 5c NON OK, micro-remediation DIF-5c-01/02 committata su approvazione del titolare, 172/172 Release e Debug headless; review mirata in attesa). Precedente: stesso giorno (Inc-5: 5b chiusa con review OK su `d86f6bb`; 5c implementata, 169/169 Release e Debug headless, scenario `acao02_v1` MEASURED, committata su approvazione del titolare; review indipendente in attesa). Precedente: stesso giorno, micro-remediation DIF-5b-01..03. Precedente: 2026-10-27 (5b committata su approvazione del titolare). Precedente, stesso giorno (Inc-5 fase 5.0: ADR-0006 con D-M2-12..16, piano a fasi con review obbligatoria, registro INC5-REV-01..05; non committato). Precedente: 2026-10-21 (micro-remediation R3 committata in `b0f466f` con CI verde: R3-01 arresto sicuro fail-closed (D-INC4-R3-01), R3-02 contabilità eventi, R3-03 hash canonico condiviso, R3-04 stato documentale; R3-05 proposto per M2.5; hash del piano JIT assegnato a Inc-5) |
+| Ultimo aggiornamento | 2026-11-03 (Inc-5: 5e.2 chiusa, review OK e CI verde in Release e Debug su `f649786`; livelli di CI, con CI ordinaria rapida e CI completa notturna, committati in `95b58c0`, CI ordinaria verde in 5 min 40 s (run 41606103507); 5e.3 `release_ab_v1` committata su approvazione del titolare, 212/212 Release e Debug headless, scenario MEASURED; review in attesa). Precedente: 2026-11-02 (Inc-5: review di 5e.2 NON OK, micro-remediation DIF-5e.2-01..03 e OSS-5e.2-01 committata su approvazione del titolare, 204/204 Release e Debug headless; review in attesa). Precedente: stesso giorno (Inc-5: 5e.1 chiusa con review OK su `8671164`; 5e.2 committata su approvazione del titolare, 200/200 Release e Debug headless, `evaluation_pack_v2` GENERATED; review indipendente in attesa). Precedente: stesso giorno (Inc-5: terza review di 5e.1 NON OK per DIF-5e.1-R3-01; correzione committata su approvazione del titolare, 193/193 Release e Debug headless; review in attesa). Precedente: stesso giorno (Inc-5: review mirata di 5e.1 NON OK per DIF-5e.1-R2-01; correzione committata su approvazione del titolare, 192/192 Release e Debug headless; review in attesa). Precedente: stesso giorno (Inc-5: review di 5e.1 NON OK, micro-remediation DIF-5e.1-01..03 committata su approvazione del titolare, 191/191 Release e Debug headless; review in attesa). Precedente: stesso giorno (Inc-5: 5e.0 chiusa con review OK su `fd8eb04`; 5e.1 committata su approvazione del titolare, 188/188 Release e Debug headless, `procedural_v1` PASS; review indipendente in attesa). Precedente: stesso giorno (Inc-5: 5d chiusa con review OK e CI verde su `c8c1086`; 5e autorizzata, ingresso in preparazione). Precedente: 2026-10-29 (Inc-5: review mirata di `fdee350` NON OK per DIF-5d-R2-01/02; correzione committata su approvazione del titolare, 186/186 Release e Debug headless; review in attesa). Precedente: stesso giorno (Inc-5: review indipendente di 5d NON OK, micro-remediation DIF-5d-01..03 e OSS-5d-01 committata su approvazione del titolare, 186/186 Release e Debug headless; review mirata in attesa). Precedente: stesso giorno (Inc-5: 5c chiusa con review OK su `3f026c2`; 5d implementata e corretta dopo il secondo parere di Antigravity (AG-5d-01/02/03/05/06/07), 183/183 Release e Debug headless, scenario `evaluation_pack_v1` GENERATED con ripetizione identica, committata su approvazione del titolare; review indipendente in attesa). Precedente: stesso giorno (Inc-5: review mirata di `0a1af41` NON OK per DIF-5c-R2-01; correzione committata su approvazione del titolare, 173/173 Release e Debug headless; review in attesa). Precedente: stesso giorno (Inc-5: review indipendente di 5c NON OK, micro-remediation DIF-5c-01/02 committata su approvazione del titolare, 172/172 Release e Debug headless; review mirata in attesa). Precedente: stesso giorno (Inc-5: 5b chiusa con review OK su `d86f6bb`; 5c implementata, 169/169 Release e Debug headless, scenario `acao02_v1` MEASURED, committata su approvazione del titolare; review indipendente in attesa). Precedente: stesso giorno, micro-remediation DIF-5b-01..03. Precedente: 2026-10-27 (5b committata su approvazione del titolare). Precedente, stesso giorno (Inc-5 fase 5.0: ADR-0006 con D-M2-12..16, piano a fasi con review obbligatoria, registro INC5-REV-01..05; non committato). Precedente: 2026-10-21 (micro-remediation R3 committata in `b0f466f` con CI verde: R3-01 arresto sicuro fail-closed (D-INC4-R3-01), R3-02 contabilità eventi, R3-03 hash canonico condiviso, R3-04 stato documentale; R3-05 proposto per M2.5; hash del piano JIT assegnato a Inc-5) |
 
 ## Decisioni d'ingresso M0
 
@@ -891,7 +891,7 @@ L'ordine 5a → 5b → 5c → 5d → 5e è invariato. Inc-5 non introduce nuove 
 | 5b | FFT/STFT, onset, mel, SHA-256, PNG, Side/Mid, LUFS | test contro oracoli indipendenti e vettori di riferimento; parità numerica documentata | **chiusa**: `a8c3fbe` + `85bbc4f` + [`d86f6bb`](https://github.com/naturewhisp/cymatica/commit/d86f6bbb61829d7ad2b84a346abdd9b5b8e2fffa); review indipendente OK (2026-10-29); CI verde su `d86f6bb` (run 40748864764) |
 | 5c | stem per ruolo, ricostruzione del mix dei bus, calibrazione e verifica AC-AO-02 | risultati misurati, soglie proposte, generalizzazione dimostrata oppure esplicitamente inconcludente | **chiusa**: `a6f360a` + `0a1af41` + [`3f026c2`](https://github.com/naturewhisp/cymatica/commit/3f026c285c17cd9219eecb0168e048cf18cdb90b); review indipendente OK (2026-10-29); CI verde su `3f026c2` (run 40937081552) |
 | 5d | evaluation pack, controllo degli hash, separazione della ground truth, checker delle affermazioni | nessun leakage; test positivi e negativi del checker superati | **chiusa**: `c5e78d5` + `fdee350` + [`c8c1086`](https://github.com/naturewhisp/cymatica/commit/c8c1086f51d7f815ba62a775d801d0c1f154bc4c); review indipendente OK (2026-11-02); CI verde su `c8c1086` (run 40953174094) |
-| 5e | suite completa, LUFS esplorativo, multi-seed, evidenze percettive, handoff | dossier riproducibile, tutti i gate obbligatori superati e review tecnica OK | autorizzata il 2026-11-02; 5e.0 chiusa (`fd8eb04`); 5e.1 chiusa (`8671164`); 5e.2 committata in `631258b`, review **NON OK** (DIF-5e.2-01 HIGH, -02/-03 MED), micro-remediation committata su approvazione del titolare («OK, commit»), in attesa di review; 5e.3–5e.4 da fare |
+| 5e | suite completa, LUFS esplorativo, multi-seed, evidenze percettive, handoff | dossier riproducibile, tutti i gate obbligatori superati e review tecnica OK | autorizzata il 2026-11-02; 5e.0 chiusa (`fd8eb04`); 5e.1 chiusa (`8671164`); 5e.2 chiusa (review OK, CI verde su `f649786`); livelli di CI in `95b58c0`; 5e.3 (`release_ab_v1`) committata su approvazione del titolare, in attesa di review; poi 5e.3b (diagnostica R2), consolidamento del modello matematico del motore di generazione, 5e.4 |
 
 Ogni fase che tocca il codice si chiude con:
 
@@ -1961,5 +1961,102 @@ I 212 test comprendono gli 8 nuovi di 5e.3, non committata e non etichettati `[s
 - durata della CI ordinaria (stima 6–8 min);
 - primo run verde di `windows-ci-full.yml`, avviato manualmente.
 
-**Stato:** livelli di CI implementati, **non committati**, in attesa dell'approvazione del titolare. Si committano separatamente da 5e.3.
+**CI ordinaria su `95b58c0`** ([run 41606103507](https://github.com/naturewhisp/cymatica/actions/runs/41606103507), push del titolare): **verde**, workflow **5 min 40 s** contro 27 min 12 s.
+
+| Job | Esito | Durata | CTest |
+|---|---|---|---|
+| Release | **204/204 PASS**, `tone_test` e `fixture_test` PASS | 5 min 40 s | 74,9 s |
+| Debug (`x64-debug-fast`) | **197/197 PASS** | 4 min 59 s | 116,5 s, contro 1.444 s |
+
+I conteggi coincidono con l'atteso (204 = 197 + 7).
+
+**Stato:** livelli di CI committati in `95b58c0` su approvazione del titolare («OK, commit CI»), separatamente da 5e.3, e verdi nella CI ordinaria. Il primo run di `windows-ci-full.yml` è stato avviato a mano su richiesta del titolare ([run 41607570124](https://github.com/naturewhisp/cymatica/actions/runs/41607570124), su `95b58c0`); esito da registrare.
+
+#### Fase 5e.3 — `release_ab_v1` (2026-11-03)
+
+Attua ADR-0006 5e-08 con le precisazioni del titolare. Le regole sono fissate in `engine/cacp/release_ab.h` prima della misura; l'attuazione è riassunta in ADR-0006 («Attuazione di 5e-08 in 5e.3»).
+
+**Implementazione:**
+
+| File | Modifica |
+|---|---|
+| `engine/audio/voice_allocator.h/.cpp` | `setNoteReleaseFrames` (0 = declick di 2 ms, default); contatori `releaseCutCount` e `releaseOverlapCount`. Le code di stealing, la Pausa e lo Stop restano a 2 ms |
+| `engine/audio/audio_engine.h/.cpp` | `setNoteReleaseFrames`, solo in quiescenza (rifiutato a device avviato) |
+| `engine/audio/audio_probe.h/.cpp` | `ProbeAnalysisCapture::noteReleaseFrames` e `confounders`; `FixtureProbeResult::noteReleaseOverride`; golden PCM `NOT_APPLICABLE` con override |
+| `engine/cacp/acao02_calibration.h/.cpp` | `SynthNote` e set sintetici A/B esposti |
+| `engine/cacp/release_ab.h/.cpp` (nuovi) | scenario, controllo «stessi eventi», regole H1/H2/R2, clip A/B, manifest e ripetizione |
+| `apps/cymatica_game/main.cpp` | `--cacp-run release_ab_v1` (uscita 0 solo se `MEASURED`) |
+| `tests/unit/test_release_ab.cpp` (nuovo) | 8 casi (sotto) |
+
+**Test nuovi** (8, totale 212):
+
+- release di default 96 frame; con override 1440 la voce resta in Release 1440 frame;
+- code di stealing a 96 frame anche con override a 80 ms;
+- contatori di sovrapposizione e di taglio, e voice drop invariato;
+- setter del motore in quiescenza e golden PCM `NOT_APPLICABLE` con override, anche con hash diverso;
+- controllo «stessi eventi», anche senza riferimento a 2 ms;
+- regole H1 (soglia esatta 20 %, riferimento nullo, cattura non valida, misura mancante), H2 e R2.
+
+**Risultati** (Release, `cymatica_game --cacp-run release_ab_v1`, circa 90 s; manifest archiviato in [inc5_release_ab](research/experiments/inc5_release_ab/README.md)):
+
+- verdetto **MEASURED**, ripetizione identica;
+- nessuna violazione «stessi eventi», catture e analisi valide in tutte le 20 combinazioni.
+
+Rilevazioni sui rilasci (somma sui ruoli):
+
+| Insieme | 2 ms | 15 ms | 30 ms | 50 ms | 80 ms |
+|---|---|---|---|---|---|
+| set A | 72 | 49 | 24 | 12 | 0 |
+| set B | 102 | 27 | 9 | 0 | 0 |
+| `planner_probe_v1` | 23 | 22 | 0 | 0 | 0 |
+| fixture | 402 | 401 | 245 | 2 | 2 |
+
+Nella fixture le rilevazioni sui rilasci sono quasi tutte della Trama: 400 a 2 ms, 243 a 30 ms, 0 a 50 ms.
+
+| Ipotesi | Esito | Dettaglio |
+|---|---|---|
+| H1 | **NOT_SUPPORTED** | rapporto 30 ms / 2 ms: set B 0,088, `planner_probe_v1` 0,000, fixture **0,609**. La fixture supera la soglia del 20 % |
+| H2 | **SUPPORTED** | richiamo della Trama nel set B: 0,750 a 2 ms, **1,000** a 30 ms |
+| R2 | **NOT_SUPPORTED** | 10 riferimenti della Trama non abbinati su 40, come previsto; solo 4 sono preceduti da 0,18 o 0,22 s (indici 0, 10, 14, 20, 22, 24, 25, 30, 32, 34) |
+
+**Lettura:**
+
+- **R2:** la spiegazione registrata in 5c (NoteOff precedente dentro la media mobile di ±100 ms della soglia) non spiega da sola le note mancate a 2 ms. Il richiamo torna comunque a 1,000 con release di 30 ms. La causa resta da indagare.
+- **Confondenti:**
+  - set A e B: 0 voice drop e 0 release tagliati in ogni variante; 16 sovrapposizioni solo nel set B a 80 ms;
+  - `planner_probe_v1`: 22 release tagliati e 35 sovrapposizioni;
+  - fixture: 190 release tagliati e 478–479 sovrapposizioni;
+  - nei probe e nella fixture i conteggi sono costanti fra le varianti: sono cambi di nota allo stesso frame (NoteOff e NoteOn coincidenti), non un effetto della durata del release;
+  - nessun voice drop in nessuna variante.
+- **Clip A/B** (frasi 5 e 10 della fixture, controllo numerico):
+  - RMS del mix invariato (−23,9 / −23,8 dBFS);
+  - picco da −10,5 a −9,8 dBFS (frase 5) e da −11,9 a −10,4 dBFS (frase 10) fra 2 e 80 ms;
+  - massima differenza fra campioni consecutivi invariata, quindi nessuna discontinuità nuova;
+  - segnale differenza rispetto a 2 ms: da −47 a −38 dBFS, 15–24 dB sotto l'RMS del mix.
+
+  L'ascolto non è eseguibile dall'agente: la valutazione percettiva resta all'esperto (5e-10).
+- Nessun release di produzione è adottato: la decisione resta a M2.5.
+
+**Verifica** (working tree su `95b58c0`):
+
+| Check | Comando | Esito |
+|---|---|---|
+| Release + headless | `scripts/build.ps1 -Config Release -Test -Headless` | **212/212 PASS**, 0 `warning C` |
+| Debug + headless | `scripts/build.ps1 -Config Debug -Test -Headless` | **212/212 PASS**, 0 `warning C` |
+| Benchmark Release | `ctest --test-dir build/x64-release -L perf` | **2/2 PASS** (F 5,77 s, W 5,79 s) |
+| `fixture_test` (Release) | `cymatica_game --cacp-run fixture_test` | **PASS**; golden PCM PASS, hash 15126969907236845529 invariato; catena O3 superata |
+| `release_ab_v1` (Release) | `cymatica_game --cacp-run release_ab_v1` | **MEASURED**, uscita 0, ripetizione identica |
+
+**Stato (2026-11-03):** 5e.3 committata su approvazione del titolare («fai commit»); l'esito della review indipendente si registrerà quando sarà comunicato (DIF-5a-02).
+
+#### Seguito di Inc-5 concordato con il titolare (2026-11-03)
+
+1. **Review di 5e.3.**
+2. **5e.3b, diagnostica R2:** micro-fase offline, con previsione dichiarata prima della misura, esito `MEASURED` e nessun cambio di soglie o tuning. Ipotesi da verificare: le 10 note della Trama mancate nel set B a 2 ms dipendono dalla normalizzazione del flusso spettrale sul massimo globale, dominato dai transitori dei rilasci. Indizi:
+   - fra le non abbinate, 9 su 10 hanno velocity ≤ 0,7 (atteso 20 su 40);
+   - 8 su 10 hanno timbro ≤ 0,3 (atteso 16 su 40);
+   - la prima nota è mancata pur senza NoteOff precedente.
+3. **Consolidamento del modello matematico dell'intero motore di generazione musicale** (decisione del titolare), prima di 5e.4. Si tratta di un dossier del modello formale: trasporto e clock, forma e frasi, planner e regole, sintesi e voci, rivelatore e analisi, statistica delle affermazioni. Per ogni parte: equazioni, ipotesi, invarianti, limiti e modi di guasto noti, con rimando al codice e alle evidenze. Il perimetro e l'eventuale ricerca di supporto si definiscono all'ingresso della fase.
+4. **5e.4:** `full_m2_suite`, dossier delle evidenze, materiali per le sessioni percettive, handoff M2.5.
+5. **Sessione alla cieca di Antigravity, review di ADR-0006 e ascolto dell'esperto.** L'ascolto dell'esperto può essere anticipato perché non dipende dal modello.
 

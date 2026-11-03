@@ -896,6 +896,13 @@ bool AudioEngine::setRoleStemSink(RoleStemSink* sink) noexcept {
     return true;
 }
 
+bool AudioEngine::setNoteReleaseFrames(std::uint32_t frames) noexcept {
+    if (!pImpl_) return false;
+    if (pImpl_->deviceStarted.load(std::memory_order_acquire)) return false; // quiescence contract
+    pImpl_->voiceAllocator.setNoteReleaseFrames(frames);
+    return true;
+}
+
 bool AudioEngine::scheduledEventQueueEmpty() const noexcept {
     if (!pImpl_) return true;
     ScheduledAudioEvent e{};

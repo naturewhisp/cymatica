@@ -1690,6 +1690,7 @@ PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool w
     if (capture != nullptr) {
         (void)engine.setRoleStemSink(capture->stems);
         if (capture->applied != nullptr) (void)engine.setAppliedEventLog(&plannerAppliedLog);
+        if (capture->noteReleaseFrames != 0) (void)engine.setNoteReleaseFrames(capture->noteReleaseFrames);
     }
 
     engine.sendCommand(AudioCommand{.commandId = 1, .type = AudioCommandType::Start, .targetSampleFrame = 0});
@@ -1741,6 +1742,10 @@ PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool w
         if (capture->stereo != nullptr) *capture->stereo = recordedStereo;
         if (capture->appliedOverflow != nullptr) *capture->appliedOverflow = plannerAppliedLog.overflow();
         if (capture->intents != nullptr) *capture->intents = allIntents;
+        if (capture->confounders != nullptr) {
+            const auto& va = engine.voiceAllocator();
+            *capture->confounders = {va.voiceDropCount(), va.releaseCutCount(), va.releaseOverlapCount()};
+        }
         if (capture->noteOffs != nullptr) *capture->noteOffs = mainRun.noteOffs;
     }
 
@@ -2458,7 +2463,7 @@ std::string ProfileProbeResult::toJson() const {
 }
 
 std::string fixturePcmGoldenStatus(const FixtureProbeResult& r, std::uint64_t expected) {
-    if (!r.goldenApplicable || r.injectedFault != FixtureInjectedFault::None) return "NOT_APPLICABLE";
+    if (!r.goldenApplicable || r.injectedFault != FixtureInjectedFault::None || r.noteReleaseOverride != 0) return "NOT_APPLICABLE";
     return r.pcmContentHash == expected ? "PASS" : "FAIL";
 }
 
@@ -2565,6 +2570,10 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     AppliedEventLog appliedLog(kEventChainLogCapacity);
     (void)engine.setAppliedEventLog(&appliedLog); // offline engine: quiescent by construction
     if (capture != nullptr) (void)engine.setRoleStemSink(capture->stems);
+    if (capture != nullptr && capture->noteReleaseFrames != 0) {
+        (void)engine.setNoteReleaseFrames(capture->noteReleaseFrames);
+        result.noteReleaseOverride = capture->noteReleaseFrames;
+    }
     result.contentEndFrame = coordinator.contentEndFrame();
     result.lookaheadFrames = coordinator.lookaheadFrames();
     result.simulationTicks = (result.contentEndFrame + kFixturePostStopFrames + kFramesPerTick - 1) / kFramesPerTick;
@@ -2629,6 +2638,10 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
         capture->applied->assign(appliedLog.records().begin(), appliedLog.records().end());
     }
     if (capture != nullptr && capture->appliedOverflow != nullptr) *capture->appliedOverflow = appliedLog.overflow();
+    if (capture != nullptr && capture->confounders != nullptr) {
+        const auto& va = engine.voiceAllocator();
+        *capture->confounders = {va.voiceDropCount(), va.releaseCutCount(), va.releaseOverlapCount()};
+    }
     if (capture != nullptr && capture->intents != nullptr) {
         capture->intents->clear();
         for (const auto& v : coordinator.jitIntents()) capture->intents->insert(capture->intents->end(), v.begin(), v.end());

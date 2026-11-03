@@ -136,11 +136,19 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
 
     VoiceSlot& slot = slots_[static_cast<std::size_t>(idx)];
 
+    // Release-experiment confounders (5e-08): the other voice of the role still releasing
+    const std::size_t first = roleFirstSlot(event.role);
+    for (std::size_t s = first; s < first + kSlotsPerRole; ++s) {
+        if (s != static_cast<std::size_t>(idx) && slots_[s].state == VoiceState::Release) ++releaseOverlapCount_;
+    }
+
     // Steal tail snapshot & voice stealing accounting
     if (slot.state != VoiceState::Idle) {
         if (slot.state != VoiceState::Release) {
             // Rule 2 voice steal on active voice
             ++voiceDropCount_;
+        } else {
+            ++releaseCutCount_; // a release cut short by a new note (5e-08 confounder)
         }
 
         // Capture current output into dedicated steal tail with 2 ms linear fade-out
@@ -219,7 +227,7 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
         slot.timbreParam = std::clamp(event.timbreParam, 0.0f, 1.0f);
     }
 
-    slot.releaseSamples = declickFrames_;
+    slot.releaseSamples = noteReleaseFrames(); // 2 ms de-click unless an offline release experiment overrides it
     slot.phase = 0.0f;
     slot.phaseIncrement = (kTwoPi * slot.pitchHz) / static_cast<float>(sampleRate_);
     slot.state = VoiceState::Attack;

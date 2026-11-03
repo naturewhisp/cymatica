@@ -49,14 +49,6 @@ std::string jsonEscape(const std::string& in) {
     return out;
 }
 
-struct SynthNote {
-    double timeS;
-    float pitchHz;
-    float velocity;
-    double durationS;
-    float timbre;
-};
-
 // Renders isolated notes of one role through the real engine (offline), capturing stems and applied events.
 // Returns the validity of the capture: every NoteOn Applied, stems covering the rendered frames, no overflow.
 CaptureCheck renderSyntheticRole(audio::MusicRole role, const std::vector<SynthNote>& notes, StemCapture& cap,
@@ -337,6 +329,9 @@ void finalizeAcao02Status(Acao02Result& r) {
         r.proposedPrecision[role] = minP > 1.5 ? std::nan("") : (std::max)(0.0, std::floor((minP - 0.05) * 20.0) / 20.0);
     }
 }
+
+std::vector<SynthNote> syntheticNotesSetA(std::size_t role) { return syntheticSetA(role); }
+std::vector<SynthNote> syntheticNotesSetB(std::size_t role) { return syntheticSetB(role); }
 
 std::optional<FrozenStemProfile> frozenStemProfileV1() noexcept {
     // Frozen 2026-10-29 from the first calibration run on seed 1337 (declared rule, no verification data seen):

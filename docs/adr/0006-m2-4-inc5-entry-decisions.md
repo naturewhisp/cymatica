@@ -603,6 +603,25 @@ Fissano ciò che D-M2-15 e D-M2-16 rimandano a 5e e stabiliscono il perimetro de
 - **Alternative scartate:** eliminare o ridurre i test pesanti (perdita di copertura); cache del compilatore e CTest parallelo subito (seconda fase eventuale: i test condividono directory e artefatti, il parallelismo rischia interferenze); escludere la Debug dalla CI ordinaria (perde la build Debug e le asserzioni di debug ad ogni push).
 - **Verifica:** conteggi dei preset (`ctest -N`), durata della CI ordinaria dopo il push, primo run verde della CI completa. Stima della CI ordinaria: 6–8 min, da misurare.
 
+**Attuazione di 5e-08 in 5e.3 (`release_ab_v1`, 2026-11-03; regole fissate in `engine/cacp/release_ab.h` prima della misura):**
+
+- **Variabile unica:** `VoiceAllocator::setNoteReleaseFrames` (via `AudioEngine::setNoteReleaseFrames`, solo in quiescenza) cambia il release dei soli NoteOff ordinari.
+  - 0 è il default e mantiene il declick di 2 ms: la variante 2 ms è il release di produzione, senza override.
+  - Code di voice stealing, Pausa e Stop restano a 2 ms.
+  - Con un override il golden PCM della fixture è `NOT_APPLICABLE`; i golden di piano restano.
+- **Stessi eventi:** per ogni insieme l'hash FNV-1a delle identità e disposizioni degli eventi applicati deve coincidere con quello della variante 2 ms; una variante senza riferimento a 2 ms è una violazione. Con una violazione, una cattura non valida o un'analisi non valida l'esito è `INCONCLUSIVE`.
+- **Confondenti:** per ogni insieme e variante si contano:
+  - i voice drop (furto di una voce attiva);
+  - i release tagliati (furto di una voce ancora in Release);
+  - le sovrapposizioni (NoteOn mentre l'altra voce del ruolo è in Release).
+- **Regole:**
+  - **H1** è `SUPPORTED` se, in ciascuno fra set B, `planner_probe_v1` e fixture, le rilevazioni sui rilasci a 30 ms sono ≤ 20 % di quelle a 2 ms (somma sui ruoli). È `INCONCLUSIVE` con un riferimento a 2 ms nullo o mancante.
+  - **H2** è `SUPPORTED` se il richiamo della Trama nel set B a 30 ms è ≥ 0,90.
+  - **R2** è la diagnostica a 2 ms: `SUPPORTED` se i riferimenti della Trama non abbinati nel set B sono esattamente le 10 note precedute dagli intervalli di 0,18 e 0,22 s.
+- **Esito:** `MEASURED`, mai un gate. Ripetizione identica verificata.
+- **Clip A/B:** frasi 5 e 10 della fixture per ogni variante, dal PCM finale, con dissolvenze di 10 ms, per la revisione dell'esperto.
+- **Nessun release di produzione è adottato in Inc-5:** la decisione resta a M2.5. Risultati in `progress.md` (5e.3).
+
 **Precisazioni della review di 5e.0 (`d08187d`, DIF-5e.0-02, vincolanti per 5e.2; fissate prima della misura):**
 
 - **Regola deterministica di raggruppamento.** L'unità d'indipendenza è il **gruppo musicale**, non la finestra.
