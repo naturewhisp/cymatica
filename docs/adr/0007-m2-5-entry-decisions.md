@@ -89,7 +89,7 @@ Ogni checkpoint è una decisione del titolare, presa sulle evidenze della fase c
 | P-M25-01, cambio di metro | CP-1 | inizio di M2.5.3 | Serve la prova di fattibilità; dopo costerebbe rifare fixture e golden |
 | Criterio PASS del device | CP-1 | prima di M2.5.6 | D-M2-10 fissa la corsa, non la soglia; serve la baseline |
 | Margine DSP per gli effetti | CP-1 | prima di ogni effetto | Dipende dalla misura su device |
-| LFO sul filtro, saturazione e riassegnazione delle voci libere | CP-1 | inizio di M2.5.2 | Proposte dell'esperto del 2026-11-04: 3 voci su 8 sono ferme. Estendono il perimetro di M2.5.2 |
+| LFO sul filtro, saturazione, supersaw e riassegnazione delle voci libere | CP-1 | inizio di M2.5.2 | Proposte dell'esperto del 2026-11-04: 3 voci su 8 sono ferme. Estendono il perimetro di M2.5.2 |
 | F7, linea di basso | CP-2 | inizio di M2.5.3 | Sotto Corpo c'è solo il kick; va valutata con il kick (F4) e cambia il piano |
 | Rapporto FM della Trama | CP-1 | inizio di M2.5.2 | Il modello indica un problema vicino al rapporto 2, da confermare all'ascolto; la costante non tocca piano e trace |
 | P-M25-03, protocollo d'ascolto | CP-1 | prima dell'ascolto di CP-2 | Va fissato prima di ascoltare |
@@ -163,6 +163,31 @@ Ogni fase che tocca il codice si chiude con build Release, Debug e Headless, 0 w
 | FTZ/DAZ per thread | solo se la baseline su device lo motiva |
 | Strumenti realistici e librerie di suoni | R-M25-9, da approfondire nel momento opportuno; oggi non è un obiettivo dichiarato |
 | `PlayerProfile_v1` | M5/M7, fuori da M2.5 |
+
+### 8.1 Suggerimenti dell'esperto
+
+Registro unico dei suggerimenti raccolti il [2026-10-28](../m2_4_human_listening_2026-10-28.md) e il [2026-11-03 e 04](../m2_4_human_listening_2026-11-03.md). Nessuno è adottato: ognuno ha una destinazione, e ogni voce si chiude con una decisione registrata.
+
+| Suggerimento | Destinazione |
+|---|---|
+| Linea di basso (urgente) | F7, CP-2 |
+| Kick: più peso nelle basse, durata oltre i 54–62 ms attuali | F4, M2.5.2 |
+| Kick campionato o drum kit in un campionatore | R-M25-9, confronto A/B con il kick sintetico |
+| Backbeat e ghost notes per ancorare il metro | F1, CP-2 |
+| LFO sul filtro a quarti o ottavi, su pad o lead | CP-1, poi M2.5.2 |
+| Saturazione ed eventuale distorsione, sul synth o sul master | CP-1, poi M2.5.2 |
+| Supersaw sul lead: due voci all'unisono, leggermente stonate e aperte | CP-1, poi M2.5.2 |
+| Modulazioni di altri parametri, per esempio l'attacco | CP-1, come estensione dell'LFO |
+| Rifare il delay della Trama, oggi lateralizzato | F2, M2.5.2 |
+| Bilanciamento con rumore rosa e curve isofoniche | R-M25-1, M2.5.2 |
+| Riverberi di durate diverse, con livelli prudenti | R-M25-3, dopo CP-1 |
+| Chorus, flanger, delay con feedback | R-M25-3, dopo CP-1 |
+| Compressori solo come scelta stilistica | M2.5.2, nessun compressore di default |
+| Transizioni meno brusche: rampe di BPM o modulazioni ritmiche | F3, CP-3 |
+| Variazione melodica decisa o nuovo suono dopo il secondo loop | F3 e F5, CP-3 |
+| VST open source con preset | R-M25-9 |
+| Viste con nomi di strumenti e griglia | P-M25-08, M2.5.1 |
+| Ascoltare a un volume che permetta di giudicare il kick | P-M25-03, CP-1 |
 
 ## 9. Verifica di M2.5.0
 
