@@ -262,4 +262,15 @@ qualsiasi synth che non abbia un algoritmo di emulazione analogica (i synth anal
 - algoritmi molto efficienti
 
 gli umani si fanno a gara da anni per queste cose qui a colpi di chi riesce a raggiungere zero samples di latenza!
+
+gli oscillatori si possono bloccare.
+
+in che modo "sapere che è cambiato qualcosa nel suono" vi è utile?
+poi volendo su moltissimi synth si possono bloccare gli oscillatori
+per cui partiranno sempre con la stessa fase
+ciò che dice comunque ha senso
+
+un modo molto semplice per capire se un brano è cambiato in qualcosa di significativo o no è prendere la clip A e la clip B e invertire di fase una delle due
+
+se il livello risultante è molto basso (o tende a -infinito) siamo 99% certi che nulla, nè a livello armonico, nè a livello sonoro è cambiato nel brano
 ```

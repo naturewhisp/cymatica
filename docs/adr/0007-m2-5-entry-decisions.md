@@ -41,6 +41,7 @@ Un parere esterno consegnato dal titolare il 2026-11-03 dà «GO» e propone di 
   - aggiorna i golden con il motivo, secondo la regola esistente.
 - **Riferimento:** il PCM 15126969907236845529 resta la baseline di M2.4 per tutti i confronti.
 - **Vincolo artistico:** nessuna variazione aggiunta solo per far crescere una metrica. Il criterio resta «ricordi, sviluppi, sorprenda e ritorni»; la sua declinazione per milestone (P-M25-07) è un orientamento, non un contratto.
+- **Soluzioni esistenti (titolare, 2026-11-04):** prima di scrivere un DSP non banale, come riverbero, chorus o campioni di percussioni, si valutano codice o materiali esistenti, secondo la regola document-driven. Una nuova dipendenza resta soggetta ad approvazione (AGENTS §2).
 - **Alternativa scartata:** riscrittura del planner in M2.5, sproporzionata prima di avere misurato cosa si ottiene con l'architettura attuale.
 
 ### D-M2-20 — Livelli di qualità e regola di chiusura (P-M25-04)
@@ -77,6 +78,8 @@ Ogni checkpoint è una decisione del titolare, presa sulle evidenze della fase c
 | **CP-4** | M2.5.3 o M2.5.4 | Quale rilascio (H-03)? Quale normalizzazione (H-04)? Il contenuto è congelabile? Come si imposta la sessione alla cieca (H-05)? | 5e.3, 5e.3b, prova sul contenuto corrente |
 | **CP-5** | M2.5.5 | Si ratificano le soglie AC-AO-02 (H-01, H-02)? Si può passare alla build finale? | Ricalibrazione, esito della sessione alla cieca |
 | **Gate** | M2.5.6 | Regola di chiusura D-M2-20 | Tutte le evidenze di M2 |
+
+Ogni checkpoint riesamina anche le voci di §8.1 che gli competono.
 
 **Ascolti.** Sono previsti tre ascolti umani: CP-2, CP-3 e il gate. L'agente non ascolta e non conta come partecipante. Il titolare ha confermato (2026-11-03) che un secondo ascoltatore è fattibile, purché le domande siano semplici e adatte anche a chi non ha studiato musica. Il questionario si fissa con il protocollo a CP-1, e non aggiunge criteri mandatory.
 
@@ -168,6 +171,8 @@ Ogni fase che tocca il codice si chiude con build Release, Debug e Headless, 0 w
 
 Registro unico dei suggerimenti raccolti il [2026-10-28](../m2_4_human_listening_2026-10-28.md) e il [2026-11-03 e 04](../m2_4_human_listening_2026-11-03.md). Nessuno è adottato: ognuno ha una destinazione, e ogni voce si chiude con una decisione registrata.
 
+**Regola (titolare, 2026-11-04, AGENTS §5.3):** ogni suggerimento dell'esperto entra in questa tabella quando arriva. Ogni checkpoint riesamina le voci con quella scadenza e registra l'esito: adottata, rinviata con nuova destinazione, o scartata con motivo.
+
 | Suggerimento | Destinazione |
 |---|---|
 | Linea di basso (urgente) | F7, CP-2 |
@@ -186,9 +191,10 @@ Registro unico dei suggerimenti raccolti il [2026-10-28](../m2_4_human_listening
 | Compressori solo come scelta stilistica | M2.5.2, nessun compressore di default |
 | Transizioni meno brusche: rampe di BPM o modulazioni ritmiche | F3, CP-3 |
 | Variazione melodica decisa o nuovo suono dopo il secondo loop | F3 e F5, CP-3 |
-| VST open source con preset. Il determinismo non lo esclude a priori: provare render ripetuti e con blocchi diversi, e distinguere il bit esatto dei golden dal replay, che dipende da eventi e piano | R-M25-9 |
+| VST open source con preset. Il determinismo non lo esclude a priori: su molti synth la fase degli oscillatori si può bloccare; provare render ripetuti e con blocchi diversi, e distinguere il bit esatto dei golden dal replay, che dipende da eventi e piano | R-M25-9 |
 | Viste con nomi di strumenti e griglia | P-M25-08, M2.5.1 |
 | Ascoltare a un volume che permetta di giudicare il kick | P-M25-03, CP-1 |
+| Null test: invertire di fase una clip e sommarla all'altra per capire quanto è cambiato | D-M2-19: da riportare in ogni confronto A/B, accanto all'hash. Residuo molto basso: nulla di significativo è cambiato. Residuo alto: non prova una differenza udibile (clip del rilascio: −14 dB, giudicate uguali) |
 | Non rincorrere un synth universale: modulazioni e algoritmi efficienti sono una sfida enorme | Vincolo per R-M25-9 e D-M2-19: aggiungere solo ciò che serve al suono di CYMATICA |
 
 ## 9. Verifica di M2.5.0

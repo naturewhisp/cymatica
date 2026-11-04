@@ -129,3 +129,7 @@ Milestone impact
 Decisions resolved or still open
 Risks or follow-up
 ```
+
+### 5.3 Suggerimenti degli esperti
+
+Non perdere i consigli degli ascoltatori esperti nella documentazione. Ogni suggerimento entra subito come voce nominata nell'ADR della milestone attiva (oggi ADR-0007 §8.1), con una destinazione verificabile. Ogni checkpoint riesamina le voci con quella scadenza e registra l'esito: adottata, rinviata con nuova destinazione, o scartata con motivo. Un suggerimento non è una decisione finché non viene verificato.
