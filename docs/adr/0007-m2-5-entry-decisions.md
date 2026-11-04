@@ -179,15 +179,17 @@ Registro unico dei suggerimenti raccolti il [2026-10-28](../m2_4_human_listening
 | Supersaw sul lead: due voci all'unisono, leggermente stonate e aperte | CP-1, poi M2.5.2 |
 | Modulazioni di altri parametri, per esempio l'attacco | CP-1, come estensione dell'LFO |
 | Rifare il delay della Trama, oggi lateralizzato | F2, M2.5.2 |
+| Giudicare la larghezza stereo a orecchio: il Side/Mid può dire il contrario del percepito | F2 e R-M25-2: bilanciamento fra i canali più ascolto |
 | Bilanciamento con rumore rosa e curve isofoniche | R-M25-1, M2.5.2 |
 | Riverberi di durate diverse, con livelli prudenti | R-M25-3, dopo CP-1 |
 | Chorus, flanger, delay con feedback | R-M25-3, dopo CP-1 |
 | Compressori solo come scelta stilistica | M2.5.2, nessun compressore di default |
 | Transizioni meno brusche: rampe di BPM o modulazioni ritmiche | F3, CP-3 |
 | Variazione melodica decisa o nuovo suono dopo il secondo loop | F3 e F5, CP-3 |
-| VST open source con preset | R-M25-9 |
+| VST open source con preset. Il determinismo non lo esclude a priori: provare render ripetuti e con blocchi diversi, e distinguere il bit esatto dei golden dal replay, che dipende da eventi e piano | R-M25-9 |
 | Viste con nomi di strumenti e griglia | P-M25-08, M2.5.1 |
 | Ascoltare a un volume che permetta di giudicare il kick | P-M25-03, CP-1 |
+| Non rincorrere un synth universale: modulazioni e algoritmi efficienti sono una sfida enorme | Vincolo per R-M25-9 e D-M2-19: aggiungere solo ciò che serve al suono di CYMATICA |
 
 ## 9. Verifica di M2.5.0
 

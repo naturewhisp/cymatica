@@ -168,6 +168,10 @@ L'esperto ha letto la nota sul sintetizzatore e ha risposto al titolare; il test
 
 **Domanda sul delay.** I documenti riportano i valori 11/17 ms (ADR-0004) come micro-delay stereo, senza una motivazione musicale o una prova d'ascolto. L'intento era allargare l'immagine, non creare un'eco. L'ascolto del 2026-10-28 ne ha mostrato l'effetto collaterale: lateralizza a sinistra (F2).
 
+**Seguito sulla larghezza stereo.** L'esperto osserva che un effetto su un suono mandato quasi tutto a sinistra lo rende più arioso, ma non allarga l'immagine percepita, anche se un analizzatore può dire il contrario. Il codice gli dà ragione: la Trama usa sempre una sola voce (AG-MM-12), quindi resta al 100 % a sinistra e al 50 % a destra, e l'alternanza fra le due voci non avviene mai. Il tap sinistro arriva inoltre 6 ms prima. Di conseguenza il Side/Mid può indicare larghezza mentre l'ascolto sente un suono spostato: per F2 serve anche il bilanciamento fra i canali e la conferma all'ascolto.
+
+**Seguito sul determinismo.** L'esperto nota che un synth senza emulazione analogica, a parità di parametri, produce quasi sempre lo stesso suono. L'obiezione ridimensiona l'argomento della nota. Va distinto «stesso suono» da «stessi campioni»: i nostri golden verificano l'identità al bit, cosa che un synth esterno può non garantire (fasi libere, dipendenza dal blocco). Ma il replay del gioco dipende dagli eventi e dal piano, non dai campioni audio: il bit esatto serve soprattutto alla verifica. Il determinismo non esclude quindi un VST a priori; va provato su render ripetuti.
+
 ## Appendice — Risposte dell'esperto
 
 Testo consegnato dal titolare il 2026-11-03, invariato. È omessa solo la riga con il nome.
@@ -241,4 +245,21 @@ Peso nelle basse. Difficile però giudicare con volumi così bassi.
 
 Con 8 voci, a cosa daresti priorità?
 In questo momento avete urgente bisogno di una linea di basso.
+
+io ci credo che lui volesse allargare l'immagine stereo e forse qualcosina l'ho sentita
+il problema è che se applichi un effetto ad una traccia
+e poi la mandi quasi tutta a sinistra
+hai magari dato un suono leggermente più "arioso"
+ma non hai realmente allargato l'immagine stereo
+almeno non il percepito
+che è un bordello, perchè probabilmente qualsiasi analizzatore di immagine stereo ti dirà il contrario
+
+piccola nota sul "determinismo"
+qualsiasi synth che non abbia un algoritmo di emulazione analogica (i synth analogici tendono a suonare un po' più "caldi" e alle volte molto instabili poichè devono arrivare a temperatura operativa), con gli stessi parametri applicati, produrrà 99/100 lo stesso suono
+
+è una bella sfida ingegneristica costruirsi un synth che possegga:
+- tutte le possibilità di modulazione del mondo
+- algoritmi molto efficienti
+
+gli umani si fanno a gara da anni per queste cose qui a colpi di chi riesce a raggiungere zero samples di latenza!
 ```
