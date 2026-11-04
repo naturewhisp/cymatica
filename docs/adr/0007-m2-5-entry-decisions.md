@@ -134,7 +134,7 @@ Ogni fase che tocca il codice si chiude con build Release, Debug e Headless, 0 w
 | R-M25-4 | Transizioni: continuità dei pattern contro rampe di tempo | M2.5.3 |
 | R-M25-5 | Onset: normalizzazione robusta o locale (H-04) | prima di CP-4 |
 | R-M25-6 | Statistica per gruppi e permutazioni (H-05) | prima di CP-4 |
-| R-M25-9 | Timbri realistici: stabilire prima se il realismo è un obiettivo, poi confrontare campioni, modelli fisici, sintesi modale e soluzioni ibride per memoria, CPU, licenze, determinismo e budget di voci | a CP-3 o come tema della palette di M7, non in M2.5.2 |
+| R-M25-9 | Palette timbrica: a CP-3 l'obiettivo artistico (evocare strumenti acustici, creare materiali impossibili o combinarli), senza scegliere un algoritmo; poi, se serve, confronto fra campioni, modelli fisici, sintesi modale e soluzioni ibride per memoria, CPU, licenze, determinismo e budget di voci, con uno spike limitato prima del gate di M7. Criteri: riconoscibilità dei ruoli, espressività, coerenza nel mix, assenza di artefatti; il realismo è un mezzo, non il fine | CP-3 e prima di M7, non in M2.5.2 |
 | R-M25-8 | Rilevazione dei glitch audio su Windows: eventi di sistema (ETW e simili), contatori e strumenti equivalenti, con ciò che misurano davvero e i limiti in modalità condivisa | prima di CP-1 |
 | R-M25-7 | Direttore musicale (F5): stato dell'arte dei «conductor», già chiesto dal titolare il 2026-10-28, compreso il coordinamento fra i quattro ruoli (indicazione del titolare del 2026-11-03). **Eseguita:** [dossier R-M25-7](../research/M2_5_F5_Music_Director_Research.md) | prima di CP-3 |
 
