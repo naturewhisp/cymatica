@@ -50,6 +50,52 @@ TEST_CASE("Realtime Profile: Workload F full 96-bar fixture", "[perf][realtime_p
     SECTION("CACP ON") { checkWorkload(ProfileWorkload::F, true); }
 }
 
+TEST_CASE("CallbackProfileHistogram callback intervals (M2.5.1)", "[audio_engine][profile_histogram]") {
+    CallbackProfileHistogram hist{};
+    hist.recordInterval(1000000ULL, 480);    // first callback: no interval yet
+    CHECK(hist.intervalCount == 0);
+    hist.recordInterval(11000000ULL, 480);   // 10 ms
+    hist.recordInterval(11500000ULL, 512);   // 0.5 ms
+    hist.recordInterval(41500000ULL, 240);   // 30 ms
+    hist.recordInterval(341500000ULL, 480);  // 300 ms: overflow bin
+    hist.recordInterval(341000000ULL, 480);  // clock going back: ignored, not a huge interval
+    CHECK(hist.intervalCount == 4);
+    CHECK(hist.maxIntervalNs == 300000000ULL);
+    CHECK(hist.minBlockFrames == 240);
+    CHECK(hist.maxBlockFrames == 512);
+    CHECK(hist.intervalsAtLeastMs(0) == 4);
+    CHECK(hist.intervalsAtLeastMs(10) == 3);
+    CHECK(hist.intervalsAtLeastMs(11) == 2);
+    CHECK(hist.intervalsAtLeastMs(30) == 2);
+    CHECK(hist.intervalsAtLeastMs(31) == 1);
+    CHECK(hist.intervalsAtLeastMs(1000) == 1);
+
+    hist.reset();
+    CHECK(hist.intervalCount == 0);
+    CHECK(hist.maxIntervalNs == 0);
+    CHECK(hist.intervalsAtLeastMs(0) == 0);
+    hist.recordInterval(5000000ULL, 480);
+    CHECK(hist.intervalCount == 0); // reset forgets the previous start
+}
+
+TEST_CASE("Profiling histogram needs quiescence: offline engine (DIF-INC4-R3-05)", "[audio_engine][profile_histogram]") {
+    AudioEngine engine;
+    CallbackProfileHistogram hist{};
+    CHECK_FALSE(engine.copyCallbackProfileHistogram(hist)); // not initialised
+    CHECK_FALSE(engine.resetCallbackProfileHistogram());
+
+    REQUIRE(engine.initOffline());
+    std::vector<float> buffer(512 * 2, 0.0f);
+    engine.processBlock(buffer.data(), 512);
+    REQUIRE(engine.copyCallbackProfileHistogram(hist));
+    CHECK(hist.totalBlocks == 1);
+    CHECK(engine.resetCallbackProfileHistogram());
+    REQUIRE(engine.copyCallbackProfileHistogram(hist));
+    CHECK(hist.totalBlocks == 0);
+    AudioDeviceReport report{};
+    CHECK_FALSE(engine.deviceReport(report)); // no device
+}
+
 TEST_CASE("CallbackProfileHistogram calculation and percentiles (DIF-INC4-01)", "[audio_engine][profile_histogram]") {
     CallbackProfileHistogram hist{};
     hist.reset();

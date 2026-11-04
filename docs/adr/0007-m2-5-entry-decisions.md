@@ -61,6 +61,8 @@ Un parere esterno consegnato dal titolare il 2026-11-03 dà «GO» e propone di 
 | **M2.5.5** | Congelamento e ricalibrazione | Applicazione di H-03 e H-04; contenuto congelato; ricalibrazione AC-AO-02 con verifica su insiemi separati; pacchetto con un seed nuovo; sessione alla cieca | solo H-03 |
 | **M2.5.6** | Qualificazione integrata e chiusura | Build finale, `full_m2_suite`, AC-AO-01A con prova fisica SPACE, AC-AO-02, WASAPI ≥ 180 s, ascolto formale, dossier di qualità, review AGENTS §5.1.1 | no |
 
+**Estensione di M2.5.1 (titolare, 2026-11-04).** La baseline su device ha limiti superabili, quindi la fase comprende anche, in quest'ordine: confronto del PCM catturato sul device con il render offline; prova limitata di cattura loopback a valle del mixer; carico controllato e misurato; ripetizione su una seconda uscita audio. La ricerca R-M25-8 precede il criterio PASS di CP-1.
+
 **Ordine.** Il mix viene prima della struttura perché F1 si giudica solo con il kick al livello giusto. La prova su device viene prima degli effetti perché il loro costo va confrontato con il margine reale. M2.5.6 ripete tutte le verifiche: nessun esito delle fasi precedenti vale per la build finale.
 
 ## 4. Checkpoint
@@ -69,7 +71,7 @@ Ogni checkpoint è una decisione del titolare, presa sulle evidenze della fase c
 
 | CP | Dopo | Domande | Evidenze |
 |---|---|---|---|
-| **CP-1** | M2.5.1 | Serve il cambio di metro? Quale criterio PASS per il device? Quanto margine DSP c'è per gli effetti? Quale protocollo d'ascolto? Il rapporto FM entra in M2.5.2? | Baseline su device, prova di fattibilità, confronto con la specifica |
+| **CP-1** | M2.5.1 | Serve il cambio di metro? Quale criterio PASS per il device? Quanto margine DSP c'è per gli effetti? Quale protocollo d'ascolto? Il rapporto FM entra in M2.5.2? | Baseline su device, confronto PCM, loopback, R-M25-8, prova di fattibilità, confronto con la specifica |
 | **CP-2** | M2.5.2 | Il mix è credibile? Con il kick più alto il metro regge ancora? F1 va corretto, e come? | Misure, A/B, ascolto con Q3 per sezione |
 | **CP-3** | M2.5.3 | La transizione A→B è risolta? Serve una rampa di tempo? Dove va F5: una parte in M2.5.4 o tutto a M6? | Misure, ascolto, costo stimato |
 | **CP-4** | M2.5.3 o M2.5.4 | Quale rilascio (H-03)? Quale normalizzazione (H-04)? Il contenuto è congelabile? Come si imposta la sessione alla cieca (H-05)? | 5e.3, 5e.3b, prova sul contenuto corrente |
@@ -132,6 +134,7 @@ Ogni fase che tocca il codice si chiude con build Release, Debug e Headless, 0 w
 | R-M25-4 | Transizioni: continuità dei pattern contro rampe di tempo | M2.5.3 |
 | R-M25-5 | Onset: normalizzazione robusta o locale (H-04) | prima di CP-4 |
 | R-M25-6 | Statistica per gruppi e permutazioni (H-05) | prima di CP-4 |
+| R-M25-8 | Rilevazione dei glitch audio su Windows: eventi di sistema (ETW e simili), contatori e strumenti equivalenti, con ciò che misurano davvero e i limiti in modalità condivisa | prima di CP-1 |
 | R-M25-7 | Direttore musicale (F5): stato dell'arte dei «conductor», già chiesto dal titolare il 2026-10-28, compreso il coordinamento fra i quattro ruoli (indicazione del titolare del 2026-11-03). **Eseguita:** [dossier R-M25-7](../research/M2_5_F5_Music_Director_Research.md) | prima di CP-3 |
 
 ## 8. Destinazione dei punti aperti
@@ -140,6 +143,7 @@ Ogni fase che tocca il codice si chiude con build Release, Debug e Headless, 0 w
 |---|---|
 | DIF-INC4-R3-05 | M2.5.1 |
 | Qualificazione realtime su device | baseline in M2.5.1, gate in M2.5.6 |
+| Limiti della baseline (underrun non esposti, PCM non confrontato, carico non misurato, una sola uscita) | M2.5.1, estensione del §3 |
 | R-06, guasti latenti | M2.5.1 per quelli toccati da M2.5.3 (`barsPerPhrase`, `phrasePhase`, trasposizione al bordo, pad incrociati); gli altri in M2.5.6 o rinvio motivato |
 | «Â§» nel manifest; OSS-5e.3b-R2-01 | M2.5.1 |
 | 0 warning contati solo sui log (`/WX` assente) | M2.5.1: decidere se farne un controllo automatico |

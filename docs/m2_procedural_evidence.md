@@ -134,7 +134,8 @@ Priorità aggiornate: [proposta per l'ingresso di M2.5](research/M2_5_Entry_Musi
 - **Ablazione** (5e-07) e **direttore musicale** (F5).
 - **Staging transazionale** della scrittura dei pacchetti su più directory (OSS-5e.2-R2-01).
 - **Qualificazione realtime su device** (ADR-0005 D-M2-10, fuori da Inc-4): corsa WASAPI ≥ 180 s con periodo effettivo, MMCSS e conteggio degli underrun. È un gate distinto dal profiling offline di `profile_test`, che non la sostituisce (precisazione R6-03).
-- **DIF-INC4-R3-05**, prima dei test su device: `callbackProfileHistogram()` e `resetCallbackProfileHistogram()` vanno resi sicuri, con uno snapshot pubblicato in uno slot dedicato oppure con un'asserzione di quiescenza, senza lock nella callback.
+- **DIF-INC4-R3-05**, prima dei test su device: `callbackProfileHistogram()` e `resetCallbackProfileHistogram()` vanno resi sicuri, con uno snapshot pubblicato in uno slot dedicato oppure con un'asserzione di quiescenza, senza lock nella callback. **Attuato in M2.5.1a** con il controllo di quiescenza: lettura e azzeramento rifiutano mentre il device gira.
+- **Baseline su device (M2.5.1a):** [baseline su device](research/experiments/m25_device_baseline/README.md), misura sul contenuto attuale. Non sostituisce la qualificazione di M2.5.6.
 
 ### 4.5 Ricerche aperte e punti del modello
 

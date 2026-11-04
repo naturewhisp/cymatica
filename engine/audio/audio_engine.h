@@ -32,6 +32,39 @@ struct CallbackProfileHistogram {
     std::uint64_t blocksExceeding2Ms{0};          // Duration > 2.0 ms * frameCount / 512
     std::uint64_t blocksExceedingBlockPeriod{0};    // Duration > frameCount / sampleRate
     std::uint64_t lastDurationNs{0};
+    // Time between callback starts, 1 ms bins (0..255 ms) + overflow bin; meaningful on a device only (M2.5.1)
+    static constexpr std::size_t kIntervalBinCount = 256;
+    std::array<std::uint64_t, kIntervalBinCount> intervalBins{};
+    std::uint64_t intervalOverflowCount{0};
+    std::uint64_t intervalCount{0};
+    std::uint64_t maxIntervalNs{0};
+    std::uint64_t lastStartNs{0};
+    std::uint32_t minBlockFrames{UINT32_MAX};
+    std::uint32_t maxBlockFrames{0};
+
+    void recordInterval(std::uint64_t startNs, std::uint32_t frameCount) noexcept {
+        if (frameCount < minBlockFrames) minBlockFrames = frameCount;
+        if (frameCount > maxBlockFrames) maxBlockFrames = frameCount;
+        if (lastStartNs != 0 && startNs >= lastStartNs) {
+            const std::uint64_t intervalNs = startNs - lastStartNs;
+            ++intervalCount;
+            if (intervalNs > maxIntervalNs) maxIntervalNs = intervalNs;
+            const std::uint64_t binIdx = intervalNs / 1000000ULL;
+            if (binIdx < kIntervalBinCount) {
+                ++intervalBins[static_cast<std::size_t>(binIdx)];
+            } else {
+                ++intervalOverflowCount;
+            }
+        }
+        lastStartNs = startNs;
+    }
+
+    // Intervals of at least thresholdMs (whole milliseconds, the bin resolution)
+    [[nodiscard]] std::uint64_t intervalsAtLeastMs(std::uint32_t thresholdMs) const noexcept {
+        std::uint64_t count = intervalOverflowCount;
+        for (std::size_t i = thresholdMs; i < kIntervalBinCount; ++i) count += intervalBins[i];
+        return count;
+    }
 
     void record(std::uint64_t durationNs, std::uint32_t frameCount, std::uint32_t sampleRate) noexcept {
         lastDurationNs = durationNs;
@@ -71,6 +104,13 @@ struct CallbackProfileHistogram {
         blocksExceeding2Ms = 0;
         blocksExceedingBlockPeriod = 0;
         lastDurationNs = 0;
+        intervalBins.fill(0);
+        intervalOverflowCount = 0;
+        intervalCount = 0;
+        maxIntervalNs = 0;
+        lastStartNs = 0;
+        minBlockFrames = UINT32_MAX;
+        maxBlockFrames = 0;
     }
 
     [[nodiscard]] double meanMs() const noexcept {
@@ -106,6 +146,7 @@ struct AudioEngineConfig {
     std::uint32_t sampleRate{48000};
     std::uint32_t channels{2};
     float defaultToneFreqHz{220.0f};
+    AudioDeviceUsage deviceUsage{AudioDeviceUsage::Default};
 };
 
 // M0/M1 audio owner: manages playback device, realtime exchange channels, and test synthesis.
@@ -192,10 +233,15 @@ public:
     // Direct block rendering (callable without audio device for deterministic testing & zero-alloc validation)
     void processBlock(float* pOutput, std::uint32_t frameCount) noexcept;
 
-    // Profiling histogram API (ADR-0005 D-M2-10, INC4-R06)
-    // Offline mode: readable after quiescence or between blocks. In online mode, live telemetry is read via telemetry().
-    [[nodiscard]] const CallbackProfileHistogram& callbackProfileHistogram() const noexcept;
-    void resetCallbackProfileHistogram() noexcept;
+    // Profiling histogram API (ADR-0005 D-M2-10, INC4-R06, DIF-INC4-R3-05)
+    // The audio thread owns the histogram: both calls need quiescence (offline between blocks, or device stopped)
+    // and return false while the device runs. Live values are read through telemetry().
+    [[nodiscard]] bool copyCallbackProfileHistogram(CallbackProfileHistogram& out) const noexcept;
+    bool resetCallbackProfileHistogram() noexcept;
+
+    // Parameters granted by the backend; false on an offline engine. Read it while the device runs: the MMCSS
+    // task is taken at device start.
+    [[nodiscard]] bool deviceReport(AudioDeviceReport& out) const noexcept;
 
 private:
     struct Impl;

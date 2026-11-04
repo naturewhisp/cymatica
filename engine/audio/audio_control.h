@@ -119,4 +119,18 @@ struct AudioCommandAck {
     [[nodiscard]] constexpr bool operator==(const AudioCommandAck& other) const noexcept = default;
 };
 
+// MMCSS task of the device thread on WASAPI (M2.5.1). Default sets no task.
+enum class AudioDeviceUsage : std::uint8_t { Default, Games, ProAudio };
+
+// What the backend actually granted (M2.5.1): the effective period can differ from the requested one
+struct AudioDeviceReport {
+    const char* backendName{"unknown"};
+    std::uint32_t internalSampleRate{0};
+    std::uint32_t internalChannels{0};
+    std::uint32_t internalPeriodFrames{0};
+    std::uint32_t internalPeriods{0};
+    bool exclusive{false};
+    bool mmcssActive{false};
+};
+
 } // namespace cymatica::audio

@@ -27,6 +27,30 @@ TEST_CASE("Audio engine is inert before init", "[audio]") {
 }
 
 // Requires a real playback device; excluded from headless CI via the [device] tag.
+TEST_CASE("Profiling histogram refuses access while the device runs (DIF-INC4-R3-05)", "[audio][device]") {
+    cymatica::audio::AudioEngine engine;
+    REQUIRE(engine.init({48000, 2, 220.0f}));
+    REQUIRE(engine.startTone(220.0f, 0.0f)); // silent
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    while (engine.framesRendered() == 0 && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+    REQUIRE(engine.framesRendered() > 0);
+
+    cymatica::audio::CallbackProfileHistogram hist{};
+    CHECK_FALSE(engine.copyCallbackProfileHistogram(hist));
+    CHECK_FALSE(engine.resetCallbackProfileHistogram());
+    cymatica::audio::AudioDeviceReport report{};
+    REQUIRE(engine.deviceReport(report));
+    CHECK(report.internalPeriodFrames > 0);
+
+    engine.stopTone();
+    REQUIRE(engine.copyCallbackProfileHistogram(hist));
+    CHECK(hist.totalBlocks > 0);
+    CHECK(engine.resetCallbackProfileHistogram());
+    engine.shutdown();
+}
+
 TEST_CASE("Audio engine renders frames on the default device", "[audio][device]") {
     cymatica::audio::AudioEngine engine;
     REQUIRE(engine.init({48000, 2, 220.0f}));

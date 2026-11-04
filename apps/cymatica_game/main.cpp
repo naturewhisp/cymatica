@@ -55,7 +55,19 @@ int main(int argc, char** argv) {
     std::string sealedDir = "artifacts/sealed/evaluation_pack_v1";
     bool sealedDirGiven = false;
     std::string reportPath;
+    auto deviceUsage = cymatica::audio::AudioDeviceUsage::Default; // device_probe_v1 only (M2.5.1)
     for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--device-usage") == 0 && i + 1 < argc) {
+            const char* value = argv[i + 1];
+            if (std::strcmp(value, "games") == 0) {
+                deviceUsage = cymatica::audio::AudioDeviceUsage::Games;
+            } else if (std::strcmp(value, "pro_audio") == 0) {
+                deviceUsage = cymatica::audio::AudioDeviceUsage::ProAudio;
+            } else if (std::strcmp(value, "default") != 0) {
+                std::fprintf(stderr, "[cacp] ERROR: --device-usage accepts default, games or pro_audio\n");
+                return 2;
+            }
+        }
         const bool valueOption = std::strcmp(argv[i], "--pack-seed") == 0 || std::strcmp(argv[i], "--sealed-dir") == 0 ||
                                  std::strcmp(argv[i], "--report") == 0 || std::strcmp(argv[i], "--cacp-check-evaluation") == 0;
         if (valueOption && i + 1 >= argc) {
@@ -136,6 +148,12 @@ int main(int argc, char** argv) {
                 std::printf("[cacp] Verdict: %s\n", res.passed ? "PASS" : "FAIL");
                 std::printf("%s\n", res.toJson().c_str());
                 return res.passed ? 0 : 1;
+            } else if (std::strcmp(scenario, "device_probe") == 0 || std::strcmp(scenario, "device_probe_v1") == 0) {
+                std::printf("[cacp] Running scenario '%s' (M2.5.1 device_probe_v1, plays the fixture on the default device, about 184 s)...\n", scenario);
+                auto res = cymatica::audio::runDeviceProbeV1(deviceUsage, "artifacts/cacp", true);
+                std::printf("[cacp] Verdict: %s\n", res.completed ? "MEASURED" : "INVALID");
+                std::printf("%s\n", res.toJson().c_str());
+                return res.completed ? 0 : 1;
             } else if (std::strcmp(scenario, "acao02") == 0 || std::strcmp(scenario, "acao02_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5c acao02_v1, MEASURED, not a gate)...\n", scenario);
                 auto res = cymatica::cacp::runAcao02V1("artifacts/cacp", true);
@@ -214,7 +232,7 @@ int main(int argc, char** argv) {
                 return (res.completed && res.inputValid) ? 0 : 1;
             } else {
                 std::fprintf(stderr, "[cacp] ERROR: unknown scenario '%s' (known: tone_test, voice_test, "
-                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, onset_parity, acao02, evaluation_pack, procedural, release_ab, trama_miss_diagnosis, full_m2_suite "
+                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, device_probe, onset_parity, acao02, evaluation_pack, procedural, release_ab, trama_miss_diagnosis, full_m2_suite "
                                      "and their *_v* aliases)\n",
                              scenario);
                 return 2;

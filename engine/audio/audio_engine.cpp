@@ -639,6 +639,8 @@ struct AudioEngine::Impl {
         const auto tEnd = std::chrono::steady_clock::now();
         const auto durNs = static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(tEnd - tStart).count());
         profileHistogram.record(durNs, frameCount, sampleRate);
+        profileHistogram.recordInterval(static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(tStart.time_since_epoch()).count()), frameCount);
     }
 
     static void dataCallback(ma_device* pDevice, void* pOutput, const void*, ma_uint32 frameCount) {
@@ -669,6 +671,9 @@ bool AudioEngine::init(const AudioEngineConfig& config) {
     devCfg.sampleRate = config.sampleRate;
     devCfg.dataCallback = Impl::dataCallback;
     devCfg.pUserData = impl.get();
+    devCfg.wasapi.usage = (config.deviceUsage == AudioDeviceUsage::ProAudio) ? ma_wasapi_usage_pro_audio
+                        : (config.deviceUsage == AudioDeviceUsage::Games)    ? ma_wasapi_usage_games
+                                                                             : ma_wasapi_usage_default;
 
     if (ma_device_init(nullptr, &devCfg, &impl->device) != MA_SUCCESS) {
         return false;
@@ -956,15 +961,31 @@ const MasterLimiter& AudioEngine::masterLimiter() const noexcept {
     return pImpl_ ? pImpl_->masterLimiter_ : empty;
 }
 
-const CallbackProfileHistogram& AudioEngine::callbackProfileHistogram() const noexcept {
-    static const CallbackProfileHistogram empty{};
-    return pImpl_ ? pImpl_->profileHistogram : empty;
+bool AudioEngine::copyCallbackProfileHistogram(CallbackProfileHistogram& out) const noexcept {
+    if (!pImpl_ || pImpl_->deviceStarted.load(std::memory_order_acquire)) return false;
+    out = pImpl_->profileHistogram;
+    return true;
 }
 
-void AudioEngine::resetCallbackProfileHistogram() noexcept {
-    if (pImpl_) {
-        pImpl_->profileHistogram.reset();
-    }
+bool AudioEngine::resetCallbackProfileHistogram() noexcept {
+    if (!pImpl_ || pImpl_->deviceStarted.load(std::memory_order_acquire)) return false;
+    pImpl_->profileHistogram.reset();
+    return true;
+}
+
+bool AudioEngine::deviceReport(AudioDeviceReport& out) const noexcept {
+    if (!pImpl_ || !pImpl_->deviceInitialized) return false;
+    const ma_device& device = pImpl_->device;
+    out.backendName = ma_get_backend_name(device.pContext->backend);
+    out.internalSampleRate = device.playback.internalSampleRate;
+    out.internalChannels = device.playback.internalChannels;
+    out.internalPeriodFrames = device.playback.internalPeriodSizeInFrames;
+    out.internalPeriods = device.playback.internalPeriods;
+    out.exclusive = device.playback.shareMode == ma_share_mode_exclusive;
+#ifdef MA_SUPPORT_WASAPI
+    out.mmcssActive = device.pContext->backend == ma_backend_wasapi && device.wasapi.hAvrtHandle != nullptr;
+#endif
+    return true;
 }
 
 MasterLimiter& AudioEngine::masterLimiter() noexcept {

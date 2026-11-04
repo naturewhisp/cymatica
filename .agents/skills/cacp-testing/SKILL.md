@@ -199,6 +199,18 @@ In modalità interattiva manuale (`cymatica_game.exe` senza flag smoke):
 
 ---
 
+## 2b. Baseline sul device (device_probe_v1 — M2.5.1)
+
+Suona la fixture sul dispositivo predefinito per circa 184 s: è udibile, va eseguita senza altri carichi e non fa parte di CI né di `full_m2_suite`.
+
+```powershell
+build/x64-release/apps/cymatica_game/cymatica_game.exe --cacp-run device_probe_v1 --device-usage games
+```
+
+- `--device-usage` accetta `default`, `games` e `pro_audio`; il manifest è `artifacts/cacp/device_probe_v1_<usage>_manifest.json`.
+- Stato `MEASURED`: fixture completa, ack esatti, nessun evento scartato o rinviato. `INVALID` altrimenti. Non è un gate.
+- `suspected_underruns` è una stima dagli intervalli fra callback, perché WASAPI condiviso non espone gli underrun: zero non prova l'assenza di crackle.
+
 ## 3. Evoluzione del CACP nelle Milestone e Sottofasi
 
 Il CACP si sviluppa in parallelo continuo e proporzionato con il codice: ogni incremento con impatto audiovisivo o di controllo introduce o aggiorna il relativo profilo diagnostico.

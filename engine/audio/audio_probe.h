@@ -509,6 +509,50 @@ ProfileWorkloadRun runProfileWorkload(ProfileWorkload workload, bool cacpEnabled
 ProfileProbeResult runProfileProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
                                            bool writeFiles = true);
 
+// Fixture played on the default device in real time (M2.5.1, ADR-0007): measures, gates nothing.
+// WASAPI shared mode exposes no underrun count, so suspectedUnderruns is a proxy from the callback intervals.
+struct DeviceProbeResult {
+    bool completed{false};                // the fixture ran to the Stop with exact acks and no late event
+    std::string usage{};
+    std::string buildId{};
+    std::string buildConfig{};
+    std::string cpuInfo{};
+    std::string osVersion{};
+    std::string compilerVersion{};
+    AudioDeviceReport device{};
+    double elapsedSeconds{0.0};           // device start to Stop acknowledged
+    double framesPerSecond{0.0};          // rendered, not heard
+    std::uint64_t framesRendered{0};
+    std::uint64_t droppedEvents{0};
+    std::uint64_t deferredEvents{0};
+    bool startAckValid{false};
+    bool tempoAcksValid{false};
+    bool stopAckValid{false};
+    double p50Ms{0.0};
+    double p999Ms{0.0};
+    double maxMs{0.0};
+    double meanMs{0.0};
+    std::uint64_t totalBlocks{0};
+    std::uint32_t minBlockFrames{0};
+    std::uint32_t maxBlockFrames{0};
+    std::uint64_t blocksExceeding2Ms{0};
+    std::uint64_t blocksExceedingBlockPeriod{0};
+    double maxIntervalMs{0.0};
+    double periodMs{0.0};
+    double bufferMs{0.0};
+    std::uint64_t intervalsOverTwicePeriod{0};
+    std::uint64_t suspectedUnderruns{0};  // intervals of at least the whole device buffer
+    double maxCoordinatorGapMs{0.0};
+    float maxGainReductionDb{0.0f};
+    std::string manifestFilePath{};
+    bool manifestWriteSuccess{false};
+    std::string failureReason{};
+    [[nodiscard]] std::string toJson() const;
+};
+
+DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& outputDir = "artifacts/cacp",
+                                   bool writeFiles = true);
+
 // Runs the authoritative planner_probe_v1 scenario offline in 120 Hz simulation ticks (Inc-3)
 PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
                                            bool writeFiles = true,

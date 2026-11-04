@@ -1,0 +1,14 @@
+{
+  "manifest_version": "1.0",
+  "scenario": "device_probe_v1",
+  "build_id": "9b56d27",
+  "status": "MEASURED",
+  "scope": "baseline on the default device; measures, not a gate. The PASS criterion is decided at CP-1 (ADR-0007)",
+  "usage": "pro_audio",
+  "device": {"backend": "WASAPI", "internal_sample_rate": 48000, "internal_channels": 2, "period_frames": 480, "periods": 3, "period_ms": 10, "buffer_ms": 30, "exclusive": false, "mmcss_active": true},
+  "run": {"elapsed_s": 182.828, "frames_rendered": 8777142, "frames_per_second": 48007.5, "dropped_events": 0, "deferred_events": 0, "start_ack_valid": true, "tempo_acks_valid": true, "stop_ack_valid": true, "max_coordinator_gap_ms": 23.838, "max_gain_reduction_db": 0},
+  "callback": {"total_blocks": 18386, "min_block_frames": 480, "max_block_frames": 480, "p50_ms": 0.07, "p999_ms": 0.13, "max_ms": 0.3539, "mean_ms": 0.071675, "blocks_exceeding_2ms_normalised": 0, "blocks_exceeding_block_period": 0, "max_interval_ms": 11.0388, "intervals_over_twice_period": 0, "suspected_underruns": 0},
+  "limits": "WASAPI shared mode exposes no underrun count: suspected_underruns counts callback intervals of at least the device buffer, including the device start. frames_rendered is not audio heard.",
+  "environment": {"build_config": "Release", "cpu": "AMD Ryzen 7 7700X 8-Core Processor", "os_version": "Windows 10.0.26300", "compiler": "MSVC 195136260"},
+  "manifest_write_success": true
+}

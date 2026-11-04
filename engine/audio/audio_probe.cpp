@@ -22,12 +22,14 @@
 #endif
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <thread>
 
 namespace cymatica::audio {
 
@@ -2965,7 +2967,7 @@ ProfileWorkloadRun runProfileWorkload(ProfileWorkload workload, bool cacpEnabled
         for (std::uint32_t b = 0; b < totalBlocks; ++b) {
             if (b == kProfileWarmupBlocks) {
                 // Discard warm-up measurements
-                engine.resetCallbackProfileHistogram();
+                if (!engine.resetCallbackProfileHistogram()) run.stressConditionsMet = false;
                 engine.masterLimiter().resetTelemetry();
                 (void)engine.updateTelemetry();
                 stealsBefore = engine.telemetry().voiceDropCount;
@@ -2999,7 +3001,7 @@ ProfileWorkloadRun runProfileWorkload(ProfileWorkload workload, bool cacpEnabled
 
         coordinator.start(engine);
         for (std::uint64_t b = 0; b < totalBlocks; ++b) {
-            if (b == kProfileWarmupBlocks) engine.resetCallbackProfileHistogram();
+            if (b == kProfileWarmupBlocks && !engine.resetCallbackProfileHistogram()) run.stressConditionsMet = false;
             coordinator.beforeBlock(b * kProfileBlockFrames, kProfileBlockFrames, engine);
             renderBlock();
             coordinator.drainAcks(engine);
@@ -3009,7 +3011,8 @@ ProfileWorkloadRun runProfileWorkload(ProfileWorkload workload, bool cacpEnabled
                                   engine.droppedScheduledEvents() == 0 && engine.deferredScheduledEvents() == 0;
     }
 
-    const CallbackProfileHistogram& hist = engine.callbackProfileHistogram();
+    CallbackProfileHistogram hist{};
+    if (!engine.copyCallbackProfileHistogram(hist)) run.stressConditionsMet = false;
     run.p50Ms = hist.percentileMs(50.0);
     run.p95Ms = hist.percentileMs(95.0);
     run.p99Ms = hist.percentileMs(99.0);
@@ -3025,6 +3028,174 @@ ProfileWorkloadRun runProfileWorkload(ProfileWorkload workload, bool cacpEnabled
     if (cacpEnabled) engine.detachAudioProbe();
     engine.shutdown();
     return run;
+}
+
+std::string DeviceProbeResult::toJson() const {
+    std::ostringstream ss;
+    ss << "{\n";
+    ss << "  \"manifest_version\": \"1.0\",\n";
+    ss << "  \"scenario\": \"device_probe_v1\",\n";
+    ss << "  \"build_id\": \"" << escapeJsonString(buildId) << "\",\n";
+    ss << "  \"status\": \"" << (completed ? "MEASURED" : "INVALID") << "\",\n";
+    ss << "  \"scope\": \"baseline on the default device; measures, not a gate. The PASS criterion is decided at CP-1 (ADR-0007)\",\n";
+    ss << "  \"usage\": \"" << escapeJsonString(usage) << "\",\n";
+    ss << "  \"device\": {\"backend\": \"" << escapeJsonString(device.backendName) << "\""
+       << ", \"internal_sample_rate\": " << device.internalSampleRate
+       << ", \"internal_channels\": " << device.internalChannels
+       << ", \"period_frames\": " << device.internalPeriodFrames
+       << ", \"periods\": " << device.internalPeriods
+       << ", \"period_ms\": " << safeJsonDouble(periodMs) << ", \"buffer_ms\": " << safeJsonDouble(bufferMs)
+       << ", \"exclusive\": " << (device.exclusive ? "true" : "false")
+       << ", \"mmcss_active\": " << (device.mmcssActive ? "true" : "false") << "},\n";
+    ss << "  \"run\": {\"elapsed_s\": " << safeJsonDouble(elapsedSeconds)
+       << ", \"frames_rendered\": " << framesRendered
+       << ", \"frames_per_second\": " << safeJsonDouble(framesPerSecond)
+       << ", \"dropped_events\": " << droppedEvents << ", \"deferred_events\": " << deferredEvents
+       << ", \"start_ack_valid\": " << (startAckValid ? "true" : "false")
+       << ", \"tempo_acks_valid\": " << (tempoAcksValid ? "true" : "false")
+       << ", \"stop_ack_valid\": " << (stopAckValid ? "true" : "false")
+       << ", \"max_coordinator_gap_ms\": " << safeJsonDouble(maxCoordinatorGapMs)
+       << ", \"max_gain_reduction_db\": " << safeJsonFloat(maxGainReductionDb) << "},\n";
+    ss << "  \"callback\": {\"total_blocks\": " << totalBlocks
+       << ", \"min_block_frames\": " << minBlockFrames << ", \"max_block_frames\": " << maxBlockFrames
+       << ", \"p50_ms\": " << safeJsonDouble(p50Ms) << ", \"p999_ms\": " << safeJsonDouble(p999Ms)
+       << ", \"max_ms\": " << safeJsonDouble(maxMs) << ", \"mean_ms\": " << safeJsonDouble(meanMs)
+       << ", \"blocks_exceeding_2ms_normalised\": " << blocksExceeding2Ms
+       << ", \"blocks_exceeding_block_period\": " << blocksExceedingBlockPeriod
+       << ", \"max_interval_ms\": " << safeJsonDouble(maxIntervalMs)
+       << ", \"intervals_over_twice_period\": " << intervalsOverTwicePeriod
+       << ", \"suspected_underruns\": " << suspectedUnderruns << "},\n";
+    ss << "  \"limits\": \"WASAPI shared mode exposes no underrun count: suspected_underruns counts callback intervals of at least the device buffer, including the device start. frames_rendered is not audio heard.\",\n";
+    ss << "  \"environment\": {\"build_config\": \"" << escapeJsonString(buildConfig) << "\""
+       << ", \"cpu\": \"" << escapeJsonString(cpuInfo) << "\""
+       << ", \"os_version\": \"" << escapeJsonString(osVersion) << "\""
+       << ", \"compiler\": \"" << escapeJsonString(compilerVersion) << "\"},\n";
+    ss << "  \"manifest_write_success\": " << (manifestWriteSuccess ? "true" : "false");
+    if (!failureReason.empty()) {
+        ss << ",\n  \"failure_reason\": \"" << escapeJsonString(failureReason) << "\"";
+    }
+    ss << "\n}\n";
+    return ss.str();
+}
+
+DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& outputDir, bool writeFiles) {
+    using SteadyClock = std::chrono::steady_clock;
+    DeviceProbeResult result;
+    result.usage = (usage == AudioDeviceUsage::ProAudio) ? "pro_audio" : (usage == AudioDeviceUsage::Games) ? "games" : "default";
+    result.buildId = CYMATICA_BUILD_ID;
+    result.osVersion = osVersionString();
+    result.cpuInfo = cpuBrandString();
+    result.compilerVersion = compilerString();
+#ifdef NDEBUG
+    result.buildConfig = "Release";
+#else
+    result.buildConfig = "Debug";
+#endif
+
+    const auto finish = [&]() {
+        if (writeFiles) {
+            std::error_code ec;
+            std::filesystem::create_directories(outputDir, ec);
+            result.manifestFilePath = (std::filesystem::path(outputDir) / ("device_probe_v1_" + result.usage + "_manifest.json")).string();
+            std::ofstream out(result.manifestFilePath, std::ios::binary);
+            result.manifestWriteSuccess = static_cast<bool>(out);
+            if (out) out << result.toJson();
+        }
+        return result;
+    };
+
+    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+    if (!optClock.has_value()) {
+        result.failureReason = "fixture clock not available";
+        return finish();
+    }
+    const MusicClock& clock = *optClock;
+    const FormPlan form = MusicPlanner::makeFixtureM24V1Form();
+    const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(clock);
+    FixtureCoordinator coordinator(clock, form, phrases);
+
+    AudioEngine engine;
+    AudioEngineConfig config{};
+    config.sampleRate = kInc4SampleRate;
+    config.deviceUsage = usage;
+    if (!engine.init(config)) {
+        result.failureReason = "no playback device";
+        return finish();
+    }
+    coordinator.start(engine);
+    const auto wallStart = SteadyClock::now();
+    if (!engine.startTone(config.defaultToneFreqHz, 0.0f)) { // silent test tone: only the fixture sounds
+        result.failureReason = "device start failed";
+        return finish();
+    }
+    const bool reportOk = engine.deviceReport(result.device);
+
+    // The render cursor freezes at the Stop, so the tail after it is counted in wall time
+    const double contentSeconds = static_cast<double>(coordinator.contentEndFrame()) / kInc4SampleRate;
+    const double tailSeconds = static_cast<double>(kFixturePostStopFrames) / kInc4SampleRate;
+    const double timeoutSeconds = contentSeconds + tailSeconds + 15.0;
+    bool timedOut = false;
+    bool stopSeen = false;
+    SteadyClock::time_point stopTime{};
+    std::uint64_t lastFrame = 0;
+    auto lastIteration = wallStart;
+    while (!timedOut) {
+        const std::uint64_t frame = engine.framesRendered();
+        coordinator.beforeBlock(frame, static_cast<std::uint32_t>(std::max<std::uint64_t>(frame - lastFrame, 1)), engine);
+        coordinator.drainAcks(engine);
+        lastFrame = frame;
+        const auto iterationEnd = SteadyClock::now();
+        if (coordinator.stopped() && !stopSeen) {
+            stopSeen = true;
+            stopTime = iterationEnd;
+        }
+        if (stopSeen && std::chrono::duration<double>(iterationEnd - stopTime).count() >= tailSeconds) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        const auto now = SteadyClock::now();
+        result.maxCoordinatorGapMs = (std::max)(result.maxCoordinatorGapMs, std::chrono::duration<double, std::milli>(now - lastIteration).count());
+        lastIteration = now;
+        timedOut = std::chrono::duration<double>(now - wallStart).count() > timeoutSeconds;
+    }
+    result.elapsedSeconds = std::chrono::duration<double>((stopSeen ? stopTime : SteadyClock::now()) - wallStart).count();
+    result.framesRendered = engine.framesRendered();
+    engine.stopTone();
+
+    // Quiescence reached: the callback no longer runs (DIF-INC4-R3-05)
+    CallbackProfileHistogram hist{};
+    const bool histogramOk = engine.copyCallbackProfileHistogram(hist);
+    result.framesPerSecond = result.elapsedSeconds > 0.0 ? static_cast<double>(result.framesRendered) / result.elapsedSeconds : 0.0;
+    result.droppedEvents = engine.droppedScheduledEvents();
+    result.deferredEvents = engine.deferredScheduledEvents();
+    result.startAckValid = coordinator.startAckValid();
+    result.tempoAcksValid = coordinator.tempoAckValid(0) && coordinator.tempoAckValid(1);
+    result.stopAckValid = coordinator.stopAckValid();
+    result.maxGainReductionDb = engine.masterLimiter().maxGainReductionDb();
+    result.p50Ms = hist.percentileMs(50.0);
+    result.p999Ms = hist.percentileMs(99.9);
+    result.maxMs = hist.maxMs();
+    result.meanMs = hist.meanMs();
+    result.totalBlocks = hist.totalBlocks;
+    result.minBlockFrames = hist.minBlockFrames;
+    result.maxBlockFrames = hist.maxBlockFrames;
+    result.blocksExceeding2Ms = hist.blocksExceeding2Ms;
+    result.blocksExceedingBlockPeriod = hist.blocksExceedingBlockPeriod;
+    result.maxIntervalMs = static_cast<double>(hist.maxIntervalNs) / 1000000.0;
+    if (result.device.internalSampleRate > 0) {
+        result.periodMs = 1000.0 * result.device.internalPeriodFrames / result.device.internalSampleRate;
+        result.bufferMs = result.periodMs * result.device.internalPeriods;
+    }
+    result.intervalsOverTwicePeriod = hist.intervalsAtLeastMs(static_cast<std::uint32_t>(std::ceil(2.0 * result.periodMs)));
+    result.suspectedUnderruns = hist.intervalsAtLeastMs(static_cast<std::uint32_t>(std::ceil(result.bufferMs)));
+    result.completed = reportOk && histogramOk && !timedOut && coordinator.stopped() && result.startAckValid &&
+                       result.tempoAcksValid && result.stopAckValid && result.droppedEvents == 0 && result.deferredEvents == 0;
+    if (!result.completed) {
+        std::ostringstream err;
+        err << "timed_out=" << timedOut << " stopped=" << coordinator.stopped() << " report=" << reportOk
+            << " histogram=" << histogramOk << " dropped=" << result.droppedEvents << " deferred=" << result.deferredEvents;
+        result.failureReason = err.str();
+    }
+    engine.shutdown();
+    return finish();
 }
 
 ProfileProbeResult runProfileProbeV1Offline(const std::string& outputDir, bool writeFiles) {
