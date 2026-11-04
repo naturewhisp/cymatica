@@ -16,7 +16,7 @@ M2.4 è chiusa su `0dcc6da`. L'handoff è nel [dossier delle evidenze](../m2_pro
 
 Un parere esterno consegnato dal titolare il 2026-11-03 dà «GO» e propone di congelare le decisioni all'ingresso con un ADR. Questo ADR ne conserva l'ordine generale (prima le decisioni, poi il codice) con due differenze, spiegate nel §7: le soglie AC-AO-02 si ratificano dopo il congelamento del contenuto, e una prima prova su device precede gli interventi musicali.
 
-## 2. Decisioni proposte
+## 2. Decisioni approvate all'ingresso
 
 ### D-M2-17 — Sotto-fasi e checkpoint
 
@@ -98,6 +98,7 @@ Ogni checkpoint è una decisione del titolare, presa sulle evidenze della fase c
 | H-05 e sessione alla cieca | CP-4 | M2.5.5 | Dipendono dalla varietà del contenuto congelato |
 | Evidenza dell'adapter di AC-AO-02 | CP-4 | M2.5.6 | Stabilire se serve una sessione reale. Un esito `INSUFFICIENT_DATA` su sensibilità o specificità non è un fallimento |
 | P-M25-02, H-01, H-02 | CP-5 | prima delle misure finali | Le soglie attuali derivano dagli stem di oggi. Si fissano dopo il congelamento, prima di misurare la build finale |
+| Separazione dei dati per AC-AO-02 | CP-4 | prima di M2.5.5 | Evita il leakage: dichiarare quali dati calibrano, quali verificano le soglie da ratificare a CP-5 e quali servono alla misura finale, che usa soglie congelate. Se il materiale coincide, va dichiarato come limite |
 | Stato dei profili non validati | gate | gate | Restano non `validated` salvo evidenza |
 
 ## 6. Regola di avanzamento
@@ -157,6 +158,6 @@ Ogni fase che tocca il codice si chiude con build Release, Debug e Headless, 0 w
 
 ## 9. Verifica di M2.5.0
 
-- Solo documenti: build e test non applicabili.
+- Nessuna modifica al runtime C++, ai test o ai golden: build e test del progetto non applicabili. Il commit aggiunge solo documenti e strumenti offline di ricerca in `docs/research/experiments/`.
 - Link interni controllati; ogni ID del §5 e del §8 ha un riscontro nei documenti di handoff.
 - Review del titolare: approvazione di D-M2-17..20. M2.5.1 parte solo con un'autorizzazione esplicita.
