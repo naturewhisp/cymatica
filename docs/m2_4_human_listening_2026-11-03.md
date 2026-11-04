@@ -151,6 +151,23 @@ Per il prossimo pacchetto d'ascolto:
 - **Riscontri:** confermano fenomeni presenti nel piano o nel segnale. Le spiegazioni dei §3.1 e §3.2 sono ipotesi dell'agente, non verificate all'ascolto.
 - **Gate:** l'ascolto formale resta al gate M2.5 (specifica §32), con device reale e protocollo.
 
+## 8. Seguito del 2026-11-04: risposte alla nota sul sintetizzatore
+
+L'esperto ha letto la nota sul sintetizzatore e ha risposto al titolare; il testo è in appendice. Riscontri dell'agente sul [piano](research/experiments/m25_ensemble_baseline/voice_use.output.txt) e sul codice:
+
+| Osservazione | Riscontro | Conseguenza proposta |
+|---|---|---|
+| Urgente bisogno di una linea di basso | La nota più grave di Corpo è D3 (147 Hz) in A e A′, G2 (98 Hz) in B. Sotto c'è solo il kick: nessun basso sostiene l'armonia | Nuova questione **F7**, da valutare con F4 |
+| Al kick manca peso nelle basse | Le note di Pulso durano 54–62 ms: il NoteOff taglia il decay di 70–80 ms, e la nota di base dura pochi cicli. L'esperto aggiunge che è difficile giudicare a questo volume (−21,25 LUFS) | Provare durata e livello insieme, prima di concludere sul solo gain |
+| Un kick campionato libererebbe voci | Le voci libere esistono già: Pulso, Trama e Vettore ne usano una sola, quindi 3 voci su 8 sono ferme | Le voci si possono riassegnare anche senza campioni; rilasci e sovrapposizioni vanno verificati |
+| Supersaw per il lead: due voci all'unisono, leggermente stonate e aperte | Vettore ha già la seconda voce libera | Candidato economico per M2.5.2 o M2.5.3 |
+| LFO sul filtro a quarti o ottavi, poi saturazione | Non esistono oggi. L'LFO si può legare al clock musicale, quindi resta deterministico | Prima scelta dell'esperto per la ricchezza; decidere a CP-1 |
+| La FM non è sbagliata di per sé | Il modello indicava ruvidità, l'ascolto non la considera un difetto | Rapporto FM ridimensionato: nessuna priorità in M2.5.2 |
+| Campioni per le percussioni: meno CPU | Vero in generale, ma oggi la CPU non è il limite: callback mediana 0,07 ms su 10 ms | Il motivo per valutarli è il suono, non il costo |
+| Latenza e CPU contano anche per chi compone | Corretto: l'argomento «tempo reale» della nota non distingue CYMATICA da una DAW. Restano determinismo e controllo | Valutare un VST con preset in R-M25-9, senza darlo per escluso |
+
+**Domanda sul delay.** I documenti riportano i valori 11/17 ms (ADR-0004) come micro-delay stereo, senza una motivazione musicale o una prova d'ascolto. L'intento era allargare l'immagine, non creare un'eco. L'ascolto del 2026-10-28 ne ha mostrato l'effetto collaterale: lateralizza a sinistra (F2).
+
 ## Appendice — Risposte dell'esperto
 
 Testo consegnato dal titolare il 2026-11-03, invariato. È omessa solo la riga con il nome.
@@ -197,4 +214,31 @@ Giudizio complessivo: Rispetto a quanto scritto nella valutazione precedente, il
 Data e ora: 2026-11-03
 Apparecchiatura: Audio Technica M50x + Behringer U-PHORIA UMC204HD
 Volume: Volume d'ascolto non misurato, confortevole. Circa 1/4 del potenziometro.
+```
+
+Seguito del 2026-11-04, sulla nota del sintetizzatore. Testo invariato, omessi nome e orari.
+
+```text
+chiedigli perchè ha usato un delay così corto: `Poi c'è un delay con 11 ms a sinistra e 17 ms
+a destra, feedback 30 %, mix wet circa 32 %.`, cosa cercava di ottenere?
+
+questo (paragrafo che ti incollo dopo) potrebbe tecnicamente avere senso ma considera che anche quando una persona compone e registra della musica ha bisogno di sentire sempre lo stesso audio con una latenza il più bassa possibile e un costo in CPU anche lui, più basso possibile.
+
+[paragrafo «Perché non un synth esistente» della nota]
+
+Non so cosa costi implementare un qualsiasi VST open source preesistente e andare di preset. Per quanto riguarda le percussioni, costa MOLTO DI MENO in termini di cicli di CPU usare dei campioni audio rispetto al sintetizzarli, non a caso quando viene composta la musica in una DAW classica (es. Ableton Live) la maggior parte delle persone carica di drum kit all'interno di un campionatore.
+
+Quale aggiunta porterebbe più ricchezza con meno risorse: un riverbero, una saturazione o una
+modulazione?
+—- una modulazione sul synth: potrebbe bastare un LFO mappato sul filtro, che magari lo chiude in quarti o ottavi (per introdurre una componente ritmica su qualche pad o lead), seguito da saturazione (anche se non vai in oversampling, in questo momento non ci frega molto), con cui puoi giocare e introdurre anche distorsione, volendo. Se usi un campione di kick, potenzialmente potresti liberare almeno una voce, se riesci a mapparla sulla lead, puoi iniziare ad ottenere una SUPERSAW usando due voci che suonano all'unisono, con pitch leggerissimamente differente tra di loro e se vuoi si potrebbero pannare una leggermente a destra e una leggermente a sinistra.
+
+Il suono FM ti sembra sbagliato di per sé? Una nostra misura indica che il rapporto 1,88 potrebbe
+renderlo ruvido, ma è solo un modello: vorremmo confrontare altri rapporti all'ascolto
+—— No. Considera che la FM synthesis produce al 90% suoni strani.
+
+Oltre al livello, cosa manca al kick: attacco, durata o peso nelle basse?
+Peso nelle basse. Difficile però giudicare con volumi così bassi.
+
+Con 8 voci, a cosa daresti priorità?
+In questo momento avete urgente bisogno di una linea di basso.
 ```

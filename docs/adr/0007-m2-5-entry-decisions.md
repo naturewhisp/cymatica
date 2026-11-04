@@ -89,6 +89,8 @@ Ogni checkpoint è una decisione del titolare, presa sulle evidenze della fase c
 | P-M25-01, cambio di metro | CP-1 | inizio di M2.5.3 | Serve la prova di fattibilità; dopo costerebbe rifare fixture e golden |
 | Criterio PASS del device | CP-1 | prima di M2.5.6 | D-M2-10 fissa la corsa, non la soglia; serve la baseline |
 | Margine DSP per gli effetti | CP-1 | prima di ogni effetto | Dipende dalla misura su device |
+| LFO sul filtro, saturazione e riassegnazione delle voci libere | CP-1 | inizio di M2.5.2 | Proposte dell'esperto del 2026-11-04: 3 voci su 8 sono ferme. Estendono il perimetro di M2.5.2 |
+| F7, linea di basso | CP-2 | inizio di M2.5.3 | Sotto Corpo c'è solo il kick; va valutata con il kick (F4) e cambia il piano |
 | Rapporto FM della Trama | CP-1 | inizio di M2.5.2 | Il modello indica un problema vicino al rapporto 2, da confermare all'ascolto; la costante non tocca piano e trace |
 | P-M25-03, protocollo d'ascolto | CP-1 | prima dell'ascolto di CP-2 | Va fissato prima di ascoltare |
 | Valori di F2 e F4 | review di M2.5.2 | CP-2 | Dipendono dalle prove A/B |

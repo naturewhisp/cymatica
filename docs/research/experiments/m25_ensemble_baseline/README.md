@@ -19,6 +19,7 @@ Script e output delle misure citate nell'[ascolto del 2026-11-03](../../../m2_4_
 | `fm_sethares.py` | Dissonanza di interferenza dei rapporti FM, modello di Sethares | `fm_sethares.output.txt` |
 | `vettore_corpo_registers.py` | Vettore rispetto alla voce alta di Corpo. Le righe della sezione B su tempi 1 e 3 sono un artefatto in virgola mobile: fanno fede `vertical_check.py` e `ctnctr_check.py` | `vettore_corpo_registers.output.txt` |
 | `n2_power.py` | Potenza binomiale con due ascoltatori | `n2_power.output.txt` |
+| `voice_use.py` | Voci realmente usate per ruolo, durata delle note, note più gravi | `voice_use.output.txt` |
 
 Gli script che leggono il CSV degli intent ricevono il percorso come argomento: `python docs/research/experiments/m25_ensemble_baseline/vertical_check.py docs/research/experiments/cacp_methods/fixture_intents_seed1337.csv`.
 

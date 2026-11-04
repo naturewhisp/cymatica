@@ -1,0 +1,7 @@
+Pulso: max voices 1, note duration 54-62 ms
+Corpo: max voices 2, note duration 1286-2000 ms
+Trama: max voices 1, note duration 107-125 ms
+Vettore: max voices 1, note duration 429-500 ms
+section 0: lowest Corpo 146.8 Hz, Pulso 73.4 Hz
+section 1: lowest Corpo 98.0 Hz, Pulso 49.0 Hz
+section 2: lowest Corpo 146.8 Hz, Pulso 73.4 Hz
