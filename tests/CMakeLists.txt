@@ -11,6 +11,8 @@ add_executable(cymatica_tests
     unit/test_voice_allocator.cpp
     unit/test_synth_dsp.cpp
     unit/test_music_planner.cpp
+    unit/test_latent_faults.cpp
+    unit/test_meter_feasibility.cpp
     unit/test_realtime_profile.cpp
     unit/test_event_chain.cpp
     unit/test_cacp_analysis.cpp

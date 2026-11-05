@@ -89,7 +89,7 @@ Ogni checkpoint riesamina anche le voci di §8.1 che gli competono.
 |---|---|---|---|
 | D-M2-17..20 (P-M25-04, -05, -07) | ingresso | M2.5.1 | Struttura e metodo servono a tutto il resto |
 | P-M25-08, viste leggibili | review di M2.5.1 | primo ascolto | Forma scelta nell'implementazione |
-| P-M25-01, cambio di metro | CP-1 | inizio di M2.5.3 | Serve la prova di fattibilità; dopo costerebbe rifare fixture e golden |
+| P-M25-01, cambio di metro | CP-1 | inizio di M2.5.3 | [Prova di fattibilità](../research/M2_5_1b_Meter_Feasibility.md) eseguita in M2.5.1b; dopo costerebbe rifare fixture e golden |
 | Criterio PASS del device | CP-1 | prima di M2.5.6 | D-M2-10 fissa la corsa, non la soglia; serve la baseline. Proposta in [dossier R-M25-8](../research/M2_5_1_Windows_Audio_Glitch_Detection.md): controllo positivo per uscita, PCM, intervalli, `IAudioClock`, loopback e ascolto umano |
 | Canale ETW `/GlitchDetection` | CP-1 | prima di M2.5.6 | Attivarlo cambia una configurazione di sistema e richiede privilegi: decisione del titolare |
 | Margine DSP per gli effetti | CP-1 | prima di ogni effetto | Dipende dalla misura su device |
