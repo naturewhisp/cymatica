@@ -1,7 +1,7 @@
 # ADR-0007 — Ingresso in M2.5: sotto-fasi, checkpoint e calendario delle decisioni
 
 - **Data:** 2026-11-03
-- **Stato:** `accepted for implementation`: D-M2-17..20 approvate dal titolare il 2026-11-04 (fase M2.5.0). Le decisioni del §5 restano ai rispettivi checkpoint. Lo sviluppo di M2.5.1 non è ancora autorizzato.
+- **Stato:** `accepted for implementation`: D-M2-17..20 approvate dal titolare il 2026-11-04 (fase M2.5.0). Le decisioni del §5 restano ai rispettivi checkpoint. M2.5.1 è autorizzata dal titolare; stato in [progress.md](../progress.md).
 - **Milestone:** M2 — sottofase M2.5, «Integrazione e verifica finale».
 - **Owner:** coordinatore dello sviluppo, su richiesta del titolare del 2026-11-03: dividere M2.5 in sotto-fasi con checkpoint, chiudere i punti aperti e rinviare le decisioni al momento opportuno anziché prenderle tutte all'ingresso.
 - **Gerarchia:** Specifica > DESIGN > AGENTS > ADR > piano operativo > ricerca. Questo ADR **organizza** M2.5 e non modifica:

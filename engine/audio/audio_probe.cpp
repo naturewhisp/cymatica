@@ -3071,6 +3071,17 @@ std::string DeviceProbeResult::toJson() const {
        << ", \"max_interval_ms\": " << safeJsonDouble(maxIntervalMs)
        << ", \"intervals_over_twice_period\": " << intervalsOverTwicePeriod
        << ", \"suspected_underruns\": " << suspectedUnderruns << "},\n";
+    ss << "  \"pcm\": {\"capture_requested\": " << (pcmCaptureRequested ? "true" : "false")
+       << ", \"scope\": \"callback output, upstream of the Windows mixer\""
+       << ", \"captured_frames\": " << pcmCapturedFrames << ", \"dropped_frames\": " << pcmDroppedFrames
+       << ", \"compared_frames\": " << pcmAgainstOffline.comparedFrames
+       << ", \"device_hash\": " << pcmDeviceHash << ", \"offline_hash\": " << pcmOfflineHash
+       << ", \"golden_hash\": " << kFixtureProbeV1GoldenPcmHash
+       << ", \"device_matches_golden\": " << (pcmDeviceHash == kFixtureProbeV1GoldenPcmHash ? "true" : "false")
+       << ", \"offline_matches_golden\": " << (pcmOfflineMatchesGolden ? "true" : "false")
+       << ", \"differing_samples\": " << pcmAgainstOffline.differingSamples
+       << ", \"first_different_frame\": " << pcmAgainstOffline.firstDifferentFrame
+       << ", \"max_abs_difference\": " << safeJsonFloat(pcmAgainstOffline.maxAbsDifference) << "},\n";
     ss << "  \"limits\": \"WASAPI shared mode exposes no underrun count: suspected_underruns counts callback intervals of at least the device buffer, including the device start. frames_rendered is not audio heard.\",\n";
     ss << "  \"environment\": {\"build_config\": \"" << escapeJsonString(buildConfig) << "\""
        << ", \"cpu\": \"" << escapeJsonString(cpuInfo) << "\""
@@ -3084,8 +3095,67 @@ std::string DeviceProbeResult::toJson() const {
     return ss.str();
 }
 
+PcmComparison comparePcm(const std::vector<float>& a, const std::vector<float>& b, std::uint64_t frames) noexcept {
+    PcmComparison c;
+    const std::uint64_t available = (std::min)(a.size(), b.size()) / 2;
+    c.comparedFrames = (std::min)(frames, available);
+    for (std::uint64_t i = 0; i < c.comparedFrames * 2; ++i) {
+        const float difference = std::abs(a[static_cast<std::size_t>(i)] - b[static_cast<std::size_t>(i)]);
+        if (a[static_cast<std::size_t>(i)] != b[static_cast<std::size_t>(i)]) {
+            if (c.differingSamples == 0) c.firstDifferentFrame = i / 2;
+            ++c.differingSamples;
+            c.maxAbsDifference = (std::max)(c.maxAbsDifference, difference);
+        }
+    }
+    return c;
+}
+
+std::uint64_t fixturePcmHash(const std::vector<float>& samples) noexcept {
+    return pcmContentHash(samples);
+}
+
+std::vector<float> renderFixtureOfflineForComparison(std::uint32_t blockFrames) {
+    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+    if (blockFrames == 0 || !optClock.has_value()) return {};
+    const MusicClock& clock = *optClock;
+    const FormPlan form = MusicPlanner::makeFixtureM24V1Form();
+    const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(clock);
+    AudioEngine engine;
+    if (!engine.initOffline({kInc4SampleRate, 2, 220.0f})) return {};
+    AudioProbe probe((std::max)(AudioProbe::kDefaultCapacityFrames, blockFrames * 2), 2, engine.sampleRate());
+    engine.attachAudioProbe(&probe);
+    FixtureCoordinator coordinator(clock, form, phrases);
+
+    std::vector<float> recorded;
+    recorded.reserve(static_cast<std::size_t>(kFixtureRenderedFrames + blockFrames) * 2);
+    std::vector<float> block(static_cast<std::size_t>(blockFrames) * 2);
+    std::vector<float> chunk(static_cast<std::size_t>(blockFrames) * 2);
+    coordinator.start(engine);
+    for (std::uint64_t frame = 0; frame < kFixtureRenderedFrames; frame += blockFrames) {
+        coordinator.beforeBlock(frame, blockFrames, engine);
+        engine.processBlock(block.data(), blockFrames);
+        for (;;) {
+            const std::uint32_t read = probe.readFrames(chunk.data(), blockFrames);
+            if (read == 0) break;
+            recorded.insert(recorded.end(), chunk.begin(), chunk.begin() + read * 2);
+        }
+        coordinator.drainAcks(engine);
+    }
+    const bool complete = probe.droppedFrames() == 0 && coordinator.stopped();
+    engine.detachAudioProbe();
+    engine.shutdown();
+    if (!complete) return {};
+    recorded.resize(static_cast<std::size_t>(kFixtureRenderedFrames) * 2);
+    return recorded;
+}
+
 std::string deviceProbeFailures(const DeviceProbeResult& r) {
     std::ostringstream err;
+    if (r.pcmCaptureRequested && (r.pcmDroppedFrames != 0 || r.pcmCapturedFrames < kFixtureRenderedFrames ||
+                                  r.pcmAgainstOffline.comparedFrames != kFixtureRenderedFrames)) {
+        err << "PCM capture incomplete: captured " << r.pcmCapturedFrames << ", dropped " << r.pcmDroppedFrames
+            << ", compared " << r.pcmAgainstOffline.comparedFrames << "; ";
+    }
     if (!r.reportValid) err << "no device report; ";
     if (!r.histogramValid) err << "histogram not read in quiescence; ";
     if (r.timedOut) err << "timed out; ";
@@ -3124,9 +3194,10 @@ bool writeDeviceProbeManifest(DeviceProbeResult& r, const std::string& outputDir
     return r.manifestWriteSuccess;
 }
 
-DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& outputDir, bool writeFiles) {
+DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& outputDir, bool writeFiles, bool capturePcm) {
     using SteadyClock = std::chrono::steady_clock;
     DeviceProbeResult result;
+    result.pcmCaptureRequested = capturePcm;
     result.usage = (usage == AudioDeviceUsage::ProAudio) ? "pro_audio" : (usage == AudioDeviceUsage::Games) ? "games" : "default";
     result.buildId = CYMATICA_BUILD_ID;
     result.osVersion = osVersionString();
@@ -3161,6 +3232,24 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
         result.failureReason = "no playback device";
         return finish();
     }
+    // One second of ring: the consumer below drains it every coordinator iteration
+    AudioProbe probe(kInc4SampleRate, 2, kInc4SampleRate);
+    std::vector<float> devicePcm;
+    std::vector<float> pcmChunk(static_cast<std::size_t>(kInc4SampleRate) * 2);
+    const auto drainProbe = [&]() {
+        for (;;) {
+            const std::uint32_t read = probe.readFrames(pcmChunk.data(), kInc4SampleRate);
+            if (read == 0) break;
+            devicePcm.insert(devicePcm.end(), pcmChunk.begin(), pcmChunk.begin() + read * 2);
+        }
+    };
+    if (capturePcm) {
+        devicePcm.reserve(static_cast<std::size_t>(kFixtureRenderedFrames + 2 * kInc4SampleRate) * 2);
+        if (!engine.attachAudioProbe(&probe)) {
+            result.failureReason = "probe not attached";
+            return finish();
+        }
+    }
     coordinator.start(engine);
     const auto wallStart = SteadyClock::now();
     if (!engine.startTone(config.defaultToneFreqHz, 0.0f)) { // silent test tone: only the fixture sounds
@@ -3182,12 +3271,14 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
         coordinator.beforeBlock(frame, static_cast<std::uint32_t>(std::max<std::uint64_t>(frame - lastFrame, 1)), engine);
         coordinator.drainAcks(engine);
         lastFrame = frame;
+        if (capturePcm) drainProbe();
         const auto iterationEnd = SteadyClock::now();
         if (coordinator.stopped() && !stopSeen) {
             stopSeen = true;
             stopTime = iterationEnd;
         }
-        if (stopSeen && std::chrono::duration<double>(iterationEnd - stopTime).count() >= tailSeconds) break;
+        const bool captureDone = !capturePcm || devicePcm.size() / 2 >= kFixtureRenderedFrames;
+        if (stopSeen && captureDone && std::chrono::duration<double>(iterationEnd - stopTime).count() >= tailSeconds) break;
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         const auto now = SteadyClock::now();
         result.maxCoordinatorGapMs = (std::max)(result.maxCoordinatorGapMs, std::chrono::duration<double, std::milli>(now - lastIteration).count());
@@ -3234,6 +3325,22 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
     }
     result.intervalsOverTwicePeriod = hist.intervalsAtLeastMs(static_cast<std::uint32_t>(std::ceil(2.0 * result.periodMs)));
     result.suspectedUnderruns = hist.intervalsAtLeastMs(static_cast<std::uint32_t>(std::ceil(result.bufferMs)));
+    if (capturePcm) {
+        drainProbe();
+        result.pcmCapturedFrames = devicePcm.size() / 2;
+        result.pcmDroppedFrames = probe.droppedFrames();
+        engine.detachAudioProbe();
+        std::vector<float> offline = renderFixtureOfflineForComparison(hist.maxBlockFrames);
+        if (devicePcm.size() >= static_cast<std::size_t>(kFixtureRenderedFrames) * 2) {
+            devicePcm.resize(static_cast<std::size_t>(kFixtureRenderedFrames) * 2);
+            result.pcmDeviceHash = pcmContentHash(devicePcm);
+        }
+        if (!offline.empty()) {
+            result.pcmOfflineHash = pcmContentHash(offline);
+            result.pcmOfflineMatchesGolden = result.pcmOfflineHash == kFixtureProbeV1GoldenPcmHash;
+            result.pcmAgainstOffline = comparePcm(devicePcm, offline, kFixtureRenderedFrames);
+        }
+    }
     result.failureReason = deviceProbeFailures(result);
     result.completed = result.failureReason.empty();
     engine.shutdown();

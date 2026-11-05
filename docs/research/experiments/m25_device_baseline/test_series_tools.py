@@ -104,6 +104,7 @@ with tempfile.TemporaryDirectory() as base:
         return outcome
 
     check('mixed builds are rejected', tampered(lambda m: m.update(build_id='other')) == 1)
+    check('empty build_id is rejected', tampered(lambda m: m.update(build_id='')) == 1)
     check('wrong usage is rejected', tampered(lambda m: m.update(usage='default')) == 1)
     check('status INVALID is rejected', tampered(lambda m: m.update(status='INVALID')) == 1)
     check('unwritten manifest is rejected', tampered(lambda m: m.update(manifest_write_success=False)) == 1)

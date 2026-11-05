@@ -207,6 +207,7 @@ Suona la fixture sul dispositivo predefinito per circa 184 s: è udibile, va ese
 build/x64-release/apps/cymatica_game/cymatica_game.exe --cacp-run device_probe_v1 --device-usage games
 ```
 
+- `--device-capture-pcm` confronta l'uscita della callback col render offline e col golden: è a monte del mixer di Windows.
 - `--device-usage` accetta `default`, `games` e `pro_audio`; il manifest è `artifacts/cacp/device_probe_v1_<usage>_manifest.json`.
 - Stato `MEASURED`: fixture completa, ack esatti, nessun evento scartato o rinviato. `INVALID` altrimenti. Non è un gate.
 - `suspected_underruns` è una stima dagli intervalli fra callback, perché WASAPI condiviso non espone gli underrun: zero non prova l'assenza di crackle.

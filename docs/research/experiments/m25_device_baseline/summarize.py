@@ -35,6 +35,8 @@ def load_series(directory):
         if manifest.get('usage') != name.rsplit('_r', 1)[0]:
             errors.append(f'{name}: usage {manifest.get("usage")}')
     builds = {m.get('build_id') for m in manifests.values()}
+    if any(not build for build in builds):
+        errors.append('missing build_id')
     if len(builds) > 1:
         errors.append(f'mixed builds: {sorted(str(b) for b in builds)}')
     return manifests, errors

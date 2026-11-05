@@ -7,9 +7,10 @@ ok   missing manifest stops the series
 ok   failed copy stops the series
 ok   partial series after a failed copy is rejected
 ok   mixed builds are rejected
+ok   empty build_id is rejected
 ok   wrong usage is rejected
 ok   status INVALID is rejected
 ok   unwritten manifest is rejected
 ok   unexpected manifest is rejected
 ok   restored series is summarised again
-14/14 checks passed
+15/15 checks passed

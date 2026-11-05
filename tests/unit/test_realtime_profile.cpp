@@ -136,6 +136,46 @@ TEST_CASE("device_probe_v1 fails closed on an incomplete musical load (DIF-M2.5.
     CHECK(fails([](DeviceProbeResult& r) { r.stopAckValid = false; }));
 }
 
+TEST_CASE("comparePcm reports the first and the largest difference (M2.5.1d)", "[audio_engine][device_probe]") {
+    const std::vector<float> a{0.f, 0.f, 1.f, 1.f, 2.f, 2.f};
+    std::vector<float> b = a;
+    PcmComparison same = comparePcm(a, b, 3);
+    CHECK(same.comparedFrames == 3);
+    CHECK(same.differingSamples == 0);
+    b[3] = 1.5f;
+    b[4] = 2.25f;
+    const PcmComparison different = comparePcm(a, b, 3);
+    CHECK(different.differingSamples == 2);
+    CHECK(different.firstDifferentFrame == 1);
+    CHECK(different.maxAbsDifference == 0.5f);
+    CHECK(comparePcm(a, std::vector<float>(2, 0.f), 3).comparedFrames == 1); // never reads past the shorter capture
+}
+
+TEST_CASE("device_probe_v1 fails closed on an incomplete PCM capture (M2.5.1d)", "[audio_engine][device_probe]") {
+    DeviceProbeResult r = completeDeviceRun();
+    r.pcmCaptureRequested = true;
+    r.pcmCapturedFrames = kFixtureRenderedFrames;
+    r.pcmAgainstOffline.comparedFrames = kFixtureRenderedFrames;
+    CHECK(deviceProbeFailures(r).empty());
+    r.pcmDroppedFrames = 1;
+    CHECK_FALSE(deviceProbeFailures(r).empty());
+    r.pcmDroppedFrames = 0;
+    r.pcmCapturedFrames = kFixtureRenderedFrames - 1;
+    CHECK_FALSE(deviceProbeFailures(r).empty());
+    r.pcmCapturedFrames = kFixtureRenderedFrames;
+    r.pcmAgainstOffline.comparedFrames = 0;
+    CHECK_FALSE(deviceProbeFailures(r).empty());
+}
+
+TEST_CASE("Fixture PCM does not depend on the block size (M2.5.1d)", "[audio_engine][device_probe][slow]") {
+    // The device delivers 480-frame blocks, the golden comes from 400-frame ticks
+    for (const std::uint32_t blockFrames : {std::uint32_t{480}, std::uint32_t{127}, std::uint32_t{1024}}) {
+        const std::vector<float> pcm = renderFixtureOfflineForComparison(blockFrames);
+        REQUIRE(pcm.size() == static_cast<std::size_t>(kFixtureRenderedFrames) * 2);
+        CHECK(fixturePcmHash(pcm) == kFixtureProbeV1GoldenPcmHash);
+    }
+}
+
 TEST_CASE("device_probe_v1 separates measure and persistence (DIF-M2.5.1a-01)", "[audio_engine][device_probe]") {
     namespace fs = std::filesystem;
     const fs::path dir = fs::temp_directory_path() / "cymatica_device_probe_test";

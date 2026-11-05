@@ -509,6 +509,21 @@ ProfileWorkloadRun runProfileWorkload(ProfileWorkload workload, bool cacpEnabled
 ProfileProbeResult runProfileProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
                                            bool writeFiles = true);
 
+// Sample-exact comparison of two interleaved stereo captures
+struct PcmComparison {
+    std::uint64_t comparedFrames{0};
+    std::uint64_t differingSamples{0};
+    std::uint64_t firstDifferentFrame{0}; // meaningful only when differingSamples > 0
+    float maxAbsDifference{0.0f};
+};
+[[nodiscard]] PcmComparison comparePcm(const std::vector<float>& a, const std::vector<float>& b, std::uint64_t frames) noexcept;
+
+// Offline render of the fixture in blocks of blockFrames, through the same coordinator as the device path.
+// Empty on failure. M2.5.1d: tells a block-size dependence apart from a device effect.
+[[nodiscard]] std::vector<float> renderFixtureOfflineForComparison(std::uint32_t blockFrames);
+[[nodiscard]] std::uint64_t fixturePcmHash(const std::vector<float>& samples) noexcept;
+inline constexpr std::uint64_t kFixtureRenderedFrames = 8825200; // tick-aligned length of the golden PCM
+
 // Fixture played on the default device in real time (M2.5.1, ADR-0007): measures, gates nothing.
 // WASAPI shared mode exposes no underrun count, so suspectedUnderruns is a proxy from the callback intervals.
 struct DeviceProbeResult {
@@ -558,6 +573,14 @@ struct DeviceProbeResult {
     std::uint64_t suspectedUnderruns{0};  // intervals of at least the whole device buffer
     double maxCoordinatorGapMs{0.0};
     float maxGainReductionDb{0.0f};
+    // PCM of the callback against the offline render (M2.5.1d): upstream of the Windows mixer, not audio heard
+    bool pcmCaptureRequested{false};
+    std::uint64_t pcmCapturedFrames{0};
+    std::uint64_t pcmDroppedFrames{0};
+    std::uint64_t pcmDeviceHash{0};
+    std::uint64_t pcmOfflineHash{0};      // offline render with the device block size
+    PcmComparison pcmAgainstOffline{};
+    bool pcmOfflineMatchesGolden{false};
     std::string manifestFilePath{};
     bool manifestWriteSuccess{false};
     std::string failureReason{};
@@ -572,7 +595,7 @@ struct DeviceProbeResult {
 bool writeDeviceProbeManifest(DeviceProbeResult& r, const std::string& outputDir);
 
 DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& outputDir = "artifacts/cacp",
-                                   bool writeFiles = true);
+                                   bool writeFiles = true, bool capturePcm = false);
 
 // Runs the authoritative planner_probe_v1 scenario offline in 120 Hz simulation ticks (Inc-3)
 PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir = "artifacts/cacp",
