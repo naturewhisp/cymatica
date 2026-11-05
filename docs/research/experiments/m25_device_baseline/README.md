@@ -51,7 +51,7 @@ Stessa procedura, uscita predefinita sulle cuffie USB del titolare, volume basso
 
 ### Carico controllato (2026-11-05)
 
-`load_series.py`, dati in `load_series_m251d/`. Cuffie USB, una corsa per condizione. Il carico è un processo per ogni core logico, ciascuno su 64 MB di memoria; la CPU è campionata ogni secondo. Non carica la GPU.
+`load_series.py`, dati in `load_series_m251d/`, riassunti in `summary.json` con tutte le metriche. Il controllo `load_validity_v1` (almeno 150 campioni CPU, mediana ≥ 95 % sotto carico, ≤ 20 % a riposo) dice solo che il carico è quello dichiarato: non è un criterio hardware. Controlli in `test_load_series.py`. Cuffie USB, una corsa per condizione. Il carico è un processo per ogni core logico, ciascuno su 64 MB di memoria; la CPU è campionata ogni secondo. Non carica la GPU.
 
 | Corsa | CPU mediana | MMCSS | Callback p99.9 | Callback max | Intervallo max | Eventi persi | PCM uguale al golden | Scarto loopback |
 |---|---:|---|---:|---:|---:|---:|---|---:|
@@ -63,9 +63,8 @@ Stessa procedura, uscita predefinita sulle cuffie USB del titolare, volume basso
 In tutte e quattro: nessuno slittamento, picco di residuo o silenzio anomalo, 0 sospetti underrun, guadagno −59,5 dB. La corsa a riposo con MMCSS è la nuova corsa USB pulita (OSS-M2.5.1d-03).
 
 **Lettura.**
-- La CPU piena non ha degradato né i tempi né il segnale.
-- **MMCSS non mostra qui un vantaggio.** Senza MMCSS e con la CPU piena la callback massima è 0,23 ms. I picchi fino a 10,87 ms della prima serie, con Diablo 4 aperto, non si riproducono con questo carico. Il beneficio attribuito a MMCSS resta quindi non spiegato: può dipendere dalla GPU, dalla priorità dei processi del gioco o dall'uscita HDMI. La scelta di MMCSS a CP-1 deve tenerne conto.
-- Il coordinatore sul thread normale risente del carico (intervallo massimo da 17 a 42–52 ms), ma resta entro l'anticipo di 150 ms.
+- Sotto carico CPU al 100 % non sono emerse regressioni della continuità audio né peggioramenti dei tempi estremi della callback. Il tempo medio e la mediana aumentano di circa il 43 % (media da 0,068 a 0,098 ms, mediana da 0,07 a 0,10 ms), mentre il massimo intervallo del coordinatore cresce fino a 52,1 ms, rimanendo entro l'anticipo disponibile di 150 ms.
+- **Beneficio di MMCSS non riprodotto sotto questo carico.** Ciò non dimostra che MMCSS sia superfluo: ordine fisso, una corsa per condizione e condizioni diverse dalla prima serie, che aveva Diablo 4 aperto e un'altra uscita. Per decidere fra Default e Games serve un confronto controbilanciato a parità di dispositivo e carico.
 - L'intervallo massimo di circa 17 ms è comune a tutte le corse USB, carico o no, quindi sembra una proprietà dell'uscita.
 
 Una corsa per condizione non stima gli eventi rari.

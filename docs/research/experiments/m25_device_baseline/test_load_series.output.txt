@@ -1,0 +1,13 @@
+ok   load run at 100 % is valid
+ok   load run below the threshold is rejected
+ok   rest run at 2 % is valid
+ok   busy machine at rest is rejected
+ok   no CPU samples is rejected
+ok   too few CPU samples is rejected
+ok   archived series is MEASURED
+ok   insufficient load makes the series INVALID
+ok   missing CPU telemetry makes the series INVALID
+ok   missing CPU file makes the series INVALID
+ok   INVALID analysis makes the series INVALID
+ok   all conditions are covered
+12/12 checks passed
