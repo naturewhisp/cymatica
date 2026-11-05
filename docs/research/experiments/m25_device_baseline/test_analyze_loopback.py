@@ -1,6 +1,8 @@
 """Controls of analyze_loopback.py on synthetic signals: each fault must be seen, a clean signal must not raise any."""
-import sys
 import os
+import subprocess
+import sys
+import tempfile
 
 import numpy as np
 
@@ -60,6 +62,21 @@ check('low volume: click still found', analyze(quiet, reference)['residual_burst
 
 short = base()[: len(lead) + 20 * RATE]
 check('truncated capture is INVALID', analyze(short, reference)['status'] == 'INVALID')
+
+# Files: a capture of one frame, or one that is not stereo float32, never yields MEASURED
+script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'analyze_loopback.py')
+with tempfile.TemporaryDirectory() as folder:
+    good = os.path.join(folder, 'reference.f32')
+    reference.astype('<f4').tofile(good)
+    one_frame = os.path.join(folder, 'one_frame.f32')
+    np.zeros(2, dtype='<f4').tofile(one_frame)
+    odd = os.path.join(folder, 'odd.f32')
+    with open(odd, 'wb') as f:
+        f.write(b'\0' * 7)
+    outcome = lambda path: subprocess.run([sys.executable, script, path, good], capture_output=True).returncode
+    check('one frame capture fails', outcome(one_frame) == 1)
+    check('file of the wrong shape fails', outcome(odd) == 1)
+    check('missing file fails', outcome(os.path.join(folder, 'none.f32')) == 1)
 
 print(f'{sum(results)}/{len(results)} checks passed')
 sys.exit(0 if all(results) else 1)

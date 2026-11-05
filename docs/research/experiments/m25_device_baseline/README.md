@@ -34,7 +34,7 @@ Output completo in `summary.txt`. In tutte e 9 le esecuzioni: fixture completa, 
 
 Il controllo positivo dimostra che la cattura è il vero mix: il suono compare a 60,26 s, 121 finestre da 10 ms oltre la soglia. In questa corsa il mixer ha lasciato passare il segnale identico al bit. Il segno di uno slittamento distingue i casi: ritardo in aumento è silenzio inserito, ritardo in calo è perdita in cattura ([dossier R-M25-8](../../M2_5_1_Windows_Audio_Glitch_Detection.md)).
 
-`residual_db` di −179,18 dB nei file `loopback_*` è il pavimento numerico della prima versione dello script, non una misura: il residuo è zero. `analyze_loopback.py` ha controlli su segnali sintetici in `test_analyze_loopback.py` (12/12). I file `.f32` restano in `artifacts/`, non versionati.
+`residual_db` di −179,18 dB nei file `loopback_*` è il pavimento numerico della prima versione dello script, non una misura: il residuo è zero. `analyze_loopback.py` ha controlli su segnali sintetici in `test_analyze_loopback.py` (15/15). I file `.f32` restano in `artifacts/`, non versionati.
 
 ### Seconda uscita: cuffie USB (2026-11-05)
 
@@ -45,9 +45,9 @@ Stessa procedura, uscita predefinita sulle cuffie USB del titolare, volume basso
 | Pulita (`usb_clean`) | −59,5 dB | sotto −120 dB | 0 | 0 | 0 campioni diversi su 8.825.200 |
 | Controllo con `chimes.wav` a 60 s | −59,5 dB | −140,6 dB fuori dal suono | 0 | 0 | non catturato |
 
-- **Il volume entra nel loopback di questa uscita:** il segnale è il golden per un guadagno costante di −59,5 dB, quindi il confronto al bit non si applica. Il guadagno riflette il volume basso scelto per la prova, non un difetto. Sull'uscita precedente era 1,0.
+- **Attenuazione osservata:** il segnale è il golden per un guadagno costante di −59,5 dB, quindi il confronto al bit non si applica. La causa non è identificata: il volume era basso, ma la documentazione Microsoft colloca il loopback predefinito prima del volume dell'endpoint, quindi possono entrare volume di sessione o di stream, o elaborazioni dell'uscita. Sull'uscita precedente il guadagno era 1,0.
 - **Controllo positivo:** il suono compare a 60,22 s e il residuo torna al livello di arrotondamento a 61,44 s.
-- **Cambio nello script:** la prima versione misurava il residuo in valori assoluti, e a volume basso finiva sul pavimento numerico. Ora i livelli sono relativi al segnale e il guadagno è una mediana, così un altro suono non lo altera. La corsa pulita è stata analizzata con la prima versione e la sua cattura non è conservata: il limite «sotto −120 dB» è ricavato da quel pavimento. Il valore −140,6 dB viene dalla corsa di controllo.
+- **Cambio nello script:** la prima versione misurava il residuo in valori assoluti, e a volume basso finiva sul pavimento numerico. Ora i livelli sono relativi al segnale e il guadagno è una mediana, così un altro suono non lo altera. La corsa pulita è stata analizzata con la prima versione e la sua cattura non è conservata: il limite «sotto −120 dB» è ricavato da quel pavimento. Il valore −140,6 dB viene dalla corsa di controllo. Una nuova corsa pulita con la versione corretta è da fare (OSS-M2.5.1d-03).
 
 ## Limiti
 

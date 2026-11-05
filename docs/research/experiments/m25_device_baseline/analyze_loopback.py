@@ -9,6 +9,7 @@ a silent machine before it means anything. A clean result says nothing about the
 Needs numpy, which is not a project dependency.
 """
 import json
+import os
 import sys
 
 import numpy as np
@@ -102,14 +103,21 @@ def analyze(capture, reference):
 
 
 def load(path):
-    return np.fromfile(path, dtype='<f4').reshape(-1, 2).astype(np.float64)
+    """Interleaved stereo float32; raises ValueError for any other shape."""
+    data = np.fromfile(path, dtype='<f4')
+    if data.size == 0 or data.size % 2 != 0 or (data.size * 4 != os.path.getsize(path)):
+        raise ValueError(f'{path} is not interleaved stereo float32')
+    return data.reshape(-1, 2).astype(np.float64)
 
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print(__doc__)
         sys.exit(2)
-    report = analyze(load(sys.argv[1]), load(sys.argv[2]))
+    try:
+        report = analyze(load(sys.argv[1]), load(sys.argv[2]))
+    except (OSError, ValueError) as error:
+        report = {'status': 'INVALID', 'reason': str(error)}
     print(json.dumps(report, indent=2))
     if len(sys.argv) > 3:
         with open(sys.argv[3], 'w', encoding='utf-8') as f:

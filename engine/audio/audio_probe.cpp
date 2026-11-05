@@ -3159,9 +3159,15 @@ std::vector<float> renderFixtureOfflineForComparison(std::uint32_t blockFrames) 
 
 std::string deviceProbeFailures(const DeviceProbeResult& r) {
     std::ostringstream err;
-    if (r.loopbackRequested && (r.loopbackFrames == 0 || r.loopbackOverflowFrames != 0 ||
+    // The exact coverage after alignment is checked offline by analyze_loopback.py (DIF-M2.5.1d-02)
+    if (r.loopbackRequested && (r.loopbackFrames < kFixtureRenderedFrames || r.loopbackOverflowFrames != 0 ||
                                 r.loopbackFilePath.empty() || r.referenceFilePath.empty())) {
-        err << "loopback capture incomplete: frames " << r.loopbackFrames << ", overflow " << r.loopbackOverflowFrames << "; ";
+        err << "loopback capture incomplete: frames " << r.loopbackFrames << " of " << kFixtureRenderedFrames
+            << ", overflow " << r.loopbackOverflowFrames << "; ";
+    }
+    if (r.loopbackRequested && (r.loopbackMixSampleRate != kInc4SampleRate || r.loopbackMixChannels != 2)) {
+        err << "loopback mix format not comparable: " << r.loopbackMixSampleRate << " Hz, " << r.loopbackMixChannels
+            << " channels; ";
     }
     if (r.pcmCaptureRequested && (r.pcmDroppedFrames != 0 || r.pcmCapturedFrames < kFixtureRenderedFrames ||
                                   r.pcmAgainstOffline.comparedFrames != kFixtureRenderedFrames)) {

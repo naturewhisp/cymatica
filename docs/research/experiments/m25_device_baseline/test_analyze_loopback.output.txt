@@ -10,4 +10,7 @@ ok   low volume: no false fault
 ok   low volume: rounding near float32 precision
 ok   low volume: click still found
 ok   truncated capture is INVALID
-12/12 checks passed
+ok   one frame capture fails
+ok   file of the wrong shape fails
+ok   missing file fails
+15/15 checks passed

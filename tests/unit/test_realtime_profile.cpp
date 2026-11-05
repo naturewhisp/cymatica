@@ -181,9 +181,28 @@ TEST_CASE("device_probe_v1 fails closed on an incomplete loopback capture (M2.5.
     r.loopbackRequested = true;
     CHECK_FALSE(deviceProbeFailures(r).empty()); // nothing captured
     r.loopbackFrames = kFixtureRenderedFrames;
+    r.loopbackMixSampleRate = 48000;
+    r.loopbackMixChannels = 2;
     r.loopbackFilePath = "capture.f32";
     r.referenceFilePath = "reference.f32";
     CHECK(deviceProbeFailures(r).empty());
+
+    // A short capture is not a run (DIF-M2.5.1d-02)
+    r.loopbackFrames = 1;
+    CHECK_FALSE(deviceProbeFailures(r).empty());
+    r.loopbackFrames = kFixtureRenderedFrames - 1;
+    CHECK_FALSE(deviceProbeFailures(r).empty());
+    r.loopbackFrames = kFixtureRenderedFrames;
+
+    // A converted mix cannot be compared with the 48 kHz stereo reference
+    r.loopbackMixSampleRate = 44100;
+    CHECK_FALSE(deviceProbeFailures(r).empty());
+    r.loopbackMixSampleRate = 48000;
+    r.loopbackMixChannels = 6;
+    CHECK_FALSE(deviceProbeFailures(r).empty());
+    r.loopbackMixChannels = 2;
+    CHECK(deviceProbeFailures(r).empty());
+
     r.loopbackOverflowFrames = 1;
     CHECK_FALSE(deviceProbeFailures(r).empty());
     r.loopbackOverflowFrames = 0;
