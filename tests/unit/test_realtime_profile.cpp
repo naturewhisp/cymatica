@@ -5,6 +5,8 @@
 #include "music_planner.h"
 
 #include <array>
+#include <filesystem>
+#include <fstream>
 #include <vector>
 
 using namespace cymatica::audio;
@@ -94,6 +96,69 @@ TEST_CASE("Profiling histogram needs quiescence: offline engine (DIF-INC4-R3-05)
     CHECK(hist.totalBlocks == 0);
     AudioDeviceReport report{};
     CHECK_FALSE(engine.deviceReport(report)); // no device
+}
+
+namespace {
+
+DeviceProbeResult completeDeviceRun() {
+    DeviceProbeResult r;
+    r.reportValid = r.histogramValid = r.coordinatorStopped = true;
+    r.startAckValid = r.tempoAcksValid = r.stopAckValid = true;
+    r.phrasesPlanned = r.expectedPhrases = 24;
+    r.generatedEvents = 1392;
+    r.dispatchedEvents = r.engineProcessedEvents = 2784;
+    return r;
+}
+
+} // namespace
+
+TEST_CASE("device_probe_v1 fails closed on an incomplete musical load (DIF-M2.5.1a-02)", "[audio_engine][device_probe]") {
+    CHECK(deviceProbeFailures(completeDeviceRun()).empty());
+    CHECK_FALSE(deviceProbeFailures(DeviceProbeResult{}).empty());
+
+    // Valid acks and a reached Stop never hide a missing load
+    auto fails = [](auto mutate) {
+        DeviceProbeResult r = completeDeviceRun();
+        mutate(r);
+        return !deviceProbeFailures(r).empty();
+    };
+    CHECK(fails([](DeviceProbeResult& r) { r.phrasesPlanned = 23; }));
+    CHECK(fails([](DeviceProbeResult& r) { r.expectedPhrases = 0; r.phrasesPlanned = 0; }));
+    CHECK(fails([](DeviceProbeResult& r) { r.generatedEvents = 0; r.dispatchedEvents = 0; r.engineProcessedEvents = 0; }));
+    CHECK(fails([](DeviceProbeResult& r) { r.engineProcessedEvents = 2783; }));
+    CHECK(fails([](DeviceProbeResult& r) { r.dispatchedEvents = 2783; }));
+    CHECK(fails([](DeviceProbeResult& r) { r.stagedEventsAtStop = 1; }));
+    CHECK(fails([](DeviceProbeResult& r) { r.backpressureDrops = 1; }));
+    CHECK(fails([](DeviceProbeResult& r) { r.orphanNoteRecovered = 1; }));
+    CHECK(fails([](DeviceProbeResult& r) { r.droppedEvents = 1; }));
+    CHECK(fails([](DeviceProbeResult& r) { r.deferredEvents = 1; }));
+    CHECK(fails([](DeviceProbeResult& r) { r.timedOut = true; }));
+    CHECK(fails([](DeviceProbeResult& r) { r.stopAckValid = false; }));
+}
+
+TEST_CASE("device_probe_v1 separates measure and persistence (DIF-M2.5.1a-01)", "[audio_engine][device_probe]") {
+    namespace fs = std::filesystem;
+    const fs::path dir = fs::temp_directory_path() / "cymatica_device_probe_test";
+    fs::remove_all(dir);
+    fs::create_directories(dir);
+
+    DeviceProbeResult r = completeDeviceRun();
+    r.completed = true;
+    r.usage = "default";
+    CHECK(r.succeeded()); // nothing requested
+
+    // Unwritable path: a regular file sits where the directory should be
+    const fs::path blocker = dir / "blocker";
+    std::ofstream(blocker) << "x";
+    CHECK_FALSE(writeDeviceProbeManifest(r, (blocker / "sub").string()));
+    CHECK_FALSE(r.manifestWriteSuccess);
+    CHECK(r.completed);
+    CHECK_FALSE(r.succeeded());
+
+    REQUIRE(writeDeviceProbeManifest(r, (dir / "ok").string()));
+    CHECK(r.succeeded());
+    CHECK(fs::file_size(r.manifestFilePath) > 0);
+    fs::remove_all(dir);
 }
 
 TEST_CASE("CallbackProfileHistogram calculation and percentiles (DIF-INC4-01)", "[audio_engine][profile_histogram]") {

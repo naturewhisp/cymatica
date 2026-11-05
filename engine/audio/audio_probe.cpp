@@ -3054,6 +3054,12 @@ std::string DeviceProbeResult::toJson() const {
        << ", \"start_ack_valid\": " << (startAckValid ? "true" : "false")
        << ", \"tempo_acks_valid\": " << (tempoAcksValid ? "true" : "false")
        << ", \"stop_ack_valid\": " << (stopAckValid ? "true" : "false")
+       << ", \"phrases_planned\": " << phrasesPlanned << ", \"expected_phrases\": " << expectedPhrases
+       << ", \"generated_events\": " << generatedEvents << ", \"dispatched_events\": " << dispatchedEvents
+       << ", \"engine_processed_events\": " << engineProcessedEvents
+       << ", \"staged_events_at_stop\": " << stagedEventsAtStop
+       << ", \"backpressure_drops\": " << backpressureDrops
+       << ", \"orphan_note_recovered\": " << orphanNoteRecovered
        << ", \"max_coordinator_gap_ms\": " << safeJsonDouble(maxCoordinatorGapMs)
        << ", \"max_gain_reduction_db\": " << safeJsonFloat(maxGainReductionDb) << "},\n";
     ss << "  \"callback\": {\"total_blocks\": " << totalBlocks
@@ -3078,6 +3084,46 @@ std::string DeviceProbeResult::toJson() const {
     return ss.str();
 }
 
+std::string deviceProbeFailures(const DeviceProbeResult& r) {
+    std::ostringstream err;
+    if (!r.reportValid) err << "no device report; ";
+    if (!r.histogramValid) err << "histogram not read in quiescence; ";
+    if (r.timedOut) err << "timed out; ";
+    if (!r.coordinatorStopped) err << "coordinator not stopped; ";
+    if (!r.startAckValid) err << "invalid Start ack; ";
+    if (!r.tempoAcksValid) err << "invalid tempo ack; ";
+    if (!r.stopAckValid) err << "invalid Stop ack; ";
+    if (r.droppedEvents != 0) err << "dropped events " << r.droppedEvents << "; ";
+    if (r.deferredEvents != 0) err << "deferred events " << r.deferredEvents << "; ";
+    if (r.backpressureDrops != 0) err << "backpressure drops " << r.backpressureDrops << "; ";
+    if (r.stagedEventsAtStop != 0) err << "staged at Stop " << r.stagedEventsAtStop << "; ";
+    if (r.orphanNoteRecovered != 0) err << "orphan notes " << r.orphanNoteRecovered << "; ";
+    if (r.expectedPhrases == 0 || r.phrasesPlanned != r.expectedPhrases) {
+        err << "phrases planned " << r.phrasesPlanned << " of " << r.expectedPhrases << "; ";
+    }
+    const std::uint64_t expectedEvents = 2ULL * r.generatedEvents;
+    if (r.generatedEvents == 0 || r.dispatchedEvents != expectedEvents || r.engineProcessedEvents != expectedEvents) {
+        err << "events generated " << r.generatedEvents << ", dispatched " << r.dispatchedEvents << ", processed "
+            << r.engineProcessedEvents << "; ";
+    }
+    return err.str();
+}
+
+bool writeDeviceProbeManifest(DeviceProbeResult& r, const std::string& outputDir) {
+    r.manifestRequested = true;
+    r.manifestWriteSuccess = true; // serialised as written; cleared below when the write fails
+    std::error_code ec;
+    std::filesystem::create_directories(outputDir, ec);
+    r.manifestFilePath = (std::filesystem::path(outputDir) / ("device_probe_v1_" + r.usage + "_manifest.json")).string();
+    std::ofstream out(r.manifestFilePath, std::ios::binary | std::ios::trunc);
+    if (out) {
+        out << r.toJson();
+        out.close();
+    }
+    r.manifestWriteSuccess = !ec && !out.fail();
+    return r.manifestWriteSuccess;
+}
+
 DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& outputDir, bool writeFiles) {
     using SteadyClock = std::chrono::steady_clock;
     DeviceProbeResult result;
@@ -3093,14 +3139,7 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
 #endif
 
     const auto finish = [&]() {
-        if (writeFiles) {
-            std::error_code ec;
-            std::filesystem::create_directories(outputDir, ec);
-            result.manifestFilePath = (std::filesystem::path(outputDir) / ("device_probe_v1_" + result.usage + "_manifest.json")).string();
-            std::ofstream out(result.manifestFilePath, std::ios::binary);
-            result.manifestWriteSuccess = static_cast<bool>(out);
-            if (out) out << result.toJson();
-        }
+        if (writeFiles) (void)writeDeviceProbeManifest(result, outputDir);
         return result;
     };
 
@@ -3128,18 +3167,17 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
         result.failureReason = "device start failed";
         return finish();
     }
-    const bool reportOk = engine.deviceReport(result.device);
+    result.reportValid = engine.deviceReport(result.device);
 
     // The render cursor freezes at the Stop, so the tail after it is counted in wall time
     const double contentSeconds = static_cast<double>(coordinator.contentEndFrame()) / kInc4SampleRate;
     const double tailSeconds = static_cast<double>(kFixturePostStopFrames) / kInc4SampleRate;
     const double timeoutSeconds = contentSeconds + tailSeconds + 15.0;
-    bool timedOut = false;
     bool stopSeen = false;
     SteadyClock::time_point stopTime{};
     std::uint64_t lastFrame = 0;
     auto lastIteration = wallStart;
-    while (!timedOut) {
+    while (!result.timedOut) {
         const std::uint64_t frame = engine.framesRendered();
         coordinator.beforeBlock(frame, static_cast<std::uint32_t>(std::max<std::uint64_t>(frame - lastFrame, 1)), engine);
         coordinator.drainAcks(engine);
@@ -3154,7 +3192,7 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
         const auto now = SteadyClock::now();
         result.maxCoordinatorGapMs = (std::max)(result.maxCoordinatorGapMs, std::chrono::duration<double, std::milli>(now - lastIteration).count());
         lastIteration = now;
-        timedOut = std::chrono::duration<double>(now - wallStart).count() > timeoutSeconds;
+        result.timedOut = std::chrono::duration<double>(now - wallStart).count() > timeoutSeconds;
     }
     result.elapsedSeconds = std::chrono::duration<double>((stopSeen ? stopTime : SteadyClock::now()) - wallStart).count();
     result.framesRendered = engine.framesRendered();
@@ -3162,13 +3200,23 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
 
     // Quiescence reached: the callback no longer runs (DIF-INC4-R3-05)
     CallbackProfileHistogram hist{};
-    const bool histogramOk = engine.copyCallbackProfileHistogram(hist);
+    result.histogramValid = engine.copyCallbackProfileHistogram(hist);
     result.framesPerSecond = result.elapsedSeconds > 0.0 ? static_cast<double>(result.framesRendered) / result.elapsedSeconds : 0.0;
     result.droppedEvents = engine.droppedScheduledEvents();
     result.deferredEvents = engine.deferredScheduledEvents();
     result.startAckValid = coordinator.startAckValid();
     result.tempoAcksValid = coordinator.tempoAckValid(0) && coordinator.tempoAckValid(1);
     result.stopAckValid = coordinator.stopAckValid();
+    result.coordinatorStopped = coordinator.stopped();
+    result.phrasesPlanned = coordinator.phrasesPlanned();
+    result.expectedPhrases = phrases.size();
+    for (const auto& intents : coordinator.jitIntents()) result.generatedEvents += intents.size();
+    result.dispatchedEvents = coordinator.dispatchedEvents();
+    result.engineProcessedEvents = engine.totalScheduledEventsProcessed();
+    result.stagedEventsAtStop = coordinator.stagedAtStop();
+    result.backpressureDrops = coordinator.backpressureDrops();
+    (void)engine.updateTelemetry();
+    result.orphanNoteRecovered = engine.telemetry().orphanNoteRecoveredCount;
     result.maxGainReductionDb = engine.masterLimiter().maxGainReductionDb();
     result.p50Ms = hist.percentileMs(50.0);
     result.p999Ms = hist.percentileMs(99.9);
@@ -3186,14 +3234,8 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
     }
     result.intervalsOverTwicePeriod = hist.intervalsAtLeastMs(static_cast<std::uint32_t>(std::ceil(2.0 * result.periodMs)));
     result.suspectedUnderruns = hist.intervalsAtLeastMs(static_cast<std::uint32_t>(std::ceil(result.bufferMs)));
-    result.completed = reportOk && histogramOk && !timedOut && coordinator.stopped() && result.startAckValid &&
-                       result.tempoAcksValid && result.stopAckValid && result.droppedEvents == 0 && result.deferredEvents == 0;
-    if (!result.completed) {
-        std::ostringstream err;
-        err << "timed_out=" << timedOut << " stopped=" << coordinator.stopped() << " report=" << reportOk
-            << " histogram=" << histogramOk << " dropped=" << result.droppedEvents << " deferred=" << result.deferredEvents;
-        result.failureReason = err.str();
-    }
+    result.failureReason = deviceProbeFailures(result);
+    result.completed = result.failureReason.empty();
     engine.shutdown();
     return finish();
 }

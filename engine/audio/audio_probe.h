@@ -512,7 +512,8 @@ ProfileProbeResult runProfileProbeV1Offline(const std::string& outputDir = "arti
 // Fixture played on the default device in real time (M2.5.1, ADR-0007): measures, gates nothing.
 // WASAPI shared mode exposes no underrun count, so suspectedUnderruns is a proxy from the callback intervals.
 struct DeviceProbeResult {
-    bool completed{false};                // the fixture ran to the Stop with exact acks and no late event
+    bool completed{false};                // the whole fixture was played: see deviceProbeFailures()
+    bool manifestRequested{false};
     std::string usage{};
     std::string buildId{};
     std::string buildConfig{};
@@ -528,6 +529,19 @@ struct DeviceProbeResult {
     bool startAckValid{false};
     bool tempoAcksValid{false};
     bool stopAckValid{false};
+    bool reportValid{false};
+    bool histogramValid{false};
+    bool coordinatorStopped{false};
+    bool timedOut{false};
+    // Musical load actually delivered (DIF-M2.5.1a-02)
+    std::uint64_t phrasesPlanned{0};
+    std::uint64_t expectedPhrases{0};
+    std::uint64_t generatedEvents{0};     // NoteOn intents; each one also produces a NoteOff
+    std::uint64_t dispatchedEvents{0};
+    std::uint64_t engineProcessedEvents{0};
+    std::uint64_t stagedEventsAtStop{0};
+    std::uint64_t backpressureDrops{0};
+    std::uint32_t orphanNoteRecovered{0};
     double p50Ms{0.0};
     double p999Ms{0.0};
     double maxMs{0.0};
@@ -548,7 +562,14 @@ struct DeviceProbeResult {
     bool manifestWriteSuccess{false};
     std::string failureReason{};
     [[nodiscard]] std::string toJson() const;
+    // The measure and its persistence are separate outcomes: a run succeeds only with both (DIF-M2.5.1a-01)
+    [[nodiscard]] bool succeeded() const noexcept { return completed && (!manifestRequested || manifestWriteSuccess); }
 };
+
+// Why the run does not count as a complete fixture; empty when it does (DIF-M2.5.1a-02)
+[[nodiscard]] std::string deviceProbeFailures(const DeviceProbeResult& r);
+// Writes the manifest and sets manifestWriteSuccess only if the file was written and closed
+bool writeDeviceProbeManifest(DeviceProbeResult& r, const std::string& outputDir);
 
 DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& outputDir = "artifacts/cacp",
                                    bool writeFiles = true);

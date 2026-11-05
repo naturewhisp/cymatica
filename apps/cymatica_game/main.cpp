@@ -152,8 +152,9 @@ int main(int argc, char** argv) {
                 std::printf("[cacp] Running scenario '%s' (M2.5.1 device_probe_v1, plays the fixture on the default device, about 184 s)...\n", scenario);
                 auto res = cymatica::audio::runDeviceProbeV1(deviceUsage, "artifacts/cacp", true);
                 std::printf("[cacp] Verdict: %s\n", res.completed ? "MEASURED" : "INVALID");
+                if (!res.manifestWriteSuccess) std::fprintf(stderr, "[cacp] ERROR: manifest not written\n");
                 std::printf("%s\n", res.toJson().c_str());
-                return res.completed ? 0 : 1;
+                return res.succeeded() ? 0 : 1;
             } else if (std::strcmp(scenario, "acao02") == 0 || std::strcmp(scenario, "acao02_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5c acao02_v1, MEASURED, not a gate)...\n", scenario);
                 auto res = cymatica::cacp::runAcao02V1("artifacts/cacp", true);

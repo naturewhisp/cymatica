@@ -4,7 +4,7 @@ Prima esecuzione in tempo reale di `fixture-m2-4-v1` sul dispositivo predefinito
 
 - **Ambiente:** vedi `environment` nei manifest; WASAPI condiviso, 48 kHz, periodo 480 frame (10 ms) per 3 periodi (buffer 30 ms).
 - **Comando:** `bash docs/research/experiments/m25_device_baseline/run.sh` dalla radice del repository; riassunto con `python docs/research/experiments/m25_device_baseline/summarize.py`.
-- **Disegno:** 3 ripetizioni per ciascuna configurazione MMCSS (nessuna, Games, Pro Audio), a rotazione. La macchina non era isolata: il titolare riferisce che Diablo 4, un gioco pesante, è rimasto aperto per tutta la serie. Il carico effettivo di CPU e GPU non è stato misurato.
+- **Disegno:** 3 ripetizioni per ciascuna configurazione MMCSS (nessuna, Games, Pro Audio), sempre nello stesso ordine: questo limita l'interpretazione causale del confronto (osservazione della review). `run.sh` ora ruota l'ordine a ogni ripetizione e si ferma alla prima corsa non valida. La macchina non era isolata: il titolare riferisce che Diablo 4, un gioco pesante, è rimasto aperto per tutta la serie. Il carico effettivo di CPU e GPU non è stato misurato.
 
 ## Risultati
 
@@ -24,6 +24,8 @@ Output completo in `summary.txt`. In tutte e 9 le esecuzioni: fixture completa, 
 - Un solo dispositivo, una sola macchina, contenuto attuale.
 - `frames_rendered` non è l'audio udito. CACP spento: nessuna cattura PCM, quindi nessun confronto col golden.
 - Gli eventuali effetti di M2.5.2 cambieranno il costo della callback.
+
+- Le 9 corse valide precedono DIF-M2.5.1a-02: lo stato `MEASURED` di allora non verificava frasi pianificate ed eventi consumati. Una corsa successiva con i controlli completi (Games) è in `verifica_games_dif_m251a.manifest.json.txt`, escluso da `summarize.py`: 24 frasi su 24, 1.392 note, 2.784 eventi inviati e consumati, 0 in staging allo Stop, callback massima 0,36 ms, intervallo massimo 15,42 ms.
 
 ## `invalid_timeout/`
 
