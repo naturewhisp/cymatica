@@ -47,12 +47,33 @@ Stessa procedura, uscita predefinita sulle cuffie USB del titolare, volume basso
 
 - **Attenuazione osservata:** il segnale è il golden per un guadagno costante di −59,5 dB, quindi il confronto al bit non si applica. La causa non è identificata: il volume era basso, ma la documentazione Microsoft colloca il loopback predefinito prima del volume dell'endpoint, quindi possono entrare volume di sessione o di stream, o elaborazioni dell'uscita. Sull'uscita precedente il guadagno era 1,0.
 - **Controllo positivo:** il suono compare a 60,22 s e il residuo torna al livello di arrotondamento a 61,44 s.
-- **Cambio nello script:** la prima versione misurava il residuo in valori assoluti, e a volume basso finiva sul pavimento numerico. Ora i livelli sono relativi al segnale e il guadagno è una mediana, così un altro suono non lo altera. La corsa pulita è stata analizzata con la prima versione e la sua cattura non è conservata: il limite «sotto −120 dB» è ricavato da quel pavimento. Il valore −140,6 dB viene dalla corsa di controllo. Una nuova corsa pulita con la versione corretta è da fare (OSS-M2.5.1d-03).
+- **Cambio nello script:** la prima versione misurava il residuo in valori assoluti, e a volume basso finiva sul pavimento numerico. Ora i livelli sono relativi al segnale e il guadagno è una mediana, così un altro suono non lo altera. La corsa pulita è stata analizzata con la prima versione e la sua cattura non è conservata: il limite «sotto −120 dB» è ricavato da quel pavimento. Il valore −140,6 dB viene dalla corsa di controllo. La nuova corsa pulita con la versione corretta è nel paragrafo sul carico controllato (OSS-M2.5.1d-03, chiusa).
+
+### Carico controllato (2026-11-05)
+
+`load_series.py`, dati in `load_series_m251d/`. Cuffie USB, una corsa per condizione. Il carico è un processo per ogni core logico, ciascuno su 64 MB di memoria; la CPU è campionata ogni secondo. Non carica la GPU.
+
+| Corsa | CPU mediana | MMCSS | Callback p99.9 | Callback max | Intervallo max | Eventi persi | PCM uguale al golden | Scarto loopback |
+|---|---:|---|---:|---:|---:|---:|---|---:|
+| Riposo | 2,6 % | sì | 0,13 ms | 0,27 ms | 17,36 ms | 0 | sì | −148,89 dB |
+| Carico | 100 % | sì | 0,12 ms | 0,23 ms | 17,34 ms | 0 | sì | −148,89 dB |
+| Riposo | 2,7 % | no | 0,15 ms | 0,39 ms | 17,35 ms | 0 | sì | −148,89 dB |
+| Carico | 100 % | no | 0,13 ms | 0,23 ms | 17,42 ms | 0 | sì | −148,89 dB |
+
+In tutte e quattro: nessuno slittamento, picco di residuo o silenzio anomalo, 0 sospetti underrun, guadagno −59,5 dB. La corsa a riposo con MMCSS è la nuova corsa USB pulita (OSS-M2.5.1d-03).
+
+**Lettura.**
+- La CPU piena non ha degradato né i tempi né il segnale.
+- **MMCSS non mostra qui un vantaggio.** Senza MMCSS e con la CPU piena la callback massima è 0,23 ms. I picchi fino a 10,87 ms della prima serie, con Diablo 4 aperto, non si riproducono con questo carico. Il beneficio attribuito a MMCSS resta quindi non spiegato: può dipendere dalla GPU, dalla priorità dei processi del gioco o dall'uscita HDMI. La scelta di MMCSS a CP-1 deve tenerne conto.
+- Il coordinatore sul thread normale risente del carico (intervallo massimo da 17 a 42–52 ms), ma resta entro l'anticipo di 150 ms.
+- L'intervallo massimo di circa 17 ms è comune a tutte le corse USB, carico o no, quindi sembra una proprietà dell'uscita.
+
+Una corsa per condizione non stima gli eventi rari.
 
 ## Limiti
 
 - WASAPI condiviso non espone un conteggio di underrun. `suspected_underruns` conta gli intervalli fra callback almeno pari al buffer: è una stima indiretta, e un valore zero non prova l'assenza di crackle. Nessuno ha ascoltato queste corse in modo controllato.
-- Una sola uscita, una sola macchina, contenuto attuale. Una corsa loopback pulita non esclude eventi rari.
+- Due uscite, una sola macchina, contenuto attuale. Una corsa loopback pulita non esclude eventi rari.
 - Il loopback non vede driver, connessione, DAC e casse. Volume e stadi a valle non sono distinti da questa prova.
 - `frames_rendered` non è l'audio udito. Le 9 corse hanno CACP spento: il confronto col golden è nella corsa separata qui sopra.
 - Gli eventuali effetti di M2.5.2 cambieranno il costo della callback.

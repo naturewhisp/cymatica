@@ -1,0 +1,15 @@
+{
+  "status": "MEASURED",
+  "lag_frames": 544,
+  "compared_frames": 8776837,
+  "gain": 0.001054,
+  "gain_db": -59.547,
+  "exact_zero_residual": false,
+  "residual_db": -148.89,
+  "max_window_residual_db": -143.43,
+  "alignment_slips": [],
+  "residual_bursts": 0,
+  "burst_seconds": [],
+  "unexpected_silences": 0,
+  "silence_seconds": []
+}
