@@ -6,6 +6,7 @@ It does not exercise the GPU. CPU use is sampled once a second from GetSystemTim
 """
 import ctypes
 import json
+import math
 import multiprocessing
 import os
 import shutil
@@ -86,11 +87,17 @@ def run(condition, usage, folder):
         raise SystemExit(f'{tag}: analysis failed')
 
 
+def cpu_samples_valid(cpu):
+    return all(math.isfinite(value) and 0.0 <= value <= 100.0 for value in cpu)
+
+
 def load_errors(condition, cpu):
     """Experimental validity of one run (load_validity_v1). It says the load was the declared one, nothing about audio."""
+    if not cpu_samples_valid(cpu):
+        return ['CPU samples not finite or outside 0..100 %']
     if len(cpu) < LOAD_VALIDITY_V1['min_samples']:
         return [f'{len(cpu)} CPU samples, at least {LOAD_VALIDITY_V1["min_samples"]} required']
-    median = cpu[len(cpu) // 2]
+    median = sorted(cpu)[len(cpu) // 2]
     if condition == 'load' and median < LOAD_VALIDITY_V1['load_min_median_percent']:
         return [f'load not reached: median CPU {median:.1f} %']
     if condition == 'rest' and median > LOAD_VALIDITY_V1['rest_max_median_percent']:
@@ -109,11 +116,15 @@ def summarize_series(target, manifest_suffix='.manifest.json'):
             with open(os.path.join(target, f'{tag}.analysis.json'), encoding='utf-8') as f:
                 analysis_data = json.load(f)
             with open(os.path.join(target, f'{tag}_cpu.txt'), encoding='utf-8') as f:
-                cpu = sorted(float(line) for line in f if line.strip())
+                cpu = [float(line) for line in f if line.strip()]
         except (OSError, ValueError) as error:
             summary['errors'].append(f'{tag}: {error}')
             continue
         summary['errors'] += [f'{tag}: {error}' for error in load_errors(condition_name, cpu)]
+        cpu = sorted(cpu) if cpu_samples_valid(cpu) else []
+        expected_mmcss = usage_name != 'default'
+        if manifest_data['device']['mmcss_active'] != expected_mmcss:
+            summary['errors'].append(f'{tag}: MMCSS is not the requested one')
         if manifest_data.get('status') != 'MEASURED' or analysis_data.get('status') != 'MEASURED':
             summary['errors'].append(f'{tag}: run or analysis not MEASURED')
         callback = manifest_data['callback']
@@ -141,7 +152,7 @@ def summarize_series(target, manifest_suffix='.manifest.json'):
     if summary['errors']:
         summary['status'] = 'INVALID'
     with open(os.path.join(target, 'summary.json'), 'w', encoding='utf-8') as f:
-        json.dump(summary, f, indent=2)
+        json.dump(summary, f, indent=2, allow_nan=False)
     return summary
 
 

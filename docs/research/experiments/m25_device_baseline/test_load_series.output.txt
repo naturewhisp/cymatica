@@ -4,10 +4,18 @@ ok   rest run at 2 % is valid
 ok   busy machine at rest is rejected
 ok   no CPU samples is rejected
 ok   too few CPU samples is rejected
+ok   NaN samples are rejected
+ok   a single NaN among good samples is rejected
+ok   infinite samples are rejected
+ok   samples above 100 % are rejected
+ok   negative samples are rejected
 ok   archived series is MEASURED
 ok   insufficient load makes the series INVALID
 ok   missing CPU telemetry makes the series INVALID
 ok   missing CPU file makes the series INVALID
+ok   NaN in the file makes the series INVALID
+ok   summary stays standard JSON
+ok   wrong MMCSS makes the series INVALID
 ok   INVALID analysis makes the series INVALID
 ok   all conditions are covered
-12/12 checks passed
+20/20 checks passed

@@ -33,6 +33,13 @@ check('busy machine at rest is rejected', load_errors('rest', [50.0] * 170) != [
 check('no CPU samples is rejected', load_errors('load', []) != [])
 check('too few CPU samples is rejected', load_errors('rest', [2.0] * 10) != [])
 
+nan, inf = float('nan'), float('inf')
+check('NaN samples are rejected', load_errors('load', [nan] * 170) != [])
+check('a single NaN among good samples is rejected', load_errors('load', [100.0] * 169 + [nan]) != [])
+check('infinite samples are rejected', load_errors('load', [inf] * 170) != [])
+check('samples above 100 % are rejected', load_errors('load', [150.0] * 170) != [])
+check('negative samples are rejected', load_errors('rest', [-1.0] * 170) != [])
+
 with tempfile.TemporaryDirectory() as base:
     folder = os.path.join(base, 'series')
     shutil.copytree(ARCHIVE, folder)
@@ -49,6 +56,22 @@ with tempfile.TemporaryDirectory() as base:
     os.remove(os.path.join(folder, 'load_default_cpu.txt'))
     check('missing CPU file makes the series INVALID', summarize_series(folder, '.manifest.json.txt')['status'] == 'INVALID')
     shutil.copy(os.path.join(ARCHIVE, 'load_default_cpu.txt'), folder)
+
+    rewrite_cpu(folder, 'load_games', ['nan'] * 170)
+    report = summarize_series(folder, '.manifest.json.txt')
+    check('NaN in the file makes the series INVALID', report['status'] == 'INVALID')
+    with open(os.path.join(folder, 'summary.json'), encoding='utf-8') as f:
+        check('summary stays standard JSON', 'NaN' not in f.read())
+    shutil.copy(os.path.join(ARCHIVE, 'load_games_cpu.txt'), folder)
+
+    path = os.path.join(folder, 'load_default.manifest.json.txt')
+    with open(path, encoding='utf-8') as f:
+        original = f.read()
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(original.replace('"mmcss_active": false', '"mmcss_active": true'))
+    check('wrong MMCSS makes the series INVALID', summarize_series(folder, '.manifest.json.txt')['status'] == 'INVALID')
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(original)
 
     path = os.path.join(folder, 'rest_games.analysis.json')
     with open(path, encoding='utf-8') as f:
