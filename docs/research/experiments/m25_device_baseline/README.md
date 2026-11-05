@@ -3,7 +3,8 @@
 Prima esecuzione in tempo reale di `fixture-m2-4-v1` sul dispositivo predefinito, con lo scenario `device_probe_v1`. È una misura, non un gate: il criterio PASS si decide a CP-1 ([ADR-0007](../../../adr/0007-m2-5-entry-decisions.md)). La qualificazione finale resta in M2.5.6, sulla build finale.
 
 - **Ambiente:** vedi `environment` nei manifest; WASAPI condiviso, 48 kHz, periodo 480 frame (10 ms) per 3 periodi (buffer 30 ms).
-- **Comando:** `bash docs/research/experiments/m25_device_baseline/run.sh` dalla radice del repository; riassunto con `python docs/research/experiments/m25_device_baseline/summarize.py`.
+- **Comando:** `bash docs/research/experiments/m25_device_baseline/run.sh` dalla radice del repository: crea una nuova cartella `artifacts/m25_device_baseline/series_<data>` e ne stampa il nome. Riassunto con `python docs/research/experiments/m25_device_baseline/summarize.py <cartella>`, che rifiuta una serie incompleta o incoerente. La serie archiviata qui si riassume passando questa stessa cartella.
+- **Controlli negativi degli script:** `test_series_tools.py`, con un gioco finto e senza device (14/14, `test_series_tools.output.txt`).
 - **Disegno:** 3 ripetizioni per ciascuna configurazione MMCSS (nessuna, Games, Pro Audio), sempre nello stesso ordine: questo limita l'interpretazione causale del confronto (osservazione della review). `run.sh` ora ruota l'ordine a ogni ripetizione e si ferma alla prima corsa non valida. La macchina non era isolata: il titolare riferisce che Diablo 4, un gioco pesante, è rimasto aperto per tutta la serie. Il carico effettivo di CPU e GPU non è stato misurato.
 
 ## Risultati
