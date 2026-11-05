@@ -208,6 +208,7 @@ build/x64-release/apps/cymatica_game/cymatica_game.exe --cacp-run device_probe_v
 ```
 
 - `--device-capture-pcm` confronta l'uscita della callback col render offline e col golden: è a monte del mixer di Windows.
+- `--device-loopback` registra il mix di Windows: chiudere ogni altra sorgente sonora, poi usare `analyze_loopback.py` in `docs/research/experiments/m25_device_baseline/`. Ogni nuova uscita richiede un controllo positivo.
 - `--device-usage` accetta `default`, `games` e `pro_audio`; il manifest è `artifacts/cacp/device_probe_v1_<usage>_manifest.json`.
 - Stato `MEASURED`: fixture completa, ack esatti, nessun evento scartato o rinviato. `INVALID` altrimenti. Non è un gate.
 - `suspected_underruns` è una stima dagli intervalli fra callback, perché WASAPI condiviso non espone gli underrun: zero non prova l'assenza di crackle.

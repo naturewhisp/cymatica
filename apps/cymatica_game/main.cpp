@@ -57,8 +57,10 @@ int main(int argc, char** argv) {
     std::string reportPath;
     auto deviceUsage = cymatica::audio::AudioDeviceUsage::Default; // device_probe_v1 only (M2.5.1)
     bool deviceCapturePcm = false;                                 // device_probe_v1 only (M2.5.1d)
+    bool deviceLoopback = false;                                   // device_probe_v1 only (M2.5.1d)
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--device-capture-pcm") == 0) deviceCapturePcm = true;
+        if (std::strcmp(argv[i], "--device-loopback") == 0) deviceLoopback = true;
         if (std::strcmp(argv[i], "--device-usage") == 0 && i + 1 < argc) {
             const char* value = argv[i + 1];
             if (std::strcmp(value, "games") == 0) {
@@ -152,7 +154,7 @@ int main(int argc, char** argv) {
                 return res.passed ? 0 : 1;
             } else if (std::strcmp(scenario, "device_probe") == 0 || std::strcmp(scenario, "device_probe_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.5.1 device_probe_v1, plays the fixture on the default device, about 184 s)...\n", scenario);
-                auto res = cymatica::audio::runDeviceProbeV1(deviceUsage, "artifacts/cacp", true, deviceCapturePcm);
+                auto res = cymatica::audio::runDeviceProbeV1(deviceUsage, "artifacts/cacp", true, deviceCapturePcm, deviceLoopback);
                 std::printf("[cacp] Verdict: %s\n", res.completed ? "MEASURED" : "INVALID");
                 if (!res.manifestWriteSuccess) std::fprintf(stderr, "[cacp] ERROR: manifest not written\n");
                 std::printf("%s\n", res.toJson().c_str());

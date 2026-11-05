@@ -1,6 +1,7 @@
 add_library(cymatica_audio STATIC
     audio_control.h
     audio_engine.cpp
+    loopback_capture.cpp
     audio_engine.h
     audio_probe.cpp
     audio_probe.h

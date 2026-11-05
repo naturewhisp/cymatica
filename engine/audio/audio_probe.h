@@ -581,6 +581,14 @@ struct DeviceProbeResult {
     std::uint64_t pcmOfflineHash{0};      // offline render with the device block size
     PcmComparison pcmAgainstOffline{};
     bool pcmOfflineMatchesGolden{false};
+    // Loopback downstream of the Windows mixer (M2.5.1d): raw float files analysed offline, never gated here
+    bool loopbackRequested{false};
+    std::uint64_t loopbackFrames{0};
+    std::uint64_t loopbackOverflowFrames{0};
+    std::uint32_t loopbackMixSampleRate{0};
+    std::uint32_t loopbackMixChannels{0};
+    std::string loopbackFilePath{};
+    std::string referenceFilePath{};
     std::string manifestFilePath{};
     bool manifestWriteSuccess{false};
     std::string failureReason{};
@@ -595,7 +603,7 @@ struct DeviceProbeResult {
 bool writeDeviceProbeManifest(DeviceProbeResult& r, const std::string& outputDir);
 
 DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& outputDir = "artifacts/cacp",
-                                   bool writeFiles = true, bool capturePcm = false);
+                                   bool writeFiles = true, bool capturePcm = false, bool captureLoopback = false);
 
 // Runs the authoritative planner_probe_v1 scenario offline in 120 Hz simulation ticks (Inc-3)
 PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir = "artifacts/cacp",

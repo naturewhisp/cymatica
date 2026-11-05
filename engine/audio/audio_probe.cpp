@@ -1,6 +1,7 @@
 #include "audio_probe.h"
 #include "audio_engine.h"
 #include "audio_scheduler.h"
+#include "loopback_capture.h"
 #include "music_clock.h"
 #include "music_planner.h"
 #include "plan_canonical_hash.h"
@@ -3082,6 +3083,12 @@ std::string DeviceProbeResult::toJson() const {
        << ", \"differing_samples\": " << pcmAgainstOffline.differingSamples
        << ", \"first_different_frame\": " << pcmAgainstOffline.firstDifferentFrame
        << ", \"max_abs_difference\": " << safeJsonFloat(pcmAgainstOffline.maxAbsDifference) << "},\n";
+    ss << "  \"loopback\": {\"requested\": " << (loopbackRequested ? "true" : "false")
+       << ", \"scope\": \"Windows mix of the default endpoint: other applications included; analyse with analyze_loopback.py\""
+       << ", \"frames\": " << loopbackFrames << ", \"overflow_frames\": " << loopbackOverflowFrames
+       << ", \"mix_sample_rate\": " << loopbackMixSampleRate << ", \"mix_channels\": " << loopbackMixChannels
+       << ", \"capture_file\": \"" << escapeJsonString(loopbackFilePath) << "\""
+       << ", \"reference_file\": \"" << escapeJsonString(referenceFilePath) << "\"},\n";
     ss << "  \"limits\": \"WASAPI shared mode exposes no underrun count: suspected_underruns counts callback intervals of at least the device buffer, including the device start. frames_rendered is not audio heard.\",\n";
     ss << "  \"environment\": {\"build_config\": \"" << escapeJsonString(buildConfig) << "\""
        << ", \"cpu\": \"" << escapeJsonString(cpuInfo) << "\""
@@ -3141,7 +3148,8 @@ std::vector<float> renderFixtureOfflineForComparison(std::uint32_t blockFrames) 
         }
         coordinator.drainAcks(engine);
     }
-    const bool complete = probe.droppedFrames() == 0 && coordinator.stopped();
+    const bool complete = probe.droppedFrames() == 0 && coordinator.stopped() &&
+                          recorded.size() >= static_cast<std::size_t>(kFixtureRenderedFrames) * 2;
     engine.detachAudioProbe();
     engine.shutdown();
     if (!complete) return {};
@@ -3151,6 +3159,10 @@ std::vector<float> renderFixtureOfflineForComparison(std::uint32_t blockFrames) 
 
 std::string deviceProbeFailures(const DeviceProbeResult& r) {
     std::ostringstream err;
+    if (r.loopbackRequested && (r.loopbackFrames == 0 || r.loopbackOverflowFrames != 0 ||
+                                r.loopbackFilePath.empty() || r.referenceFilePath.empty())) {
+        err << "loopback capture incomplete: frames " << r.loopbackFrames << ", overflow " << r.loopbackOverflowFrames << "; ";
+    }
     if (r.pcmCaptureRequested && (r.pcmDroppedFrames != 0 || r.pcmCapturedFrames < kFixtureRenderedFrames ||
                                   r.pcmAgainstOffline.comparedFrames != kFixtureRenderedFrames)) {
         err << "PCM capture incomplete: captured " << r.pcmCapturedFrames << ", dropped " << r.pcmDroppedFrames
@@ -3194,10 +3206,25 @@ bool writeDeviceProbeManifest(DeviceProbeResult& r, const std::string& outputDir
     return r.manifestWriteSuccess;
 }
 
-DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& outputDir, bool writeFiles, bool capturePcm) {
+namespace {
+
+bool writeFloatFile(const std::filesystem::path& path, const float* samples, std::size_t count) {
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    if (out) {
+        out.write(reinterpret_cast<const char*>(samples), static_cast<std::streamsize>(count * sizeof(float)));
+        out.close();
+    }
+    return out.good();
+}
+
+} // namespace
+
+DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& outputDir, bool writeFiles, bool capturePcm,
+                                   bool captureLoopback) {
     using SteadyClock = std::chrono::steady_clock;
     DeviceProbeResult result;
     result.pcmCaptureRequested = capturePcm;
+    result.loopbackRequested = captureLoopback;
     result.usage = (usage == AudioDeviceUsage::ProAudio) ? "pro_audio" : (usage == AudioDeviceUsage::Games) ? "games" : "default";
     result.buildId = CYMATICA_BUILD_ID;
     result.osVersion = osVersionString();
@@ -3250,6 +3277,12 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
             return finish();
         }
     }
+    // Room for the start of the capture, the fixture and the tail
+    LoopbackCapture loopback(captureLoopback ? kFixtureRenderedFrames + 10ULL * kInc4SampleRate : 0, kInc4SampleRate);
+    if (captureLoopback && !loopback.start()) {
+        result.failureReason = "loopback capture not started";
+        return finish();
+    }
     coordinator.start(engine);
     const auto wallStart = SteadyClock::now();
     if (!engine.startTone(config.defaultToneFreqHz, 0.0f)) { // silent test tone: only the fixture sounds
@@ -3288,6 +3321,14 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
     result.elapsedSeconds = std::chrono::duration<double>((stopSeen ? stopTime : SteadyClock::now()) - wallStart).count();
     result.framesRendered = engine.framesRendered();
     engine.stopTone();
+    if (captureLoopback) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(300)); // the mixer still holds the last buffers
+        loopback.stop();
+        result.loopbackFrames = loopback.capturedFrames();
+        result.loopbackOverflowFrames = loopback.overflowFrames();
+        result.loopbackMixSampleRate = loopback.mixSampleRate();
+        result.loopbackMixChannels = loopback.mixChannels();
+    }
 
     // Quiescence reached: the callback no longer runs (DIF-INC4-R3-05)
     CallbackProfileHistogram hist{};
@@ -3339,6 +3380,21 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
             result.pcmOfflineHash = pcmContentHash(offline);
             result.pcmOfflineMatchesGolden = result.pcmOfflineHash == kFixtureProbeV1GoldenPcmHash;
             result.pcmAgainstOffline = comparePcm(devicePcm, offline, kFixtureRenderedFrames);
+        }
+    }
+    if (captureLoopback && writeFiles) {
+        std::error_code ec;
+        std::filesystem::create_directories(outputDir, ec);
+        const std::filesystem::path dir(outputDir);
+        const std::filesystem::path capturePath = dir / ("device_probe_v1_" + result.usage + "_loopback.f32");
+        const std::filesystem::path referencePath = dir / "device_probe_v1_reference.f32";
+        const std::vector<float> reference = renderFixtureOfflineForComparison(480); // golden checked below: the PCM does not depend on the block size
+        if (writeFloatFile(capturePath, loopback.samples().data(), static_cast<std::size_t>(result.loopbackFrames) * 2)) {
+            result.loopbackFilePath = capturePath.string();
+        }
+        if (!reference.empty() && pcmContentHash(reference) == kFixtureProbeV1GoldenPcmHash &&
+            writeFloatFile(referencePath, reference.data(), reference.size())) {
+            result.referenceFilePath = referencePath.string();
         }
     }
     result.failureReason = deviceProbeFailures(result);

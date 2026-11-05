@@ -1,0 +1,13 @@
+ok   clean: measured
+ok   clean: lag found
+ok   clean: gain found
+ok   clean: no fault
+ok   5 ms of silence is found
+ok   5 ms of silence shows as a burst
+ok   48 lost frames slip the alignment
+ok   single sample click shows as a burst
+ok   low volume: no false fault
+ok   low volume: rounding near float32 precision
+ok   low volume: click still found
+ok   truncated capture is INVALID
+12/12 checks passed

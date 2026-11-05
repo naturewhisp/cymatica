@@ -176,6 +176,21 @@ TEST_CASE("Fixture PCM does not depend on the block size (M2.5.1d)", "[audio_eng
     }
 }
 
+TEST_CASE("device_probe_v1 fails closed on an incomplete loopback capture (M2.5.1d)", "[audio_engine][device_probe]") {
+    DeviceProbeResult r = completeDeviceRun();
+    r.loopbackRequested = true;
+    CHECK_FALSE(deviceProbeFailures(r).empty()); // nothing captured
+    r.loopbackFrames = kFixtureRenderedFrames;
+    r.loopbackFilePath = "capture.f32";
+    r.referenceFilePath = "reference.f32";
+    CHECK(deviceProbeFailures(r).empty());
+    r.loopbackOverflowFrames = 1;
+    CHECK_FALSE(deviceProbeFailures(r).empty());
+    r.loopbackOverflowFrames = 0;
+    r.referenceFilePath.clear();
+    CHECK_FALSE(deviceProbeFailures(r).empty());
+}
+
 TEST_CASE("device_probe_v1 separates measure and persistence (DIF-M2.5.1a-01)", "[audio_engine][device_probe]") {
     namespace fs = std::filesystem;
     const fs::path dir = fs::temp_directory_path() / "cymatica_device_probe_test";

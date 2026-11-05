@@ -1,0 +1,2 @@
+cycle,stall_ms,actual_ms,interval_ms,min_padding_after,padding_at_wake,position_gap_sum_ms,capture_silence_ms,capture_disc_flags,capture_devpos_jumps,capture_devpos_jump_frames
+0,15,15.000,15.011,960,960,0.010,0.000,0,0,0

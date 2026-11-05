@@ -90,7 +90,8 @@ Ogni checkpoint riesamina anche le voci di §8.1 che gli competono.
 | D-M2-17..20 (P-M25-04, -05, -07) | ingresso | M2.5.1 | Struttura e metodo servono a tutto il resto |
 | P-M25-08, viste leggibili | review di M2.5.1 | primo ascolto | Forma scelta nell'implementazione |
 | P-M25-01, cambio di metro | CP-1 | inizio di M2.5.3 | Serve la prova di fattibilità; dopo costerebbe rifare fixture e golden |
-| Criterio PASS del device | CP-1 | prima di M2.5.6 | D-M2-10 fissa la corsa, non la soglia; serve la baseline |
+| Criterio PASS del device | CP-1 | prima di M2.5.6 | D-M2-10 fissa la corsa, non la soglia; serve la baseline. Proposta in [dossier R-M25-8](../research/M2_5_1_Windows_Audio_Glitch_Detection.md): controllo positivo per uscita, PCM, intervalli, `IAudioClock`, loopback e ascolto umano |
+| Canale ETW `/GlitchDetection` | CP-1 | prima di M2.5.6 | Attivarlo cambia una configurazione di sistema e richiede privilegi: decisione del titolare |
 | Margine DSP per gli effetti | CP-1 | prima di ogni effetto | Dipende dalla misura su device |
 | LFO sul filtro, saturazione, supersaw e riassegnazione delle voci libere | CP-1 | inizio di M2.5.2 | Proposte dell'esperto del 2026-11-04: 3 voci su 8 sono ferme. Estendono il perimetro di M2.5.2 |
 | F7, linea di basso | CP-2 | inizio di M2.5.3 | Sotto Corpo c'è solo il kick; va valutata con il kick (F4) e cambia il piano |
@@ -140,7 +141,7 @@ Ogni fase che tocca il codice si chiude con build Release, Debug e Headless, 0 w
 | R-M25-5 | Onset: normalizzazione robusta o locale (H-04) | prima di CP-4 |
 | R-M25-6 | Statistica per gruppi e permutazioni (H-05) | prima di CP-4 |
 | R-M25-9 | Palette timbrica: a CP-3 l'obiettivo artistico (evocare strumenti acustici, creare materiali impossibili o combinarli), senza scegliere un algoritmo; poi, se serve, confronto fra campioni, modelli fisici, sintesi modale e soluzioni ibride per memoria, CPU, licenze, determinismo e budget di voci, con uno spike limitato prima del gate di M7. Criteri: riconoscibilità dei ruoli, espressività, coerenza nel mix, assenza di artefatti; il realismo è un mezzo, non il fine | CP-3 e prima di M7, non in M2.5.2 |
-| R-M25-8 | Rilevazione dei glitch audio su Windows: eventi di sistema (ETW e simili), contatori e strumenti equivalenti, con ciò che misurano davvero e i limiti in modalità condivisa | prima di CP-1 |
+| R-M25-8 | Rilevazione dei glitch audio su Windows: eventi di sistema (ETW e simili), contatori e strumenti equivalenti, con ciò che misurano davvero e i limiti in modalità condivisa. **Eseguita:** [dossier R-M25-8](../research/M2_5_1_Windows_Audio_Glitch_Detection.md) | prima di CP-1 |
 | R-M25-7 | Direttore musicale (F5): stato dell'arte dei «conductor», già chiesto dal titolare il 2026-10-28, compreso il coordinamento fra i quattro ruoli (indicazione del titolare del 2026-11-03). **Eseguita:** [dossier R-M25-7](../research/M2_5_F5_Music_Director_Research.md) | prima di CP-3 |
 
 ## 8. Destinazione dei punti aperti
