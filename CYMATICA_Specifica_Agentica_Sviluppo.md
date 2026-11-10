@@ -1,7 +1,7 @@
 # CYMATICA — Specifica tecnica per sviluppo agentico e generazione adattiva
 
 **Documento:** specifica tecnica-operativa per prototipo e sviluppo incrementale  
-**Versione:** 0.8.3 — integrazione controllo agentico e osservazione audiovisiva richiesta il 2026-10-07 (baseline 0.8.1/0.8.2 accettata)
+**Versione:** 0.8.4 — eccezione diagnostica circoscritta all'unico owner audio (2026-11-10); 0.8.3 integrazione controllo agentico e osservazione audiovisiva richiesta il 2026-10-07 (baseline 0.8.1/0.8.2 accettata)
 **Data:** 2026-10-07
 **Baseline revisionata:** 0.8 su commit `4aa2d5271aea11ad8aa088932c5afad8d6aaeec7`, integrata in `ac1ac59`; 0.8.1 su `ac1ac59`  
 **Target primario:** Windows x64  
@@ -15,6 +15,12 @@
 ---
 
 ## 0. Changelog
+
+### 0.8.4 — 2026-11-10
+
+Riconciliazione normativa di una decisione del titolare (CONS-01, 2026-11-10; rilievo DIF-CONS-R1-01 della review del consolidamento). Nessun cambio di stack, architettura o numerazione milestone.
+
+- §28.2 e §32 M0: l'unico owner audio resta la regola. Nel runtime ordinario il binario apre un solo device, di riproduzione. Una cattura WASAPI loopback aggiuntiva, di sola cattura, è ammessa soltanto nello scenario diagnostico `device_probe_v1` richiesto con `--device-loopback`; mai un secondo device di riproduzione né un secondo motore audio. La cattura vive nel target `cymatica_audio_diag` (`docs/dependencies.md`, ADR-0001 D-M0-03).
 
 ### Nota integrativa alla revisione 0.8.3 — ricerca musicale M2.4 (2026-10-13)
 
@@ -2896,7 +2902,7 @@ Le entità cosmetiche sono le prime da degradare.
 
 Versioni, commit, checksum e toolchain di M0 sono registrati in `docs/adr/0001-m0-toolchain-dependencies.md` (record unico; non duplicarli qui).
 
-In M0 raylib è responsabile di finestra/input/render; il modulo audio raylib deve essere disabilitato nella configurazione pinned, e un solo target possiede `MINIAUDIO_IMPLEMENTATION` e il device. Verificare l'opzione disponibile nel commit raylib scelto (tipicamente `SUPPORT_MODULE_RAUDIO`) e il link finale; non aprire due motori audio indipendenti. Non è un errore già osservato, perché la build non esiste ancora.
+In M0 raylib è responsabile di finestra/input/render; il modulo audio raylib deve essere disabilitato nella configurazione pinned, e un solo target possiede `MINIAUDIO_IMPLEMENTATION` e il device di riproduzione. Eccezione circoscritta (0.8.4): una cattura WASAPI loopback aggiuntiva, di sola cattura, è ammessa soltanto nello scenario diagnostico `device_probe_v1` richiesto con `--device-loopback`; mai un secondo device di riproduzione né un secondo motore audio. Verificare l'opzione disponibile nel commit raylib scelto (tipicamente `SUPPORT_MODULE_RAUDIO`) e il link finale; non aprire due motori audio indipendenti. Non è un errore già osservato, perché la build non esiste ancora.
 
 Una libreria JSON diventa probabilmente necessaria prima dei formati data-driven. La scelta deve essere esplicita in M0/M1 e documentata; non implementare un parser JSON artigianale.
 
@@ -3159,7 +3165,7 @@ Accettazione:
 - `ctest` esegue e supera almeno un test reale del framework scelto;
 - eseguibile avviabile e chiudibile senza crash;
 - tono udibile e shader di prova visibile, verificati manualmente con procedura registrata;
-- un solo `MINIAUDIO_IMPLEMENTATION` e un solo device aperto nel binario finale, verificato su build e link;
+- un solo `MINIAUDIO_IMPLEMENTATION` e un solo device aperto nel binario finale, verificato su build e link; unica eccezione la cattura loopback diagnostica di §28.2 (0.8.4), mai nel runtime ordinario;
 - dipendenze e licenze censite;
 - decisioni M0 registrate in `docs/progress.md` o ADR;
 - nessun tool futuro richiesto.

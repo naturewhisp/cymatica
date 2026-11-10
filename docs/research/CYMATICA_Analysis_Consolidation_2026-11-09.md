@@ -145,13 +145,13 @@ Il titolare ha scelto l'opzione (b), target separato.
 
 Ogni punto separa ciò che è **verificato** sul repository da ciò che è **inferenza** di questa revisione. Le inferenze sono proposte da provare, non risultati.
 
-### 6.1 Il carico al 100 % di CPU non può affamare il thread audio
+### 6.1 Il carico al 100 % di CPU non contende il processore al thread audio
 
 **Verificato.**
 - Il motore non imposta la priorità del thread audio. miniaudio usa `ma_thread_priority_default`, che vale `ma_thread_priority_highest` (`miniaudio.h:4452-4463`) e diventa `THREAD_PRIORITY_HIGHEST` (`miniaudio.h:17873`).
 - `load_series.py` avvia un processo per core logico «at normal priority» (riga 4 dello script).
 
-**Inferenza.** Lo scheduler di Windows è a priorità: un thread a priorità più alta sottrae la CPU a quelli a priorità normale. Con o senza MMCSS, i processi di carico non possono ritardare la callback. L'esito «nessun degrado» e «beneficio di MMCSS non riprodotto» è quindi quello atteso dal disegno della prova. Dice che il carico di calcolo ordinario non disturba, non che la catena regga le cause tipiche dei glitch. L'aumento del 43 % dei tempi medi è compatibile con la contesa di cache e memoria.
+**Inferenza.** Lo scheduler di Windows è a priorità: un thread a priorità più alta sottrae la CPU a quelli a priorità normale. Con o senza MMCSS, i processi di carico non sottraggono il processore alla callback. La priorità però non elimina le contese di memoria, cache, interrupt e driver: l'aumento misurato del 43 % dei tempi medi mostra che il carico ha un effetto (OSS-CONS-R1-03). L'esito «nessun degrado» e «beneficio di MMCSS non riprodotto» è quindi quello atteso dal disegno della prova. Dice che il carico di calcolo ordinario non porta la callback oltre il periodo, non che la catena regga le cause tipiche dei glitch.
 
 Le cause plausibili che questa prova non esercita: ritardi di DPC e ISR dei driver (il dossier R-M25-8 cita la soglia di 1–3 ms di Microsoft), thread a priorità pari o superiore, page fault sul percorso audio, carico della GPU, transizioni di alimentazione.
 
@@ -171,7 +171,9 @@ Le cause plausibili che questa prova non esercita: ritardi di DPC e ISR dei driv
 
 **Prova proposta, breve.** Registrare nel manifest del probe il volume master dell'endpoint in dB (`IAudioEndpointVolume::GetMasterVolumeLevel`) e se il volume è hardware (`QueryHardwareSupport`). Ripetere la corsa USB a volume massimo. Previsione da registrare prima: guadagno del loopback uguale al volume master, e guadagno 1,0 a volume massimo. Se la previsione fallisce, la causa è altrove. Chiude OSS-M2.5.1d-02.
 
-**Conseguenza pratica.** Se l'ipotesi regge, la procedura di CP-1 può chiedere il volume master al massimo durante le corse di qualifica, così il confronto torna a livello pieno anche su USB.
+**Sicurezza (OSS-CONS-R1-02).** Il limiter controlla il segnale digitale, non la pressione acustica sul trasduttore ([progetto di sicurezza audio](M2_4_Audio_Safety_Design.md)). La prova va fatta a livelli controllati e crescenti, con la previsione registrata prima, e **senza indossare le cuffie** a livello alto. Il volume massimo non diventa un requisito generale del gate hardware.
+
+**Conseguenza pratica.** Se l'ipotesi regge, a CP-1 si sceglie come rendere confrontabile il livello del loopback: un volume noto registrato nel manifest e compensato nell'analisi, oppure un volume alto solo per corse senza ascolto, mai sulle cuffie indossate.
 
 ### 6.3 Effetti, saturazione e supersaw: tre prerequisiti
 
@@ -211,7 +213,7 @@ Non sono in ADR-0007: il titolare decide se inserirle nel §7 dell'ADR.
 |---|---|---|---|---|
 | R-M25-10 | Quale stress mette davvero alla prova il percorso audio? | La prova di carico attuale non discrimina (§6.1). «Senza crackle» è un criterio obbligatorio | Stressor con controllo positivo su `glitchcal`; confronto controbilanciato Default contro Games; fonti Microsoft su DPC e MMCSS lette per intero | Prima di M2.5.6; la parte MMCSS prima di CP-1 se la scelta del default dipende da essa |
 | R-M25-11 | Come si rende udibile un metro diverso da 4/4? | La fattibilità mostra che il 3/4 si genera ma non ha accenti propri. Senza questa risposta P-M25-01 si decide solo sulla lettera del criterio | Letteratura su accento metrico e induzione del metro; modello a onset già usato (LHL, E0) esteso a 3/4 e 6/8; articolo CONS-09 | Solo se CP-1 sceglie il cambio di metro |
-| R-M25-12 | Dove cade il punto di cattura del loopback rispetto al volume? | Chiude OSS-M2.5.1d-02 e stabilisce se la qualifica va fatta a volume massimo | Prova del §6.2 con previsione registrata prima | M2.5.1c o CP-1 |
+| R-M25-12 | Dove cade il punto di cattura del loopback rispetto al volume? | Chiude OSS-M2.5.1d-02 e stabilisce come rendere confrontabile il livello del loopback; livelli controllati, nessun volume alto con le cuffie indossate (OSS-CONS-R1-02) | Prova del §6.2 con previsione registrata prima | M2.5.1c o CP-1 |
 
 ### 7.3 Ricerche oltre M2.5, già note
 

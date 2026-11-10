@@ -69,6 +69,16 @@ In tutte e quattro: nessuno slittamento, picco di residuo o silenzio anomalo, 0 
 
 Una corsa per condizione non stima gli eventi rari.
 
+### Riprova dopo CONS-01 (2026-11-10)
+
+Dati in `loopback_cons01_usb/`. Cuffie USB, macchina silenziosa, `--device-usage games --device-capture-pcm --device-loopback` a `81ea5d7`, con la cattura nel target `cymatica_audio_diag`.
+
+- `MEASURED`, 24/24 frasi, 2.784 eventi processati, 0 persi, ack validi; PCM uguale al golden (`15126969907236845529`, 0 campioni diversi).
+- Loopback: 0 overflow, 48 kHz stereo; `analyze_loopback.py` `MEASURED`, ritardo 544 frame, guadagno −59,547 dB, scarto −148,89 dB, nessuno slittamento, picco di residuo o silenzio anomalo.
+- Callback massima 0,40 ms, p99,9 0,15 ms, intervallo massimo 17,40 ms, 0 sospetti underrun, MMCSS attivo.
+
+Stessi valori delle corse USB precedenti: lo spostamento non cambia il comportamento sul device. Una corsa non stima gli eventi rari.
+
 ## Limiti
 
 - WASAPI condiviso non espone un conteggio di underrun. `suspected_underruns` conta gli intervalli fra callback almeno pari al buffer: è una stima indiretta, e un valore zero non prova l'assenza di crackle. Nessuno ha ascoltato queste corse in modo controllato.

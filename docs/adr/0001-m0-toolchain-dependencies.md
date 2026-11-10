@@ -43,6 +43,7 @@ Alternative: Insiders/MSVC 14.51 è un canale Preview, quindi non adatto come ba
 - SHA-256: `miniaudio.h` `AC7AF4DE748B7E26B777F37E01CEE313A308A7296A3EB080E2906B320CC55C89`; `LICENSE` `457F1B500E0ADF6BC059EDDDFA78A2F62012E7C3BB43476C20E0BD23B25BA0EB`.
 - Licenza: doppia a scelta, Public Domain (Unlicense) oppure MIT No Attribution.
 - Un solo target audio contiene `MINIAUDIO_IMPLEMENTATION` e apre il device. Verifica con `dumpbin /symbols`: nessun simbolo `ma_device_init` in `raylib.lib`, una sola definizione nel target audio.
+- **Eccezione diagnostica (2026-11-10, decisione del titolare CONS-01, spec 0.8.4 §28.2):** una cattura WASAPI loopback aggiuntiva, di sola cattura, è ammessa soltanto nello scenario diagnostico `device_probe_v1` richiesto con `--device-loopback`; mai un secondo device di riproduzione né un secondo motore audio. Il device di cattura è nel target `cymatica_audio_diag`, che non contiene l'implementazione di miniaudio. La regola resta valida per il runtime ordinario. Il test CTest `single_audio_owner` verifica sorgenti e dichiarazioni, non il numero di device aperti durante l'esecuzione.
 
 ### D-M0-04 — Test framework
 
