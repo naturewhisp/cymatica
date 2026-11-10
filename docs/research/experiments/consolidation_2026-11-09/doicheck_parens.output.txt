@@ -1,0 +1,7 @@
+OK  10.1002/(SICI)1097-0258(19980715)17:13<1495::AID-SIM863>3.0.CO;2-I | Obuchowski 1998 On the comparison of correlated proportions for clustered data | docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md 61
+OK  10.1002/1097-0142(1950)3:1<32::AID-CNCR2820030106>3.0.CO;2-3 | Youden 1950 Index for rating diagnostic tests | docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md 103
+OK  10.1002/(SICI)1097-0258(19980430)17:8<857::AID-SIM777>3.0.CO;2-E | Newcombe 1998 Two-sided confidence intervals for the single proportion: comparison o | docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md 104
+OK  10.1002/(SICI)1097-0258(19980430)17:8<873::AID-SIM779>3.0.CO;2-I | Newcombe 1998 Interval estimation for the difference between independent proportions | docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md 105
+OK  10.1016/0895-4356(90)90158-L | Feinstein 1990 High agreement but low Kappa: I. the problems of two paradoxes | docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md 210
+OK  10.1016/0895-4356(93)90018-V | Byrt 1993 Bias, prevalence and kappa | docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md 211
+OK  10.1016/0010-0285(84)90018-5 | Bharucha 1984 Anchoring effects in music: The resolution of dissonance | docs/research/experiments/m25_f5_research_notes/regole_insieme.md 125

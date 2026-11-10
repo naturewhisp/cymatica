@@ -1,7 +1,7 @@
 # CYMATICA — Inventario dipendenze
 
 Documento normativo richiesto da `CYMATICA_Specifica_Agentica_Sviluppo.md` §28.5 e `AGENTS.md` §2.
-Ultimo aggiornamento: 2026-10-19 (Milestone 2 — M2.4 Inc-1 completato e Gate pre-Inc-2 chiuso: zero nuove dipendenze esterne).
+Ultimo aggiornamento: 2026-11-10 (CONS-01: cattura loopback spostata nel target diagnostico `cymatica_audio_diag`, eccezione registrata nella scheda di miniaudio; nessuna nuova dipendenza). Precedente: 2026-11-09 (censiti gli strumenti offline di ricerca; nessuna nuova dipendenza del prodotto). Precedente: 2026-10-19 (Milestone 2 — M2.4 Inc-1 completato e Gate pre-Inc-2 chiuso: zero nuove dipendenze esterne).
 
 ## Riepilogo dipendenze attive
 
@@ -27,6 +27,7 @@ Ultimo aggiornamento: 2026-10-19 (Milestone 2 — M2.4 Inc-1 completato e Gate p
 - **Licenza:** Scelta alternativa tra Public Domain (Unlicense) e MIT No Attribution (permissiva, compatibile commerciale e open source).
 - **Piattaforme:** Windows (WASAPI), Android (AAudio/OpenSL in futuro).
 - **Vincoli architetturali:** Solo il modulo `engine/audio/audio_engine.cpp` include `MINIAUDIO_IMPLEMENTATION`. Nessun altro file o libreria nel binario può aprire il device o includere l'implementazione (spec §28.2).
+  - **Unica eccezione, diagnostica (decisione del titolare, 2026-11-10, CONS-01):** `engine/audio_diag/loopback_capture.cpp`, nel target separato `cymatica_audio_diag`, apre un device di sola cattura loopback. Usa le sole dichiarazioni di miniaudio, non l'implementazione. Lo costruisce soltanto `cymatica_game` quando riceve `--device-loopback` dentro `device_probe_v1`; `cymatica_audio` conosce solo l'interfaccia `DeviceLoopbackTap` e non contiene il device. Il test CTest `single_audio_owner` fallisce se un altro file include miniaudio o apre un device.
 - **Rischi:** Gestione device loss/cambio periferica durante la riproduzione; allocazioni nulle nel realtime callback verificate per contratto.
 
 ### 2. raylib
@@ -63,6 +64,20 @@ Ultimo aggiornamento: 2026-10-19 (Milestone 2 — M2.4 Inc-1 completato e Gate p
 - **Target CMake:** `nlohmann_json::nlohmann_json`.
 - **Vincoli architetturali:** Confinata ai target `cymatica_replay` e `cymatica_cacp` (dal 2026-10-29, Inc-5 fase 5d: verità sigillata, pacchetto di valutazione e checker di `evaluation_result_v0`, ADR-0006 D-M2-15) e ai relativi test. Stessa versione e stesso SHA, nessuna nuova dipendenza. `engine/core` e `engine/audio` restano indipendenti da JSON (ADR-0002).
 - **Configurazione CMake:** `JSON_BuildTests=OFF`, `JSON_Install=OFF`.
+
+---
+
+## Strumenti offline di ricerca (fuori dalla build)
+
+Non sono dipendenze del prodotto: nessun target CMake li usa, la CI non li esegue e il gioco non li richiede.
+
+| Strumento | Uso | Dove | Stato |
+|---|---|---|---|
+| Python 3 (libreria standard) | Script di misura, riassunto delle serie su device e loro controlli negativi | `docs/research/experiments/` | Versione non fissata; l'ultima esecuzione registrata è con Python 3.14 (2026-11-09) |
+| numpy | Analisi del loopback, simulazioni e `expert_analysis.py` | `docs/research/experiments/` | Versione non fissata (2.4 il 2026-11-09); licenza BSD-3-Clause; installazione a cura di chi esegue lo script |
+| `glitchcal.cpp` | Programma di prova in WASAPI puro (R-M25-8) | `docs/research/experiments/m25_glitch_calibration/` | Non compilato dal progetto; usa solo API di Windows |
+
+Un risultato di questi strumenti che diventi un gate richiede prima versioni fissate e una decisione registrata (AGENTS §2).
 
 ---
 

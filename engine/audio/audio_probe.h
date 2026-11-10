@@ -1,6 +1,7 @@
 #pragma once
 
 #include "audio_control.h"
+#include "device_loopback_tap.h"
 #include "event_chain_log.h"
 #include "music_intent.h"
 #include "input_dispatcher.h"
@@ -602,8 +603,14 @@ struct DeviceProbeResult {
 // Writes the manifest and sets manifestWriteSuccess only if the file was written and closed
 bool writeDeviceProbeManifest(DeviceProbeResult& r, const std::string& outputDir);
 
+// Frames a loopback tap must hold: start of the capture, the fixture and the tail
+inline constexpr std::uint64_t kDeviceProbeLoopbackCapacityFrames = kFixtureRenderedFrames + 10ULL * 48000ULL;
+
+// loopbackTap: capture of the Windows mix, owned by the caller and outside this library (cymatica_audio_diag).
+// nullptr means no loopback. The tap must hold kDeviceProbeLoopbackCapacityFrames.
 DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& outputDir = "artifacts/cacp",
-                                   bool writeFiles = true, bool capturePcm = false, bool captureLoopback = false);
+                                   bool writeFiles = true, bool capturePcm = false,
+                                   DeviceLoopbackTap* loopbackTap = nullptr);
 
 // Runs the authoritative planner_probe_v1 scenario offline in 120 Hz simulation ticks (Inc-3)
 PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir = "artifacts/cacp",

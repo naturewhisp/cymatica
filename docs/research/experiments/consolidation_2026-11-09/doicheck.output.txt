@@ -1,0 +1,447 @@
+DOI 10.1001/jama.1983.03330370053031
+   REG: Hanley (1983) If Nothing Goes Wrong, Is Everything All Right? — JAMA
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:162: … J. A. Hanley, A. Lippman-Hand, «If Nothing Goes Wrong, Is Everything All Right? Interpreting Zero Numerators», *JAMA* 249(13), 1743–1745, 1983. [DOI 10.1001/jama.1983.03
+DOI 10.1002/(sici
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[3] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:61: …| C16 | N. A. Obuchowski, «On the comparison of correlated proportions for clustered data», *Statistics in Medicine* 17(13), 1495–1507, 1998. [DOI 10.1002/(SICI)1097-0
+DOI 10.1002/1097-0142(1950
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:103: …| C17 | W. J. Youden, «Index for rating diagnostic tests», *Cancer* 3(1), 32–35, 1950. [DOI 10.1002/1097-0142(19
+DOI 10.1002/sim.3095
+   REG: Zou, Donner (2007) Construction of confidence limits about effect measures: A general approach — Statistics in Medicine
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:106: …Zou, A. Donner, «Construction of confidence limits about effect measures: A general approach», *Statistics in Medicine* 27(10), 1693–1702, 2008. [DOI 10.1002/sim.3095](ht
+DOI 10.1007/978-3-319-31008-4_14
+   REG: Scirea, Togelius, Eklund, Risi (2016) MetaCompose: A Compositional Evolutionary Music Composer — Lecture Notes in Computer Science
+   USE[1] docs/research/experiments/m25_f5_research_notes/coordinamento_ruoli.md:288: …| Scirea et al. 2016 (MetaCompose), EvoMUSART | [10.1007/978-3-319-31
+DOI 10.1007/978-3-319-55750-2_8
+   REG: Hutchings, McCormack (2017) Using Autonomous Agents to Improvise Music Compositions in Real-Time — Lecture Notes in Computer Science
+   USE[2] docs/research/experiments/m25_f5_research_notes/coordinamento_ruoli.md:22: … precursore del 2017 è descritto come alternanza di guida tra agenti tramite un sistema di valutazione — [Hutchings & McCormack 2017](https://doi.org/10.1007/978-3-319-55
+DOI 10.1007/bf00117340
+   REG: Mongeau, Sankoff (1990) Comparison of musical sequences — Computers and the Humanities
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:46: …| F3 | M. Mongeau, D. Sankoff, «Comparison of musical sequences», *Computers and the Humanities* 24, 161–175, 1990. [DOI 10.1007/BF00117340](
+DOI 10.1007/s00500-004-0385-4
+   REG: Assayag, Dubnov (2004) Using Factor Oracles for Machine Improvisation — Soft Computing
+   USE[7] docs/research/M2_4_Deep_Research_Reviewed.md:31: …11](https://doi.org/10.1145/1978802.1978809); [Rohrmeier 2011](https://doi.org/10.1080/17459737.2011.573676); [Assayag & Dubnov 2004](https://doi.org/10.1007/s00500-004-0
+DOI 10.1007/s00521-018-3849-7
+   REG: Yang, Lerch (2018) On the evaluation of generative models in music — Neural Computing and Applications
+   USE[10] docs/research/M2_4_Deep_Research_Reviewed.md:278: …alità di metriche oggettive e soggettive e che nessuna singola misura cattura adeguatamente la qualità musicale. ([Yang & Lerch 2020](https://doi.org/10.1007/s00521-018-3
+DOI 10.1007/s10710-017-9307-y
+   REG: Scirea, Togelius, Eklund, Risi (2017) Affective evolutionary music composition with MetaCompose — Genetic Programming and Evolvable Machines
+   USE[3] docs/research/M2_4_Inc5_Entry_Research.md:253: …. Togelius, P. Eklund, S. Risi, «Affective evolutionary music composition with MetaCompose», *Genetic Programming and Evolvable Machines*, 2017. [DOI 10.1007/s10710-017-9
+DOI 10.1007/s42979-022-01220-y
+   REG: Yin, Reuben, Stepney, Collins (2022) Measuring When a Music Generation Algorithm Copies Too Much: The Originality Report, Cardinality Score, and Sy — SN Computer Science
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:47: …opies Too Much: The Originality Report, Cardinality Score, and Symbolic Fingerprinting by Geometric Hashing», *SN Computer Science* 3:340, 2022. [DOI 10.1007/s42979-022-0
+DOI 10.1016/0010-0285(84
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[3] docs/research/experiments/m25_f5_research_notes/regole_insieme.md:125: …tria temporale sono le condizioni, e gli ascoltatori giudicano la tensione più risolta con l'ancoraggio — estratti su [Bharucha 1984](https://doi.org/10.1016/0010-0285(84
+DOI 10.1016/0010-0285(84)90018-5
+   REG: Bharucha (1984) Anchoring effects in music: The resolution of dissonance — Cognitive Psychology
+   USE[3] docs/research/M2_5_F5_Music_Director_Research.md:184: …php/mto/article/view/876/194)). Il principio di ancoraggio melodico di Bharucha è noto solo da estratti ([SEC/AM, DOI non verificato](https://doi.org/10.1016/0010-0285%28
+DOI 10.1016/0895-4356(90
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:210: …7 | A. R. Feinstein, D. V. Cicchetti, «High agreement but low Kappa: I. The problems of two paradoxes», *J Clin Epidemiol* 43(6), 543–549, 1990. [DOI 10.1016/0895-4356(90
+DOI 10.1016/0895-4356(93
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:211: …| C28 | T. Byrt, J. Bishop, J. B. Carlin, «Bias, prevalence and kappa», *J Clin Epidemiol* 46(5), 423–429, 1993. [DOI 10.1016/0895-4356(93
+DOI 10.1016/j.cognition.2005.11.007
+   REG: Bigand, Poulin-Charronnat (2006) Are we “experienced listeners”? A review of the musical capacities that do not depend on formal musical traini — Cognition
+   USE[1] docs/research/experiments/m25_f5_research_notes/sviluppo_autentico.md:31: …ono il 72% di risposte corrette e i non musicisti il 58%, sopra il caso — Bigand 1990 [SEC, tramite [Bigand & Poulin-Charronnat 2006](https://doi.org/10.1016/j.cognition.
+DOI 10.1016/j.cub.2019.09.067
+   REG: Cheung, Harrison, Meyer, Pearce (2019) Uncertainty and Surprise Jointly Predict Musical Pleasure and Amygdala, Hippocampus, and Auditory Cortex Activ — Current Biology
+   USE[3] docs/research/M2_5_F5_Music_Director_Research.md:254: …19, FT\*](https://pmc.ncbi.nlm.nih.gov/articles/PMC6867811/)). Il piacere dipende dal contesto d'incertezza ([Cheung et al. 2019, AM](https://doi.org/10.1016/j.cub.2019.0
+DOI 10.1016/j.entcom.2025.100985
+   REG: Khan, Van Nguyen, Thawonmas (2025) Fighting to the beat: Multi-instrumental adaptive background music approach — Entertainment Computing
+   USE[4] docs/research/M2_4_Deep_Research_Reviewed.md:241: …htingICE ha trovato vantaggi di player experience usando gruppi strumentali il cui mix reagiva al gioco. ([Fighting to the beat 2025](https://doi.org/10.1016/j.entcom.202
+DOI 10.1016/j.jclinepi.2004.12.009
+   REG: Flahault, Cadilhac, Thomas (2005) Sample size calculation should be performed for design accuracy in diagnostic test studies — Journal of Clinical Epidemiology
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:165: …. Thomas, «Sample size calculation should be performed for design accuracy in diagnostic test studies», *J Clin Epidemiol* 58(8), 859–862, 2005. [DOI 10.1016/j.jclinepi.2
+DOI 10.1016/j.paid.2010.09.021
+   REG: Hunter, Schellenberg (2011) Interactive effects of personality and frequency of exposure on liking for music — Personality and Individual Differences
+   USE[6] docs/research/M2_5_F5_Music_Director_Research.md:313: …li | 37% U rovesciata, 28% calo, 19% aumento, 16% U diritta | Meno della metà segue la curva media | [Hunter e Schellenberg 2011, FT](https://doi.org/10.1016/j.paid.2010.
+DOI 10.1017/s0890060414000687
+   REG: Collins, Laney, Willis, Garthwaite (2015) Developing and evaluating computational models of musical style — Artificial Intelligence for Engineering Design, An
+   USE[2] docs/research/experiments/m25_f5_research_notes/sviluppo_autentico.md:79: …, rapporto di compressione, occorrenze attese | Predicono rating di studenti di musica (Collins et al. 2011, in [Collins et al. 2016](https://doi.org/10.1017/S08900604140
+DOI 10.1037/0278-7393.30.2.370
+   REG: Szpunar, Schellenberg, Pliner (2004) Liking and Memory for Musical Stimuli as a Function of Exposure. — Journal of Experimental Psychology: Learning, Memo
+   USE[8] docs/research/M2_5_F5_Music_Director_Research.md:310: …otto | Esposizioni separate, gradimento e non attenzione; estratti da 15 s in Szpunar | [Szpunar et al. 2004, FT; AM nell'altra nota](https://doi.org/10.1037/0278-7393.30
+DOI 10.1037/rev0000169
+   REG: Harrison, Pearce (2020) Simultaneous consonance in music perception and composition. — Psychological Review
+   USE[14] docs/research/M2_5_F5_Music_Director_Research.md:184: …: interferenza, armonicità e familiarità predicono i dati di Bowling con r = 0,88 ([Harrison e Pearce 2020, FT\*, DOI non verificato](https://doi.org/10.1037/rev0000169))
+DOI 10.1073/pnas.1402039111
+   REG: Hove, Marie, Bruce, Trainor (2014) Superior time perception for lower musical pitch explains why bass-ranged instruments lay down musical rhythms — Proceedings of the National Academy of Sciences
+   USE[6] docs/research/M2_5_F5_Music_Director_Research.md:167: …ni simultanei, l'anticipo del grave sposta il tapping più di quello dell'acuto, ma di poco: 14 contro 11 ms ([Hove et al. 2014, FT\*](https://doi.org/10.1073/pnas.1402039
+DOI 10.1080/00031305.1997.10473947
+   REG: Jovanovic, Levy (1997) A Look at the Rule of Three — The American Statistician
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:295: …- **Jovanovic e Levy, «A Look at the Rule of Three», *Am Stat* 51(2), 137–139, 1997** ([DOI](https://doi.org/10.1080/00031305.199
+DOI 10.1080/00031305.1998.10480550
+   REG: Agresti, Coull (1998) Approximate is Better than “Exact” for Interval Estimation of Binomial Proportions — The American Statistician
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:47: …. Coull, «Approximate is Better than "Exact" for Interval Estimation of Binomial Proportions», *The American Statistician* 52(2), 119–126, 1998. [DOI 10.1080/00031305.199
+DOI 10.1080/00031305.2000.10474560
+   REG: Agresti, Caffo (2000) Simple and Effective Confidence Intervals for Proportions and Differences of Proportions Result from Adding Tw — The American Statistician
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:108: …Proportions and Differences of Proportions Result from Adding Two Successes and Two Failures», *The American Statistician* 54(4), 280–288, 2000. [DOI 10.1080/00031305.200
+DOI 10.1080/01621459.1927.10502953
+   REG: Wilson (1927) Probable Inference, the Law of Succession, and Statistical Inference — Journal of the American Statistical Association
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:46: …| C1 | E. B. Wilson, «Probable Inference, the Law of Succession, and Statistical Inference», *JASA* 22(158), 209–212, 1927. [DOI 10.1080/01621459.192
+DOI 10.1080/02699930701350753
+   REG: Schellenberg, Peretz, Vieillard (2008) Liking for happy- and sad-sounding music: Effects of exposure — Cognition &amp; Emotion
+   USE[7] docs/research/M2_5_F5_Music_Director_Research.md:310: …n Szpunar | [Szpunar et al. 2004, FT; AM nell'altra nota](https://doi.org/10.1037/0278-7393.30.2.370); [Schellenberg et al. 2008, FT](https://doi.org/10.1080/026999307013
+DOI 10.1080/07494460802663983
+   REG: Collins (2009) An Introduction to Procedural Music in Video Games — Contemporary Music Review
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:251: …| G15 | K. Collins, «An Introduction to Procedural Music in Video Games», *Contemporary Music Review* 28(1), 5–15, 2009. [DOI 10.1080/074944608026
+DOI 10.1080/07494468708567054
+   REG: Wright, Bregman (1987) Auditory stream segregation and the control of dissonance in polyphonic music — Contemporary Music Review
+   USE[2] docs/research/experiments/m25_f5_research_notes/regole_insieme.md:128: …ry/commentary-on-asynchronous-preparation-of-tonally-fused-intervals-in-polyphonic-) [SEC]. Wright & Bregman non è stato letto: [DOI](https://doi.org/10.1080/074944687085
+DOI 10.1080/09298215.2015.1133656
+   REG: Louboutin, Meredith (2016) Using general-purpose compression algorithms for music analysis — Journal of New Music Research
+   USE[1] docs/research/experiments/m25_f5_research_notes/sviluppo_autentico.md:78: …ompressione | Lunghezza di descrizione | Correlazione fra fattore di compressione e punteggio di analisi; [Louboutin & Meredith 2016](https://doi.org/10.1080/09298215.201
+DOI 10.1080/09298215.2017.1367010
+   REG: Sears, Pearce, Caplin, McAdams (2017) Simulating melodic and harmonic expectations for tonal cadences using probabilistic models — Journal of New Music Research
+   USE[8] docs/research/M2_4_Deep_Research_Reviewed.md:91: … del contesto sequenziale accumulato. ([Pearce & Wiggins 2012](https://doi.org/10.1111/j.1756-8765.2012.01214.x); [Sears et al. 2018](https://doi.org/10.1080/09298215.201
+DOI 10.1080/09298215.2018.1511736
+   REG: Tatar, Pasquier (2018) Musical agents: A typology and state of the art towards Musical Metacreation — Journal of New Music Research
+   USE[4] docs/research/M2_5_F5_Music_Director_Research.md:101: …co, ma confronta il sistema con la colonna sonora originale, non due forme di coordinamento. Il survey di [Tatar e Pasquier 2019, AM](https://doi.org/10.1080/09298215.201
+DOI 10.1080/09298215.2018.1515233
+   REG: Sturm, Ben-Tal, Monaghan, Collins (2018) Machine learning research that matters for music creation: A case study — Journal of New Music Research
+   USE[1] docs/research/experiments/m25_f5_research_notes/sviluppo_autentico.md:160: …_Evaluation_Protocol.md). Sturm et al. 2019 presentano invece una valutazione con musicisti e concerto pubblico — [Sturm et al. 2019](https://doi.org/10.1080/09298215.201
+DOI 10.1080/09298219508570672
+   REG: Conklin, Witten (1995) Multiple viewpoint systems for music prediction — Journal of New Music Research
+   USE[7] docs/research/M2_4_Deep_Research_Reviewed.md:31: … coerente sia con la letteratura sulla struttura musicale sia con l'architettura già congelata dal progetto. ([Conklin & Witten 1995](https://doi.org/10.1080/092982195085
+DOI 10.1080/10400410802059929
+   REG: Kaufman, Baer, Cole, Sexton∗ (2008) A Comparison of Expert and Nonexpert Raters Using the Consensual Assessment Technique — Creativity Research Journal
+   USE[3] docs/research/M2_5_F5_Music_Director_Research.md:302: …rto e non musicista non si sostituiscono: su poesie, le medie di esperti e novizi correlano solo 0,21 ([Kaufman et al. 2008, FT-parz](https://doi.org/10.1080/104004108020
+DOI 10.1080/17459737.2011.573676
+   REG: Rohrmeier (2011) Towards a generative syntax of tonal harmony — Journal of Mathematics and Music
+   USE[7] docs/research/M2_4_Deep_Research_Reviewed.md:31: … 1995](https://doi.org/10.1080/09298219508570672); [Anders & Miranda 2011](https://doi.org/10.1145/1978802.1978809); [Rohrmeier 2011](https://doi.org/10.1080/17459737.201
+DOI 10.1093/acprof:oso/9780195151152.003.0004
+   REG: Reich (2004) Music as a Gradual Process (1968) — Writings on Music 1965–2000
+   USE[4] docs/research/M2_4_Deep_Research_Reviewed.md:147: … formalizza l'idea di processi compositivi percepibili, nei quali il mutamento è parte stessa dell'esperienza musicale. ([Reich 1968](https://doi.org/10.1093/acprof:oso/9
+DOI 10.1093/biomet/71.1.1
+   REG: ALBERT, ANDERSON (1984) On the existence of maximum likelihood estimates in logistic regression models — Biometrika
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:294: …e Anderson, «On the existence of maximum likelihood estimates in logistic regression models», *Biometrika* 71(1), 1–10, 1984** ([DOI](https://doi.org/10.1093/biomet/71.1.
+DOI 10.1093/jssam/smv024
+   REG: Dean, Pagano (2015) Evaluating Confidence Interval Methods for Binomial Proportions in Clustered Surveys — Journal of Survey Statistics and Methodology
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:56: …| C11 | N. Dean, M. Pagano, «Evaluating Confidence Interval Methods for Binomial Proportions in Clustered Surveys», *JSSAM* 3(4), 484–503, 2015. [DOI 10.1093/jssam/smv024
+DOI 10.1093/jssam/smy019
+   REG: Franco, Little, Louis, Slud (2019) Comparative Study of Confidence Intervals for Proportions in Complex Sample Surveys† — Journal of Survey Statistics and Methodology
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:55: …omparative Study of Confidence Intervals for Proportions in Complex Sample Surveys», *J. Survey Statistics and Methodology* 7(3), 334–364, 2019. [DOI 10.1093/jssam/smy019
+DOI 10.1093/oxfordjournals.aje.a113261
+   REG: DONNER, BIRKETT, BUCK (1981) RANDOMIZATION BY CLUSTER — American Journal of Epidemiology
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:291: …- **Donner, Birkett, Buck, «Randomization by cluster», *Am J Epidemiol* 114(6), 906–914, 1981** ([DOI](https://doi.org/10.1093/oxfordjourna
+DOI 10.1098/rstb.2011.0355
+   REG: Moore, Gockel (2012) Properties of auditory stream formation — Philosophical Transactions of the Royal Society B:
+   USE[2] docs/research/experiments/m25_f5_research_notes/regole_insieme.md:204: …l'eccitazione di canali periferici diversi, e la regolarità temporale interna aiuta a stabilizzare uno stream — [Moore & Gockel 2012](https://doi.org/10.1098/rstb.2011.03
+DOI 10.1109/msp.2007.323276
+   REG: Valimaki, Huovilainen (2007) Antialiasing Oscillators in Subtractive Synthesis — IEEE Signal Processing Magazine
+   USE[8] docs/adr/0004-m2-4-audio-renderer-safety-proposal.md:152: …s/pdf/VAFilterDesign_2.1.0.pdf); [Välimäki, V. & Huovilainen, A. (2007), Antialiasing Oscillators in Subtractive Synthesis, IEEE SPM](https://doi.org/10.1109/MSP.2007.323
+DOI 10.1109/tciaig.2012.2212899
+   REG: Plans, Morelli (2012) Experience-Driven Procedural Music Generation for Games — IEEE Transactions on Computational Intelligence an
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:252: …| G16 | D. Plans, D. Morelli, «Experience-Driven Procedural Music Generation for Games», *IEEE TCIAIG* 4(3), 192–198, 2012. [DOI 10.1109/TCIAIG.2012.
+DOI 10.1109/tg.2019.2921979
+   REG: Hutchings, McCormack (2020) Adaptive Music Composition for Games — IEEE Transactions on Games
+   USE[5] docs/research/M2_4_Inc5_Entry_Research.md:255: …| G19 | P. Hutchings, J. McCormack, «Adaptive Music Composition for Games», *IEEE Transactions on Games* 12(3), 270–280, 2020. [DOI 10.1109/TG.2019.2921
+DOI 10.1109/tg.2023.3287732
+   REG: Plut, Pasquier, Ens, Bougueng (2024) PreGLAM: A Predictive Gameplay-Based Layered Affect Model — IEEE Transactions on Games
+   USE[2] docs/research/experiments/m25_f5_research_notes/architetture_gioco_musica.md:158: …- PreGLAM stima valenza, arousal e tensione di uno spettatore e cerca di prevedere gli eventi futuri ([A33, AM](https://doi.org/10.1109/TG.2023.3287
+DOI 10.1109/tsa.2005.851998
+   REG: Bello, Daudet, Abdallah, Duxbury (2005) A tutorial on onset detection in music signals — IEEE Transactions on Speech and Audio Processing
+   USE[2] docs/research/M2_4_CACP_Evaluation_Methods.md:40: …| ONSET | J. P. Bello et al., «A Tutorial on Onset Detection in Music Signals», *IEEE Trans. Speech Audio Process.* 13(5), 1035–1047, 2005, DOI [10.1109/TSA.2005.851
+DOI 10.1111/j.0006-341x.2001.00126.x
+   REG: Mancl, DeRouen (2001) A Covariance Estimator for GEE with Improved Small‐Sample Properties — Biometrics
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:60: …| C15 | L. A. Mancl, T. A. DeRouen, «A Covariance Estimator for GEE with Improved Small-Sample Properties», *Biometrics* 57(1), 126–134, 2001. [DOI 10.1111/j.0006-341X.
+DOI 10.1111/j.1467-9868.2007.00593.x
+   REG: Field, Welsh (2007) Bootstrapping Clustered Data — Journal of the Royal Statistical Society Series B:
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:59: …| C14 | C. A. Field, A. H. Welsh, «Bootstrapping Clustered Data», *JRSS B* 69(3), 369–390, 2007. [DOI 10.1111/j.1467-9868.
+DOI 10.1111/j.1756-8765.2012.01214.x
+   REG: Pearce, Wiggins (2012) Auditory Expectation: The Information Dynamics of Music Perception and Cognition — Topics in Cognitive Science
+   USE[12] docs/research/M2_4_Deep_Research_Reviewed.md:39: …tità come probabilità e information content, rendendo la sorpresa una variabile musicalmente interpretabile. ([Pearce & Wiggins 2012](https://doi.org/10.1111/j.1756-8765.
+DOI 10.1121/1.1909741
+   REG: Plomp, Levelt (1965) Tonal Consonance and Critical Bandwidth — The Journal of the Acoustical Society of America
+   USE[10] docs/research/M2_5_F5_Music_Director_Research.md:184: …://doi.org/10.1037/rev0000169)). La massima dissonanza tonale cade a circa il 25% della banda critica ([Plomp e Levelt 1965, FT-parz](https://doi.org/10.1121/1.1909741)).
+DOI 10.1126/science.1126287
+   REG: Tymoczko (2006) The Geometry of Musical Chords — Science
+   USE[8] docs/research/M2_4_Deep_Research_Reviewed.md:115: …'uso diffuso di trasformazioni a distanza relativamente breve. ([Huron 2001](https://doi.org/10.1525/mp.2001.19.1.1); [Tymoczko 2006](https://doi.org/10.1126/science.1126
+DOI 10.1136/bmj-2024-081123
+   REG: Hopewell, Chan, Collins, Hróbjartsson (2025) CONSORT 2025 statement: updated guideline for reporting randomised trials — BMJ
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:121: …| S9 | S. Hopewell et al., «CONSORT 2025 statement», *BMJ* 2025;389:e081123. [DOI 10.1136/bmj-2024-081
+DOI 10.1136/bmj.311.7005.619
+   REG: Eypasch, Lefering, Kum, Troidl (1995) Probability of adverse events that have not yet occurred: a statistical reminder — BMJ
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:163: …ering, C. K. Kum, H. Troidl, «Probability of adverse events that have not yet occurred: a statistical reminder», *BMJ* 311(7005), 619–620, 1995. [DOI 10.1136/bmj.311.7005
+DOI 10.1136/bmj.h5527
+   REG: Bossuyt, Reitsma, Bruns, Gatsonis (2015) STARD 2015: an updated list of essential items for reporting diagnostic accuracy studies — BMJ
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:164: …| C25 | P. M. Bossuyt et al., «STARD 2015: an updated list of essential items for reporting diagnostic accuracy studies», *BMJ* 351:h5527, 2015. [DOI 10.1136/bmj.h5527](h
+DOI 10.1145/1347375.1347389
+   REG: Wilhelm, Engblom, Ermedahl, Holsti (2008) The worst-case execution-time problem—overview of methods and survey of tools — ACM Transactions on Embedded Computing Systems
+   USE[2] docs/adr/0005-m2-4-inc4-entry-decisions.md:117: …st-Case Execution-Time Problem — Overview of Methods and Survey of Tools», *ACM Transactions on Embedded Computing Systems* 7(3), art. 36, 2008. [DOI 10.1145/1347375.1347
+DOI 10.1145/1814256.1814260
+   REG: Smith, Whitehead (2010) Analyzing the expressive range of a level generator — Proceedings of the 2010 Workshop on Procedural Con
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:256: …| G20 | G. Smith, J. Whitehead, «Analyzing the Expressive Range of a Level Generator», PCG Workshop, FDG 2010. [DOI 10.1145/1814256.1814
+DOI 10.1145/1978802.1978809
+   REG: Anders, Miranda (2011) Constraint programming systems for modeling music theories and composition — ACM Computing Surveys
+   USE[23] docs/research/M2_4_Deep_Research_Reviewed.md:31: …architettura già congelata dal progetto. ([Conklin & Witten 1995](https://doi.org/10.1080/09298219508570672); [Anders & Miranda 2011](https://doi.org/10.1145/1978802.1978
+DOI 10.1145/2636879.2636889
+   REG: Scirea, Cheong, Nelson, Bae (2014) Evaluating musical foreshadowing of videogame narrative experiences — Proceedings of the 9th Audio Mostly: A Conference 
+   USE[1] docs/research/experiments/m25_f5_research_notes/architetture_gioco_musica.md:343: …Nelson, Bae, foreshadowing, Audio Mostly 2014 | [Abstract](https://www.kmjn.org/publications/Foreshadowing_AM14-abstract.html); [DOI](https://doi.org/10.1145/2636879.2636
+DOI 10.1145/2660193.2660195
+   REG: Steele, Lea, Flood (2014) Fast splittable pseudorandom number generators — Proceedings of the 2014 ACM International Conferen
+   USE[1] docs/research/M2_4_Inc5_Math_Model_Claude.md:660: …| Steele G. L., Lea D., Flood C. H., «Fast splittable pseudorandom number generators», OOPSLA 2014, pp. 453–472, [doi:10.1145/2660193.2660
+DOI 10.1145/3108242
+   REG: Herremans, Chuan, Chew (2017) A Functional Taxonomy of Music Generation Systems — ACM Computing Surveys
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:254: …| G18 | D. Herremans, C.-H. Chuan, E. Chew, «A Functional Taxonomy of Music Generation Systems», *ACM Computing Surveys* 50(5), 2017. [DOI 10.1145/3108242](htt
+DOI 10.1145/3205455.3205470
+   REG: Khalifa, Lee, Nealen, Togelius (2018) Talakat — Proceedings of the Genetic and Evolutionary Comput
+   USE[2] docs/research/M2_4_Deep_Research_Reviewed.md:501: …- Khalifa, A.; Lee, S.; Nealen, A.; Togelius, J. (2018), *Talakat: Bullet Hell Generation through Constrained Map-Elites*. [DOI 10.1145/3205455.3205
+DOI 10.1145/3230636
+   REG: Lemire (2019) Fast Random Integer Generation in an Interval — ACM Transactions on Modeling and Computer Simulati
+   USE[1] docs/research/M2_4_Inc5_Math_Model_Claude.md:661: …| Lemire D., «Fast Random Integer Generation in an Interval», ACM TOMACS 29(1), 2019, [doi:10.1145/3230636](htt
+DOI 10.1145/3769106
+   REG: Lerch, Arthur, Bryan-Kinns, Ford (2025) Survey on the Evaluation of Generative Models in Music — ACM Computing Surveys
+   USE[14] docs/research/M2_4_Deep_Research_Reviewed.md:278: …l'output e del sistema, metodologie qualitative/quantitative e prospettive musicologiche, ingegneristiche e HCI. ([Lerch et al. 2025](https://doi.org/10.1145/3769106))
+DOI 10.1148/radiol.12120509
+   REG: Genders, Spronk, Stijnen, Steyerberg (2012) Methods for Calculating Sensitivity and Specificity of Clustered Data: A Tutorial — Radiology
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:54: …saffre, M. G. M. Hunink, «Methods for Calculating Sensitivity and Specificity of Clustered Data: A Tutorial», *Radiology* 265(3), 910–916, 2012. [DOI 10.1148/radiol.12120
+DOI 10.1162/comj.2006.30.2.19
+   REG: Välimäki, Huovilainen (2006) Oscillator and Filter Algorithms for Virtual Analog Synthesis — Computer Music Journal
+   USE[4] docs/research/M2_4_Deep_Research_Reviewed.md:169: …sono mature e ben documentate. ([Välimäki & Huovilainen 2007](https://doi.org/10.1109/MSP.2007.323276); [Välimäki & Huovilainen 2006](https://doi.org/10.1162/comj.2006.30
+DOI 10.1162/rest.90.3.414
+   REG: Cameron, Gelbach, Miller (2008) Bootstrap-Based Improvements for Inference with Clustered Errors — Review of Economics and Statistics
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:58: …ch, D. L. Miller, «Bootstrap-Based Improvements for Inference with Clustered Errors», *Review of Economics and Statistics* 90(3), 414–427, 2008. [DOI 10.1162/rest.90.3.41
+DOI 10.1177/0305735617697507
+   REG: Chmiel, Schubert (2017) Back to the inverted-U for music preference: A review of the literature — Psychology of Music
+   USE[3] docs/research/M2_5_F5_Music_Director_Research.md:391: …| Chmiel e Schubert | 50 studi su 57 compatibili ([AM](https://doi.org/10.1177/030573561769
+DOI 10.1177/0305735618803676
+   REG: Sears, Spitzer, Caplin, McAdams (2018) Expecting the end: Continuous expectancy ratings for tonal cadences — Psychology of Music
+   USE[7] docs/research/M2_4_Deep_Research_Reviewed.md:109: …i con musicisti e non musicisti, differenti tipi cadenzali generavano profili distinti di aspettativa temporale. ([Sears et al. 2020](https://doi.org/10.1177/030573561880
+DOI 10.1177/1029864913486793
+   REG: Frühauf, Kopiez, Platz (2013) Music on the timing grid: The influence of microtiming on the perceived groove quality of a simple drum patter — Musicae Scientiae
+   USE[6] docs/research/M2_4_Deep_Research_Reviewed.md:145: …eva la valutazione di groove più alta e che deviazioni maggiori peggioravano il giudizio nel contesto testato. ([Frühauf et al. 2013](https://doi.org/10.1177/102986491348
+DOI 10.1177/20592043261466428
+   REG: Gómez-Marín, Clark, Jordà, Herrera (2026) Tapping into Rhythm: How Polyphonic Drum Patterns Map to Monophonic Contours and Support Pattern Retrieval — Music &amp; Science
+   USE[1] docs/research/experiments/m25_f5_research_notes/regole_insieme.md:523: … Society (403); CORE (403); kb.osu.edu per Huron 2008 (403); un articolo Music & Science del 2026 di argomento non determinato ([DOI](https://doi.org/10.1177/205920432614
+DOI 10.1186/1471-2288-13-61
+   REG: Wongpakaran, Wongpakaran, Wedding, Gwet (2013) A comparison of Cohen’s Kappa and Gwet’s AC1 when calculating inter-rater reliability coefficients: a study co — BMC Medical Research Methodology
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:213: …0 | N. Wongpakaran, T. Wongpakaran, D. Wedding, K. L. Gwet, «A comparison of Cohen's Kappa and Gwet's AC1…», *BMC Med Res Methodol* 13:61, 2013. [DOI 10.1186/1471-2288-13
+DOI 10.1214/ss/1009213286
+   REG: Brown, Cai, DasGupta (2001) Interval Estimation for a Binomial Proportion — Statistical Science
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:48: …| C3 | L. D. Brown, T. T. Cai, A. DasGupta, «Interval Estimation for a Binomial Proportion», *Statistical Science* 16(2), 101–133, 2001. [DOI 10.1214/ss/100921328
+DOI 10.1348/000711006x126600
+   REG: Gwet (2008) Computing inter‐rater reliability and its variance in the presence of high agreement — British Journal of Mathematical and Statistical Ps
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:212: …K. L. Gwet, «Computing inter-rater reliability and its variance in the presence of high agreement», *Br J Math Stat Psychol* 61(1), 29–48, 2008. [DOI 10.1348/000711006X12
+DOI 10.1370/afm.141
+   REG: Killip (2004) What Is an Intracluster Correlation Coefficient? Crucial Concepts for Primary Care Researchers — The Annals of Family Medicine
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:52: … K. Pearce, «What Is an Intracluster Correlation Coefficient? Crucial Concepts for Primary Care Researchers», *Ann Fam Med* 2(3), 204–208, 2004. [DOI 10.1370/afm.141](htt
+DOI 10.1371/journal.pone.0094446
+   REG: Witek, Clarke, Wallentin, Kringelbach (2014) Syncopation, Body-Movement and Pleasure in Groove Music — PLoS ONE
+   USE[7] docs/research/M2_5_F5_Music_Director_Research.md:167: …**Fonti.** In [Witek et al. 2014, FT\*](https://doi.org/10.1371/journal.pone
+DOI 10.1371/journal.pone.0127272
+   REG: Shan (2015) Improved Confidence Intervals for the Youden Index — PLOS ONE
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:107: …| C21 | G. Shan, «Improved Confidence Intervals for the Youden Index», *PLOS ONE* 10(7), e0127272, 2015. [DOI 10.1371/journal.pone
+DOI 10.1371/journal.pone.0139409
+   REG: Witek, Clarke, Wallentin, Kringelbach (2015) Correction: Syncopation, Body-Movement and Pleasure in Groove Music — PLOS ONE
+   USE[2] docs/research/experiments/m25_f5_research_notes/regole_insieme.md:23: …- La correzione del 2015 riguarda indicizzazione degli stimoli e trascrizioni e dichiara invariati gli esiti — [Correction](https://doi.org/10.1371/journal.pone
+DOI 10.1515/ijb-2015-0024
+   REG: Saha, Miller, Wang (2015) A Comparison of Some Approximate Confidence Intervals for a Single Proportion for Clustered Binary Outcome Dat — The International Journal of Biostatistics
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:57: … Approximate Confidence Intervals for a Single Proportion for Clustered Binary Outcome Data», *Int. J. Biostatistics* 12(2), 2016 (online 2015). [DOI 10.1515/ijb-2015-002
+DOI 10.1523/jneurosci.2500-16.2017
+   REG: Tal, Large, Rabinovitch, Wei (2017) Neural Entrainment to the Beat: The “Missing-Pulse” Phenomenon — The Journal of Neuroscience
+   USE[4] docs/research/M2_5_F5_Music_Director_Research.md:167: …/10.1073/pnas.1402039111)). Il metro può sostenersi internamente, anche senza energia alla frequenza del pulse ([Tal et al. 2017, AM](https://doi.org/10.1523/JNEUROSCI.25
+DOI 10.1525/mp.2001.19.1.1
+   REG: Huron (2001) Tone and Voice: A Derivation of the Rules of Voice-Leading from Perceptual Principles — Music Perception
+   USE[9] docs/research/M2_4_Deep_Research_Reviewed.md:115: …amenti geometrici fra configurazioni di pitch e osserva l'uso diffuso di trasformazioni a distanza relativamente breve. ([Huron 2001](https://doi.org/10.1525/mp.2001.19.1
+DOI 10.1525/mp.2007.25.1.43
+   REG: Fitch, Rosenfeld (2007) Perception and Production of Syncopated Rhythms — Music Perception
+   USE[1] docs/research/experiments/m25_f5_research_notes/regole_insieme.md:495: …| Fitch & Rosenfeld 2007 | [DOI](https://doi.org/10.1525/mp.2007.25.1
+DOI 10.1525/mp.2012.29.4.387
+   REG: Farbood (2012) A Parametric, Temporal Model of Musical Tension — Music Perception
+   USE[6] docs/research/M2_4_Deep_Research_Reviewed.md:109: …ità e sincopazione; un modello puramente istantaneo era insufficiente rispetto a uno che considerava trend temporali. ([Farbood 2012](https://doi.org/10.1525/mp.2012.29.4
+DOI 10.1525/mp.2014.32.2.201
+   REG: Witek, Clarke, Kringelbach, Vuust (2014) Effects of Polyphonic Context, Instrumentation, and Metrical Location on Syncopation in Music — Music Perception
+   USE[2] docs/research/experiments/m25_f5_research_notes/regole_insieme.md:47: …i, strumentazione, posizione metrica e formazione musicale; le teorie monofoniche non bastano — [Witek et al. 2014, Music Perception](https://doi.org/10.1525/mp.2014.32.2
+DOI 10.1525/mp.2019.36.4.353
+   REG: Tan, Lustig, Temperley (2019) Anticipatory Syncopation in Rock: A Corpus Study — Music Perception
+   USE[7] docs/research/M2_5_F5_Music_Director_Research.md:167: …sincope rock è soprattutto anticipatoria, con unità di spostamento ottimale di circa un quarto di secondo ([Tan et al. 2019, FT-parz](https://doi.org/10.1525/MP.2019.36.4
+DOI 10.1525/mp.2019.37.2.165
+   REG: Sauvé, Pearce (2019) Information-theoretic Modeling of Perceived Musical Complexity — Music Perception
+   USE[1] docs/research/experiments/m25_f5_research_notes/sviluppo_autentico.md:74: … e armonico; le differenze individuali spiegano più dei predittori; il background musicale non è significativo; [Sauvé & Pearce 2019](https://doi.org/10.1525/mp.2019.37.2
+DOI 10.1525/mp.2024.41.3.176
+   REG: Danielsen, Brøvig, Bøhler, Câmara (2024) There’s More to Timing than Time — Music Perception: An Interdisciplinary Journal
+   USE[7] docs/research/M2_4_Deep_Research_Reviewed.md:145: …bro, centro spettrale, cultura e competenza: lo stesso onset fisico non implica lo stesso centro percettivo. ([Danielsen et al. 2024](https://doi.org/10.1525/mp.2024.41.3
+DOI 10.1609/aaai.v28i1.9126
+   REG: Papadopoulos, Roy, Pachet (2014) Avoiding Plagiarism in Markov Sequence Generation — Proceedings of the AAAI Conference on Artificial I
+   USE[1] docs/research/experiments/m25_f5_research_notes/sviluppo_autentico.md:192: …suna sottosequenza del corpus più lunga di un limite venga copiata, con arc consistency in O(n·T) — [Papadopoulos, Roy & Pachet 2014](https://doi.org/10.1609/aaai.v28i1.9
+DOI 10.1609/aaai.v40i46.41323
+   REG: Herremans, Roy (2026) Aligning Generative Music AI with Human Preferences: Methods and Challenges — Proceedings of the AAAI Conference on Artificial I
+   USE[3] docs/research/M2_4_Deep_Research_Reviewed.md:151: … e l'affidabilità delle preferenze come problemi aperti, non risolti automaticamente dai modelli più recenti. ([Herremans & Roy 2026](https://doi.org/10.1609/aaai.v40i46.
+DOI 10.17487/rfc8785
+   REG: Rundgren, Jordan, Erdtman (2020) JSON Canonicalization Scheme (JCS) — 
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:49: …| F6 | A. Rundgren, B. Jordan, S. Erdtman, «JSON Canonicalization Scheme (JCS)», RFC 8785, IETF, 2020. [DOI 10.17487/RFC8785](ht
+DOI 10.17743/jaes.2026.0283
+   REG: Tablas de Paula, Smith, Välimäki, Reiss (2026) Four Decades of Digital Waveguides — Journal of the Audio Engineering Society
+   USE[8] docs/research/M2_4_Deep_Research_Reviewed.md:155: … generiche e sono adatti a sistemi realtime. ([Karplus & Strong 1983](https://doi.org/10.2307/3680062); [Tablas de Paula et al. 2026](https://doi.org/10.17743/jaes.2026.0
+DOI 10.18061/1811/31695
+   REG: Huron (2008) Asynchronous Preparation of Tonally Fused Intervals in Polyphonic Music — Empirical Musicology Review
+   USE[2] docs/research/experiments/m25_f5_research_notes/regole_insieme.md:127: …attacchi simultanei proprio per gli intervalli che favoriscono di più la fusione tonale, come unisono, quinta e ottava — [Huron 2008](https://doi.org/10.18061/1811/31695)
+DOI 10.2105/ajph.94.3.416
+   REG: Donner, Klar (2004) Pitfalls of and Controversies in Cluster Randomization Trials — American Journal of Public Health
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:51: …| C6 | A. Donner, N. Klar, «Pitfalls of and Controversies in Cluster Randomization Trials», *AJPH* 94(3), 416–422, 2004. [DOI 10.2105/AJPH.94.3.41
+DOI 10.21437/interspeech.2019-2219
+   REG: Kilgour, Zuluaga, Roblek, Sharifi (2019) Fréchet Audio Distance: A Reference-Free Metric for Evaluating Music Enhancement Algorithms — Interspeech 2019
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:260: …| G24 | K. Kilgour et al., «Fréchet Audio Distance», Interspeech 2019. [DOI 10.21437/Interspeech
+DOI 10.2190/em.31.1.c
+   REG: Margulis (2013) Aesthetic Responses to Repetition in Unfamiliar Music — Empirical Studies of the Arts
+   USE[3] docs/research/M2_5_F5_Music_Director_Research.md:321: …Dentro un brano la ripetizione può aumentare il piacere anche in stili ostici ([Margulis 2013, AM](https://doi.org/10.2190/EM.31.1.c)).
+DOI 10.2307/2532311
+   REG: Rao, Scott (1992) A Simple Method for the Analysis of Clustered Binary Data — Biometrics
+   USE[1] docs/research/M2_4_Inc5_Clustered_Claim_Statistics.md:53: …| C8 | J. N. K. Rao, A. J. Scott, «A Simple Method for the Analysis of Clustered Binary Data», *Biometrics* 48(2), 577–585, 1992. [DOI 10.2307/2532311](htt
+DOI 10.2307/3680062
+   REG: Karplus, Strong (1983) Digital Synthesis of Plucked-String and Drum Timbres — Computer Music Journal
+   USE[7] docs/research/M2_4_Deep_Research_Reviewed.md:155: …imangono significativamente più efficienti delle simulazioni PDE generiche e sono adatti a sistemi realtime. ([Karplus & Strong 1983](https://doi.org/10.2307/3680062); [T
+DOI 10.2307/3680222
+   REG: Roads (1978) Automated Granular Synthesis of Sound — Computer Music Journal
+   USE[4] docs/research/M2_4_Deep_Research_Reviewed.md:173: …ema opposto. Roads ha formalizzato la granular synthesis già nel 1978 come organizzazione di molti eventi microscopici. ([Roads 1978](https://doi.org/10.2307/3680222)) Ar
+DOI 10.2307/40285311
+   REG: Povel, Essens (1985) Perception of Temporal Patterns — Music Perception
+   USE[5] docs/research/M2_5_F5_Music_Director_Research.md:169: …e nostre.** LHL è ciclico, E0 conta i tick silenziosi di un clock di quarti per fase, da [Povel e Essens, SEC/AM, DOI non verificato](https://doi.org/10.2307/40285311). G
+DOI 10.2307/40285438
+   REG: Huron (1989) Voice Denumerability in Polyphonic Music of Homogeneous Timbres — Music Perception
+   USE[2] docs/research/experiments/m25_f5_research_notes/regole_insieme.md:202: …lmente delle uscite, e quelli delle voci esterne più facilmente di quelli delle voci interne — estratto dell'abstract di [Huron 1989](https://doi.org/10.2307/40285438) [A
+DOI 10.30535/mto.25.3.2
+   REG: Medina-Gray (2019) Analyzing Modular Smoothness in Video Game Music — Music Theory Online
+   USE[1] docs/research/experiments/m25_f5_research_notes/architetture_gioco_musica.md:342: …r Smoothness in Video Game Music*, MTO 25.3, 2019 | [Link](https://mtosmt.org/issues/mto.19.25.3/mto.19.25.3.medina.gray.html); [DOI](https://doi.org/10.30535/mto.25.3.2)
+DOI 10.3389/fnins.2017.00147
+   REG: Madison, Schiölde (2017) Repeated Listening Increases the Liking for Music Regardless of Its Complexity: Implications for the Appreciat — Frontiers in Neuroscience
+   USE[3] docs/research/M2_5_F5_Music_Director_Research.md:312: …| Esposizione naturale, 4 settimane | Crescita senza calo, N = 15 | Campione piccolo | [Madison e Schiölde 2017, FT\*](https://doi.org/10.3389/fnins.2017.0
+DOI 10.3389/fpsyg.2013.00167
+   REG: Margulis (2013) Repetition and Emotive Communication in Music Versus Speech — Frontiers in Psychology
+   USE[1] docs/research/experiments/m25_f5_research_notes/sviluppo_autentico.md:35: …cipanti individuano prima ripetizioni piccole (motivi) e poi via via più grandi (frasi) — Margulis 2012, descritto da [Margulis 2013](https://doi.org/10.3389/fpsyg.2013.0
+DOI 10.3389/fpsyg.2020.01001
+   REG: Phillips, Stewart, Wilcoxson, Jones (2020) What Determines the Perception of Segmentation in Contemporary Music? — Frontiers in Psychology
+   USE[2] docs/research/experiments/m25_f5_research_notes/sviluppo_autentico.md:43: …collocazione dello sviluppo, ma non alla struttura armonica complessiva (Granot & Jacoby 2011, 2012) — tramite [Phillips et al. 2020](https://doi.org/10.3389/fpsyg.2020.0
+DOI 10.3389/fpsyg.2021.608684
+   REG: Siedenburg, Goldmann, van de Par (2021) Tracking Musical Voices in Bach's The Art of the Fugue: Timbral Heterogeneity Differentially Affects Younger N — Frontiers in Psychology
+   USE[7] docs/research/M2_5_F5_Music_Director_Research.md:205: …ci è circa 72% contro 56%, e gli autori concludono che il limite vale per miscele omogenee ([Siedenburg et al. 2021, FT\*, Huron SEC](https://doi.org/10.3389/fpsyg.2021.6
+DOI 10.3389/fpsyg.2021.673706
+   REG: Touizrar, Knoll, Siedenburg (2021) Repetition and Aesthetic Judgment in Post-tonal Music for Large Ensemble and Orchestra — Frontiers in Psychology
+   USE[4] docs/research/M2_5_F5_Music_Director_Research.md:321: …ttps://doi.org/10.2190/EM.31.1.c)). Preferenza e forza della ripetizione sono però due fattori distinti ([Touizrar et al. 2021, FT\*](https://doi.org/10.3389/fpsyg.2021.6
+DOI 10.3389/fpsyg.2024.1304485
+   REG: Fiorin, Delfitto (2024) Syncopation as structure bootstrapping: the role of asymmetry in rhythm and language — Frontiers in Psychology
+   USE[3] docs/research/experiments/m25_f5_research_notes/regole_insieme.md:97: …le è di seconda mano: Chapin et al. 2010 riportano attivazione motoria solo dopo tre ripetizioni — citati in [Fiorin & Delfitto 2024](https://doi.org/10.3389/fpsyg.2024.1
+DOI 10.48550/arxiv.2008.01951
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:45: …| F2 | H.-W. Dong, K. Chen, J. McAuley, T. Berg-Kirkpatrick, «MusPy: A Toolkit for Symbolic Music Generation», ISMIR 2020. [DOI 10.48550/arXiv.2008.
+DOI 10.48550/arxiv.2305.17926
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:123: …| S11 | P. Wang et al., «Large Language Models are not Fair Evaluators», ACL 2024. [DOI 10.48550/arXiv.2305.
+DOI 10.48550/arxiv.2306.05685
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:122: …| S10 | L. Zheng et al., «Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena», NeurIPS 2023 Datasets and Benchmarks. [DOI 10.48550/arXiv.2306.
+DOI 10.48550/arxiv.2308.08493
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:114: …| S2 | S. Golchin, M. Surdeanu, «Time Travel in LLMs: Tracing Data Contamination in Large Language Models», ICLR 2024. [DOI 10.48550/arXiv.2308.
+DOI 10.48550/arxiv.2310.18018
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:113: …| S1 | O. Sainz et al., «NLP Evaluation in trouble: On the Need to Measure LLM Data Contamination for each Benchmark», Findings of EMNLP 2023. [DOI 10.48550/arXiv.2310.
+DOI 10.48550/arxiv.2406.04244
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:115: …| C. Xu, S. Guan, D. Greene, M-T. Kechadi, «Benchmark Data Contamination of Large Language Models: A Survey», arXiv:2406.04244, 2024 (preprint). [DOI 10.48550/arXiv.2406.
+DOI 10.48550/arxiv.2406.07791
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:124: …| S12 | L. Shi et al., «Judging the Judges: A Systematic Study of Position Bias in LLM-as-a-Judge», AACL-IJCNLP 2025. [DOI 10.48550/arXiv.2406.
+DOI 10.48550/arxiv.2406.08402
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:125: …| S13 | C.-Y. Kuan, W.-P. Huang, H. Lee, «Understanding Sounds, Missing the Questions», Interspeech 2024 (già HALL nel dossier CACP). [DOI 10.48550/arXiv.2406.
+DOI 10.48550/arxiv.2510.20270
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:117: … S5 | Z. Zhong, A. Raghunathan, N. Carlini, «ImpossibleBench: Measuring LLMs' Propensity of Exploiting Test Cases», arXiv:2510.20270, ICLR 2026. [DOI 10.48550/arXiv.2510.
+DOI 10.5281/zenodo.20784121
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[1] docs/research/M2_4_Deep_Research_Reviewed.md:488: …ia, G. (2026), “Calliphony: A Calligraphy-Driven Interface for Real-Time Generative Music Performance”, *Proceedings of NIME 2026*, pp. 270–275. DOI [10.5281/zenodo.20784
+DOI 10.5281/zenodo.4285420
+   REG: !! NOT RESOLVED via Crossref: HTTP Error 404: Not Found
+   USE[1] docs/research/experiments/m25_f5_research_notes/ripetizione.md:59: … ipotesi dell'effetto dei limiti hardware in gran parte smentita; l'autore la definisce un'analisi iniziale e informale — [Hunt 2020](https://doi.org/10.5281/zenodo.42854
+DOI 10.5920/jcms.2017.02
+   REG: Laney, Collins (2017) Computer-Generated Stylistic Compositions with Long-Term Repetitive and Phrasal Structure — Journal of Creative Music Systems
+   USE[1] docs/research/experiments/m25_f5_research_notes/sviluppo_autentico.md:191: …16 [FT-parz]. Una versione successiva genera struttura ripetitiva e fraseologica lunga con metodo markoviano — [Collins & Laney 2017](https://doi.org/10.5920/JCMS.2017.02
+DOI 10.6028/nist.fips.180-4
+   REG: National Institute of Standards and Technology (US) (2015) Secure hash standard — 
+   USE[1] docs/adr/0006-m2-4-inc5-entry-decisions.md:841: …- **FIPS 180-4:** NIST, «Secure Hash Standard (SHS)», FIPS PUB 180-4, agosto 2015, [DOI 10.6028/NIST.FIPS.18
+ARXIV 1504.04909
+   REG: Jean-Baptiste Mouret, Jeff Clune — Illuminating search spaces by mapping elites
+   USE[1] CYMATICA_Specifica_Agentica_Sviluppo.md:3677: …- Mouret, J.-B.; Clune, J. — *Illuminating Search Spaces by Mapping Elites*: https://arxiv.org/abs/1504.04909
+ARXIV 1506.03997
+   REG: Markus Wittmann, Thomas Zeiser, Georg Hager — Short Note on Costs of Floating Point Operations on current x86-64 Architectures: Denormals, Overflow, Underfl
+   USE[2] docs/adr/0005-m2-4-inc4-entry-decisions.md:121: …lein, «Short Note on Costs of Floating Point Operations on current x86-64 Architectures: Denormals, Overflow, Underflow, and Division by Zero», arXiv:1506.03997, 2015. [a
+ARXIV 1606.03044
+   REG: Bob L. Sturm — The "Horse'' Inside: Seeking Causes Behind the Behaviours of Music Content Analysis Systems
+   USE[3] docs/research/M2_5_F5_Music_Director_Research.md:276: …ntrollo positivo scritto da una persona. Una metrica che non le ordina correttamente è un cavallo nel senso di [Sturm 2016, AM](https://arxiv.org/abs/1606.03044). Una mis
+ARXIV 1608.04295
+   REG: Jiahao Chen, Jarrett Revels — Robust benchmarking in noisy environments
+   USE[2] docs/adr/0005-m2-4-inc4-entry-decisions.md:120: …- J. Chen, J. Revels, «Robust benchmarking in noisy environments», arXiv:1608.04295, 2016. [a
+ARXIV 1611.03477
+   REG: Hang Chu, Raquel Urtasun, Sanja Fidler — Song From PI: A Musically Plausible Network for Pop Music Generation
+   USE[6] docs/research/M2_5_F5_Music_Director_Research.md:122: … batteria prima in [GESMI, FT\*](http://www.sfu.ca/~eigenfel/Eigenfeldt%20ICCC%2013.pdf), melodia prima in [Song From PI, FT\*](https://arxiv.org/abs/1611.03477). Nei sis
+ARXIV 1612.01010
+   REG: Gaëtan Hadjeres, François Pachet, Frank Nielsen — DeepBach: a Steerable Model for Bach Chorales Generation
+   USE[6] docs/research/experiments/m25_f5_research_notes/coordinamento_ruoli.md:78: …posizioni. In parallelo su GPU è circa dieci volte più veloce, con pochi secondi per corale — [Hadjeres, Pachet & Nielsen 2017](https://arxiv.org/abs/1612.01010) [FT*, se
+ARXIV 1702.00539
+   REG: Adam Summerville, Sam Snodgrass, Matthew Guzdial — Procedural Content Generation via Machine Learning (PCGML)
+   USE[1] CYMATICA_Specifica_Agentica_Sviluppo.md:3680: …- Summerville, A. et al. — *Procedural Content Generation via Machine Learning*: https://arxiv.org/abs/1702.00539
+ARXIV 1709.06298
+   REG: Hao-Wen Dong, Wen-Yi Hsiao, Li-Chia Yang — MuseGAN: Multi-track Sequential Generative Adversarial Networks for Symbolic Music Generation and Accompanimen
+   USE[8] docs/research/M2_5_F5_Music_Director_Research.md:115: …2,92 su 5. Ritmo quasi invariato | Rock, modelli appresi, nessun test statistico nelle sezioni lette | [Dong et al. 2018, FT\*](https://arxiv.org/abs/1709.06298) |
+ARXIV 1802.06881
+   REG: Christoffer Holmgård, Michael Cerny Green, Antonios Liapis — Automated Playtesting with Procedural Personas through MCTS with Evolved Heuristics
+   USE[1] CYMATICA_Specifica_Agentica_Sviluppo.md:3681: …- Holmgård, C. et al. — *Automated Playtesting with Procedural Personas through MCTS with Evolved Heuristics*: https://arxiv.org/abs/1802.06881
+ARXIV 1803.04585
+   REG: David Manheim, Scott Garrabrant — Categorizing Variants of Goodhart's Law
+   USE[1] docs/research/experiments/m25_f5_research_notes/sviluppo_autentico.md:143: …allisce in almeno quattro modi, con rischio crescente all'aumentare della forza di ottimizzazione — [Manheim & Garrabrant 2018](https://arxiv.org/abs/1803.04585) [AM; i n
+ARXIV 1805.10941
+   REG: Daniel Lemire — Fast Random Integer Generation in an Interval
+   USE[1] docs/research/M2_4_Inc5_Math_Model_Claude.md:661: …| Lemire D., «Fast Random Integer Generation in an Interval», ACM TOMACS 29(1), 2019, [doi:10.1145/3230636](https://doi.org/10.1145/3230636), [arXiv:1805.10941](https://
+ARXIV 1806.04718
+   REG: Ahmed Khalifa, Scott Lee, Andy Nealen — Talakat: Bullet Hell Generation through Constrained Map-Elites
+   USE[1] CYMATICA_Specifica_Agentica_Sviluppo.md:3678: …- Khalifa, A. et al. — *Talakat: Bullet Hell Generation through Constrained Map-Elites*: https://arxiv.org/abs/1806.04718
+ARXIV 1812.04832
+   REG: Dorien Herremans, Elaine Chew — MorpheuS: generating structured music with constrained patterns and tension
+   USE[3] docs/research/M2_5_F5_Music_Director_Research.md:278: …ta un difetto ma non costruisce sviluppo: va usata come vincolo, non come motore. Il rischio speculare è in [MorpheuS, FT-parz](https://arxiv.org/pdf/1812.04832): pattern
+ARXIV 1901.08644
+   REG: Richard Meyes, Melanie Lu, Constantin Waubert de Puiseau — Ablation Studies in Artificial Neural Networks
+   USE[1] docs/research/experiments/m25_f5_research_notes/sviluppo_autentico.md:159: …enze: danneggiare parti di un sistema per capirne il contributo; Meyes et al. lo applicano a reti neurali — [Meyes et al. 2019](https://arxiv.org/abs/1901.08644) [AM].
+ARXIV 1903.07227
+   REG: Cheng-Zhi Anna Huang, Tim Cooijmans, Adam Roberts — Counterpoint by Convolution
+   USE[11] docs/research/M2_5_F5_Music_Director_Research.md:116: …a coppie, χ²(2) = 12,23, p < 0,001 | Bach. Gli autori lo attribuiscono a condizionali mal modellate | [Huang et al. 2017, FT\*](https://arxiv.org/abs/1903.07227) |
+ARXIV 1907.01154
+   REG: Patrick Hutchings, Jon McCormack — Adaptive Music Composition for Games
+   USE[25] docs/research/M2_5_F5_Music_Director_Research.md:55: …mici la separazione è esplicita. Hutchings e McCormack costruiscono un pacchetto separato che riceve messaggi dal gioco ([FT\*](https://arxiv.org/abs/1907.01154)). FATE s
+ARXIV 2001.02360
+   REG: Yin-Cheng Yeh, Wen-Yi Hsiao, Satoru Fukayama — Automatic Melody Harmonization with Triad Chords: A Comparative Study
+   USE[6] docs/research/M2_5_F5_Music_Director_Research.md:149: …da, non a minimo: in MuseGAN i modelli migliori scendono sotto i dati reali in distanza tonale, e in [Yeh et al. 2021, FT-parz](https://arxiv.org/abs/2001.02360) i metodi
+ARXIV 2210.16226
+   REG: Bruno Sguerra, Viet-Anh Tran, Romain Hennequin — Discovery Dynamics: Leveraging Repeated Exposure for User and Music Characterization
+   USE[2] docs/research/experiments/m25_f5_research_notes/ripetizione.md:32: …picco stimato a 12 esposizioni. Per album classici noti da oltre 25 anni il calo è lento e senza salita — [Sguerra et al. 2022](https://arxiv.org/abs/2210.16226) [FT, §3]
+ARXIV 2311.10635
+   REG: Bruno Sguerra, Viet-Anh Tran, Romain Hennequin — Ex2Vec: Characterizing Users and Items from the Mere Exposure Effect
+   USE[1] docs/research/experiments/m25_f5_research_notes/ripetizione.md:32: …ritrova in tre classi di ripetizione su quattro; la classe con meno ripetizioni (5-16) mostra solo calo — [Sguerra et al. 2023](https://arxiv.org/abs/2311.10635) [FT, §3]
+ARXIV 2405.09901
+   REG: Ziyu Wang, Lejun Min, Gus Xia — Whole-Song Hierarchical Generation of Symbolic Music Using Cascaded Diffusion Models
+   USE[6] docs/research/M2_5_F5_Music_Director_Research.md:118: …velli | 57 persone in doppio cieco: meglio sulla struttura, senza degrado | Cambiano anche i modelli | [Wang et al. 2024, FT\*](https://arxiv.org/abs/2405.09901) |
+ARXIV 2406.08402
+   REG: Chun-Yi Kuan, Wei-Ping Huang, Hung-yi Lee — Understanding Sounds, Missing the Questions: The Challenge of Object Hallucination in Large Audio-Language Mod
+   USE[1] docs/research/M2_4_CACP_Evaluation_Methods.md:37: …uan, W.-P. Huang, H. Lee, «Understanding Sounds, Missing the Questions: The Challenge of Object Hallucination in Large Audio-Language Models», [arXiv:2406.08402](https://
+ARXIV 2408.01337
+   REG: Benno Weck, Ilaria Manco, Emmanouil Benetos — MuChoMusic: Evaluating Music Understanding in Multimodal Audio-Language Models
+   USE[1] docs/research/M2_4_Inc5_Entry_Research.md:259: …| G23 | B. Weck et al., «MuChoMusic: Evaluating Music Understanding in Multimodal Audio-Language Models», ISMIR 2024. [arXiv:2408.01337](https://
+ARXIV 2410.19168
+   REG: S Sakshi, Utkarsh Tyagi, Sonal Kumar — MMAU: A Massive Multi-Task Audio Understanding and Reasoning Benchmark
+   USE[1] docs/research/M2_4_CACP_Evaluation_Methods.md:36: …| MMAU | S. Sakshi et al., «MMAU: A Massive Multi-Task Audio Understanding and Reasoning Benchmark», ICLR 2025, [arXiv:2410.19168](https://
+ARXIV 2411.12058
+   REG: Satvik Dixit, Laurie M. Heller, Chris Donahue — Vision Language Models Are Few-Shot Audio Spectrogram Classifiers
+   USE[1] docs/research/M2_4_CACP_Evaluation_Methods.md:38: …| SPEC-FS | S. Dixit, L. M. Heller, C. Donahue, «Vision Language Models Are Few-Shot Audio Spectrogram Classifiers», [arXiv:2411.12058](https://
+ARXIV 2506.05104
+   REG: Alexander Lerch, Claire Arthur, Nick Bryan-Kinns — Survey on the Evaluation of Generative Models in Music
+   USE[1] docs/research/experiments/m25_f5_research_notes/sviluppo_autentico.md:140: … obiettivo di addestramento; il testo cita la legge di Goodhart — [Lerch et al. 2025](https://doi.org/10.1145/3769106), [arXiv](https://arxiv.org/pdf/2506.05104v1) [FT-pa
+ARXIV 2511.13225
+   REG: Tyler Loakman, Joseph James, Chenghua Lin — Seeing isn't Hearing: Benchmarking Vision Language Models at Interpreting Spectrograms
+   USE[1] docs/research/M2_4_CACP_Evaluation_Methods.md:39: …NO | T. Loakman, J. James, C. Lin, «Seeing isn't Hearing: Benchmarking Vision Language Models at Interpreting Spectrograms», IJCNLP-AACL 2025, [arXiv:2511.13225](https://
+ARXIV 2512.12834
+   REG: Shangxuan Luo, Joshua Reiss — Procedural Music Generation Systems in Games
+   USE[1] docs/research/experiments/m25_f5_research_notes/ripetizione.md:166: …- Una rassegna descrive l'ascolto come sostituto frequente quando manca l'integrazione col gioco — [Luo & Reiss 2025](https://arxiv.org/abs/2512.12834) [FT parz

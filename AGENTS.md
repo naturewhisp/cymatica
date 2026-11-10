@@ -1,6 +1,6 @@
 # AGENTS.md — CYMATICA
 
-Operational rules for agents working in this repository. Updated 2026-10-13. Current milestone status: `docs/progress.md`.
+Operational rules for agents working in this repository. Updated 2026-11-10. Current milestone status: `docs/progress.md`; current restart point and work order: `docs/research/CYMATICA_Analysis_Consolidation_2026-11-09.md`, section «Punto di ripartenza».
 
 `CYMATICA_Specifica_Agentica_Sviluppo.md` is authoritative for architecture, contracts, roadmap and technical decisions. `DESIGN.md` is authoritative for gameplay, audio-visual language, UX and accessibility. Do not duplicate either document here. If requirements conflict, resolve the conflict in both documents; examples are not executable schemas, benchmark results or approved tuning values.
 
@@ -11,7 +11,8 @@ Before changing files:
 1. read the main specification;
 2. read `DESIGN.md` when the task affects player-facing behavior;
 3. inspect current code, tests, CI and recorded evidence; do not invent results or assume that historical test reports validate the current commit;
-4. identify the active milestone and its acceptance criteria.
+4. identify the active milestone and its acceptance criteria;
+5. read the «Punto di ripartenza» in `docs/progress.md` and in the consolidation review it links: it lists the next steps in order and the open findings.
 
 The project began at **Milestone 0**; the current milestone is recorded in `docs/progress.md` (M2 at this revision). Documentation changes do not advance implementation status. The minimal player contract `PlayerProfile_v1` was frozen in M1 (`docs/player_contract_m1.md`) for the dependent M3/M4 work; its empirical tuning and player-feel validation remain for M5/M7. An unresolved choice blocks only the work depending on it. Do not implement later-milestone work unless the user changes scope or the repository records that decision.
 

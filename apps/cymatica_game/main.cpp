@@ -3,6 +3,7 @@
 #include "audio_probe.h"
 #include "fixed_step.h"
 #include "input_dispatcher.h"
+#include "loopback_capture.h"
 #include "acao02_calibration.h"
 #include "evaluation_pack.h"
 #include "onset_parity.h"
@@ -17,6 +18,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <string>
 
 namespace {
@@ -154,7 +156,12 @@ int main(int argc, char** argv) {
                 return res.passed ? 0 : 1;
             } else if (std::strcmp(scenario, "device_probe") == 0 || std::strcmp(scenario, "device_probe_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.5.1 device_probe_v1, plays the fixture on the default device, about 184 s)...\n", scenario);
-                auto res = cymatica::audio::runDeviceProbeV1(deviceUsage, "artifacts/cacp", true, deviceCapturePcm, deviceLoopback);
+                // The capture device exists only for --device-loopback, and only here: the engine never opens it
+                std::unique_ptr<cymatica::audio::LoopbackCapture> loopback;
+                if (deviceLoopback) {
+                    loopback = std::make_unique<cymatica::audio::LoopbackCapture>(cymatica::audio::kDeviceProbeLoopbackCapacityFrames, 48000u);
+                }
+                auto res = cymatica::audio::runDeviceProbeV1(deviceUsage, "artifacts/cacp", true, deviceCapturePcm, loopback.get());
                 std::printf("[cacp] Verdict: %s\n", res.completed ? "MEASURED" : "INVALID");
                 if (!res.manifestWriteSuccess) std::fprintf(stderr, "[cacp] ERROR: manifest not written\n");
                 std::printf("%s\n", res.toJson().c_str());

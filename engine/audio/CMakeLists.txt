@@ -1,13 +1,13 @@
 add_library(cymatica_audio STATIC
     audio_control.h
     audio_engine.cpp
-    loopback_capture.cpp
     audio_engine.h
     audio_probe.cpp
     audio_probe.h
     audio_scheduler.cpp
     audio_scheduler.h
     audio_telemetry.h
+    device_loopback_tap.h
     event_chain.cpp
     event_chain.h
     event_chain_log.h

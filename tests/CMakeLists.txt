@@ -40,3 +40,7 @@ target_link_libraries(cymatica_tests
 include(${catch2_SOURCE_DIR}/extras/Catch.cmake)
 # Catch tags become CTest labels, e.g. [device] -> label "device".
 catch_discover_tests(cymatica_tests ADD_TAGS_AS_LABELS)
+
+# Source-level check, no device needed: the engine library has one device owner (CONS-01).
+add_test(NAME single_audio_owner
+    COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_single_audio_owner.cmake)

@@ -1,0 +1,3 @@
+gain  -59.5 dB: residual re signal -151.77 dB
+gain  -20.0 dB: residual re signal -152.14 dB
+gain   -6.0 dB: residual re signal -151.76 dB

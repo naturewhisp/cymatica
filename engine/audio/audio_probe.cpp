@@ -1,7 +1,7 @@
 #include "audio_probe.h"
 #include "audio_engine.h"
 #include "audio_scheduler.h"
-#include "loopback_capture.h"
+#include "device_loopback_tap.h"
 #include "music_clock.h"
 #include "music_planner.h"
 #include "plan_canonical_hash.h"
@@ -3226,7 +3226,8 @@ bool writeFloatFile(const std::filesystem::path& path, const float* samples, std
 } // namespace
 
 DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& outputDir, bool writeFiles, bool capturePcm,
-                                   bool captureLoopback) {
+                                   DeviceLoopbackTap* loopbackTap) {
+    const bool captureLoopback = loopbackTap != nullptr;
     using SteadyClock = std::chrono::steady_clock;
     DeviceProbeResult result;
     result.pcmCaptureRequested = capturePcm;
@@ -3283,9 +3284,7 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
             return finish();
         }
     }
-    // Room for the start of the capture, the fixture and the tail
-    LoopbackCapture loopback(captureLoopback ? kFixtureRenderedFrames + 10ULL * kInc4SampleRate : 0, kInc4SampleRate);
-    if (captureLoopback && !loopback.start()) {
+    if (captureLoopback && !loopbackTap->start()) {
         result.failureReason = "loopback capture not started";
         return finish();
     }
@@ -3329,11 +3328,11 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
     engine.stopTone();
     if (captureLoopback) {
         std::this_thread::sleep_for(std::chrono::milliseconds(300)); // the mixer still holds the last buffers
-        loopback.stop();
-        result.loopbackFrames = loopback.capturedFrames();
-        result.loopbackOverflowFrames = loopback.overflowFrames();
-        result.loopbackMixSampleRate = loopback.mixSampleRate();
-        result.loopbackMixChannels = loopback.mixChannels();
+        loopbackTap->stop();
+        result.loopbackFrames = loopbackTap->capturedFrames();
+        result.loopbackOverflowFrames = loopbackTap->overflowFrames();
+        result.loopbackMixSampleRate = loopbackTap->mixSampleRate();
+        result.loopbackMixChannels = loopbackTap->mixChannels();
     }
 
     // Quiescence reached: the callback no longer runs (DIF-INC4-R3-05)
@@ -3395,7 +3394,7 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
         const std::filesystem::path capturePath = dir / ("device_probe_v1_" + result.usage + "_loopback.f32");
         const std::filesystem::path referencePath = dir / "device_probe_v1_reference.f32";
         const std::vector<float> reference = renderFixtureOfflineForComparison(480); // golden checked below: the PCM does not depend on the block size
-        if (writeFloatFile(capturePath, loopback.samples().data(), static_cast<std::size_t>(result.loopbackFrames) * 2)) {
+        if (writeFloatFile(capturePath, loopbackTap->samples().data(), static_cast<std::size_t>(result.loopbackFrames) * 2)) {
             result.loopbackFilePath = capturePath.string();
         }
         if (!reference.empty() && pcmContentHash(reference) == kFixtureProbeV1GoldenPcmHash &&

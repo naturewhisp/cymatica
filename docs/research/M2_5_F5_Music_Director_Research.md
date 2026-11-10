@@ -166,7 +166,7 @@ Spostamento metrico, dissonanza, melodia al basso e stratificazione non sono vie
 
 **Fonti.** In [Witek et al. 2014, FT\*](https://doi.org/10.1371/journal.pone.0094446) (66 partecipanti, 50 drum break) le risposte seguono una U rovesciata: R² = 0,347 per il desiderio di muoversi e 0,427 per il piacere. La sincope stava però solo in kick e snare, sopra un hi-hat costante. La dose non è trasferibile senza quel riferimento. [Butler 2001, FT\*](https://www.mtosmt.org/issues/mto.01.7.6/mto.01.7.6.butler_essay.html) descrive nella EDM il passaggio del ruolo metrico da un livello a un altro: un kick sui controtempi può far sentire il beat ribaltato. Con toni simultanei, l'anticipo del grave sposta il tapping più di quello dell'acuto, ma di poco: 14 contro 11 ms ([Hove et al. 2014, FT\*](https://doi.org/10.1073/pnas.1402039111)). Il metro può sostenersi internamente, anche senza energia alla frequenza del pulse ([Tal et al. 2017, AM](https://doi.org/10.1523/JNEUROSCI.2500-16.2017)). La sincope rock è soprattutto anticipatoria, con unità di spostamento ottimale di circa un quarto di secondo ([Tan et al. 2019, FT-parz](https://doi.org/10.1525/MP.2019.36.4.353)).
 
-**Misure nostre.** LHL è ciclico, E0 conta i tick silenziosi di un clock di quarti per fase, da [Povel e Essens, SEC/AM, DOI non verificato](https://doi.org/10.2307/40285311). Griglia di 16 passi, fixture del seed 1337. La misura LHL segue [Smith e Honing 2006, FT](https://www.mcg.uva.nl/mcg-2023/papers/smith-honing-2006.pdf), dove la variabile validata è la complessità percepita, non il groove. A 140 BPM il sedicesimo vale 107 ms, quindi R-MET-9 fissa a 150 BPM il limite per i ruoli in sedicesimi.
+**Misure nostre.** LHL è ciclico, E0 conta i tick silenziosi di un clock di quarti per fase, da [Povel e Essens, SEC/AM](https://doi.org/10.2307/40285311). Griglia di 16 passi, fixture del seed 1337. La misura LHL segue [Smith e Honing 2006, FT](https://www.mcg.uva.nl/mcg-2023/papers/smith-honing-2006.pdf), dove la variabile validata è la complessità percepita, non il groove. A 140 BPM il sedicesimo vale 107 ms, quindi R-MET-9 fissa a 150 BPM il limite per i ruoli in sedicesimi.
 
 | Pattern | LHL | E0, fasi 0/1/2/3 |
 |---|---:|---|
@@ -181,7 +181,7 @@ Spostamento metrico, dissonanza, melodia al basso e stratificazione non sono vie
 
 ### Consonanza: il problema non è la nota estranea, ma chi la decide
 
-**Fonti.** La consonanza è composita: interferenza, armonicità e familiarità predicono i dati di Bowling con r = 0,88 ([Harrison e Pearce 2020, FT\*, DOI non verificato](https://doi.org/10.1037/rev0000169)). La massima dissonanza tonale cade a circa il 25% della banda critica ([Plomp e Levelt 1965, FT-parz](https://doi.org/10.1121/1.1909741)). Su musica umana, [Yeh et al. 2021, FT-parz](https://arxiv.org/abs/2001.02360) riporta CTnCTR 0,74 e PCS 1,42. Nel rock la melodia può seguire un quadro proprio: Nobile distingue fra l'altro un *hierarchy divorce*, in cui la melodia resta orientata sulla tonica e gli accordi cambiano a un livello meno profondo ([Reed 2022, FT\*, Nobile SEC](https://mtosmt.org/ojs/index.php/mto/article/view/876/194)). Il principio di ancoraggio melodico di Bharucha è noto solo da estratti ([SEC/AM, DOI non verificato](https://doi.org/10.1016/0010-0285%2884%2990018-5)).
+**Fonti.** La consonanza è composita: interferenza, armonicità e familiarità predicono i dati di Bowling con r = 0,88 ([Harrison e Pearce 2020, FT\*](https://doi.org/10.1037/rev0000169)). La massima dissonanza tonale cade a circa il 25% della banda critica ([Plomp e Levelt 1965, FT-parz](https://doi.org/10.1121/1.1909741)). Su musica umana, [Yeh et al. 2021, FT-parz](https://arxiv.org/abs/2001.02360) riporta CTnCTR 0,74 e PCS 1,42. Nel rock la melodia può seguire un quadro proprio: Nobile distingue fra l'altro un *hierarchy divorce*, in cui la melodia resta orientata sulla tonica e gli accordi cambiano a un livello meno profondo ([Reed 2022, FT\*, Nobile SEC](https://mtosmt.org/ojs/index.php/mto/article/view/876/194)). Il principio di ancoraggio melodico di Bharucha è noto solo da estratti ([SEC/AM](https://doi.org/10.1016/0010-0285%2884%2990018-5)).
 
 **Misure nostre.** Vettore rispetto alle triadi inferite dalla fondamentale di Corpo: Dm–G–Am–Dm in A e A′, Gm–E♭–F–Gm in B. I valori sono ricalcolati da noi sul [CSV della fixture](experiments/cacp_methods/fixture_intents_seed1337.csv). Coincidono con le note entro 0,02, salvo la riga B (vedi correzioni).
 
@@ -476,12 +476,12 @@ Livelli come nelle note. L'ultima colonna indica la copertura o una riserva.
 | [Butler 2001](https://www.mtosmt.org/issues/mto.01.7.6/mto.01.7.6.butler_essay.html) | FT\* | |
 | [Hove et al. 2014](https://doi.org/10.1073/pnas.1402039111) | FT\* | Via PMC4104866 |
 | [Tal et al. 2017](https://doi.org/10.1523/JNEUROSCI.2500-16.2017) | AM | |
-| [Povel e Essens 1985](https://doi.org/10.2307/40285311) | SEC/AM | Solo E0. DOI non verificato |
-| [Harrison e Pearce 2020](https://doi.org/10.1037/rev0000169) | FT\* parziale | 200.000 caratteri su 333.946. DOI non verificato |
+| [Povel e Essens 1985](https://doi.org/10.2307/40285311) | SEC/AM | Solo E0. DOI risolto su Crossref il 2026-11-09 (solo metadati) |
+| [Harrison e Pearce 2020](https://doi.org/10.1037/rev0000169) | FT\* parziale | 200.000 caratteri su 333.946. DOI risolto su Crossref il 2026-11-09 (solo metadati) |
 | [Plomp e Levelt 1965](https://doi.org/10.1121/1.1909741) | FT-parz | |
 | [Yeh et al. 2021](https://arxiv.org/abs/2001.02360) | FT-parz | |
 | [Reed 2022](https://mtosmt.org/ojs/index.php/mto/article/view/876/194) | FT\* | Nobile e Temperley SEC |
-| [Bharucha 1984](https://doi.org/10.1016/0010-0285%2884%2990018-5) | SEC/AM | DOI non verificato |
+| [Bharucha 1984](https://doi.org/10.1016/0010-0285%2884%2990018-5) | SEC/AM | DOI risolto su Crossref il 2026-11-09 (solo metadati) |
 | [Lavengood 2020](https://www.mtosmt.org/issues/mto.20.26.3/mto.20.26.3.lavengood.pdf) | FT-parz | Moore SEC |
 | [Siedenburg et al. 2021](https://doi.org/10.3389/fpsyg.2021.608684) | FT\* | Huron SEC |
 | [De Man et al. 2014](https://archives.ismir.net/ismir2014/paper/000293.pdf) | FT-parz | Incoerenza interna sulla voce |

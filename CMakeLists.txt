@@ -74,6 +74,7 @@ FetchContent_MakeAvailable(nlohmann_json)
 # Engine modules (Spec §21)
 add_subdirectory(engine/core)
 add_subdirectory(engine/audio)
+add_subdirectory(engine/audio_diag)
 add_subdirectory(engine/replay)
 add_subdirectory(engine/cacp)
 
