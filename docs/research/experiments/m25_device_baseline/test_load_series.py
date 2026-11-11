@@ -91,7 +91,34 @@ with tempfile.TemporaryDirectory() as base:
 
     path = os.path.join(folder, 'rest_games.analysis.json')
     with open(path, encoding='utf-8') as f:
-        analysis = json.load(f)
+        analysis_text = f.read()
+    # An analysis without its metrics is not "zero anomalies" (DIF-M2.5.1c-01)
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write('{"status": "MEASURED"}')
+    report = summarize_series(folder, '.manifest.json.txt')
+    check('analysis without metrics makes the series INVALID', report['status'] == 'INVALID'
+          and any('residual_bursts' in error for error in report['errors']))
+    for field, bad in (('residual_bursts', None), ('unexpected_silences', '0'), ('alignment_slips', 0),
+                       ('gain_db', True), ('residual_db', float('nan'))):
+        broken = json.loads(analysis_text)
+        broken[field] = bad
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(json.dumps(broken))
+        check(f'analysis with a bad {field} makes the series INVALID',
+              summarize_series(folder, '.manifest.json.txt')['status'] == 'INVALID')
+    broken = json.loads(original)
+    broken['callback']['suspected_underruns'] = 1.5
+    with open(os.path.join(folder, 'load_default.manifest.json.txt'), 'w', encoding='utf-8') as f:
+        json.dump(broken, f)
+    check('manifest with a non-integer counter makes the series INVALID',
+          summarize_series(folder, '.manifest.json.txt')['status'] == 'INVALID')
+    with open(os.path.join(folder, 'load_default.manifest.json.txt'), 'w', encoding='utf-8') as f:
+        f.write(original)
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(analysis_text)
+    check('series restored after the analysis checks is MEASURED',
+          summarize_series(folder, '.manifest.json.txt')['status'] == 'MEASURED')
+    analysis = json.loads(analysis_text)
     analysis['status'] = 'INVALID'
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(analysis, f)

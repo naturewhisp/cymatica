@@ -105,6 +105,56 @@ def load_errors(condition, cpu):
     return []
 
 
+# Fields every run must carry, with their type (DIF-M2.5.1c-01): a missing or mistyped field makes the run INVALID,
+# so an absent metric is never read as zero anomalies. 'number' excludes booleans.
+REQUIRED_MANIFEST_FIELDS = {
+    ('device', 'mmcss_active'): 'bool',
+    ('run', 'dropped_events'): 'int',
+    ('run', 'max_coordinator_gap_ms'): 'number',
+    ('pcm', 'device_matches_golden'): 'bool',
+    ('callback', 'mean_ms'): 'number',
+    ('callback', 'p50_ms'): 'number',
+    ('callback', 'p999_ms'): 'number',
+    ('callback', 'max_ms'): 'number',
+    ('callback', 'blocks_exceeding_block_period'): 'int',
+    ('callback', 'max_interval_ms'): 'number',
+    ('callback', 'suspected_underruns'): 'int',
+}
+REQUIRED_ANALYSIS_FIELDS = {
+    ('gain_db',): 'number',
+    ('residual_db',): 'number',
+    ('alignment_slips',): 'list',
+    ('residual_bursts',): 'int',
+    ('unexpected_silences',): 'int',
+}
+
+
+def has_type(value, kind):
+    if kind == 'bool':
+        return isinstance(value, bool)
+    if kind == 'list':
+        return isinstance(value, list)
+    if isinstance(value, bool):
+        return False
+    if kind == 'int':
+        return isinstance(value, int)
+    return isinstance(value, (int, float)) and math.isfinite(value)
+
+
+def field_errors(data, required, label):
+    """Names of the required fields that are missing or of the wrong type."""
+    if not isinstance(data, dict):
+        return [f'{label} is not a JSON object']
+    errors = []
+    for path, kind in required.items():
+        value = data
+        for key in path:
+            value = value.get(key) if isinstance(value, dict) else None
+        if value is None or not has_type(value, kind):
+            errors.append(f'{label} field {".".join(path)} missing or not {kind}')
+    return errors
+
+
 def summarize_series(target, manifest_suffix='.manifest.json'):
     """Writes summary.json. The status is INVALID as soon as one run is missing or did not have the declared load."""
     summary = {'load_validity': LOAD_VALIDITY_V1, 'status': 'MEASURED', 'errors': [], 'runs': {}}
@@ -122,11 +172,12 @@ def summarize_series(target, manifest_suffix='.manifest.json'):
             continue
         summary['errors'] += [f'{tag}: {error}' for error in load_errors(condition_name, cpu)]
         cpu = sorted(cpu) if cpu_samples_valid(cpu) else []
-        try:
-            summary['runs'][tag] = run_summary(manifest_data, analysis_data, cpu)
-        except (KeyError, TypeError, AttributeError) as error:  # malformed manifest: INVALID with a reason (OSS-M2.5.1d-R4-01)
-            summary['errors'].append(f'{tag}: malformed manifest or analysis, missing {error}')
+        malformed = (field_errors(manifest_data, REQUIRED_MANIFEST_FIELDS, 'manifest') +
+                     field_errors(analysis_data, REQUIRED_ANALYSIS_FIELDS, 'analysis'))
+        if malformed:  # INVALID with a reason, never an exception or a default (OSS-M2.5.1d-R4-01, DIF-M2.5.1c-01)
+            summary['errors'] += [f'{tag}: malformed {error}' for error in malformed]
             continue
+        summary['runs'][tag] = run_summary(manifest_data, analysis_data, cpu)
         expected_mmcss = usage_name != 'default'
         if manifest_data['device']['mmcss_active'] != expected_mmcss:
             summary['errors'].append(f'{tag}: MMCSS is not the requested one')
@@ -157,11 +208,11 @@ def run_summary(manifest_data, analysis_data, cpu):
         'max_interval_ms': callback['max_interval_ms'],
         'suspected_underruns': callback['suspected_underruns'],
         'max_coordinator_gap_ms': manifest_data['run']['max_coordinator_gap_ms'],
-        'gain_db': analysis_data.get('gain_db'),
-        'residual_db': analysis_data.get('residual_db'),
-        'slips': len(analysis_data.get('alignment_slips', [])),
-        'bursts': analysis_data.get('residual_bursts'),
-        'silences': analysis_data.get('unexpected_silences'),
+        'gain_db': analysis_data['gain_db'],
+        'residual_db': analysis_data['residual_db'],
+        'slips': len(analysis_data['alignment_slips']),
+        'bursts': analysis_data['residual_bursts'],
+        'silences': analysis_data['unexpected_silences'],
     }
 
 

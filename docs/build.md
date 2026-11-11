@@ -30,7 +30,7 @@ Le installazioni Preview/Insiders di Visual Studio possono coesistere: lo script
 .\scripts\build.ps1 -Test -Headless -WarningsAsErrors # come la CI: ogni warning è un errore (/WX)
 ```
 
-La build continua dopo un'unità fallita (`ninja -k 0`): una sola corsa riporta tutti gli errori, e con `-WarningsAsErrors` tutti i warning. I preset headless e fast eseguono i test in parallelo (`execution.jobs` 8); `perf` e `device` ne sono esclusi.
+La build continua dopo un'unità fallita (`ninja -k 0`): una sola corsa raccoglie gli errori di tutte le unità compilabili, e con `-WarningsAsErrors` i loro warning. Non è un inventario esaustivo: le unità che dipendono da un target fallito non vengono compilate, e se la build fallisce `build.ps1` non avvia CTest. I preset headless e fast eseguono i test in parallelo (`execution.jobs` 8); `perf` e `device` ne sono esclusi.
 
 Lo script usa il toolset predefinito della installazione Release; per usarne un altro impostare `$env:CYMATICA_VCVARS_VER` (stringa vuota = default dell'installazione).
 
