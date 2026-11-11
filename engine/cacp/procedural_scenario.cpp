@@ -424,36 +424,68 @@ json relativeLu(const SectionMeasures& stem, const SectionMeasures& bus) {
     return num(*stem.integratedLufs - *bus.integratedLufs);
 }
 
-// Loudness per stem (M2.5.1c): MEASURED only when every range of the bus mix and of every stem is MEASURED;
-// NOT_RUN when nothing ran; otherwise INCONCLUSIVE with the first range that is not.
-json stemLoudnessJson(const StemLoudness& bus, const std::array<StemLoudness, kRoleCount>& stems) {
+bool sameRange(const SectionMeasures& a, const SectionMeasures& b) {
+    return a.section == b.section && a.startFrame == b.startFrame && a.endFrame == b.endFrame;
+}
+
+std::string rangeLabel(const SectionMeasures& s) {
+    return "section " + std::to_string(s.section) + " [" + std::to_string(s.startFrame) + ", " + std::to_string(s.endFrame) + ")";
+}
+
+// Loudness per stem (M2.5.1c): MEASURED only when every range of the bus mix and of every stem is MEASURED and
+// covers exactly the ranges of its reference (the bus mix for a stem, the mix sections for the bus, DIF-M2.5.1c-02);
+// NOT_RUN when nothing ran; otherwise INCONCLUSIVE with the first gap. A relative level is published only for two
+// measured, identical ranges.
+json stemLoudnessJson(const std::vector<SectionMeasures>& mixSections, const StemLoudness& bus,
+                      const std::array<StemLoudness, kRoleCount>& stems) {
     std::string firstGap;
     bool anyRun = false;
+    const auto gap = [&](const std::string& reason) {
+        if (firstGap.empty()) firstGap = reason;
+    };
     const auto note = [&](const std::string& label, const SectionMeasures& s) {
         const MeasureStatus st = rangeStatus(s);
         if (st.status != "NOT_RUN") anyRun = true;
-        if (st.status != "MEASURED" && firstGap.empty()) firstGap = label + ": " + st.status;
+        if (st.status != "MEASURED") gap(label + ": " + st.status);
         return st;
     };
-    const auto signalJson = [&](const std::string& name, const StemLoudness& s, bool relative) {
+    const auto relative = [](const SectionMeasures& s, const SectionMeasures* ref) {
+        return (ref != nullptr && sameRange(s, *ref)) ? relativeLu(s, *ref) : json(nullptr);
+    };
+    // expected: ranges the signal must cover, in order; reference: ranges a relative level is computed against
+    const auto signalJson = [&](const std::string& name, const StemLoudness& s, const std::vector<SectionMeasures>& expected,
+                                const StemLoudness* reference) {
+        if (s.sections.size() != expected.size()) {
+            gap(name + ": " + std::to_string(s.sections.size()) + " sections, " + std::to_string(expected.size()) + " expected");
+        }
         json sec = json::array();
         for (std::size_t i = 0; i < s.sections.size(); ++i) {
-            json e = loudnessRangeJson(s.sections[i], note(name + " section " + std::to_string(s.sections[i].section), s.sections[i]));
-            e["section"] = s.sections[i].section;
-            if (relative) e["relative_to_bus_mix_lu"] = i < bus.sections.size() ? relativeLu(s.sections[i], bus.sections[i]) : json(nullptr);
+            const SectionMeasures& x = s.sections[i];
+            const bool aligned = i < expected.size() && sameRange(x, expected[i]);
+            if (!aligned) gap(name + " " + rangeLabel(x) + " not aligned with the expected ranges");
+            json e = loudnessRangeJson(x, note(name + " section " + std::to_string(x.section), x));
+            e["section"] = x.section;
+            e["aligned"] = aligned;
+            if (reference != nullptr) {
+                const SectionMeasures* ref = i < reference->sections.size() ? &reference->sections[i] : nullptr;
+                e["relative_to_bus_mix_lu"] = aligned ? relative(x, ref) : json(nullptr);
+            }
             sec.push_back(e);
         }
+        if (reference != nullptr && !sameRange(s.whole, reference->whole)) {
+            gap(name + " whole " + rangeLabel(s.whole) + " differs from the bus mix " + rangeLabel(reference->whole));
+        }
         json out = {{"whole", loudnessRangeJson(s.whole, note(name + " whole", s.whole))}, {"sections", sec}};
-        if (relative) out["relative_to_bus_mix_lu"] = relativeLu(s.whole, bus.whole);
+        if (reference != nullptr) out["relative_to_bus_mix_lu"] = relative(s.whole, &reference->whole);
         return out;
     };
     json out;
     out["standard"] = "ITU-R BS.1770-5, EBU Tech 3341";
     out["scope"] = "role stems and their bus sum before the master stage, same ranges as the mix; K-weighted and gated, "
                    "so a stem silent in part of a range is measured on its active part";
-    out["bus_mix"] = signalJson("bus mix", bus, false);
+    out["bus_mix"] = signalJson("bus mix", bus, mixSections, nullptr);
     json roles = json::object();
-    for (std::size_t i = 0; i < kRoleCount; ++i) roles[kRoleNames[i]] = signalJson(kRoleNames[i], stems[i], true);
+    for (std::size_t i = 0; i < kRoleCount; ++i) roles[kRoleNames[i]] = signalJson(kRoleNames[i], stems[i], bus.sections, &bus);
     out["roles"] = roles;
     out["gate"] = false;
     out["status"] = statusJson(!anyRun ? MeasureStatus{"NOT_RUN", ""}
@@ -569,7 +601,7 @@ std::string ProceduralResult::toJson() const {
                       {"max_short_term_lufs", measured(ms.loudness, maxShortTermLufs)}, {"trial_target_lufs", -23.0}, {"trial_tolerance_lu", 2.0},
                       {"gate", false}, {"note", "about 183 s: no 30-minute rolling measure (ADR-0004 §5)"}}},
         {"sections", sec}};
-    j["measures"]["loudness_per_stem"] = stemLoudnessJson(busLoudness, stemLoudness);
+    j["measures"]["loudness_per_stem"] = stemLoudnessJson(sections, busLoudness, stemLoudness);
     json on = json::object();
     for (std::size_t r = 0; r < kRoleCount; ++r) {
         const auto& s = onsets[r];

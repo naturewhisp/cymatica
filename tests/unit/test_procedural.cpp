@@ -6,6 +6,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <cmath>
 #include <limits>
 
 #include <string>
@@ -404,8 +405,10 @@ TEST_CASE("Loudness per stem: values and relative levels only when measured (M2.
         const double lufs = -30.0 + static_cast<double>(i);
         r.stemLoudness[i] = {range(0, lufs), {range(0, lufs), range(1, lufs - 2.0)}};
     }
+    r.sections = {range(0, -20.0), range(1, -19.0)}; // mix sections: the ranges the bus must cover
     json s = json::parse(r.toJson())["measures"]["loudness_per_stem"];
     CHECK(s["status"]["status"] == "MEASURED");
+    CHECK(s["roles"]["corpo"]["sections"][0]["aligned"] == true);
     CHECK(s["gate"] == false);
     CHECK(s["bus_mix"]["whole"]["integrated_lufs"] == -20.0);
     CHECK(s["roles"]["corpo"]["whole"]["integrated_lufs"] == -29.0);
@@ -430,7 +433,70 @@ TEST_CASE("Loudness per stem: values and relative levels only when measured (M2.
     CHECK(s["roles"]["corpo"]["relative_to_bus_mix_lu"].is_null());
     CHECK(s["roles"]["corpo"]["whole"]["integrated_lufs"] == -29.0);
 
+    // A stem without its last section is not complete (DIF-M2.5.1c-02)
+    r.busLoudness.whole.loudnessStatus = "OK";
+    REQUIRE(json::parse(r.toJson())["measures"]["loudness_per_stem"]["status"]["status"] == "MEASURED");
+    r.stemLoudness[1].sections.pop_back();
+    s = json::parse(r.toJson())["measures"]["loudness_per_stem"];
+    CHECK(s["status"]["status"] == "INCONCLUSIVE");
+    CHECK(s["status"]["reason"] == "corpo: 1 sections, 2 expected");
+    r.stemLoudness[1].sections.push_back(range(1, -31.0));
+
+    // A section with other boundaries: no relative level, INCONCLUSIVE
+    r.stemLoudness[3].sections[1].endFrame = 47000;
+    s = json::parse(r.toJson())["measures"]["loudness_per_stem"];
+    CHECK(s["status"]["status"] == "INCONCLUSIVE");
+    CHECK(s["roles"]["vettore"]["sections"][1]["aligned"] == false);
+    CHECK(s["roles"]["vettore"]["sections"][1]["relative_to_bus_mix_lu"].is_null());
+    CHECK(s["roles"]["vettore"]["sections"][0]["relative_to_bus_mix_lu"] == -7.0); // the aligned one stays
+    r.stemLoudness[3].sections[1].endFrame = 48000;
+    r.stemLoudness[3].sections[1].section = 7; // same frames, other section index
+    CHECK(json::parse(r.toJson())["measures"]["loudness_per_stem"]["status"]["status"] == "INCONCLUSIVE");
+    r.stemLoudness[3].sections[1].section = 1;
+
+    // A whole range that differs from the bus mix
+    r.stemLoudness[0].whole.endFrame = 40000;
+    s = json::parse(r.toJson())["measures"]["loudness_per_stem"];
+    CHECK(s["status"]["status"] == "INCONCLUSIVE");
+    CHECK(s["roles"]["pulso"]["relative_to_bus_mix_lu"].is_null());
+    r.stemLoudness[0].whole.endFrame = 48000;
+
+    // A bus mix that does not cover the mix sections
+    r.sections.push_back(range(2, -18.0));
+    CHECK(json::parse(r.toJson())["measures"]["loudness_per_stem"]["status"]["status"] == "INCONCLUSIVE");
+    r.sections.pop_back();
+    CHECK(json::parse(r.toJson())["measures"]["loudness_per_stem"]["status"]["status"] == "MEASURED");
+
     // Nothing ran
     const json none = json::parse(ProceduralResult{}.toJson())["measures"]["loudness_per_stem"];
     CHECK(none["status"]["status"] == "NOT_RUN");
+}
+
+// Integration on the real fixture (OSS-M2.5.1c-03): four stems, ranges aligned with the mix, finite values.
+// No LUFS value is binding.
+TEST_CASE("Loudness per stem on the fixture render is complete and aligned (M2.5.1c)", "[procedural][stem_loudness][slow]") {
+    using nlohmann::json;
+    const ProceduralResult r = runProceduralV1("artifacts/cacp_test", false);
+    REQUIRE(r.status == "PASS");
+    const json m = json::parse(r.toJson())["measures"];
+    const json s = m["loudness_per_stem"];
+    CHECK(s["status"]["status"] == "MEASURED");
+    REQUIRE(s["roles"].size() == kRoleCount);
+    const auto finite = [](const json& v) { return v.is_number() && std::isfinite(v.get<double>()); };
+    CHECK(finite(s["bus_mix"]["whole"]["integrated_lufs"]));
+    REQUIRE(s["bus_mix"]["sections"].size() == m["sections"].size());
+    for (std::size_t i = 0; i < m["sections"].size(); ++i) {
+        CHECK(s["bus_mix"]["sections"][i]["start_frame"] == m["sections"][i]["start_frame"]);
+        CHECK(s["bus_mix"]["sections"][i]["end_frame"] == m["sections"][i]["end_frame"]);
+    }
+    for (const char* role : kRoleNames) {
+        const json& x = s["roles"][role];
+        CHECK(finite(x["whole"]["integrated_lufs"]));
+        CHECK(finite(x["relative_to_bus_mix_lu"]));
+        REQUIRE(x["sections"].size() == m["sections"].size());
+        for (const json& e : x["sections"]) {
+            CHECK(e["aligned"] == true);
+            CHECK(finite(e["relative_to_bus_mix_lu"]));
+        }
+    }
 }

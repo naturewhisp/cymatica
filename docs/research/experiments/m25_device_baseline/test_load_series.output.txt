@@ -20,12 +20,12 @@ ok   manifest without callback makes the series INVALID
 ok   manifest that is not an object makes the series INVALID
 ok   restored series is MEASURED again
 ok   analysis without metrics makes the series INVALID
-ok   analysis with a bad residual_bursts makes the series INVALID
-ok   analysis with a bad residual_bursts makes the series INVALID
-ok   analysis with a bad unexpected_silences makes the series INVALID
-ok   analysis with a bad alignment_slips makes the series INVALID
-ok   analysis with a bad gain_db makes the series INVALID
-ok   analysis with a bad residual_db makes the series INVALID
+ok   analysis with residual_bursts = None makes the series INVALID
+ok   analysis with residual_bursts = -1 makes the series INVALID
+ok   analysis with unexpected_silences = '0' makes the series INVALID
+ok   analysis with alignment_slips = 0 makes the series INVALID
+ok   analysis with gain_db = True makes the series INVALID
+ok   analysis with residual_db = nan makes the series INVALID
 ok   manifest with a non-integer counter makes the series INVALID
 ok   manifest with a negative counter makes the series INVALID
 ok   series restored after the analysis checks is MEASURED

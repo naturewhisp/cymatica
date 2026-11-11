@@ -104,7 +104,7 @@ with tempfile.TemporaryDirectory() as base:
         broken[field] = bad
         with open(path, 'w', encoding='utf-8') as f:
             f.write(json.dumps(broken))
-        check(f'analysis with a bad {field} makes the series INVALID',
+        check(f'analysis with {field} = {bad!r} makes the series INVALID',
               summarize_series(folder, '.manifest.json.txt')['status'] == 'INVALID')
     broken = json.loads(original)
     broken['callback']['suspected_underruns'] = 1.5
