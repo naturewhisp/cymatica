@@ -35,6 +35,13 @@ struct SectionMeasures {
     std::optional<double> truePeakDbtp{};      // distinct from the loudness validity (DIF-5e.1-R2-01)
 };
 
+// Loudness of one signal, whole render and per section (M2.5.1c, ADR-0007 §3): role stems and their bus sum,
+// before the master stage. A measure only, never a gate; no true peak.
+struct StemLoudness {
+    SectionMeasures whole{};
+    std::vector<SectionMeasures> sections{};
+};
+
 struct RoleOnsetSummary {
     std::string status{"NOT_RUN"};
     std::size_t references{0};
@@ -77,6 +84,8 @@ struct ProceduralResult {
     std::optional<double> maxMomentaryLufs{};
     std::optional<double> maxShortTermLufs{};
     std::vector<SectionMeasures> sections{};
+    StemLoudness busLoudness{};                       // sum of the four stems (bus mix)
+    std::array<StemLoudness, kRoleCount> stemLoudness{};
     std::array<RoleOnsetSummary, kRoleCount> onsets{};
     std::string onsetProfileSha256{};
     std::vector<WindowTruth> phrasePresence{};

@@ -54,6 +54,17 @@ Alle evidenze di Inc-5 si aggiungono quelle di Inc-1..Inc-4, registrate in [prog
 
 Riduzione del limiter 0 dB; prova −23 ± 2 LU: −21,25 − (−23) = **+1,75 LU**, dentro la tolleranza di prova (rettifica OSS-5e.4b-01: la prima versione indicava per errore +2,25 LU).
 
+**Loudness per stem** (M2.5.1c, 2026-11-11; `measures.loudness_per_stem` del manifest, stessi intervalli del mix, prima dello stadio master; mai un gate). Il bus mix misura −21,25 LUFS come il mix.
+
+| Stem | Brano | Rispetto al bus | A | B | A' |
+|---|---|---|---|---|---|
+| Vettore | −24,21 LUFS | −2,96 LU | −2,88 LU | −2,85 LU | −3,14 LU |
+| Corpo | −24,82 LUFS | −3,56 LU | −3,62 LU | −3,81 LU | −3,30 LU |
+| Trama | −34,09 LUFS | −12,83 LU | −12,51 LU | −13,71 LU | −12,09 LU |
+| Pulso | −34,49 LUFS | −13,23 LU | −12,56 LU | −14,47 LU | −12,99 LU |
+
+Lettura: Pulso sta circa 10 LU sotto Corpo e Vettore, nella stessa direzione dei 7–9 dB stimati all'ascolto dell'esperto. Rispetto al rapporto RMS stem/mix per frase, la ponderazione K abbassa Pulso (grave) di circa 1,5 dB e alza Trama (acuta) di circa 3 dB; per Trama conta anche il gate, che misura solo la parte attiva. È una misura del segnale, non un giudizio di bilanciamento: quello resta a R-M25-1 e M2.5.2.
+
 **Onset per ruolo** (±50 ms, profilo congelato `stem_onset_profile_v1`):
 
 | Ruolo | Riferimenti | Precisione | Richiamo | Precisione senza rilasci | Rilevazioni sui rilasci |
@@ -151,7 +162,7 @@ Priorità aggiornate: [proposta per l'ingresso di M2.5](research/M2_5_Entry_Musi
   - vettore f_s/4 nel test del limiter.
 - **Osservazioni aperte:**
   - OSS-5e.3b-R2-01: campo causale `NOT_RUN` senza profilo congelato;
-  - nel manifest di `procedural_v1` il campo `measures.loudness.note` mostra «Â§» al posto di «§», per una doppia codifica del letterale. È cosmetico, rilevato nella preparazione di questo dossier;
+  - nel manifest di `procedural_v1` il campo `measures.loudness.note` mostra «Â§» al posto di «§», per una doppia codifica del letterale (rettifica 2026-11-11: non riprodotto, il file è UTF-8 corretto e la doppia codifica nasceva leggendolo come ANSI; vedi progress.md, M2.5.1c passo 1). È cosmetico, rilevato nella preparazione di questo dossier;
   - AG-ADR-03 (informativa): l'impegno del seed (`packSeedCommitment`) usa il prefisso `evaluation_pack_v1` anche per v2 e v3. Resta verificabile, perché generazione e checker usano la stessa funzione; manca solo la separazione di dominio per versione.
 - **Proposte della review di ADR-0006** ([verifica](research/M2_4_Inc5_ADR0006_Review_Verification.md) §4), da istruire con fonti lette:
   - normalizzazione robusta o locale dell'onset, insieme a H-04;

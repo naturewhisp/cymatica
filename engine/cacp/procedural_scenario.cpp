@@ -63,6 +63,31 @@ std::vector<std::string> proceduralBindingFailures(const audio::FixtureProbeResu
     return v;
 }
 
+namespace {
+
+// BS.1770 loudness of frames [start, end) of an interleaved stereo signal; INVALID_RANGE when outside it
+SectionMeasures measureRange(std::span<const float> pcm, std::uint32_t section, std::uint64_t start, std::uint64_t end,
+                             bool withTruePeak) {
+    SectionMeasures sm;
+    sm.section = section;
+    sm.startFrame = start;
+    sm.endFrame = end;
+    if (2 * end <= pcm.size() && end > start) {
+        const std::span<const float> slice(pcm.data() + 2 * start, 2 * (end - start));
+        const LoudnessResult l = measureLoudnessStereo(slice, kFs);
+        sm.loudnessStatus = l.supported ? analysisStatusName(l.status) : "UNSUPPORTED";
+        sm.integratedLufs = l.integratedLufs;
+        sm.maxMomentaryLufs = l.maxMomentaryLufs;
+        sm.maxShortTermLufs = l.maxShortTermLufs;
+        if (withTruePeak) sm.truePeakDbtp = audio::analysis::estimateTruePeakDbtp(slice.data(), end - start, 2);
+    } else {
+        sm.loudnessStatus = "INVALID_RANGE";
+    }
+    return sm;
+}
+
+} // namespace
+
 ProceduralResult runProceduralV1(const std::string& outputDir, bool writeFiles) {
     ProceduralResult r;
     StemCapture cap(kCaptureFrames);
@@ -137,24 +162,22 @@ ProceduralResult runProceduralV1(const std::string& outputDir, bool writeFiles) 
         if (it == sectionStart.end() || p.startFrame < it->second) sectionStart[p.section] = p.startFrame;
     }
     for (auto it = sectionStart.begin(); it != sectionStart.end(); ++it) {
-        SectionMeasures sm;
-        sm.section = it->first;
-        sm.startFrame = it->second;
         const auto next = std::next(it);
-        sm.endFrame = (next != sectionStart.end()) ? next->second : f.contentEndFrame;
-        if (2 * sm.endFrame <= stereo.size() && sm.endFrame > sm.startFrame) {
-            const std::span<const float> slice(stereo.data() + 2 * sm.startFrame, 2 * (sm.endFrame - sm.startFrame));
-            const LoudnessResult l = measureLoudnessStereo(slice, kFs);
-            sm.loudnessStatus = l.supported ? analysisStatusName(l.status) : "UNSUPPORTED";
-            sm.integratedLufs = l.integratedLufs;
-            sm.maxMomentaryLufs = l.maxMomentaryLufs;
-            sm.maxShortTermLufs = l.maxShortTermLufs;
-            sm.truePeakDbtp = audio::analysis::estimateTruePeakDbtp(slice.data(), sm.endFrame - sm.startFrame, 2);
-        } else {
-            sm.loudnessStatus = "INVALID_RANGE";
-        }
-        r.sections.push_back(sm);
+        const std::uint64_t end = (next != sectionStart.end()) ? next->second : f.contentEndFrame;
+        r.sections.push_back(measureRange(stereo, it->first, it->second, end, true));
     }
+
+    // ---- measures: loudness per stem and of the bus mix, same ranges as the mix (M2.5.1c) ----
+    const auto stemMeasures = [&](std::span<const float> pcm) {
+        StemLoudness s;
+        s.whole = measureRange(pcm, 0, 0, pcm.size() / 2, false);
+        for (const auto& sec : r.sections) {
+            s.sections.push_back(measureRange(pcm, sec.section, sec.startFrame, sec.endFrame, false));
+        }
+        return s;
+    };
+    r.busLoudness = stemMeasures(cap.busMix());
+    for (std::size_t role = 0; role < kRoleCount; ++role) r.stemLoudness[role] = stemMeasures(cap.stem(role));
 
     // ---- measures: per-role onsets with the frozen profile ----
     const auto frozen = frozenStemProfileV1();
@@ -384,6 +407,61 @@ json statusJson(const MeasureStatus& s) {
     return j;
 }
 
+json loudnessRangeJson(const SectionMeasures& s, const MeasureStatus& st) {
+    return {{"status", statusJson(st)}, {"analysis_status", s.loudnessStatus}, {"start_frame", s.startFrame},
+            {"end_frame", s.endFrame}, {"integrated_lufs", measured(st, s.integratedLufs)},
+            {"max_momentary_lufs", measured(st, s.maxMomentaryLufs)},
+            {"max_short_term_lufs", measured(st, s.maxShortTermLufs)}};
+}
+
+MeasureStatus rangeStatus(const SectionMeasures& s) {
+    return loudnessMeasureStatus(s.loudnessStatus, s.integratedLufs, s.maxMomentaryLufs, s.maxShortTermLufs);
+}
+
+// Stem minus bus mix, in LU, only when both integrated values are MEASURED
+json relativeLu(const SectionMeasures& stem, const SectionMeasures& bus) {
+    if (rangeStatus(stem).status != "MEASURED" || rangeStatus(bus).status != "MEASURED") return json(nullptr);
+    return num(*stem.integratedLufs - *bus.integratedLufs);
+}
+
+// Loudness per stem (M2.5.1c): MEASURED only when every range of the bus mix and of every stem is MEASURED;
+// NOT_RUN when nothing ran; otherwise INCONCLUSIVE with the first range that is not.
+json stemLoudnessJson(const StemLoudness& bus, const std::array<StemLoudness, kRoleCount>& stems) {
+    std::string firstGap;
+    bool anyRun = false;
+    const auto note = [&](const std::string& label, const SectionMeasures& s) {
+        const MeasureStatus st = rangeStatus(s);
+        if (st.status != "NOT_RUN") anyRun = true;
+        if (st.status != "MEASURED" && firstGap.empty()) firstGap = label + ": " + st.status;
+        return st;
+    };
+    const auto signalJson = [&](const std::string& name, const StemLoudness& s, bool relative) {
+        json sec = json::array();
+        for (std::size_t i = 0; i < s.sections.size(); ++i) {
+            json e = loudnessRangeJson(s.sections[i], note(name + " section " + std::to_string(s.sections[i].section), s.sections[i]));
+            e["section"] = s.sections[i].section;
+            if (relative) e["relative_to_bus_mix_lu"] = i < bus.sections.size() ? relativeLu(s.sections[i], bus.sections[i]) : json(nullptr);
+            sec.push_back(e);
+        }
+        json out = {{"whole", loudnessRangeJson(s.whole, note(name + " whole", s.whole))}, {"sections", sec}};
+        if (relative) out["relative_to_bus_mix_lu"] = relativeLu(s.whole, bus.whole);
+        return out;
+    };
+    json out;
+    out["standard"] = "ITU-R BS.1770-5, EBU Tech 3341";
+    out["scope"] = "role stems and their bus sum before the master stage, same ranges as the mix; K-weighted and gated, "
+                   "so a stem silent in part of a range is measured on its active part";
+    out["bus_mix"] = signalJson("bus mix", bus, false);
+    json roles = json::object();
+    for (std::size_t i = 0; i < kRoleCount; ++i) roles[kRoleNames[i]] = signalJson(kRoleNames[i], stems[i], true);
+    out["roles"] = roles;
+    out["gate"] = false;
+    out["status"] = statusJson(!anyRun ? MeasureStatus{"NOT_RUN", ""}
+                               : firstGap.empty() ? MeasureStatus{"MEASURED", ""}
+                                                  : MeasureStatus{"INCONCLUSIVE", firstGap});
+    return out;
+}
+
 // Binding evidence of the render, copied from fixture_probe_v1 without re-running it (DIF-5e.1-03)
 json bindingEvidence(const audio::FixtureProbeResult& f) {
     auto check = [](bool v) { return json(v ? "PASS" : "FAIL"); };
@@ -491,6 +569,7 @@ std::string ProceduralResult::toJson() const {
                       {"max_short_term_lufs", measured(ms.loudness, maxShortTermLufs)}, {"trial_target_lufs", -23.0}, {"trial_tolerance_lu", 2.0},
                       {"gate", false}, {"note", "about 183 s: no 30-minute rolling measure (ADR-0004 §5)"}}},
         {"sections", sec}};
+    j["measures"]["loudness_per_stem"] = stemLoudnessJson(busLoudness, stemLoudness);
     json on = json::object();
     for (std::size_t r = 0; r < kRoleCount; ++r) {
         const auto& s = onsets[r];

@@ -106,26 +106,27 @@ def load_errors(condition, cpu):
 
 
 # Fields every run must carry, with their type (DIF-M2.5.1c-01): a missing or mistyped field makes the run INVALID,
-# so an absent metric is never read as zero anomalies. 'number' excludes booleans.
+# so an absent metric is never read as zero anomalies. 'number' excludes booleans; 'count' is a non-negative
+# integer, for counters of events and anomalies (OSS-M2.5.1c-R2-01).
 REQUIRED_MANIFEST_FIELDS = {
     ('device', 'mmcss_active'): 'bool',
-    ('run', 'dropped_events'): 'int',
+    ('run', 'dropped_events'): 'count',
     ('run', 'max_coordinator_gap_ms'): 'number',
     ('pcm', 'device_matches_golden'): 'bool',
     ('callback', 'mean_ms'): 'number',
     ('callback', 'p50_ms'): 'number',
     ('callback', 'p999_ms'): 'number',
     ('callback', 'max_ms'): 'number',
-    ('callback', 'blocks_exceeding_block_period'): 'int',
+    ('callback', 'blocks_exceeding_block_period'): 'count',
     ('callback', 'max_interval_ms'): 'number',
-    ('callback', 'suspected_underruns'): 'int',
+    ('callback', 'suspected_underruns'): 'count',
 }
 REQUIRED_ANALYSIS_FIELDS = {
     ('gain_db',): 'number',
     ('residual_db',): 'number',
     ('alignment_slips',): 'list',
-    ('residual_bursts',): 'int',
-    ('unexpected_silences',): 'int',
+    ('residual_bursts',): 'count',
+    ('unexpected_silences',): 'count',
 }
 
 
@@ -138,6 +139,8 @@ def has_type(value, kind):
         return False
     if kind == 'int':
         return isinstance(value, int)
+    if kind == 'count':
+        return isinstance(value, int) and value >= 0
     return isinstance(value, (int, float)) and math.isfinite(value)
 
 

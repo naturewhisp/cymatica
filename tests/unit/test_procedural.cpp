@@ -392,3 +392,45 @@ TEST_CASE("Per-role onset status and values follow the effective status (DIF-5e.
     CHECK(e["onsets"]["roles"]["corpo"]["analysis_status"] == "NON_FINITE_INPUT");
     CHECK(roleOnsetMeasureStatus(RoleOnsetSummary{}).status == "NOT_RUN");
 }
+
+TEST_CASE("Loudness per stem: values and relative levels only when measured (M2.5.1c)", "[procedural][measures][stem_loudness]") {
+    using nlohmann::json;
+    ProceduralResult r;
+    const auto range = [](std::uint32_t section, double lufs) {
+        return SectionMeasures{section, 0, 48000, "OK", lufs, lufs + 3.0, lufs + 1.0, std::nullopt};
+    };
+    r.busLoudness = {range(0, -20.0), {range(0, -20.0), range(1, -19.0)}};
+    for (std::size_t i = 0; i < kRoleCount; ++i) {
+        const double lufs = -30.0 + static_cast<double>(i);
+        r.stemLoudness[i] = {range(0, lufs), {range(0, lufs), range(1, lufs - 2.0)}};
+    }
+    json s = json::parse(r.toJson())["measures"]["loudness_per_stem"];
+    CHECK(s["status"]["status"] == "MEASURED");
+    CHECK(s["gate"] == false);
+    CHECK(s["bus_mix"]["whole"]["integrated_lufs"] == -20.0);
+    CHECK(s["roles"]["corpo"]["whole"]["integrated_lufs"] == -29.0);
+    CHECK(s["roles"]["corpo"]["relative_to_bus_mix_lu"] == -9.0);
+    CHECK(s["roles"]["pulso"]["sections"][1]["relative_to_bus_mix_lu"] == -13.0); // -32 - (-19)
+    CHECK(s["roles"]["vettore"]["sections"][1]["section"] == 1);
+
+    // A stem with nothing above the gates: its values and relative levels are null, the block is INCONCLUSIVE
+    r.stemLoudness[2].sections[0].integratedLufs.reset();
+    s = json::parse(r.toJson())["measures"]["loudness_per_stem"];
+    CHECK(s["status"]["status"] == "INCONCLUSIVE");
+    CHECK(s["status"]["reason"] == "trama section 0: INCONCLUSIVE");
+    CHECK(s["roles"]["trama"]["sections"][0]["integrated_lufs"].is_null());
+    CHECK(s["roles"]["trama"]["sections"][0]["relative_to_bus_mix_lu"].is_null());
+    CHECK(s["roles"]["trama"]["whole"]["integrated_lufs"] == -28.0);
+
+    // A bus mix that is not measured makes every relative level null
+    r.stemLoudness[2].sections[0].integratedLufs = -30.0;
+    r.busLoudness.whole.loudnessStatus = "NON_FINITE_INPUT";
+    s = json::parse(r.toJson())["measures"]["loudness_per_stem"];
+    CHECK(s["status"]["status"] == "INCONCLUSIVE");
+    CHECK(s["roles"]["corpo"]["relative_to_bus_mix_lu"].is_null());
+    CHECK(s["roles"]["corpo"]["whole"]["integrated_lufs"] == -29.0);
+
+    // Nothing ran
+    const json none = json::parse(ProceduralResult{}.toJson())["measures"]["loudness_per_stem"];
+    CHECK(none["status"]["status"] == "NOT_RUN");
+}

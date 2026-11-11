@@ -21,12 +21,14 @@ ok   manifest that is not an object makes the series INVALID
 ok   restored series is MEASURED again
 ok   analysis without metrics makes the series INVALID
 ok   analysis with a bad residual_bursts makes the series INVALID
+ok   analysis with a bad residual_bursts makes the series INVALID
 ok   analysis with a bad unexpected_silences makes the series INVALID
 ok   analysis with a bad alignment_slips makes the series INVALID
 ok   analysis with a bad gain_db makes the series INVALID
 ok   analysis with a bad residual_db makes the series INVALID
 ok   manifest with a non-integer counter makes the series INVALID
+ok   manifest with a negative counter makes the series INVALID
 ok   series restored after the analysis checks is MEASURED
 ok   INVALID analysis makes the series INVALID
 ok   all conditions are covered
-31/31 checks passed
+33/33 checks passed
