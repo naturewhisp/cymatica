@@ -19,6 +19,8 @@
     With -Run, close the game automatically after this many seconds.
 .PARAMETER Clean
     Delete the build directory of the selected preset first.
+.PARAMETER WarningsAsErrors
+    Configure with CYMATICA_WARNINGS_AS_ERRORS=ON (/WX). The CI uses it; without it the option is set OFF.
 .NOTES
     MSVC toolset: ADR-0001 pins 14.50. Override with $env:CYMATICA_VCVARS_VER
     (set it to an empty string to use the installation default).
@@ -31,7 +33,8 @@ param(
     [switch]$Headless,
     [switch]$Run,
     [double]$SmokeSeconds = 0,
-    [switch]$Clean
+    [switch]$Clean,
+    [switch]$WarningsAsErrors
 )
 
 $ErrorActionPreference = 'Stop'
@@ -68,8 +71,10 @@ try {
         Remove-Item -Recurse -Force $buildDir
     }
 
-    Invoke-Checked cmake @('--preset', $preset)
-    Invoke-Checked cmake @('--build', '--preset', $preset)
+    $werror = if ($WarningsAsErrors) { 'ON' } else { 'OFF' }
+    Invoke-Checked cmake @('--preset', $preset, "-DCYMATICA_WARNINGS_AS_ERRORS=$werror")
+    # -k 0: keep building after a failed unit, so one run reports every error (with /WX, every warning)
+    Invoke-Checked cmake @('--build', '--preset', $preset, '--', '-k', '0')
 
     if ($Test) {
         $testPreset = if ($Headless) {

@@ -73,6 +73,22 @@ with tempfile.TemporaryDirectory() as base:
     with open(path, 'w', encoding='utf-8') as f:
         f.write(original)
 
+    # Malformed files give INVALID with a reason, not an exception (OSS-M2.5.1d-R4-01)
+    manifest = json.loads(original)
+    del manifest['callback']
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(manifest, f)
+    report = summarize_series(folder, '.manifest.json.txt')
+    check('manifest without callback makes the series INVALID', report['status'] == 'INVALID'
+          and any('malformed' in error for error in report['errors']))
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write('[]')
+    check('manifest that is not an object makes the series INVALID',
+          summarize_series(folder, '.manifest.json.txt')['status'] == 'INVALID')
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(original)
+    check('restored series is MEASURED again', summarize_series(folder, '.manifest.json.txt')['status'] == 'MEASURED')
+
     path = os.path.join(folder, 'rest_games.analysis.json')
     with open(path, encoding='utf-8') as f:
         analysis = json.load(f)

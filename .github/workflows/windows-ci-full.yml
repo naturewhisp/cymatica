@@ -32,7 +32,7 @@ jobs:
       - name: Clean Build and full Headless CTest (${{ matrix.config }})
         shell: pwsh
         run: |
-          .\scripts\build.ps1 -Clean -Config ${{ matrix.config }} -Test -Headless
+          .\scripts\build.ps1 -Clean -Config ${{ matrix.config }} -Test -Headless -WarningsAsErrors
 
       - name: Upload Diagnostic Logs on Failure
         if: failure()

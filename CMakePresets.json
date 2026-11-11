@@ -41,6 +41,7 @@
       "name": "x64-debug-headless",
       "displayName": "Debug tests without audio hardware",
       "configurePreset": "x64-debug",
+      "execution": { "jobs": 8 },
       "output": { "outputOnFailure": true },
       "filter": { "exclude": { "label": "(device|perf)" } }
     },
@@ -48,6 +49,7 @@
       "name": "x64-debug-fast",
       "displayName": "Debug tests for the ordinary CI: headless, without the [slow] pack generations",
       "configurePreset": "x64-debug",
+      "execution": { "jobs": 8 },
       "output": {
         "outputOnFailure": true
       },
@@ -61,6 +63,7 @@
       "name": "x64-release-headless",
       "displayName": "Release tests without audio hardware",
       "configurePreset": "x64-release",
+      "execution": { "jobs": 8 },
       "output": { "outputOnFailure": true },
       "filter": { "exclude": { "label": "(device|perf)" } }
     }

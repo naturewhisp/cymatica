@@ -70,3 +70,12 @@ TEST_CASE("Audio engine renders frames on the default device", "[audio][device]"
     engine.shutdown();
     REQUIRE(engine.sampleRate() == 0);
 }
+
+// Source charset (M2.5.1c): manifests carry non-ASCII notes such as "ADR-0004 §5". With /utf-8 the narrow
+// literal holds the two UTF-8 bytes of U+00A7; without it MSVC reads the source as ANSI and the JSON shows "Â§".
+TEST_CASE("Narrow string literals are UTF-8 encoded", "[smoke][encoding]") {
+    constexpr char sectionSign[] = "§";
+    STATIC_REQUIRE(sizeof(sectionSign) == 3);
+    CHECK(static_cast<unsigned char>(sectionSign[0]) == 0xC2);
+    CHECK(static_cast<unsigned char>(sectionSign[1]) == 0xA7);
+}

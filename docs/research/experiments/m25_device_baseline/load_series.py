@@ -122,38 +122,47 @@ def summarize_series(target, manifest_suffix='.manifest.json'):
             continue
         summary['errors'] += [f'{tag}: {error}' for error in load_errors(condition_name, cpu)]
         cpu = sorted(cpu) if cpu_samples_valid(cpu) else []
+        try:
+            summary['runs'][tag] = run_summary(manifest_data, analysis_data, cpu)
+        except (KeyError, TypeError, AttributeError) as error:  # malformed manifest: INVALID with a reason (OSS-M2.5.1d-R4-01)
+            summary['errors'].append(f'{tag}: malformed manifest or analysis, missing {error}')
+            continue
         expected_mmcss = usage_name != 'default'
         if manifest_data['device']['mmcss_active'] != expected_mmcss:
             summary['errors'].append(f'{tag}: MMCSS is not the requested one')
         if manifest_data.get('status') != 'MEASURED' or analysis_data.get('status') != 'MEASURED':
             summary['errors'].append(f'{tag}: run or analysis not MEASURED')
-        callback = manifest_data['callback']
-        summary['runs'][tag] = {
-            'cpu_samples': len(cpu),
-            'cpu_median_percent': cpu[len(cpu) // 2] if cpu else None,
-            'cpu_min_percent': cpu[0] if cpu else None,
-            'mmcss': manifest_data['device']['mmcss_active'],
-            'dropped_events': manifest_data['run']['dropped_events'],
-            'pcm_matches_golden': manifest_data['pcm']['device_matches_golden'],
-            'mean_ms': callback['mean_ms'],
-            'p50_ms': callback['p50_ms'],
-            'p999_ms': callback['p999_ms'],
-            'max_ms': callback['max_ms'],
-            'over_period': callback['blocks_exceeding_block_period'],
-            'max_interval_ms': callback['max_interval_ms'],
-            'suspected_underruns': callback['suspected_underruns'],
-            'max_coordinator_gap_ms': manifest_data['run']['max_coordinator_gap_ms'],
-            'gain_db': analysis_data.get('gain_db'),
-            'residual_db': analysis_data.get('residual_db'),
-            'slips': len(analysis_data.get('alignment_slips', [])),
-            'bursts': analysis_data.get('residual_bursts'),
-            'silences': analysis_data.get('unexpected_silences'),
-        }
+
     if summary['errors']:
         summary['status'] = 'INVALID'
     with open(os.path.join(target, 'summary.json'), 'w', encoding='utf-8') as f:
         json.dump(summary, f, indent=2, allow_nan=False)
     return summary
+
+
+def run_summary(manifest_data, analysis_data, cpu):
+    callback = manifest_data['callback']
+    return {
+        'cpu_samples': len(cpu),
+        'cpu_median_percent': cpu[len(cpu) // 2] if cpu else None,
+        'cpu_min_percent': cpu[0] if cpu else None,
+        'mmcss': manifest_data['device']['mmcss_active'],
+        'dropped_events': manifest_data['run']['dropped_events'],
+        'pcm_matches_golden': manifest_data['pcm']['device_matches_golden'],
+        'mean_ms': callback['mean_ms'],
+        'p50_ms': callback['p50_ms'],
+        'p999_ms': callback['p999_ms'],
+        'max_ms': callback['max_ms'],
+        'over_period': callback['blocks_exceeding_block_period'],
+        'max_interval_ms': callback['max_interval_ms'],
+        'suspected_underruns': callback['suspected_underruns'],
+        'max_coordinator_gap_ms': manifest_data['run']['max_coordinator_gap_ms'],
+        'gain_db': analysis_data.get('gain_db'),
+        'residual_db': analysis_data.get('residual_db'),
+        'slips': len(analysis_data.get('alignment_slips', [])),
+        'bursts': analysis_data.get('residual_bursts'),
+        'silences': analysis_data.get('unexpected_silences'),
+    }
 
 
 if __name__ == '__main__':

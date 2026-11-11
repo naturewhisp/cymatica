@@ -54,13 +54,13 @@ jobs:
         if: matrix.config == 'Release'
         shell: pwsh
         run: |
-          .\scripts\build.ps1 -Clean -Config Release -Test -Headless
+          .\scripts\build.ps1 -Clean -Config Release -Test -Headless -WarningsAsErrors
 
       - name: Clean Build and fast Headless CTest (Debug, without [slow])
         if: matrix.config == 'Debug'
         shell: pwsh
         run: |
-          .\scripts\build.ps1 -Clean -Config Debug
+          .\scripts\build.ps1 -Clean -Config Debug -WarningsAsErrors
           ctest --preset x64-debug-fast
           if ($LASTEXITCODE -ne 0) { throw "ctest --preset x64-debug-fast failed with exit code $LASTEXITCODE" }
 

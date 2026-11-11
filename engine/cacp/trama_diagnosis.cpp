@@ -277,6 +277,7 @@ TramaDiagnosisResult runTramaMissDiagnosisV1(const std::string& outputDir, bool 
         if (!frozen) {
             r.status = "INCONCLUSIVE";
             r.reasons.emplace_back("frozen onset profile unavailable");
+            r.causal = {"INCONCLUSIVE", "frozen onset profile unavailable"}; // OSS-5e.3b-R2-01
             return r;
         }
         const auto notes = syntheticNotesSetB(kTrama);
