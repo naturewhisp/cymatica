@@ -92,24 +92,62 @@ TEST_CASE("Staff view: lanes, notes by pitch, applied and detected markers (5e-0
     in.detected.push_back({3, 48000 + 72000, StaffOnsetKind::Release});
     in.barFrames = {48000, 96000};
     const StaffViewImage img = renderStaffView(in);
-    REQUIRE(img.width == 200);
-    REQUIRE(img.height == kStaffSeparator + kRoleCount * (kStaffLaneHeight + kStaffSeparator));
+    REQUIRE(img.width == kStaffLabelWidth + 200);
+    REQUIRE(img.height == staffViewHeight());
+    constexpr std::size_t x0 = kStaffLabelWidth; // time axis origin
     REQUIRE_FALSE(img.png.empty());
     CHECK(renderStaffView(in).png == img.png); // deterministic
 
     const std::size_t corpoTop = staffLaneTop(1);
     // High note near the top of the note area, low note near the bottom, both in the corpo colour
-    CHECK(pixel(img, 20, corpoTop + kStaffMarkerStrip + 1) == kStaffRoleColour[1]);
-    CHECK(pixel(img, 120, corpoTop + kStaffLaneHeight - kStaffMarkerStrip - 2) == kStaffRoleColour[1]);
-    // Applied NoteOn in the top strip (x = 0), detections in the bottom strips with their colours
-    CHECK(pixel(img, 0, corpoTop + 1) == kStaffAppliedColour);
-    CHECK(pixel(img, 10, corpoTop + kStaffLaneHeight - 1) == kStaffOnsetColour[0]);
-    CHECK(pixel(img, 100, staffLaneTop(2) + kStaffLaneHeight - 1) == kStaffOnsetColour[1]);
-    CHECK(pixel(img, 150, staffLaneTop(3) + kStaffLaneHeight - 1) == kStaffOnsetColour[2]);
+    CHECK(pixel(img, x0 + 20, corpoTop + kStaffMarkerStrip + 1) == kStaffRoleColour[1]);
+    CHECK(pixel(img, x0 + 120, corpoTop + kStaffLaneHeight - kStaffMarkerStrip - 2) == kStaffRoleColour[1]);
+    // Applied NoteOn in the top strip (time 0), detections in the bottom strips with their colours
+    CHECK(pixel(img, x0, corpoTop + 1) == kStaffAppliedColour);
+    CHECK(pixel(img, x0 + 10, corpoTop + kStaffLaneHeight - 1) == kStaffOnsetColour[0]);
+    CHECK(pixel(img, x0 + 100, staffLaneTop(2) + kStaffLaneHeight - 1) == kStaffOnsetColour[1]);
+    CHECK(pixel(img, x0 + 150, staffLaneTop(3) + kStaffLaneHeight - 1) == kStaffOnsetColour[2]);
     // Nothing of another role leaks into the pulso lane's note area
-    CHECK(pixel(img, 20, staffLaneTop(0) + 30) != kStaffRoleColour[1]);
-    // Bar line at the second bar (x = 100) in a lane gap without notes
-    CHECK(pixel(img, 100, staffLaneTop(0) + 30)[0] == 55);
+    CHECK(pixel(img, x0 + 20, staffLaneTop(0) + 30) != kStaffRoleColour[1]);
+    // Bar line at the second bar (x0 + 100) in a lane gap without notes
+    CHECK(pixel(img, x0 + 100, staffLaneTop(0) + 30) == kStaffBarLineColour);
+
+    // Readable views (P-M25-08): grid lines below the bar lines, instrument label, bar number and caption
+    StaffViewInput grid = in;
+    grid.beatFrames = {48000 + 24000};
+    grid.stepFrames = {48000 + 6000, 48000 + 24000};    // a step under a beat: the beat wins
+    grid.firstBarNumber = 33;
+    grid.caption = "PHRASE 8  B  140 BPM 4/4";
+    const StaffViewImage gi = renderStaffView(grid);
+    CHECK(pixel(gi, x0 + 50, staffLaneTop(0) + 30) == kStaffBeatLineColour);
+    CHECK(pixel(gi, x0 + 12, staffLaneTop(0) + 30) == kStaffStepLineColour);
+    CHECK(pixel(gi, x0 + 100, staffLaneTop(0) + 30) == kStaffBarLineColour);
+    const auto inkIn = [&](const StaffViewImage& im, std::size_t xa, std::size_t xb, std::size_t ya, std::size_t yb,
+                           const std::array<std::uint8_t, 3>& colour) {
+        std::size_t n = 0;
+        for (std::size_t y = ya; y < yb; ++y) {
+            for (std::size_t x = xa; x < xb; ++x) n += pixel(im, x, y) == colour ? 1 : 0;
+        }
+        return n;
+    };
+    // Each lane label is drawn in its role colour inside the label column, nothing of it right of the column
+    for (std::size_t r = 0; r < kRoleCount; ++r) {
+        CHECK(inkIn(gi, 0, kStaffLabelWidth, staffLaneTop(r), staffLaneTop(r) + 30, kStaffRoleColour[r]) > 20);
+    }
+    // Header text (caption and bar numbers) exists only in the header rows; the footer carries the legend
+    CHECK(inkIn(gi, 0, kStaffLabelWidth, 0, kStaffHeaderHeight, {170, 170, 170}) > 20);
+    CHECK(inkIn(gi, x0, x0 + 30, 0, kStaffHeaderHeight, {170, 170, 170}) > 5);  // "33"
+    CHECK(inkIn(gi, 0, gi.width, staffViewHeight() - kStaffFooterHeight, staffViewHeight(), kStaffOnsetColour[0]) > 20);
+    CHECK(renderStaffView(grid).png == gi.png); // deterministic
+
+    // Font: the glyphs used by the labels exist, unknown characters are blank, lower case is upper-cased
+    for (const char* name : kStaffInstrumentNames) {
+        for (const char* c = name; *c != 0; ++c) {
+            if (*c != ' ') CHECK(staffGlyph(*c) != std::array<std::uint8_t, 7>{});
+        }
+    }
+    CHECK(staffGlyph('?') == std::array<std::uint8_t, 7>{});
+    CHECK(staffGlyph('k') == staffGlyph('K'));
 
     // Invalid inputs: no image
     StaffViewInput bad = in;

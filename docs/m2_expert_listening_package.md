@@ -13,7 +13,7 @@ I file non sono versionati (dimensioni); si rigenerano in modo deterministico da
 | # | Materiale | File | Comando |
 |---|---|---|---|
 | M1 | Brano completo della fixture (seed 1337, 182,9 s, A–B–A') | `artifacts/cacp/procedural_v1/procedural_v1.wav` | `cymatica_game --cacp-run procedural_v1` |
-| M2 | Viste «a pentagramma» per frase (24 PNG): intervalli pianificati, NoteOn applicati, onset rilevati, abbinati e sui rilasci | `artifacts/cacp/procedural_v1/staff_p00.png` … `staff_p23.png` | idem |
+| M2 | Viste «a pentagramma» per frase (24 PNG): intervalli pianificati, NoteOn applicati, onset rilevati, abbinati e sui rilasci. Da M2.5.1c (P-M25-08) ogni corsia porta il nome di uno strumento riconoscibile (KICK / DRUMS, BASS + CHORDS, ARP SYNTH, LEAD SYNTH) con il ruolo interno sotto, l'intestazione riporta frase, sezione, tempo, metro e numeri di battuta, la griglia mostra battute, quarti e sedicesimi e la legenda dei colori è in fondo all'immagine | `artifacts/cacp/procedural_v1/staff_p00.png` … `staff_p23.png` | idem |
 | M3 | Clip A/B del rilascio: frasi 5 (sezione A) e 10 (sezione B), release di 2 (produzione), 15, 30, 50 e 80 ms | `artifacts/cacp/release_ab_v1/fixture_p05_release_02ms.wav` … `fixture_p10_release_80ms.wav` (SHA-256 in [inc5_release_ab](research/experiments/inc5_release_ab/clips_sha256_2026-11-03.txt)) | `cymatica_game --cacp-run release_ab_v1` |
 
 Le clip M3 differiscono **solo** nella durata del rilascio dei NoteOff ordinari:

@@ -264,6 +264,26 @@ ProceduralResult runProceduralV1(const std::string& outputDir, bool writeFiles) 
         in.pixelsPerSecond = kStaffPixelsPerSecond;
         in.pitchRange = range;
         for (std::uint32_t b = 0; b <= p.barCount && clock; ++b) in.barFrames.push_back(clock->frameAtBar(p.startBar + b));
+        // Grid and caption (P-M25-08): beats and steps of the section meter, spread evenly over each bar; the
+        // positions are only drawn, so the integer division of the bar length is exact enough for a pixel
+        const audio::FormPlan form = audio::MusicPlanner::makeFixtureM24V1Form();
+        const audio::TempoMap& tm = form.sections[(std::min)(p.section, static_cast<std::uint32_t>(form.sectionCount - 1))].tempoMap;
+        const std::uint64_t steps = static_cast<std::uint64_t>(tm.beatsPerBar) * tm.subdivisionsPerBeat;
+        for (std::size_t b = 0; b + 1 < in.barFrames.size() && steps > 0; ++b) {
+            const std::uint64_t f0 = in.barFrames[b];
+            const std::uint64_t len = in.barFrames[b + 1] - f0;
+            for (std::uint64_t s = 1; s < steps; ++s) {
+                const std::uint64_t at = f0 + len * s / steps;
+                (s % tm.subdivisionsPerBeat == 0 ? in.beatFrames : in.stepFrames).push_back(at);
+            }
+        }
+        in.firstBarNumber = p.startBar + 1;
+        static constexpr std::array<const char*, 3> kSectionNames{"A", "B", "A'"};
+        std::ostringstream caption;
+        caption << "PHRASE " << p.index << "  " << (p.section < kSectionNames.size() ? kSectionNames[p.section] : "?") << "  "
+                << tm.bpm.numerator / (tm.bpm.denominator == 0 ? 1 : tm.bpm.denominator) << " BPM " << tm.timeSignatureNum
+                << "/" << tm.timeSignatureDen;
+        in.caption = caption.str();
         for (const auto& e : intents) {
             const auto it = offs.find({e.eventId, static_cast<int>(e.role)});
             const std::uint64_t end = (it != offs.end()) ? it->second : e.sampleFrame + e.durationFrames;
@@ -639,12 +659,16 @@ std::string ProceduralResult::toJson() const {
                           {"groups", phraseGroups}};
     j["staff_view"] = {{"dir", staffDir}, {"files", staffViews}, {"pixels_per_second", kStaffPixelsPerSecond},
                        {"legend", {{"lanes_top_to_bottom", json::array({"pulso", "corpo", "trama", "vettore"})},
+                                   {"lane_labels", json::array({kStaffInstrumentNames[0], kStaffInstrumentNames[1],
+                                                                kStaffInstrumentNames[2], kStaffInstrumentNames[3]})},
+                                   {"header", "phrase, section, tempo and meter; bar numbers from 1"},
+                                   {"footer", "colour legend"},
                                    {"top_strip_white", "applied NoteOn"},
                                    {"middle_bars", "planned notes, height = log pitch within the role range of the render"},
                                    {"bottom_strip_green", "detected onset matched to an applied NoteOn (+-50 ms)"},
                                    {"bottom_strip_red", "detected onset unmatched"},
                                    {"bottom_strip_orange", "unmatched, within 50 ms of an applied NoteOff (release)"},
-                                   {"grey_vertical_lines", "bar lines"},
+                                   {"grey_vertical_lines", "bars (light), beats (medium), grid steps (dark): quarters and sixteenths in 4/4"},
                                    {"role_colours", {{"pulso", "red"}, {"corpo", "blue"}, {"trama", "purple"}, {"vettore", "yellow"}}}}},
                        {"diagnostic_only", true}};
     j["wav_file"] = wavFilePath;
