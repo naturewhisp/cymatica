@@ -434,10 +434,11 @@ std::string rangeLabel(const SectionMeasures& s) {
 
 // Loudness per stem (M2.5.1c): MEASURED only when every range of the bus mix and of every stem is MEASURED and
 // covers exactly the ranges of its reference (the bus mix for a stem, the mix sections for the bus, DIF-M2.5.1c-02);
-// NOT_RUN when nothing ran; otherwise INCONCLUSIVE with the first gap. A relative level is published only for two
-// measured, identical ranges.
-json stemLoudnessJson(const std::vector<SectionMeasures>& mixSections, const StemLoudness& bus,
-                      const std::array<StemLoudness, kRoleCount>& stems) {
+// NOT_RUN when nothing ran; otherwise INCONCLUSIVE with the first gap. The bus whole range must be exactly
+// [0, renderedFrames) and at least one section must exist (DIF-M2.5.1c-R3-01). A relative level is published only
+// for two measured, identical ranges.
+json stemLoudnessJson(std::uint64_t renderedFrames, const std::vector<SectionMeasures>& mixSections,
+                      const StemLoudness& bus, const std::array<StemLoudness, kRoleCount>& stems) {
     std::string firstGap;
     bool anyRun = false;
     const auto gap = [&](const std::string& reason) {
@@ -483,6 +484,10 @@ json stemLoudnessJson(const std::vector<SectionMeasures>& mixSections, const Ste
     out["standard"] = "ITU-R BS.1770-5, EBU Tech 3341";
     out["scope"] = "role stems and their bus sum before the master stage, same ranges as the mix; K-weighted and gated, "
                    "so a stem silent in part of a range is measured on its active part";
+    if (bus.whole.startFrame != 0 || bus.whole.endFrame != renderedFrames) {
+        gap("bus mix whole " + rangeLabel(bus.whole) + " is not the render [0, " + std::to_string(renderedFrames) + ")");
+    }
+    if (mixSections.empty() || bus.sections.empty()) gap("no section to measure");
     out["bus_mix"] = signalJson("bus mix", bus, mixSections, nullptr);
     json roles = json::object();
     for (std::size_t i = 0; i < kRoleCount; ++i) roles[kRoleNames[i]] = signalJson(kRoleNames[i], stems[i], bus.sections, &bus);
@@ -601,7 +606,7 @@ std::string ProceduralResult::toJson() const {
                       {"max_short_term_lufs", measured(ms.loudness, maxShortTermLufs)}, {"trial_target_lufs", -23.0}, {"trial_tolerance_lu", 2.0},
                       {"gate", false}, {"note", "about 183 s: no 30-minute rolling measure (ADR-0004 §5)"}}},
         {"sections", sec}};
-    j["measures"]["loudness_per_stem"] = stemLoudnessJson(sections, busLoudness, stemLoudness);
+    j["measures"]["loudness_per_stem"] = stemLoudnessJson(renderedFrames, sections, busLoudness, stemLoudness);
     json on = json::object();
     for (std::size_t r = 0; r < kRoleCount; ++r) {
         const auto& s = onsets[r];

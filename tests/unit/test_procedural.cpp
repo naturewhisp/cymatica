@@ -406,6 +406,7 @@ TEST_CASE("Loudness per stem: values and relative levels only when measured (M2.
         r.stemLoudness[i] = {range(0, lufs), {range(0, lufs), range(1, lufs - 2.0)}};
     }
     r.sections = {range(0, -20.0), range(1, -19.0)}; // mix sections: the ranges the bus must cover
+    r.renderedFrames = 48000;                          // the bus whole range must be the whole render
     json s = json::parse(r.toJson())["measures"]["loudness_per_stem"];
     CHECK(s["status"]["status"] == "MEASURED");
     CHECK(s["roles"]["corpo"]["sections"][0]["aligned"] == true);
@@ -460,6 +461,24 @@ TEST_CASE("Loudness per stem: values and relative levels only when measured (M2.
     CHECK(s["status"]["status"] == "INCONCLUSIVE");
     CHECK(s["roles"]["pulso"]["relative_to_bus_mix_lu"].is_null());
     r.stemLoudness[0].whole.endFrame = 48000;
+
+    // A whole range shorter than the render, identical for bus and stems (DIF-M2.5.1c-R3-01)
+    r.renderedFrames = 96000;
+    s = json::parse(r.toJson())["measures"]["loudness_per_stem"];
+    CHECK(s["status"]["status"] == "INCONCLUSIVE");
+    CHECK(s["status"]["reason"] == "bus mix whole section 0 [0, 48000) is not the render [0, 96000)");
+    r.renderedFrames = 48000;
+
+    // Whole ranges measured but no section at all
+    {
+        ProceduralResult noSections = r;
+        noSections.sections.clear();
+        noSections.busLoudness.sections.clear();
+        for (auto& stem : noSections.stemLoudness) stem.sections.clear();
+        const json n = json::parse(noSections.toJson())["measures"]["loudness_per_stem"];
+        CHECK(n["status"]["status"] == "INCONCLUSIVE");
+        CHECK(n["status"]["reason"] == "no section to measure");
+    }
 
     // A bus mix that does not cover the mix sections
     r.sections.push_back(range(2, -18.0));
