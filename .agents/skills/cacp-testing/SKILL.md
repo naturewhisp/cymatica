@@ -213,6 +213,17 @@ build/x64-release/apps/cymatica_game/cymatica_game.exe --cacp-run device_probe_v
 - Stato `MEASURED`: fixture completa, ack esatti, nessun evento scartato o rinviato. `INVALID` altrimenti. Non è un gate.
 - `suspected_underruns` è una stima dagli intervalli fra callback, perché WASAPI condiviso non espone gli underrun: zero non prova l'assenza di crackle.
 
+## 2c. Strumento d'insieme e di sviluppo (ensemble_tools_v1 — M2.5.1c)
+
+```powershell
+build/x64-release/apps/cymatica_game/cymatica_game.exe --cacp-run ensemble_tools_v1
+```
+
+- Offline, simbolico, pochi secondi; manifest `artifacts/cacp/ensemble_tools_v1_manifest.json`. Mai un gate, mai nello scoring del planner.
+- Controllare prima `preregistration.matches == true` e `horse_criterion.met == true`; le predizioni mancate stanno in `horse_criterion.missed_predictions` e si riportano, non si correggono ritoccando le fixture.
+- Variogramma M4 per ruolo contro un nullo di 1000 permutazioni; limiti da dichiarare in ogni uso: M4 è categorica sugli intervalli e cieca solo alla trasposizione cromatica.
+- F7 (controllo positivo) richiede un file scritto da una persona in `docs/research/experiments/m25_ensemble_tools/positive_control.json`; senza, resta `NOT_RUN`.
+
 ## 3. Evoluzione del CACP nelle Milestone e Sottofasi
 
 Il CACP si sviluppa in parallelo continuo e proporzionato con il codice: ogni incremento con impatto audiovisivo o di controllo introduce o aggiorna il relativo profilo diagnostico.

@@ -5,6 +5,7 @@
 #include "input_dispatcher.h"
 #include "loopback_capture.h"
 #include "acao02_calibration.h"
+#include "ensemble_tools.h"
 #include "evaluation_pack.h"
 #include "onset_parity.h"
 #include "procedural_scenario.h"
@@ -225,6 +226,12 @@ int main(int argc, char** argv) {
                 std::printf("[cacp] Verdict: %s\n", res.status.c_str());
                 std::printf("%s\n", res.toJson().c_str());
                 return (res.status == "MEASURED" && res.manifestWriteSuccess && res.curvesWriteSuccess) ? 0 : 1;
+            } else if (std::strcmp(scenario, "ensemble_tools") == 0 || std::strcmp(scenario, "ensemble_tools_v1") == 0) {
+                std::printf("[cacp] Running scenario '%s' (M2.5.1c R-M25-7: offline ensemble and development measures, not a gate)...\n", scenario);
+                auto res = cymatica::cacp::runEnsembleToolsV1("artifacts/cacp", true);
+                std::printf("[cacp] Status: %s, horse criterion %s\n", res.status.c_str(), res.horseCriterionMet ? "met" : "NOT met");
+                std::printf("%s\n", res.toJson().c_str());
+                return (res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
             } else if (std::strcmp(scenario, "full_m2_suite") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5e.4a: every M2 scenario, local gate, never in CI)...\n", scenario);
                 if (packSeed == cymatica::cacp::kDefaultPackSeed) {

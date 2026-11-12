@@ -8,6 +8,8 @@ add_library(cymatica_cacp STATIC
     analysis_status.h
     diversity.cpp
     diversity.h
+    ensemble_tools.cpp
+    ensemble_tools.h
     evaluation_pack.cpp
     evaluation_pack.h
     fft.cpp
