@@ -1,0 +1,24 @@
+ok   C4 is MIDI 60
+ok   sharps and flats
+ok   invalid note name fails
+ok   table: two phrases
+ok   table: values kept
+ok   table: one phrase with notes fails
+ok   table: bad header fails
+ok   table: onset out of the phrase fails
+ok   table: zero duration fails
+ok   simultaneous notes: the highest is kept
+ok   simultaneous notes: counted in the report
+ok   a note crossing the phrase end is clipped
+ok   clipping counted in the report
+ok   F8: meter 2/2 read from the file, phrase of 64 sixteenths
+ok   F8: 17 phrases, all with notes
+ok   F8: engraved score, nothing moved to the grid
+ok   F8: 13 lower notes of double stops dropped
+ok   bgm_epic: transcription moved to the grid and reported
+ok   bgm_epic: zero-length notes dropped and reported
+ok   bgm_epic: 4 phrases only
+ok   F9: 24 phrases, 436 notes, nothing changed
+ok   not a MIDI file fails
+ok   a non-SMF .mid fails
+23/23 checks passed

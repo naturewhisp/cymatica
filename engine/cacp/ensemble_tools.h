@@ -24,6 +24,13 @@ inline constexpr std::uint32_t kEnsembleStepsPerBar = 16;
 inline constexpr std::uint32_t kEnsembleBarsPerPhrase = 4;
 inline constexpr std::size_t kEnsembleSyntheticPhrases = 24;
 inline constexpr const char* kEnsemblePositiveControlPath = "docs/research/experiments/m25_ensemble_tools/positive_control.json";
+// Controls F8 (Bach, human, public domain) and F9 (blind subagent, not human), converted by convert_control.py
+inline constexpr const char* kEnsembleControlsDir = "docs/research/experiments/m25_ensemble_tools/controls";
+// Addenda to the pre-registration, hashed before the controls were acquired; checked before measuring a control
+inline constexpr const char* kEnsembleAddendumF7 = "M2_5_1c_Ensemble_Tools_Preregistration_Addendum_F7.md";
+inline constexpr const char* kEnsembleAddendumF7Sha256 = "ef1f7e157d3784537017facbfa3e9fcddc1c5ee88047be9f6f59b8bf729322ea";
+inline constexpr const char* kEnsembleAddendumF8F9 = "M2_5_1c_Ensemble_Tools_Preregistration_Addendum_F8_F9.md";
+inline constexpr const char* kEnsembleAddendumF8F9Sha256 = "e89b441a1e2d8740c668dad54e92cadef3a7036532da105d52eb7e2d455dacc9";
 
 // Tokens of one phrase (all roles), onset in sixteenths from the phrase start
 using PhraseTokens = std::vector<NoteToken>;
@@ -107,6 +114,7 @@ struct EnsembleToolsResult {
         std::string status{"NOT_RUN"};      // MEASURED, NOT_RUN (no file) or INCONCLUSIVE (variogram not computable)
         std::string reason{};
         std::string expectedClassification{};
+        bool human{true};                   // false for F9 (written by a model)
         RoleVariogram vettore{};
     };
     std::vector<FixtureOutcome> adversarial{};
@@ -124,6 +132,7 @@ struct EnsembleToolsResult {
 // preregistrationPath: the frozen pre-registration; relative paths resolve against the working directory
 [[nodiscard]] EnsembleToolsResult runEnsembleToolsV1(const std::string& outputDir, bool writeFiles,
                                                      const std::string& preregistrationPath = kEnsemblePreregistration,
-                                                     const std::string& positiveControlPath = kEnsemblePositiveControlPath);
+                                                     const std::string& positiveControlPath = kEnsemblePositiveControlPath,
+                                                     const std::string& controlsDir = kEnsembleControlsDir);
 
 } // namespace cymatica::cacp

@@ -188,7 +188,8 @@ TEST_CASE("Ensemble tools: cost estimates follow the declared formulas", "[ensem
 
 TEST_CASE("Ensemble tools: scenario outcome on the pre-registered fixtures (M2.5.1c)", "[ensemble_tools]") {
     const std::string prereg = std::string(CYMATICA_SOURCE_DIR) + "/" + kEnsemblePreregistration;
-    const EnsembleToolsResult r = runEnsembleToolsV1("artifacts/ensemble_tools_test", false, prereg);
+    // Controls absent on purpose: this case pins the fixtures F1-F6 only, wherever the tests run
+    const EnsembleToolsResult r = runEnsembleToolsV1("artifacts/ensemble_tools_test", false, prereg, "no/such/f7.json", "no/such/controls");
     CHECK(r.status == "MEASURED");
     CHECK(r.preregistrationMatches);
     // Horse criterion of the pre-registration §3: met on the first run
@@ -198,8 +199,9 @@ TEST_CASE("Ensemble tools: scenario outcome on the pre-registered fixtures (M2.5
     REQUIRE(r.missedPredictions.size() == 1);
     CHECK(r.missedPredictions[0] == "F5: expected DEGENERATE, got ORDER_FREE");
     // F7 stays NOT_RUN until a person provides the positive control
-    CHECK(r.adversarial.back().id == "F7");
-    CHECK(r.adversarial.back().status == "NOT_RUN");
+    REQUIRE(r.adversarial.size() == 9);
+    CHECK(r.adversarial[6].id == "F7");
+    CHECK(r.adversarial[6].status == "NOT_RUN");
 }
 
 TEST_CASE("Ensemble tools: a missing or changed pre-registration makes the run INCONCLUSIVE (DIF-M2.5.1c-STEP4-01)", "[ensemble_tools]") {
@@ -227,7 +229,7 @@ TEST_CASE("Ensemble tools: a missing or changed pre-registration makes the run I
     CHECK_FALSE(differs.preregistrationMatches);
     CHECK(differs.error.find("differs") != std::string::npos);
     // The measures are still computed for diagnosis
-    CHECK(differs.adversarial.size() == 7);
+    CHECK(differs.adversarial.size() == 9);
 }
 
 TEST_CASE("Ensemble tools: a positive control without notes is rejected (DIF-M2.5.1c-STEP4-02)", "[ensemble_tools]") {
@@ -250,6 +252,30 @@ TEST_CASE("Ensemble tools: a positive control without notes is rejected (DIF-M2.
     // Through the scenario: F7 is never MEASURED on such a file
     const std::string prereg = std::string(CYMATICA_SOURCE_DIR) + "/" + kEnsemblePreregistration;
     const EnsembleToolsResult r = runEnsembleToolsV1("artifacts/ensemble_tools_test", false, prereg, file);
-    CHECK(r.adversarial.back().id == "F7");
-    CHECK(r.adversarial.back().status == "NOT_RUN");
+    CHECK(r.adversarial[6].id == "F7");
+    CHECK(r.adversarial[6].status == "NOT_RUN");
+}
+
+TEST_CASE("Ensemble tools: human and model development is not seen by M4 (F8, F9, M2.5.1c)", "[ensemble_tools]") {
+    const std::string source = CYMATICA_SOURCE_DIR;
+    const EnsembleToolsResult r = runEnsembleToolsV1("artifacts/ensemble_tools_test", false, source + "/" + kEnsemblePreregistration,
+                                                     "no/such/f7.json", source + "/" + kEnsembleControlsDir);
+    REQUIRE(r.adversarial.size() == 9);
+    const auto& f8 = r.adversarial[7];
+    const auto& f9 = r.adversarial[8];
+    CHECK(f8.id == "F8");
+    CHECK(f9.id == "F9");
+    CHECK(f8.human);
+    CHECK_FALSE(f9.human);
+    CHECK(f8.status == "MEASURED");
+    CHECK(f9.status == "MEASURED");
+    CHECK(f8.vettore.phrasesWithNotes == 17);
+    CHECK(f9.vettore.phrasesWithNotes == 24);
+    // First measurement (2026-11-12): both predictions of the addendum F8/F9 (ORDERED) are missed. M4 saturates on
+    // real phrases (distances 0.8-0.95 at every lag), so it does not see a real development. Reported, not tuned.
+    CHECK(f8.vettore.classification == "ORDER_FREE");
+    CHECK(f9.vettore.classification == "ORDER_FREE");
+    CHECK(r.missedPredictions.size() == 3);
+    // The horse criterion on F1-F4 is unchanged
+    CHECK(r.horseCriterionMet);
 }

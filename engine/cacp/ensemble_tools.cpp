@@ -416,7 +416,7 @@ std::vector<DesignCost> designCostEstimates() {
 }
 
 EnsembleToolsResult runEnsembleToolsV1(const std::string& outputDir, bool writeFiles, const std::string& preregistrationPath,
-                                       const std::string& positiveControlPath) {
+                                       const std::string& positiveControlPath, const std::string& controlsDir) {
     EnsembleToolsResult r;
     r.preregistrationPath = preregistrationPath;
     // Pre-registration integrity: hash of the file with LF line endings
@@ -451,15 +451,49 @@ EnsembleToolsResult runEnsembleToolsV1(const std::string& outputDir, bool writeF
         }
         r.adversarial.push_back(f);
     }
-    {
+    // Controls F7-F9 (addenda to the pre-registration): each is measured only when its addendum is intact
+    const std::string docsDir = std::filesystem::path(preregistrationPath).parent_path().string();
+    const auto addendumIntact = [&](const char* name, const char* expected) {
+        std::ifstream in(std::filesystem::path(docsDir) / name, std::ios::binary);
+        if (!in) return false;
+        std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+        text.erase(std::remove(text.begin(), text.end(), '\r'), text.end());
+        return sha256Hex(std::string_view(text)) == expected;
+    };
+    struct Control {
+        const char* id;
+        const char* name;
+        std::string path;
+        const char* addendum;
+        const char* addendumSha;
+        bool human;
+    };
+    const std::array<Control, 3> controls{{
+        {"F7", "positive control written by a person (the expert)", positiveControlPath, kEnsembleAddendumF7, kEnsembleAddendumF7Sha256, true},
+        {"F8", "J. S. Bach, Partita I BWV 1002, Double of the Tempo di Borea (public domain, human)",
+         (std::filesystem::path(controlsDir) / "F8_bach.json").string(), kEnsembleAddendumF8F9, kEnsembleAddendumF8F9Sha256, true},
+        {"F9", "melody written by a blind subagent (NOT human)", (std::filesystem::path(controlsDir) / "F9_subagent.json").string(),
+         kEnsembleAddendumF8F9, kEnsembleAddendumF8F9Sha256, false},
+    }};
+    for (const auto& c : controls) {
         EnsembleToolsResult::FixtureOutcome f;
-        f.id = "F7";
-        f.name = "positive control written by a person";
+        f.id = c.id;
+        f.name = c.name;
+        f.human = c.human;
+        f.expectedClassification = "ORDERED";
         std::string error;
-        if (const auto control = loadPositiveControl(positiveControlPath, error)) {
-            f.vettore = roleVariogram(*control, kVettore);
-            f.status = f.vettore.classification == "NO_DATA" ? "INCONCLUSIVE" : "MEASURED";
-            if (f.status != "MEASURED") f.reason = "variogram not computable: " + f.vettore.classification;
+        if (const auto control = loadPositiveControl(c.path, error)) {
+            if (!addendumIntact(c.addendum, c.addendumSha)) {
+                f.status = "INCONCLUSIVE";
+                f.reason = std::string("addendum ") + c.addendum + " missing or changed: prediction not verifiable";
+            } else {
+                f.vettore = roleVariogram(*control, kVettore);
+                f.status = f.vettore.classification == "NO_DATA" ? "INCONCLUSIVE" : "MEASURED";
+                if (f.status != "MEASURED") f.reason = "variogram not computable: " + f.vettore.classification;
+                if (f.status == "MEASURED" && f.vettore.classification != f.expectedClassification) {
+                    r.missedPredictions.push_back(f.id + ": expected " + f.expectedClassification + ", got " + f.vettore.classification);
+                }
+            }
         } else {
             f.reason = error;
         }
@@ -522,6 +556,7 @@ std::string EnsembleToolsResult::toJson() const {
         json e = {{"id", f.id}, {"name", f.name}, {"status", f.status}};
         if (!f.reason.empty()) e["reason"] = f.reason;
         if (!f.expectedClassification.empty()) e["expected_classification"] = f.expectedClassification;
+        e["human"] = f.human;
         if (f.status == "MEASURED") e["vettore"] = variogramJson(f.vettore);
         adv.push_back(e);
     }

@@ -79,7 +79,22 @@ L'unità è lavoro logico, non tempo. Moltiplicare D e G per B × S è una scelt
 
 Le misure di F1–F6 e della fixture reale non cambiano.
 
-## 6. Limiti
+## 6. Controlli umani e di modello: F8 e F9 (2026-11-12)
+
+Predizioni registrate prima dell'acquisizione nell'[aggiunta F8/F9](M2_5_1c_Ensemble_Tools_Preregistration_Addendum_F8_F9.md) (`ORDERED` a lag 1 per entrambi); provenienza e conversione in [controls/README](experiments/m25_ensemble_tools/controls/README.md).
+
+| ID | Fonte | Frasi | Attesa | Ottenuta | V(1) | Banda del nullo | p | ρ |
+|---|---|---:|---|---|---:|---|---:|---:|
+| F8 | Bach, BWV 1002, Double della Borea (umano) | 17 | `ORDERED` | **`ORDER_FREE`** | 0,821 | [0,798; 0,866] | 0,205 | 0,29 |
+| F9 | Subagente alla cieca (non umano) | 24 | `ORDERED` | **`ORDER_FREE`** | 0,878 | [0,855; 0,947] | 0,119 | 0,29 |
+
+**Entrambe le predizioni mancano.** Le distanze M4 stanno fra 0,8 e 0,95 a ogni lag, per entrambi: due frasi reali differiscono quasi sempre nella maggior parte degli intervalli, e la M4, categorica, le vede tutte quasi ugualmente lontane. In F9 la frase 21 è identica alla frase 1 secondo la nota d'intento, ma una sola coppia identica non sposta la media a lag 20.
+
+**Conseguenza, secondo la lettura fissata nell'aggiunta.** Il criterio di cavallo su F1–F4 resta soddisfatto, ma le fixture sintetiche erano troppo facili: lo sviluppo di F3 procede per una modifica alla volta, esattamente ciò che la M4 conta. Su musica reale, umana o di modello, il variogramma M4 non distingue uno sviluppo dal caso. **La M4 non va usata per diagnosticare lo sviluppo musicale.** Resta descrittiva per ripetizioni letterali e ritorni identici, come quelli di Corpo nella fixture del gioco, il cui materiale si ripete esattamente.
+
+Non si è ritoccata né la misura né la conversione. Una misura diversa (per esempio graduata sugli intervalli, o la M3 per punti già esistente) richiede una nuova pre-registrazione e va provata sugli stessi controlli F1–F9: proposta per CP-3, non adottata.
+
+## 7. Limiti
 
 - F7 non eseguita: la validazione contro un controllo umano manca.
 - Una sola distanza (M4), con due limiti dichiarati: categorica sugli intervalli, cieca solo alla trasposizione cromatica.
