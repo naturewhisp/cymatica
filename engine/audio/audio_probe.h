@@ -588,6 +588,10 @@ struct DeviceProbeResult {
     std::uint64_t loopbackOverflowFrames{0};
     std::uint32_t loopbackMixSampleRate{0};
     std::uint32_t loopbackMixChannels{0};
+    EndpointVolumeReading loopbackVolumeStart{};  // endpoint master volume, read only (CP-1, R-M25-12)
+    EndpointVolumeReading loopbackVolumeStop{};
+    SessionVolumeReading loopbackSessionsStart{};   // this process's sessions on the endpoint (CP-1, H2)
+    SessionVolumeReading loopbackSessionsStop{};
     std::string loopbackFilePath{};
     std::string referenceFilePath{};
     std::string manifestFilePath{};

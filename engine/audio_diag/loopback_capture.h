@@ -26,6 +26,10 @@ public:
     [[nodiscard]] std::uint32_t mixChannels() const noexcept override;
     // Interleaved stereo float. Read only after stop(): the capture thread owns it while running.
     [[nodiscard]] const std::vector<float>& samples() const noexcept override;
+    [[nodiscard]] EndpointVolumeReading volumeAtStart() const noexcept override;
+    [[nodiscard]] EndpointVolumeReading volumeAtStop() const noexcept override;
+    [[nodiscard]] SessionVolumeReading sessionsAtStart() const noexcept override;
+    [[nodiscard]] SessionVolumeReading sessionsAtStop() const noexcept override;
 
 private:
     struct Impl;

@@ -3031,6 +3031,38 @@ ProfileWorkloadRun runProfileWorkload(ProfileWorkload workload, bool cacpEnabled
     return run;
 }
 
+namespace {
+
+// Endpoint volume of the loopback (CP-1, R-M25-12), read only
+std::string volumeJson(const EndpointVolumeReading& v) {
+    if (!v.valid) return "{\"valid\": false}";
+    std::ostringstream s;
+    s << "{\"valid\": true, \"master_db\": " << safeJsonFloat(v.masterDb) << ", \"scalar\": " << safeJsonFloat(v.scalar)
+      << ", \"mute\": " << (v.mute ? "true" : "false") << ", \"min_db\": " << safeJsonFloat(v.minDb)
+      << ", \"max_db\": " << safeJsonFloat(v.maxDb) << ", \"step_db\": " << safeJsonFloat(v.stepDb)
+      << ", \"hardware_volume\": " << (v.hardwareVolume ? "true" : "false")
+      << ", \"hardware_mute\": " << (v.hardwareMute ? "true" : "false") << "}";
+    return s.str();
+}
+
+// Sessions of this process on the endpoint (CP-1, H2), read only
+std::string sessionsJson(const SessionVolumeReading& s) {
+    if (!s.valid) return "{\"valid\": false}";
+    std::ostringstream o;
+    o << "{\"valid\": true, \"sessions\": [";
+    for (std::uint32_t i = 0; i < s.count; ++i) {
+        const auto& e = s.sessions[i];
+        o << (i ? ", " : "") << "{\"level\": " << safeJsonFloat(e.level) << ", \"mute\": " << (e.mute ? "true" : "false")
+          << ", \"active\": " << (e.active ? "true" : "false") << ", \"channel_levels\": [";
+        for (std::uint32_t c = 0; c < e.channels; ++c) o << (c ? ", " : "") << safeJsonFloat(e.channelLevels[c]);
+        o << "]}";
+    }
+    o << "]}";
+    return o.str();
+}
+
+} // namespace
+
 std::string DeviceProbeResult::toJson() const {
     std::ostringstream ss;
     ss << "{\n";
@@ -3087,6 +3119,14 @@ std::string DeviceProbeResult::toJson() const {
        << ", \"scope\": \"Windows mix of the default endpoint: other applications included; analyse with analyze_loopback.py\""
        << ", \"frames\": " << loopbackFrames << ", \"overflow_frames\": " << loopbackOverflowFrames
        << ", \"mix_sample_rate\": " << loopbackMixSampleRate << ", \"mix_channels\": " << loopbackMixChannels
+       << ", \"endpoint_volume_at_start\": " << volumeJson(loopbackVolumeStart)
+       << ", \"endpoint_volume_at_stop\": " << volumeJson(loopbackVolumeStop)
+       << ", \"sessions_at_start\": " << sessionsJson(loopbackSessionsStart)
+       << ", \"sessions_at_stop\": " << sessionsJson(loopbackSessionsStop)
+       << ", \"endpoint_volume_unchanged\": "
+       << (loopbackVolumeStart.valid && loopbackVolumeStop.valid && loopbackVolumeStart.masterDb == loopbackVolumeStop.masterDb &&
+                   loopbackVolumeStart.mute == loopbackVolumeStop.mute
+               ? "true" : "false")
        << ", \"capture_file\": \"" << escapeJsonString(loopbackFilePath) << "\""
        << ", \"reference_file\": \"" << escapeJsonString(referenceFilePath) << "\"},\n";
     ss << "  \"limits\": \"WASAPI shared mode exposes no underrun count: suspected_underruns counts callback intervals of at least the device buffer, including the device start. frames_rendered is not audio heard.\",\n";
@@ -3333,6 +3373,10 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
         result.loopbackOverflowFrames = loopbackTap->overflowFrames();
         result.loopbackMixSampleRate = loopbackTap->mixSampleRate();
         result.loopbackMixChannels = loopbackTap->mixChannels();
+        result.loopbackVolumeStart = loopbackTap->volumeAtStart();
+        result.loopbackVolumeStop = loopbackTap->volumeAtStop();
+        result.loopbackSessionsStart = loopbackTap->sessionsAtStart();
+        result.loopbackSessionsStop = loopbackTap->sessionsAtStop();
     }
 
     // Quiescence reached: the callback no longer runs (DIF-INC4-R3-05)

@@ -1,5 +1,7 @@
 #include "loopback_capture.h"
 
+#include "endpoint_volume.h"
+
 #include "miniaudio.h"
 
 #include <algorithm>
@@ -17,6 +19,10 @@ struct LoopbackCapture::Impl {
     std::vector<float> buffer{};
     std::atomic<std::uint64_t> frames{0};
     std::atomic<std::uint64_t> overflow{0};
+    EndpointVolumeReading volumeStart{};
+    EndpointVolumeReading volumeStop{};
+    SessionVolumeReading sessionsStart{};
+    SessionVolumeReading sessionsStop{};
 
     static void dataCallback(ma_device* pDevice, void*, const void* pInput, ma_uint32 frameCount) {
         auto* impl = static_cast<Impl*>(pDevice->pUserData);
@@ -44,6 +50,8 @@ LoopbackCapture::~LoopbackCapture() {
 }
 
 bool LoopbackCapture::start() {
+    pImpl_->volumeStart = readDefaultEndpointVolume(); // read only, before the capture thread runs
+    pImpl_->sessionsStart = readProcessSessionVolumes();
     if (!pImpl_->deviceInitialized) {
         ma_device_config config = ma_device_config_init(ma_device_type_loopback);
         config.capture.format = ma_format_f32;
@@ -64,6 +72,8 @@ void LoopbackCapture::stop() {
     if (pImpl_->started) {
         ma_device_stop(&pImpl_->device);
         pImpl_->started = false;
+        pImpl_->volumeStop = readDefaultEndpointVolume();
+        pImpl_->sessionsStop = readProcessSessionVolumes();
     }
 }
 
@@ -85,6 +95,22 @@ std::uint32_t LoopbackCapture::mixChannels() const noexcept {
 
 const std::vector<float>& LoopbackCapture::samples() const noexcept {
     return pImpl_->buffer;
+}
+
+EndpointVolumeReading LoopbackCapture::volumeAtStart() const noexcept {
+    return pImpl_->volumeStart;
+}
+
+EndpointVolumeReading LoopbackCapture::volumeAtStop() const noexcept {
+    return pImpl_->volumeStop;
+}
+
+SessionVolumeReading LoopbackCapture::sessionsAtStart() const noexcept {
+    return pImpl_->sessionsStart;
+}
+
+SessionVolumeReading LoopbackCapture::sessionsAtStop() const noexcept {
+    return pImpl_->sessionsStop;
 }
 
 } // namespace cymatica::audio

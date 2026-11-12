@@ -1,0 +1,16 @@
+{
+  "manifest_version": "1.0",
+  "scenario": "device_probe_v1",
+  "build_id": "92e47d3",
+  "status": "MEASURED",
+  "scope": "baseline on the default device; measures, not a gate. The PASS criterion is decided at CP-1 (ADR-0007)",
+  "usage": "games",
+  "device": {"backend": "WASAPI", "internal_sample_rate": 48000, "internal_channels": 2, "period_frames": 480, "periods": 3, "period_ms": 10, "buffer_ms": 30, "exclusive": false, "mmcss_active": true},
+  "run": {"elapsed_s": 182.835, "frames_rendered": 8777142, "frames_per_second": 48005.8, "dropped_events": 0, "deferred_events": 0, "start_ack_valid": true, "tempo_acks_valid": true, "stop_ack_valid": true, "phrases_planned": 24, "expected_phrases": 24, "generated_events": 1392, "dispatched_events": 2784, "engine_processed_events": 2784, "staged_events_at_stop": 0, "backpressure_drops": 0, "orphan_note_recovered": 0, "max_coordinator_gap_ms": 17.0111, "max_gain_reduction_db": 0},
+  "callback": {"total_blocks": 18388, "min_block_frames": 480, "max_block_frames": 480, "p50_ms": 0.07, "p999_ms": 0.17, "max_ms": 0.4079, "mean_ms": 0.0680983, "blocks_exceeding_2ms_normalised": 0, "blocks_exceeding_block_period": 0, "max_interval_ms": 17.3765, "intervals_over_twice_period": 0, "suspected_underruns": 0},
+  "pcm": {"capture_requested": true, "scope": "callback output, upstream of the Windows mixer", "captured_frames": 8826240, "dropped_frames": 0, "compared_frames": 8825200, "device_hash": 15126969907236845529, "offline_hash": 15126969907236845529, "golden_hash": 15126969907236845529, "device_matches_golden": true, "offline_matches_golden": true, "differing_samples": 0, "first_different_frame": 0, "max_abs_difference": 0},
+  "loopback": {"requested": true, "scope": "Windows mix of the default endpoint: other applications included; analyse with analyze_loopback.py", "frames": 8840640, "overflow_frames": 0, "mix_sample_rate": 48000, "mix_channels": 2, "endpoint_volume_at_start": {"valid": true, "master_db": -5.37158, "scalar": 0.7, "mute": false, "min_db": -74, "max_db": 0, "step_db": 0.5, "hardware_volume": true, "hardware_mute": true}, "endpoint_volume_at_stop": {"valid": true, "master_db": -5.37158, "scalar": 0.7, "mute": false, "min_db": -74, "max_db": 0, "step_db": 0.5, "hardware_volume": true, "hardware_mute": true}, "sessions_at_start": {"valid": true, "sessions": [{"level": 0.5, "mute": false, "active": false, "channel_levels": [1, 1]}]}, "sessions_at_stop": {"valid": true, "sessions": [{"level": 0.5, "mute": false, "active": false, "channel_levels": [1, 1]}]}, "endpoint_volume_unchanged": true, "capture_file": "artifacts/cacp\\device_probe_v1_games_loopback.f32", "reference_file": "artifacts/cacp\\device_probe_v1_reference.f32"},
+  "limits": "WASAPI shared mode exposes no underrun count: suspected_underruns counts callback intervals of at least the device buffer, including the device start. frames_rendered is not audio heard.",
+  "environment": {"build_config": "Release", "cpu": "AMD Ryzen 7 7700X 8-Core Processor", "os_version": "Windows 10.0.26300", "compiler": "MSVC 195136260"},
+  "manifest_write_success": true
+}
