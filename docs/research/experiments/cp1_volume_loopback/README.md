@@ -60,3 +60,9 @@ Pre-registrazione: [aggiunta H2b](../../CP1_Volume_Loopback_Preregistration_Adde
 **OSS-M2.5.1d-02 spiegata.** Sull'uscita USB Windows aveva memorizzato il cursore di `cymatica_game` a 0,0324589 (circa 3 %); il mixer applica il quadrato del livello di sessione prima del punto di cattura del loopback. Il volume dell'endpoint, hardware, agisce dopo e non entra nel loopback (H0).
 
 **Per la qualifica sul device (CP-1):** il manifest registra ora volume dell'endpoint e livello di sessione; il confronto col golden può compensare il fattore livello², oppure il titolare riporta il cursore dell'app al massimo prima delle corse. La legge quadratica è misurata su due livelli (0,0325 e 0,5) su questo dispositivo e questa versione di Windows; non è stata verificata su documentazione Microsoft.
+
+## Note della review (2026-11-12)
+
+- **Provenienza del binario (OSS-CP1-RM25-12-01):** tutte le corse riportano `build_id = 92e47d3`. Il binario è stato compilato dal working tree, con la lettura dei volumi già presente ma non ancora committata; il codice delle corse è quello di `5a796d4`. Il campo `build_id` identifica solo l'ultimo commit, non le modifiche locali.
+- **Identità dell'endpoint (OSS-CP1-RM25-12-02):** i volumi sono letti dall'endpoint predefinito `eConsole` con una enumerazione propria, non dal dispositivo aperto da miniaudio. In queste corse coincidono (unica uscita predefinita); per la qualifica generale va letto l'`IMMDevice` dell'endpoint acquisito, o verificato che gli identificativi coincidano. Rinviato alla qualifica sul device.
+- **Portata della legge quadratica (OSS-CP1-RM25-12-03):** osservata su due livelli e un dispositivo. Per CP-1 la raccomandazione è una sessione a guadagno unitario, impostata a mano e verificata nel manifest, invece di una compensazione generale livello²; la compensazione andrebbe ammessa solo dopo una qualifica specifica dell'endpoint.
