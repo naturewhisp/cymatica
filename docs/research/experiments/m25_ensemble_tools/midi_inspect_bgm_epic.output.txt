@@ -1,0 +1,28 @@
+== bgm_epic (Backing Vocals).mid: format 1, tracks 3, ticks/quarter 480, notes 147
+   meta [(3, 'bgm_epic (Backing Vocals)'), (3, 'Synth Choir'), (3, 'drums')] tempo [(0, 119.78), (960, 119.86), (1920, 119.9)]
+   on the 16th grid 3%, distinct velocities 4, overlap with next 60%, length 16.0 bars, pitch 37-88
+   first notes (tick, dur, midi, vel): [(0, 0, 37, 39), (0, 478, 73, 61), (478, 1, 37, 20), (478, 1, 42, 20), (957, 1, 37, 39), (957, 479, 73, 61), (1436, 1, 37, 39), (1436, 1, 42, 39)]
+== bgm_epic (Bass).mid: format 1, tracks 3, ticks/quarter 480, notes 185
+   meta [(3, 'bgm_epic (Bass)'), (3, 'Electric Bass (finger)'), (3, 'Orchestral Harp')] tempo [(0, 119.78), (960, 119.86), (1920, 119.9)]
+   on the 16th grid 3%, distinct velocities 6, overlap with next 62%, length 16.0 bars, pitch 29-67
+   first notes (tick, dur, midi, vel): [(0, 238, 48, 42), (0, 478, 36, 125), (238, 240, 51, 53), (478, 240, 55, 53), (478, 479, 36, 125), (717, 240, 63, 37), (957, 240, 48, 42), (957, 479, 36, 125)]
+== bgm_epic (Guitar).mid: format 1, tracks 2, ticks/quarter 480, notes 12
+   meta [(3, 'bgm_epic (Guitar)'), (3, 'Alto Sax')] tempo [(0, 119.78), (960, 119.86), (1920, 119.9)]
+   on the 16th grid 0%, distinct velocities 4, overlap with next 0%, length 16.0 bars, pitch 47-59
+   first notes (tick, dur, midi, vel): [(27116, 240, 47, 42), (27356, 240, 50, 12), (27596, 480, 59, 20), (28076, 240, 47, 42), (28316, 240, 50, 12), (28556, 480, 59, 20), (29036, 240, 47, 20), (29276, 240, 50, 12)]
+== bgm_epic (Keyboard).mid: format 1, tracks 2, ticks/quarter 480, notes 129
+   meta [(3, 'bgm_epic (Keyboard)'), (3, 'Pizzicato Strings')] tempo [(0, 119.78), (960, 119.86), (1920, 119.9)]
+   on the 16th grid 2%, distinct velocities 11, overlap with next 12%, length 16.0 bars, pitch 39-67
+   first notes (tick, dur, midi, vel): [(238, 240, 51, 73), (478, 240, 55, 69), (717, 240, 63, 64), (957, 240, 48, 42), (1197, 240, 51, 73), (1436, 240, 55, 59), (1676, 240, 63, 64), (1916, 240, 48, 28)]
+== bgm_epic (Synth).mid: format 1, tracks 3, ticks/quarter 480, notes 193
+   meta [(3, 'bgm_epic (Synth)'), (3, 'Electric Bass (finger)'), (3, 'Orchestral Harp')] tempo [(0, 119.78), (960, 119.86), (1920, 119.9)]
+   on the 16th grid 3%, distinct velocities 7, overlap with next 37%, length 16.0 bars, pitch 24-67
+   first notes (tick, dur, midi, vel): [(0, 238, 31, 53), (0, 238, 43, 61), (238, 240, 51, 82), (478, 240, 43, 47), (478, 240, 55, 61), (717, 240, 63, 61), (957, 240, 31, 47), (957, 240, 43, 39)]
+== bgm_epic (Vocals).mid: format 1, tracks 3, ticks/quarter 480, notes 208
+   meta [(3, 'bgm_epic (Vocals)'), (3, 'Synth Choir'), (3, 'drums')] tempo [(0, 119.78), (960, 119.86), (1920, 119.9)]
+   on the 16th grid 2%, distinct velocities 4, overlap with next 61%, length 15.9 bars, pitch 38-87
+   first notes (tick, dur, midi, vel): [(0, 0, 38, 39), (0, 478, 73, 108), (238, 1, 38, 39), (478, 1, 38, 28), (478, 1, 39, 28), (717, 1, 38, 18), (957, 1, 38, 39), (957, 479, 73, 108)]
+== bgm_epic (Woodwinds).mid: format 1, tracks 3, ticks/quarter 480, notes 49
+   meta [(3, 'bgm_epic (Woodwinds)'), (3, 'Synth Choir'), (3, 'Orchestral Harp')] tempo [(0, 119.78), (960, 119.86), (1920, 119.9)]
+   on the 16th grid 6%, distinct velocities 8, overlap with next 10%, length 16.0 bars, pitch 44-83
+   first notes (tick, dur, midi, vel): [(0, 478, 72, 86), (478, 240, 55, 10), (717, 240, 63, 10), (957, 479, 72, 86), (1436, 479, 75, 86), (1916, 480, 79, 86), (2395, 240, 55, 10), (2635, 240, 63, 10)]
