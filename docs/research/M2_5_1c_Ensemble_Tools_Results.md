@@ -90,12 +90,13 @@ Predizioni registrate prima dell'acquisizione nell'[aggiunta F8/F9](M2_5_1c_Ense
 
 **Entrambe le predizioni mancano.** Le distanze M4 stanno fra 0,8 e 0,95 a ogni lag, per entrambi: due frasi reali differiscono quasi sempre nella maggior parte degli intervalli, e la M4, categorica, le vede tutte quasi ugualmente lontane. In F9 la frase 21 è identica alla frase 1 secondo la nota d'intento, ma una sola coppia identica non sposta la media a lag 20.
 
-**Conseguenza, secondo la lettura fissata nell'aggiunta.** Il criterio di cavallo su F1–F4 resta soddisfatto, ma le fixture sintetiche erano troppo facili: lo sviluppo di F3 procede per una modifica alla volta, esattamente ciò che la M4 conta. Su musica reale, umana o di modello, il variogramma M4 non distingue uno sviluppo dal caso. **La M4 non va usata per diagnosticare lo sviluppo musicale.** Resta descrittiva per ripetizioni letterali e ritorni identici, come quelli di Corpo nella fixture del gioco, il cui materiale si ripete esattamente.
+**Conseguenza, secondo la lettura fissata nell'aggiunta.** Il criterio di cavallo su F1–F4 resta soddisfatto, ma le fixture sintetiche erano troppo facili: lo sviluppo di F3 procede per una modifica alla volta, esattamente ciò che la M4 conta. **La M4 non ha rilevato lo sviluppo nei controlli F8 e F9, con la segmentazione in frasi di 4 battute e la rappresentazione usate** (OSS-M2.5.1c-F8F9-01): non è dimostrato che fallisca su ogni composizione, ma non ha superato i controlli esterni pre-registrati, quindi **non è validata come indicatore dello sviluppo musicale e non va usata per diagnosticarlo**. F8 non porta annotazioni indipendenti su quali frasi consecutive siano trasformazioni motiviche. Resta descrittiva per ripetizioni letterali e ritorni identici, come quelli di Corpo nella fixture del gioco, il cui materiale si ripete esattamente.
 
 Non si è ritoccata né la misura né la conversione. Una misura diversa (per esempio graduata sugli intervalli, o la M3 per punti già esistente) richiede una nuova pre-registrazione e va provata sugli stessi controlli F1–F9: proposta per CP-3, non adottata.
 
 ## 7. Limiti
 
-- F7 non eseguita: la validazione contro un controllo umano manca.
+- Esiste ora un controllo umano storico (F8, Bach), ma non il controllo con le intenzioni dichiarate dell'autore (F7) né annotazioni indipendenti dei rapporti fra le frasi (OSS-M2.5.1c-F8F9-02).
+- Il criterio di cavallo soddisfatto su F1–F4 **non è una validazione globale**: dopo gli esiti negativi di F8 e F9 vale solo per lo sviluppo per operazioni discrete delle fixture sintetiche.
 - Una sola distanza (M4), con due limiti dichiarati: categorica sugli intervalli, cieca solo alla trasposizione cromatica.
 - Nessun ascolto. Le misure non dicono se lo sviluppo si sente.

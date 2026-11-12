@@ -221,7 +221,7 @@ build/x64-release/apps/cymatica_game/cymatica_game.exe --cacp-run ensemble_tools
 
 - Offline, simbolico, pochi secondi; manifest `artifacts/cacp/ensemble_tools_v1_manifest.json`. Mai un gate, mai nello scoring del planner.
 - Eseguire dalla radice del repository: senza la pre-registrazione, o con un hash diverso, lo stato è `INCONCLUSIVE` e il comando esce con 1 (DIF-M2.5.1c-STEP4-01). Controllare poi `horse_criterion.met == true`; le predizioni mancate stanno in `horse_criterion.missed_predictions` e si riportano, non si correggono ritoccando le fixture.
-- Variogramma M4 per ruolo contro un nullo di 1000 permutazioni; limiti da dichiarare in ogni uso: M4 è categorica sugli intervalli e cieca solo alla trasposizione cromatica. **Non vede lo sviluppo nella musica reale** (F8 Bach e F9 subagente `ORDER_FREE`): usarla solo per ripetizioni e ritorni letterali.
+- Variogramma M4 per ruolo contro un nullo di 1000 permutazioni; limiti da dichiarare in ogni uso: M4 è categorica sugli intervalli e cieca solo alla trasposizione cromatica. **Non ha rilevato lo sviluppo nei controlli F8 (Bach) e F9 (subagente)**, entrambi `ORDER_FREE`: non è validata come indicatore dello sviluppo musicale; usarla solo per ripetizioni e ritorni letterali.
 - Controlli F7–F9 in `docs/research/experiments/m25_ensemble_tools/` e `controls/`; si misurano solo se l'hash della loro aggiunta alla pre-registrazione coincide. Conversione con `convert_control.py`.
 - F7 (controllo positivo) richiede un file scritto da una persona in `docs/research/experiments/m25_ensemble_tools/positive_control.json`; senza, resta `NOT_RUN`.
 
