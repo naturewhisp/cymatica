@@ -1,0 +1,44 @@
+{
+  "A_saturation": {
+    "alias_to_signal_db": {
+      "adaa1": -69.62525100848487,
+      "naive": -68.02696788833329,
+      "oversampled_2x": -70.45948831815889,
+      "oversampled_4x": -70.45947481810107
+    },
+    "note": "sine 1244.5 Hz, tanh(4x); oversampling with direct-form windowed-sinc FIR (63 or 255 taps), an upper bound on cost: a polyphase or IIR halfband would be cheaper",
+    "ns_per_sample": {
+      "adaa1": 29.660833333333333,
+      "naive": 10.953333333333333,
+      "oversampled_2x_direct_fir": 1.7741666666666667,
+      "oversampled_4x_direct_fir": 6.843333333333334
+    }
+  },
+  "B_supersaw": {
+    "1": {
+      "ns_per_frame_8_voices": 21.476458333333333
+    },
+    "3": {
+      "ns_per_frame_8_voices": 63.64958333333333
+    },
+    "5": {
+      "ns_per_frame_8_voices": 104.305
+    },
+    "7": {
+      "ns_per_frame_8_voices": 148.559375
+    }
+  },
+  "C_lfo_svf": {
+    "constant_cutoff": 6.332291666666666,
+    "lfo_every_32_samples": 10.045,
+    "lfo_every_sample": 17.775833333333335
+  },
+  "D_denormals": {
+    "engine_flush": 2.074375,
+    "no_flush": 16.627083333333335,
+    "no_flush_ftz_daz": 5.435416666666667,
+    "subnormal_samples_unflushed_of_480000": 462493
+  },
+  "preregistration": "docs/research/CP1_RM25_3_Early_Preregistration.md",
+  "unit": "median ns per sample over 5 repetitions of 10 s at 48 kHz, Release, one thread"
+}

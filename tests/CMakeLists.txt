@@ -13,6 +13,7 @@ add_executable(cymatica_tests
     unit/test_music_planner.cpp
     unit/test_latent_faults.cpp
     unit/test_ensemble_tools.cpp
+    unit/test_rm25_3_early.cpp
     unit/test_meter_feasibility.cpp
     unit/test_realtime_profile.cpp
     unit/test_event_chain.cpp
