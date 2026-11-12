@@ -40,6 +40,8 @@ target_link_libraries(cymatica_tests
 
 include(${catch2_SOURCE_DIR}/extras/Catch.cmake)
 # Catch tags become CTest labels, e.g. [device] -> label "device".
+# Source tree for tests that read versioned documents (M2.5.1c: the frozen pre-registration)
+target_compile_definitions(cymatica_tests PRIVATE CYMATICA_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 catch_discover_tests(cymatica_tests ADD_TAGS_AS_LABELS)
 
 # Source-level check, no device needed: the engine library has one device owner (CONS-01).

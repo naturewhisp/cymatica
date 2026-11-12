@@ -71,7 +71,15 @@ Sostituisce `vertical_check.py`, che leggeva un CSV non versionato; i numeri non
 
 L'unità è lavoro logico, non tempo. Moltiplicare D e G per B × S è una scelta nostra per rendere confrontabili le formule del dossier. Ordine di grandezza per CP-3, non un budget.
 
-## 5. Limiti
+## 5. Correzioni dopo la review (2026-11-12)
+
+- **Pre-registrazione fail-closed (DIF-M2.5.1c-STEP4-01):** se il file manca o l'hash differisce, lo scenario è `INCONCLUSIVE` ed esce con codice 1; il manifest resta per diagnosi. Prima bastava il campo `matches`, da controllare a mano.
+- **F7 senza note (DIF-M2.5.1c-STEP4-02):** un controllo con meno di 2 frasi con note viene rifiutato, perché nessuna distanza è calcolabile; F7 è `MEASURED` solo se il variogramma è calcolabile. Non è una soglia di qualità: le circa 24 frasi restano un requisito delle istruzioni.
+- **p = 0,003 del ritorno di Corpo (OSS-M2.5.1c-STEP4-01):** è descrittivo e non corretto per i confronti multipli fra ruoli e lag.
+
+Le misure di F1–F6 e della fixture reale non cambiano.
+
+## 6. Limiti
 
 - F7 non eseguita: la validazione contro un controllo umano manca.
 - Una sola distanza (M4), con due limiti dichiarati: categorica sugli intervalli, cieca solo alla trasposizione cromatica.

@@ -66,7 +66,9 @@ enum class AdversarialFixture : std::uint8_t { Loop = 1, Noise, Development, Shu
 [[nodiscard]] const char* adversarialFixtureName(AdversarialFixture id) noexcept;
 
 // F7: positive control written by a person, JSON {"phrases": [[{"onset": 0, "midi": 62, "duration": 4}, ...], ...]};
-// nullopt with the reason in `error` when the file is missing or invalid (the fixture is then NOT_RUN)
+// nullopt with the reason in `error` when the file is missing or invalid (the fixture is then NOT_RUN). Invalid also
+// when fewer than 2 phrases carry notes, because no distance can be computed (DIF-M2.5.1c-STEP4-02; not a quality
+// threshold: the request for about 24 phrases stays a documentary requirement).
 [[nodiscard]] std::optional<std::vector<PhraseTokens>> loadPositiveControl(const std::string& path, std::string& error);
 
 // Vertical statistics on the integer grid (pre-registration §5), per section of fixture-m2-4-v1
@@ -92,14 +94,17 @@ struct DesignCost {
 [[nodiscard]] std::vector<DesignCost> designCostEstimates();
 
 struct EnsembleToolsResult {
-    std::string status{"NOT_RUN"};   // MEASURED, or INCONCLUSIVE when the fixture cannot be planned
+    // MEASURED; INCONCLUSIVE when the pre-registration is missing or its hash differs (DIF-M2.5.1c-STEP4-01) or the
+    // fixture cannot be planned. The manifest is still written for diagnosis.
+    std::string status{"NOT_RUN"};
     std::string error{};
+    std::string preregistrationPath{};
     std::string preregistrationSha256{};  // computed on the file, LF line endings; empty when unreadable
     bool preregistrationMatches{false};
     struct FixtureOutcome {
         std::string id;
         std::string name;
-        std::string status{"NOT_RUN"};      // MEASURED or NOT_RUN
+        std::string status{"NOT_RUN"};      // MEASURED, NOT_RUN (no file) or INCONCLUSIVE (variogram not computable)
         std::string reason{};
         std::string expectedClassification{};
         RoleVariogram vettore{};
@@ -116,6 +121,9 @@ struct EnsembleToolsResult {
     [[nodiscard]] std::string toJson() const;
 };
 
-[[nodiscard]] EnsembleToolsResult runEnsembleToolsV1(const std::string& outputDir, bool writeFiles);
+// preregistrationPath: the frozen pre-registration; relative paths resolve against the working directory
+[[nodiscard]] EnsembleToolsResult runEnsembleToolsV1(const std::string& outputDir, bool writeFiles,
+                                                     const std::string& preregistrationPath = kEnsemblePreregistration,
+                                                     const std::string& positiveControlPath = kEnsemblePositiveControlPath);
 
 } // namespace cymatica::cacp

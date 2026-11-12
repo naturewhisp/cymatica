@@ -350,6 +350,11 @@ std::optional<std::vector<PhraseTokens>> loadPositiveControl(const std::string& 
             error = "fewer than 4 phrases";
             return std::nullopt;
         }
+        const auto withNotes = std::count_if(out.begin(), out.end(), [](const PhraseTokens& p) { return !p.empty(); });
+        if (withNotes < 2) {
+            error = "fewer than 2 phrases with notes: no distance can be computed";
+            return std::nullopt;
+        }
         return out;
     } catch (const std::exception& e) {
         error = std::string("invalid JSON: ") + e.what();
@@ -410,11 +415,13 @@ std::vector<DesignCost> designCostEstimates() {
     };
 }
 
-EnsembleToolsResult runEnsembleToolsV1(const std::string& outputDir, bool writeFiles) {
+EnsembleToolsResult runEnsembleToolsV1(const std::string& outputDir, bool writeFiles, const std::string& preregistrationPath,
+                                       const std::string& positiveControlPath) {
     EnsembleToolsResult r;
+    r.preregistrationPath = preregistrationPath;
     // Pre-registration integrity: hash of the file with LF line endings
     {
-        std::ifstream in(kEnsemblePreregistration, std::ios::binary);
+        std::ifstream in(preregistrationPath, std::ios::binary);
         if (in) {
             std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
             text.erase(std::remove(text.begin(), text.end(), '\r'), text.end());
@@ -449,9 +456,10 @@ EnsembleToolsResult runEnsembleToolsV1(const std::string& outputDir, bool writeF
         f.id = "F7";
         f.name = "positive control written by a person";
         std::string error;
-        if (const auto control = loadPositiveControl(kEnsemblePositiveControlPath, error)) {
+        if (const auto control = loadPositiveControl(positiveControlPath, error)) {
             f.vettore = roleVariogram(*control, kVettore);
-            f.status = "MEASURED";
+            f.status = f.vettore.classification == "NO_DATA" ? "INCONCLUSIVE" : "MEASURED";
+            if (f.status != "MEASURED") f.reason = "variogram not computable: " + f.vettore.classification;
         } else {
             f.reason = error;
         }
@@ -470,6 +478,15 @@ EnsembleToolsResult runEnsembleToolsV1(const std::string& outputDir, bool writeF
         for (std::size_t role = 0; role < kRoleCount; ++role) r.fixtureRoles[role] = roleVariogram(tokens, role);
         r.vertical = fixtureVerticalStats(plan);
         r.status = "MEASURED";
+    }
+    // Fail-closed on the pre-registration (DIF-M2.5.1c-STEP4-01): the measures stay in the manifest for diagnosis,
+    // but the experiment is not reported as a success
+    if (r.preregistrationSha256.empty()) {
+        r.status = "INCONCLUSIVE";
+        r.error = "pre-registration not readable: " + preregistrationPath;
+    } else if (!r.preregistrationMatches) {
+        r.status = "INCONCLUSIVE";
+        r.error = "pre-registration hash " + r.preregistrationSha256 + " differs from " + kEnsemblePreregistrationSha256;
     }
     r.costs = designCostEstimates();
     if (writeFiles) {
@@ -493,7 +510,7 @@ std::string EnsembleToolsResult::toJson() const {
     if (!error.empty()) j["error"] = error;
     j["gate"] = false;
     j["scope"] = "offline symbolic measures of R-M25-7 (M2.5.1c): never a gate, never part of the planner scoring";
-    j["preregistration"] = {{"path", kEnsemblePreregistration}, {"expected_sha256", kEnsemblePreregistrationSha256},
+    j["preregistration"] = {{"path", preregistrationPath}, {"expected_sha256", kEnsemblePreregistrationSha256},
                             {"file_sha256_lf", preregistrationSha256.empty() ? json(nullptr) : json(preregistrationSha256)},
                             {"matches", preregistrationMatches}};
     j["method"] = {{"distance", "M4: normalised Levenshtein on (onset delta, interval, duration class) per role; transposition invariant"},

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <tuple>
 
 using namespace cymatica::cacp;
@@ -186,8 +187,10 @@ TEST_CASE("Ensemble tools: cost estimates follow the declared formulas", "[ensem
 }
 
 TEST_CASE("Ensemble tools: scenario outcome on the pre-registered fixtures (M2.5.1c)", "[ensemble_tools]") {
-    const EnsembleToolsResult r = runEnsembleToolsV1("artifacts/ensemble_tools_test", false);
+    const std::string prereg = std::string(CYMATICA_SOURCE_DIR) + "/" + kEnsemblePreregistration;
+    const EnsembleToolsResult r = runEnsembleToolsV1("artifacts/ensemble_tools_test", false, prereg);
     CHECK(r.status == "MEASURED");
+    CHECK(r.preregistrationMatches);
     // Horse criterion of the pre-registration §3: met on the first run
     CHECK(r.horseCriterionMet);
     // F5 was predicted DEGENERATE (transposition invariance) and is not: the transposition is diatonic, so the
@@ -195,6 +198,58 @@ TEST_CASE("Ensemble tools: scenario outcome on the pre-registered fixtures (M2.5
     REQUIRE(r.missedPredictions.size() == 1);
     CHECK(r.missedPredictions[0] == "F5: expected DEGENERATE, got ORDER_FREE");
     // F7 stays NOT_RUN until a person provides the positive control
+    CHECK(r.adversarial.back().id == "F7");
+    CHECK(r.adversarial.back().status == "NOT_RUN");
+}
+
+TEST_CASE("Ensemble tools: a missing or changed pre-registration makes the run INCONCLUSIVE (DIF-M2.5.1c-STEP4-01)", "[ensemble_tools]") {
+    namespace fs = std::filesystem;
+    const EnsembleToolsResult missing = runEnsembleToolsV1("artifacts/ensemble_tools_test", false, "no/such/preregistration.md");
+    CHECK(missing.status == "INCONCLUSIVE");
+    CHECK_FALSE(missing.preregistrationMatches);
+    CHECK(missing.error.find("not readable") != std::string::npos);
+
+    // A copy of the frozen file with one character changed: different hash
+    const std::string source = std::string(CYMATICA_SOURCE_DIR) + "/" + kEnsemblePreregistration;
+    std::ifstream in(source, std::ios::binary);
+    REQUIRE(in.good());
+    std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    REQUIRE_FALSE(text.empty());
+    text[text.size() / 2] = text[text.size() / 2] == 'x' ? 'y' : 'x';
+    fs::create_directories("artifacts/ensemble_tools_test");
+    const std::string changed = "artifacts/ensemble_tools_test/changed_preregistration.md";
+    {
+        std::ofstream out(changed, std::ios::binary);
+        out << text;
+    }
+    const EnsembleToolsResult differs = runEnsembleToolsV1("artifacts/ensemble_tools_test", false, changed);
+    CHECK(differs.status == "INCONCLUSIVE");
+    CHECK_FALSE(differs.preregistrationMatches);
+    CHECK(differs.error.find("differs") != std::string::npos);
+    // The measures are still computed for diagnosis
+    CHECK(differs.adversarial.size() == 7);
+}
+
+TEST_CASE("Ensemble tools: a positive control without notes is rejected (DIF-M2.5.1c-STEP4-02)", "[ensemble_tools]") {
+    namespace fs = std::filesystem;
+    fs::create_directories("artifacts/ensemble_tools_test");
+    const std::string file = "artifacts/ensemble_tools_test/empty_control.json";
+    {
+        std::ofstream out(file);
+        out << R"({"phrases": [[], [], [], []]})";
+    }
+    std::string error;
+    CHECK_FALSE(loadPositiveControl(file, error).has_value());
+    CHECK(error.find("fewer than 2 phrases with notes") != std::string::npos);
+    {
+        std::ofstream out(file);
+        out << R"({"phrases": [[{"onset": 0, "midi": 62, "duration": 4}], [], [], []]})";
+    }
+    CHECK_FALSE(loadPositiveControl(file, error).has_value()); // one phrase with notes is still not a distance
+
+    // Through the scenario: F7 is never MEASURED on such a file
+    const std::string prereg = std::string(CYMATICA_SOURCE_DIR) + "/" + kEnsemblePreregistration;
+    const EnsembleToolsResult r = runEnsembleToolsV1("artifacts/ensemble_tools_test", false, prereg, file);
     CHECK(r.adversarial.back().id == "F7");
     CHECK(r.adversarial.back().status == "NOT_RUN");
 }
