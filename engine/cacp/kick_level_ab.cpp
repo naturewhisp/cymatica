@@ -307,6 +307,11 @@ KickLevelAbResult runKickLevelAbV1(const std::string& outputDir, bool writeFiles
                     const std::array<std::span<const float>, 4> s{cap.stem(0), cap.stem(1), cap.stem(2), cap.stem(3)};
                     m.nullTest = kickNullTest(m.scale, s0, bus0, s, cap.busMix());
                 }
+                if (withClips && db == kFullPieceOffsetDb) {
+                    const std::string name = "f4a_full_" + offsetLabel(db) + "_raw.wav";
+                    if (writeWav(dir / name, stereo)) r.clips.push_back(name);
+                    else r.reasons.push_back("cannot write full piece " + name);
+                }
                 if (withClips) {
                     for (std::size_t i = 0; i < clipsAt.size(); ++i) {
                         const auto& cr = clipsAt[i];
@@ -430,7 +435,7 @@ std::string KickLevelAbResult::toJson() const {
     j["P7"] = outcomeJson(p7);
     j["repeat_identical"] = repeatIdentical;
     j["clips"] = {{"dir", "kick_level_ab_v1"}, {"files", clips},
-                  {"selection", "phrases 3-4 of each section (bars 9-16), 10 ms fades; raw and loudness-aligned to offset 0"}};
+                  {"selection", "phrases 3-4 of each section (bars 9-16), 10 ms fades; raw and loudness-aligned to offset 0; full piece at kFullPieceOffsetDb, raw"}};
     return j.dump(2) + "\n";
 }
 

@@ -73,7 +73,7 @@ Ogni checkpoint è una decisione del titolare, presa sulle evidenze della fase c
 | CP | Dopo | Domande | Evidenze |
 |---|---|---|---|
 | **CP-1** | M2.5.1 | Serve il cambio di metro? Quale criterio PASS per il device? Quanto margine DSP c'è per gli effetti? Quale protocollo d'ascolto? Il rapporto FM entra in M2.5.2? | Baseline su device, confronto PCM, loopback, R-M25-8, prova di fattibilità, confronto con la specifica |
-| **CP-2** | M2.5.2 | Il mix è credibile? Con il kick più alto il metro regge ancora? F1 va corretto, e come? | Misure, A/B, ascolto con Q3 per sezione |
+| **CP-2** | M2.5.2 | Il mix è credibile? Con il kick più alto il metro regge ancora? F1 va corretto, e come? | Misure e A/B misurati; per D-M2-30 nessun ascolto umano dedicato: Q3 per sezione passa al primo ascolto cumulativo |
 | **CP-3** | M2.5.3 | La transizione A→B è risolta? Serve una rampa di tempo? Dove va F5: una parte in M2.5.4 o tutto a M6? | Misure, ascolto, costo stimato |
 | **CP-4** | M2.5.3 o M2.5.4 | Quale rilascio (H-03)? Quale normalizzazione (H-04)? Il contenuto è congelabile? Come si imposta la sessione alla cieca (H-05)? | 5e.3, 5e.3b, prova sul contenuto corrente |
 | **CP-5** | M2.5.5 | Si ratificano le soglie AC-AO-02 (H-01, H-02)? Si può passare alla build finale? | Ricalibrazione, esito della sessione alla cieca |
@@ -81,7 +81,7 @@ Ogni checkpoint è una decisione del titolare, presa sulle evidenze della fase c
 
 Ogni checkpoint riesamina anche le voci di §8.1 che gli competono.
 
-**Ascolti.** Sono previsti tre ascolti umani: CP-2, CP-3 e il gate. L'agente non ascolta e non conta come partecipante. Il titolare ha confermato (2026-11-03) che un secondo ascoltatore è fattibile, purché le domande siano semplici e adatte anche a chi non ha studiato musica. Il questionario si fissa con il protocollo a CP-1, e non aggiunge criteri mandatory.
+**Ascolti.** Sono previsti tre ascolti umani: CP-2, CP-3 e il gate. **Emendato da D-M2-30 (2026-11-16):** gli ascolti umani si fanno solo su materiale maturo e cumulativo; quello di CP-2 confluisce nel primo ascolto successivo di questo tipo. L'agente non ascolta e non conta come partecipante. Il titolare ha confermato (2026-11-03) che un secondo ascoltatore è fattibile, purché le domande siano semplici e adatte anche a chi non ha studiato musica. Il questionario si fissa con il protocollo a CP-1, e non aggiunge criteri mandatory.
 
 ## 5. Calendario delle decisioni
 
@@ -179,7 +179,7 @@ Registro unico dei suggerimenti raccolti il [2026-10-28](../m2_4_human_listening
 | Suggerimento | Destinazione |
 |---|---|
 | Linea di basso (urgente) | F7, CP-2 |
-| Kick: più peso nelle basse, durata oltre i 54–62 ms attuali | F4, M2.5.2 |
+| Kick: più peso nelle basse, durata oltre i 54–62 ms attuali | F4, M2.5.2. **Livello adottato** (+8 dB, D-M2-31); durata e peso nelle basse restano a F4b, verificati con misure (D-M2-30) |
 | Kick campionato o drum kit in un campionatore | R-M25-9, confronto A/B con il kick sintetico |
 | Backbeat e ghost notes per ancorare il metro | F1, CP-2 |
 | LFO sul filtro a quarti o ottavi, su pad o lead | **Adottata** a CP-1 come A/B in M2.5.2 (D-M2-29) |
@@ -219,7 +219,16 @@ Il titolare ha approvato il 2026-11-16 tutte le proposte del [dossier delle deci
 | **D-M2-23** | Canale ETW `/GlitchDetection` (D3) | **Non attivato.** Da riconsiderare se un artefatto viene sentito e nessun rilevatore lo vede, o per un'uscita senza loopback affidabile | Nessuno | Riesame se ricorre la condizione |
 | **D-M2-24** | Default di MMCSS nel runtime (D4) | **Rinviato a R-M25-10**; il default non cambia, il probe usa `games` | Nessuno | R-M25-10, prima di M2.5.6 |
 | **D-M2-25** | Margine DSP per gli effetti (D5) | Margine indicativo ≈ 1,6 ms per 512 frame (D-M2-10). Ogni effetto entra solo con la sua misura nel profilo D-M2-10 e con l'azzeramento dei denormali nelle strutture a retroazione; riverbero, chorus e delay restano a R-M25-3 | D-M2-10, ADR-0004 | Misura di ogni effetto prima dell'integrazione |
-| **D-M2-26** | Perimetro di M2.5.2 (D6) | F4 (kick), F2 (stereo della Trama) e **rapporto FM della Trama**, ciascuno con A/B, null test e golden aggiornato con motivo. LFO sul filtro, saturazione e supersaw entrano come A/B successivi, uno per pacchetto, dopo F4, con misura di costo e ipotesi registrata prima dell'ascolto; la supersaw usa fasi da uno stream deterministico isolato. La riassegnazione delle voci libere richiede un ADR dedicato, fuori da M2.5 | Golden PCM (ogni intervento); D-M2-03 invariato | Gli A/B e l'ascolto di CP-2 |
+| **D-M2-26** | Perimetro di M2.5.2 (D6) | F4 (kick), F2 (stereo della Trama) e **rapporto FM della Trama**, ciascuno con A/B, null test e golden aggiornato con motivo. LFO sul filtro, saturazione e supersaw entrano come A/B successivi, uno per pacchetto, dopo F4, con misura di costo e ipotesi registrata prima dell'ascolto; la supersaw usa fasi da uno stream deterministico isolato. La riassegnazione delle voci libere richiede un ADR dedicato, fuori da M2.5 | Golden PCM (ogni intervento); D-M2-03 invariato | Gli A/B misurati; l'ascolto cumulativo successivo (D-M2-30) |
 | **D-M2-27** | Protocollo d'ascolto, P-M25-03 (D7) | **Adottato**: [protocollo](../m2_5_listening_protocol_P-M25-03.md). **Annotazione del titolare:** in una sessione di 45 minuti al massimo va garantita varietà per non annoiare l'ascoltatore; recepita nel protocollo (§2bis) | Procedura degli ascolti di CP-2, CP-3 e gate | Il modulo di risposta di ogni sessione |
 | **D-M2-28** | Ricerche R-M25-10..12 (D8) | R-M25-10 aggiunta al §7; R-M25-12 eseguita e chiusa; R-M25-11 non aggiunta, perché D-M2-21 non sceglie l'opzione A | §7 | §7 |
 | **D-M2-29** | Voci di §8.1 in scadenza a CP-1 (D9) | LFO, saturazione e supersaw adottate come A/B in M2.5.2 (D-M2-26); modulazioni di altri parametri rinviate a dopo l'esito dell'LFO; volume per giudicare il kick adottato nel protocollo (D-M2-27) | §8.1 | §8.1 |
+
+## 11. Decisioni del titolare durante M2.5.2 (2026-11-16)
+
+Prese dal titolare il 2026-11-16 dopo aver ascoltato il brano del pacchetto CP-2 di F4a. Il pacchetto conteneva lo stesso brano del 2026-11-03 con il solo kick più alto. Stato: `accepted for implementation`.
+
+| ID | Decisione | Motivo | Alternative scartate | Contratti toccati | Verifica |
+|---|---|---|---|---|---|
+| **D-M2-30** | **Ascolti umani solo su materiale maturo; verifica autonoma delle variazioni misurabili.** Una variazione piccola e misurabile, come un livello, un guadagno di bus o una costante di bilanciamento, si decide e si verifica senza ascolto umano. Valgono criteri oggettivi pre-registrati (livelli in LU, headroom e limiter, null test, invarianza degli altri ruoli) e i giudizi umani già raccolti. Se una variazione di volume non è verificabile in autonomia, è un difetto degli strumenti da correggere, non un motivo per chiamare un ascoltatore. L'ascolto umano resta per le domande che le misure non coprono (coerenza, interesse, sviluppo, «ricordi, sviluppi, sorprenda e ritorni»). Si fa ai checkpoint, su materiale cumulativo, più maturo e completo. | Titolare: per 6 dB di kick un ascolto umano non vale il disturbo; far riascoltare alla stessa persona lo stesso brano non ha senso | Ascolto dedicato per ogni intervento (pacchetto CP-2 di F4a, archiviato senza invio) | §4, colonna CP-2 e paragrafo «Ascolti»; D-M2-26, colonna verifica; il [protocollo P-M25-03](../m2_5_listening_protocol_P-M25-03.md) resta valido per gli ascolti che si faranno | Ogni intervento di M2.5.2 ha la sua pre-registrazione e le sue misure; il primo ascolto cumulativo raccoglie Q3 per sezione e le domande di CP-2 |
+| **D-M2-31** | **Livello del kick (F4a): +8 dB sul bus di Pulso**, da −6 a +2 dB (`kPulsoGain` 1,2589). È il centro della stima dell'esperto del 2026-11-03 (kick 7–9 dB sotto gli altri ruoli). Il ducking di Corpo segue il guadagno (`kDuckingFullScaleLevel` = 0,25 · `kPulsoGain`), quindi resta invariato. **Cambia la regola di decisione** della [pre-registrazione F4a](../research/M2_5_2_F4_Kick_Level_Preregistration.md) §5, che affidava il valore all'ascolto di CP-2: il file firmato non si modifica, e le ipotesi d'ascolto L1, L2 e S1–S3 restano non verificate | Il giudizio umano esiste già; le misure di `kick_level_ab_v1` (P1–P7 confermate) dicono che fra +6 e +9 dB il limiter non interviene e gli altri ruoli restano invariati | +6 dB (sotto la stima); +9 dB (bordo della stima); attendere un ascolto (escluso da D-M2-30) | Gain staging di ADR-0003 D-M2-06 («calibrabile senza alterare contratti pubblici»); golden PCM della fixture, aggiornato con questo motivo | [Addendum di adozione](../research/M2_5_2_F4_Kick_Level_Adoption_Preregistration.md), predizioni registrate prima della misura |

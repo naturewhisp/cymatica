@@ -1,5 +1,7 @@
 #pragma once
 
+#include "audio_probe.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -25,7 +27,11 @@ inline constexpr double kP4ToleranceLu = 0.05;
 inline constexpr double kP3StemTolerance = 1e-6;
 inline constexpr double kP3BusTolerance = 2e-6;
 inline constexpr double kP6MaxPredictedOffsetDb = 9.0;   // limiter reduction 0 dB predicted up to +9 dB
-inline constexpr std::uint64_t kFixtureGoldenPcm = 15126969907236845529ULL;
+// Full piece written for the CP-2 listening (free description, scales, Q3 per section): the ladder midpoint, chosen
+// before listening as working material, not as the candidate value (the level is decided by the section rankings)
+inline constexpr double kFullPieceOffsetDb = 6.0;
+// Same golden as the fixture (the scenario's offset 0 is the current production)
+inline constexpr std::uint64_t kFixtureGoldenPcm = audio::kFixtureProbeV1GoldenPcmHash;
 
 // Linear scale of an offset: exactly 1 for 0 dB (production path, no override)
 [[nodiscard]] float kickGainScale(double offsetDb) noexcept;

@@ -3126,3 +3126,42 @@ Il titolare ha approvato tutte le proposte del [dossier](CP1_decision_dossier.md
   Produzione invariata (`kPulsoGain` −6 dB, golden PCM invariato).
 - **Build e test:** Release e Debug headless con `-WarningsAsErrors`, 270/270 ciascuna.
 - **Prossimo passo:** pacchetto d'ascolto per CP-2 (coppie dalle clip allineate, controlli B0, chiave del titolare). Il valore di `kPulsoGain` e il golden si aggiornano dopo l'esito. Poi F4b (durata e peso nelle basse, A/B di timbro con la sua pre-registrazione) e F2. Non committato.
+
+**CP-2, pacchetto d'ascolto di F4a — ipotesi registrate prima** [CP2_S1_Listening_Hypotheses.md](research/CP2_S1_Listening_Hypotheses.md), SHA-256 (LF) `dab54ad76dfc48ea3fe881e0e5152bf91739ba8538258279098f48bd89eb7e6e`, scritto prima di costruire il pacchetto. Le prove superano 45 minuti, quindi due sessioni (§2bis):
+- **sessione 1:** brano completo a +6 dB, classifiche per sezione con un duplicato nascosto, coppie con una coppia identica, Q3 per sezione;
+- **sessione 2:** ABX di L2.
+
+Ipotesi L1, L2, S1–S3 (S2 e S3 su F1) e B0, con le regole di lettura.
+
+**CP-2, pacchetto d'ascolto di F4a pronto (2026-11-16):** costruito con `make_cp2_package.py` ([esperimento](research/experiments/m25_2_f4_kick_level/README.md)) secondo le ipotesi registrate.
+- **Sessione 1** (circa 40 minuti):
+  - brano completo a +6 dB, prodotto ora anche da `kick_level_ab_v1`; ricorsa con clip e misure identiche;
+  - tre classifiche per sezione, quella di B con un duplicato nascosto mai adiacente all'originale;
+  - quattro coppie, una identica;
+  - coppia e domande per il secondo ascoltatore.
+- **Sessione 2:** due ABX da 16 prove.
+- **Chiave** separata, `artifacts/expert_listening/CHIAVE_CP2_2026-11-16_NON_INVIARE.txt`, da non inviare.
+- **Correzioni del disegno prima dell'invio:** il duplicato adiacente e un elenco di checksum nel pacchetto, che avrebbe rivelato i file identici. Le prime due generazioni sono state cancellate senza essere inviate.
+- **Release headless `/WX`:** 270/270 dopo la modifica dello scenario. Non committato.
+
+**Decisioni del titolare (2026-11-16, dopo aver ascoltato il pacchetto CP-2):** il brano era lo stesso del 2026-11-03 con il solo kick più alto, e un ascolto umano per 6 dB non vale il disturbo. Registrate in ADR-0007 §11:
+- **D-M2-30:** le variazioni piccole e misurabili si verificano senza ascolto umano; se una variazione di volume non è verificabile in autonomia, è un difetto degli strumenti. Gli ascolti umani si fanno solo su materiale maturo e cumulativo, e quello di CP-2 confluisce nel successivo;
+- **D-M2-31:** kick a +8 dB (Pulso da −6 a +2 dB), centro della stima dell'esperto. Cambia la regola di decisione della pre-registrazione F4a, che resta invariata; L1, L2 e S1–S3 restano non verificate.
+
+Pacchetto CP-2 archiviato senza invio. ADR-0003 D-M2-06 annotato con la ricalibrazione.
+
+**Adozione di F4a, predizioni** [M2_5_2_F4_Kick_Level_Adoption_Preregistration.md](research/M2_5_2_F4_Kick_Level_Adoption_Preregistration.md), SHA-256 (LF) `15dbd5c1c5fa21a0b1f7f64e8e8d15d5ba2e5633c89fdb709de6cd48afa52e00`, registrate prima di cambiare `kPulsoGain`.
+
+**Adozione di F4a, risultati (2026-11-16):** [risultati](research/M2_5_2_F4_Kick_Level_Results.md) §5.
+- **Valore:** `kPulsoGain` passa da −6 a **+2 dB**.
+- **Golden PCM della fixture:** da `15126969907236845529` a **`365661633327826884`**, con il motivo in `audio_probe.h`. Piano, trace ed eventi restano invariati.
+- **Predizioni A1–A5 e A7 confermate:**
+  - Pulso +8,000 LU esatti;
+  - Corpo, Trama e Vettore invariati;
+  - mix +0,89 LU;
+  - limiter 0 dB, true peak −6,87 dBTP.
+- **A6 mancata:** in `full_m2_suite --pack-seed 1618033988` tutte le voci passano tranne `acao02_v1`, `INCONCLUSIVE`. Ricalibrato, l'offset degli onset di Pulso si sposta di 1 ms e il profilo non coincide più con quello congelato; la rilevazione resta 416/416. L'addendum aveva dimenticato che F4 cambia gli stem (ADR-0007 §5). Il profilo non si adatta: la ricalibrazione resta a M2.5.5. Fino ad allora la suite è `FAIL` su quella sola voce, come limite noto.
+- **Correzione mia:** una prima corsa della suite senza `--pack-seed` era un errore d'invocazione.
+- **Verifica autonoma** (D-M2-30): il cambio di volume è verificato senza ascolto.
+- **Build e test:** Release e Debug headless con `/WX`, 270/270 ciascuna.
+- **Prossimo passo:** F4b (durata e peso nelle basse del kick) con criteri misurabili, poi F2. Non committato.

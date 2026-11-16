@@ -50,3 +50,33 @@
 - **Pacchetto d'ascolto:** il titolare sceglie dalle clip allineate le coppie A/B, aggiunge i controlli B0 (coppia identica e duplicato nascosto) e prepara ordine e chiave secondo il protocollo §2 e §2bis.
 - **Il valore di produzione non cambia** finché non c'è l'esito dell'ascolto. Allora si aggiornano `kPulsoGain`, il golden PCM con il motivo, e questo documento.
 - **F4b, durata e peso nelle basse del kick** (suggerimento §8.1): A/B di timbro separato, a loudness allineata, con la sua pre-registrazione. Va fatto dopo l'esito di F4a, o insieme nello stesso ascolto se il titolare lo preferisce: in quel caso con pre-registrazione separata.
+
+## 5. Decisione e adozione (2026-11-16)
+
+- **Decisione del titolare:** ADR-0007 D-M2-30 e D-M2-31. Niente ascolto umano dedicato. Kick a **+8 dB** (Pulso da −6 a +2 dB), centro della stima dell'esperto. La regola di decisione del §5 della pre-registrazione, che affidava il valore all'ascolto, è sostituita da D-M2-31. Il file firmato resta invariato e L1, L2, S1–S3 restano non verificate. Il pacchetto d'ascolto è archiviato senza invio.
+- **Predizioni dell'adozione:** [addendum](M2_5_2_F4_Kick_Level_Adoption_Preregistration.md), SHA-256 (LF) `15dbd5c1c5fa21a0b1f7f64e8e8d15d5ba2e5633c89fdb709de6cd48afa52e00`, registrate prima del cambio.
+
+| ID | Predizione | Risultato | Esito |
+|---|---|---|---|
+| A1 | `fixture_test` PASS, cambia solo il golden PCM | PASS. Trace `10949526468471789087` e piano `5693144463743088024` uguali ai golden, hash degli eventi invariato. Unico controllo fallito prima dell'aggiornamento: il PCM | Confermata |
+| A2 | Pulso −26,487 LUFS ± 0,05 | −26,487 | Confermata |
+| A3 | Corpo, Trama, Vettore ± 0,01 LU | −24,819 / −34,087 / −24,212, invariati | Confermata |
+| A4 | Mix +0,98 LU ± 0,3, atteso sotto | +0,890 LU (−20,365 LUFS) | Confermata |
+| A5 | Limiter 0 dB, true peak fra −8,00 e −6,10 dBTP | 0 dB; −6,87 dBTP | Confermata |
+| A6 | Restano verdi le altre prove, salvo i golden legati al livello di Pulso | Release e Debug headless 270/270; prima dell'aggiornamento fallivano solo `fixture_probe_v1` e la loudness per stem di `procedural_v1`, entrambe per il golden PCM. Nella suite completa però `acao02_v1` diventa `INCONCLUSIVE`: non è un golden PCM | **Mancata** (vedi sotto) |
+| A7 | `kick_level_ab_v1` sulla nuova base: P1–P4 e P7 confermate | Confermate; P5 e P6 non si rivalutano, perché valgono per la base −6 dB | Confermata |
+
+- **Golden PCM della fixture:** da `15126969907236845529` a **`365661633327826884`**, con il motivo in `audio_probe.h`. Il vecchio valore resta la baseline storica di M2.4 per i confronti (D-M2-19).
+- **Sulla nuova base, senza predizione:**
+  - mix per sezione −20,12 / −20,55 / −20,46 LUFS;
+  - Pulso per sezione −25,70 / −27,74 / −26,34 LUFS;
+  - Pulso rispetto a Corpo −1,67 LU, contro −9,67 prima;
+  - con l'override sulla nuova base, +6 e +9 dB in più (+14 e +17 rispetto a M2.4) fanno intervenire il limiter: il margine sopra la scelta attuale c'è, ma non è illimitato.
+- **Verificabilità autonoma** (D-M2-30): il cambio di livello è verificato senza ascolto da misure con predizioni registrate prima. Stem di Pulso +8,000 LU esatti, altri ruoli invariati, mix entro la predizione, nessun intervento del limiter, piano ed eventi identici.
+
+### A6 mancata: `acao02_v1` e il profilo di onset congelato
+
+- **Suite completa:** `full_m2_suite --pack-seed 1618033988`. Tutte le voci passano tranne `acao02_v1`, che dà `INCONCLUSIVE` e porta il verdetto della suite a `FAIL`. Una prima corsa senza `--pack-seed` era fallita su `evaluation_check_selftest_v1` per un errore d'invocazione: il seed di default non è mai qualificato «alla cieca». Ripetuta con il seed documentato, quella voce è PASS.
+- **Causa:** ricalibrato sul nuovo segnale, l'offset degli onset di Pulso passa da −11,67 ms (profilo congelato il 2026-10-29) a −12,67 ms. Delta e gli altri ruoli restano invariati. La rilevazione di Pulso resta perfetta: 416 riferimenti, 416 rilevazioni, precisione e richiamo 1. Il profilo calibrato ha quindi uno SHA-256 diverso da quello congelato, e lo scenario tiene le misure di verifica come diagnostiche: è la regola fail-closed, che funziona come previsto.
+- **Perché la predizione era sbagliata:** A6 considerava solo i golden PCM. ADR-0007 §5 sapeva già che F4 cambia gli stem, e quindi la calibrazione AC-AO-02, ma l'addendum non lo riportava. Errore di pre-registrazione, dichiarato.
+- **Cosa resta:** il profilo congelato non si cambia qui. La ricalibrazione AC-AO-02 con verifica su insiemi separati è il compito di M2.5.5, dopo F2, H-03 e H-04, che cambieranno di nuovo gli stem. Fino ad allora `acao02_v1` resta `INCONCLUSIVE` e `full_m2_suite` `FAIL` su quella sola voce. È un limite noto: non va letto come regressione e non va nascosto adattando il profilo.
