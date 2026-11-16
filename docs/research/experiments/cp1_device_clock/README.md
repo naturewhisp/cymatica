@@ -30,3 +30,10 @@
 - **Ascolto controllato:** il titolare ha ascoltato la corsa in cuffia a volume sicuro: **nessun click, buco o artefatto**.
 
 **Lettura:** su questa uscita i tre rilevatori (monitor `IAudioClock` verificato dal controllo positivo, loopback, intervalli della callback) e l'ascolto concordano: nessun buco. È una corsa sola su un dispositivo: non stima gli eventi rari. Il criterio PASS del device resta una decisione di CP-1.
+
+## Note della review e correzione (2026-11-16)
+
+- **DIF-CP1-CLOCK-01 (MED), client WASAPI sostituito dal rerouting:** il monitor conservava `IAudioClock` del primo client fino allo shutdown; se Windows cambia l'endpoint predefinito, miniaudio può ricreare il client e il monitor leggerebbe quello vecchio. **Corretto in due modi:** il probe apre il device con `noAutoStreamRouting = true` (opzione `AudioEngineConfig::diagnosticNoAutoStreamRouting`, spenta per default: il runtime ordinario conserva il rerouting); in ogni caso `sampleDeviceClock` confronta il client corrente con quello da cui ha preso il clock e, se è cambiato, non lo legge più e lo segnala (`client_changed`), e il blocco `device_clock` del manifest diventa `INCONCLUSIVE`. La corsa archiviata non è da ripetere: nulla indica un cambio di dispositivo.
+- **OSS-CP1-CLOCK-01 (LOW), cadenza:** il manifest registra ora `max_read_interval_ms` e `coverage` (letture / letture attese a 20 Hz), così K1 diventa diagnosticabile.
+- **OSS-CP1-CLOCK-02 (LOW), portata del controllo positivo:** `glitchcal` valida il principio di rilevazione sull'endpoint USB, non la sensibilità esatta del monitor del probe a circa 16 Hz; loopback e ascolto restano indispensabili.
+- **OSS-CP1-CLOCK-03 (LOW), provenienza del binario:** il manifest riporta `build_id = 3099920` perché il binario era compilato dal working tree con il monitor non ancora committato; per le qualifiche future il binario va compilato da un commit.

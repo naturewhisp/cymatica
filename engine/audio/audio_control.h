@@ -130,6 +130,7 @@ struct DeviceClockSample {
     std::uint64_t position{0};
     std::uint64_t frequency{0};     // device units per second
     std::uint64_t qpc100ns{0};
+    bool clientChanged{false};      // the WASAPI client is no longer the one the clock was taken from
 };
 
 struct AudioDeviceReport {

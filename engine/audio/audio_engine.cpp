@@ -27,6 +27,7 @@ struct AudioEngine::Impl {
     ma_device device{};
     ma_waveform waveform{};
     void* deviceClock{nullptr}; // IAudioClock of the playback client, obtained on demand outside the callback
+    void* deviceClockClient{nullptr}; // the client the clock was taken from (DIF-CP1-CLOCK-01)
     bool deviceInitialized{false};
     std::atomic<bool> deviceStarted{false};
     std::uint32_t sampleRate{48000};
@@ -679,6 +680,7 @@ bool AudioEngine::init(const AudioEngineConfig& config) {
     devCfg.wasapi.usage = (config.deviceUsage == AudioDeviceUsage::ProAudio) ? ma_wasapi_usage_pro_audio
                         : (config.deviceUsage == AudioDeviceUsage::Games)    ? ma_wasapi_usage_games
                                                                              : ma_wasapi_usage_default;
+    devCfg.wasapi.noAutoStreamRouting = config.diagnosticNoAutoStreamRouting ? MA_TRUE : MA_FALSE;
 
     if (ma_device_init(nullptr, &devCfg, &impl->device) != MA_SUCCESS) {
         return false;
@@ -1003,11 +1005,19 @@ bool AudioEngine::sampleDeviceClock(DeviceClockSample& out) noexcept {
     out = {};
 #ifdef MA_SUPPORT_WASAPI
     if (!pImpl_ || !pImpl_->deviceInitialized || pImpl_->device.pContext->backend != ma_backend_wasapi) return false;
+    // If miniaudio rerouted the stream, the clock still belongs to the old client: report it, never read it again.
+    // The device probe disables auto routing, so this is a safety net (DIF-CP1-CLOCK-01).
+    void* const current = pImpl_->device.wasapi.pAudioClientPlayback;
+    if (pImpl_->deviceClock != nullptr && current != pImpl_->deviceClockClient) {
+        out.clientChanged = true;
+        return false;
+    }
     if (pImpl_->deviceClock == nullptr) {
-        auto* client = static_cast<IAudioClient*>(pImpl_->device.wasapi.pAudioClientPlayback);
+        auto* client = static_cast<IAudioClient*>(current);
         void* clock = nullptr;
         if (client == nullptr || FAILED(client->GetService(__uuidof(IAudioClock), &clock)) || clock == nullptr) return false;
         pImpl_->deviceClock = clock;
+        pImpl_->deviceClockClient = current;
     }
     auto* clock = static_cast<IAudioClock*>(pImpl_->deviceClock);
     UINT64 frequency = 0, position = 0, qpc = 0;

@@ -277,3 +277,14 @@ TEST_CASE("CallbackProfileHistogram calculation and percentiles (DIF-INC4-01)", 
     CHECK(hist.percentileMs(99.0) <= hist.percentileMs(99.9));
     CHECK(hist.percentileMs(99.9) <= hist.maxMs());
 }
+
+TEST_CASE("Device clock is unavailable offline and auto routing stays on by default (CP-1, DIF-CP1-CLOCK-01)", "[audio_engine][clock_monitor]") {
+    CHECK_FALSE(AudioEngineConfig{}.diagnosticNoAutoStreamRouting); // the ordinary runtime keeps WASAPI auto routing
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    DeviceClockSample s{};
+    CHECK_FALSE(engine.sampleDeviceClock(s));
+    CHECK_FALSE(s.valid);
+    CHECK_FALSE(s.clientChanged);
+    engine.shutdown();
+}

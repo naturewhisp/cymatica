@@ -147,6 +147,9 @@ struct AudioEngineConfig {
     std::uint32_t channels{2};
     float defaultToneFreqHz{220.0f};
     AudioDeviceUsage deviceUsage{AudioDeviceUsage::Default};
+    // Device probe only (CP-1, DIF-CP1-CLOCK-01): keep the WASAPI stream on the endpoint it was opened on, so the
+    // device clock read by the probe always belongs to the active client. The ordinary runtime keeps auto routing.
+    bool diagnosticNoAutoStreamRouting{false};
 };
 
 // M0/M1 audio owner: manages playback device, realtime exchange channels, and test synthesis.

@@ -600,6 +600,8 @@ struct DeviceProbeResult {
     double clockMaxJumpMs{0.0};                    // after the first 500 ms
     std::uint64_t clockJumpsOver5Ms{0};             // after the first 500 ms
     double clockMaxJumpAtSeconds{0.0};
+    bool clockClientChanged{false};                 // the WASAPI client was replaced: the clock is not valid (DIF-CP1-CLOCK-01)
+    double clockMaxReadIntervalMs{0.0};             // largest gap between two readings (OSS-CP1-CLOCK-01)
     std::string loopbackFilePath{};
     std::string referenceFilePath{};
     std::string manifestFilePath{};

@@ -3115,7 +3115,13 @@ std::string DeviceProbeResult::toJson() const {
        << ", \"differing_samples\": " << pcmAgainstOffline.differingSamples
        << ", \"first_different_frame\": " << pcmAgainstOffline.firstDifferentFrame
        << ", \"max_abs_difference\": " << safeJsonFloat(pcmAgainstOffline.maxAbsDifference) << "},\n";
+    const double expectedClockReads = elapsedSeconds * 20.0;
+    const char* clockStatus = clockClientChanged ? "INCONCLUSIVE" : (clockSamples == 0 ? "NOT_RUN" : "MEASURED");
     ss << "  \"device_clock\": {\"source\": \"IAudioClock::GetPosition every 50 ms from the coordinator thread (CP-1, R-M25-8)\""
+       << ", \"status\": \"" << clockStatus << "\""
+       << ", \"auto_stream_routing\": false, \"client_changed\": " << (clockClientChanged ? "true" : "false")
+       << ", \"max_read_interval_ms\": " << safeJsonFloat(static_cast<float>(clockMaxReadIntervalMs))
+       << ", \"coverage\": " << safeJsonFloat(static_cast<float>(expectedClockReads > 0.0 ? static_cast<double>(clockSamples) / expectedClockReads : 0.0))
        << ", \"samples\": " << clockSamples << ", \"failures\": " << clockFailures
        << ", \"final_deficit_ms\": " << safeJsonFloat(static_cast<float>(clockFinalDeficitMs))
        << ", \"max_jump_ms_after_500ms\": " << safeJsonFloat(static_cast<float>(clockMaxJumpMs))
@@ -3308,6 +3314,7 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
     AudioEngineConfig config{};
     config.sampleRate = kInc4SampleRate;
     config.deviceUsage = usage;
+    config.diagnosticNoAutoStreamRouting = true; // the device clock must belong to the active client (DIF-CP1-CLOCK-01)
     if (!engine.init(config)) {
         result.failureReason = "no playback device";
         return finish();
@@ -3357,8 +3364,13 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
     const auto readClock = [&]() {
         DeviceClockSample s{};
         if (!engine.sampleDeviceClock(s)) {
+            if (s.clientChanged) result.clockClientChanged = true;
             ++result.clockFailures;
             return;
+        }
+        if (clockPrev.valid) {
+            result.clockMaxReadIntervalMs = (std::max)(result.clockMaxReadIntervalMs,
+                                                       static_cast<double>(s.qpc100ns - clockPrev.qpc100ns) / 1.0e4);
         }
         if (!clockFirst.valid) clockFirst = s;
         const double qpcMs = static_cast<double>(s.qpc100ns - clockFirst.qpc100ns) / 1.0e4;
