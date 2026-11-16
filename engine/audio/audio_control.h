@@ -123,6 +123,15 @@ struct AudioCommandAck {
 enum class AudioDeviceUsage : std::uint8_t { Default, Games, ProAudio };
 
 // What the backend actually granted (M2.5.1): the effective period can differ from the requested one
+// One reading of the WASAPI device clock (CP-1, R-M25-8): position in device units and the QPC instant of that
+// position, in 100 ns units. Read outside the audio callback; invalid on other backends or offline.
+struct DeviceClockSample {
+    bool valid{false};
+    std::uint64_t position{0};
+    std::uint64_t frequency{0};     // device units per second
+    std::uint64_t qpc100ns{0};
+};
+
 struct AudioDeviceReport {
     const char* backendName{"unknown"};
     std::uint32_t internalSampleRate{0};

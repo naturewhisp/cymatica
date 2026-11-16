@@ -592,6 +592,14 @@ struct DeviceProbeResult {
     EndpointVolumeReading loopbackVolumeStop{};
     SessionVolumeReading loopbackSessionsStart{};   // this process's sessions on the endpoint (CP-1, H2)
     SessionVolumeReading loopbackSessionsStop{};
+    // WASAPI device clock read every 50 ms by the coordinator (CP-1, R-M25-8): deficit = QPC time elapsed minus
+    // device position elapsed; a jump is an increase of the deficit between two readings
+    std::uint64_t clockSamples{0};
+    std::uint64_t clockFailures{0};
+    double clockFinalDeficitMs{0.0};
+    double clockMaxJumpMs{0.0};                    // after the first 500 ms
+    std::uint64_t clockJumpsOver5Ms{0};             // after the first 500 ms
+    double clockMaxJumpAtSeconds{0.0};
     std::string loopbackFilePath{};
     std::string referenceFilePath{};
     std::string manifestFilePath{};

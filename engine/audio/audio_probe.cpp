@@ -3115,6 +3115,12 @@ std::string DeviceProbeResult::toJson() const {
        << ", \"differing_samples\": " << pcmAgainstOffline.differingSamples
        << ", \"first_different_frame\": " << pcmAgainstOffline.firstDifferentFrame
        << ", \"max_abs_difference\": " << safeJsonFloat(pcmAgainstOffline.maxAbsDifference) << "},\n";
+    ss << "  \"device_clock\": {\"source\": \"IAudioClock::GetPosition every 50 ms from the coordinator thread (CP-1, R-M25-8)\""
+       << ", \"samples\": " << clockSamples << ", \"failures\": " << clockFailures
+       << ", \"final_deficit_ms\": " << safeJsonFloat(static_cast<float>(clockFinalDeficitMs))
+       << ", \"max_jump_ms_after_500ms\": " << safeJsonFloat(static_cast<float>(clockMaxJumpMs))
+       << ", \"max_jump_at_s\": " << safeJsonFloat(static_cast<float>(clockMaxJumpAtSeconds))
+       << ", \"jumps_over_5ms_after_500ms\": " << clockJumpsOver5Ms << "},\n";
     ss << "  \"loopback\": {\"requested\": " << (loopbackRequested ? "true" : "false")
        << ", \"scope\": \"Windows mix of the default endpoint: other applications included; analyse with analyze_loopback.py\""
        << ", \"frames\": " << loopbackFrames << ", \"overflow_frames\": " << loopbackOverflowFrames
@@ -3344,7 +3350,38 @@ DeviceProbeResult runDeviceProbeV1(AudioDeviceUsage usage, const std::string& ou
     SteadyClock::time_point stopTime{};
     std::uint64_t lastFrame = 0;
     auto lastIteration = wallStart;
+    // Device clock monitor (CP-1, R-M25-8): every 50 ms, outside the callback
+    DeviceClockSample clockFirst{}, clockPrev{};
+    auto lastClockRead = wallStart - std::chrono::milliseconds(50);
+    double prevDeficitMs = 0.0;
+    const auto readClock = [&]() {
+        DeviceClockSample s{};
+        if (!engine.sampleDeviceClock(s)) {
+            ++result.clockFailures;
+            return;
+        }
+        if (!clockFirst.valid) clockFirst = s;
+        const double qpcMs = static_cast<double>(s.qpc100ns - clockFirst.qpc100ns) / 1.0e4;
+        const double posMs = static_cast<double>(s.position - clockFirst.position) * 1000.0 / static_cast<double>(s.frequency);
+        const double deficit = qpcMs - posMs;
+        if (clockPrev.valid && qpcMs > 500.0) {
+            const double jump = deficit - prevDeficitMs;
+            if (jump > result.clockMaxJumpMs) {
+                result.clockMaxJumpMs = jump;
+                result.clockMaxJumpAtSeconds = qpcMs / 1000.0;
+            }
+            if (jump > 5.0) ++result.clockJumpsOver5Ms;
+        }
+        prevDeficitMs = deficit;
+        result.clockFinalDeficitMs = deficit;
+        clockPrev = s;
+        ++result.clockSamples;
+    };
     while (!result.timedOut) {
+        if (SteadyClock::now() - lastClockRead >= std::chrono::milliseconds(50)) {
+            lastClockRead = SteadyClock::now();
+            readClock();
+        }
         const std::uint64_t frame = engine.framesRendered();
         coordinator.beforeBlock(frame, static_cast<std::uint32_t>(std::max<std::uint64_t>(frame - lastFrame, 1)), engine);
         coordinator.drainAcks(engine);

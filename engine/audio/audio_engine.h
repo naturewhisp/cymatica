@@ -243,6 +243,10 @@ public:
     // task is taken at device start.
     [[nodiscard]] bool deviceReport(AudioDeviceReport& out) const noexcept;
 
+    // WASAPI device clock (IAudioClock), for the device probe (CP-1, R-M25-8). Never call it from the audio callback:
+    // the first call obtains the clock with GetService, every call reads GetPosition. Call it from one thread only.
+    [[nodiscard]] bool sampleDeviceClock(DeviceClockSample& out) noexcept;
+
 private:
     struct Impl;
     Impl* pImpl_{nullptr};

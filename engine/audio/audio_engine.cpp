@@ -3,6 +3,10 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
 
+#ifdef MA_SUPPORT_WASAPI
+#include <audioclient.h> // IAudioClock for the device probe (CP-1, R-M25-8); the device stays owned by miniaudio
+#endif
+
 #include "audio_engine.h"
 #include "audio_probe.h"
 #include "music_clock.h"
@@ -22,6 +26,7 @@ struct AudioEngine::Impl {
 
     ma_device device{};
     ma_waveform waveform{};
+    void* deviceClock{nullptr}; // IAudioClock of the playback client, obtained on demand outside the callback
     bool deviceInitialized{false};
     std::atomic<bool> deviceStarted{false};
     std::uint32_t sampleRate{48000};
@@ -751,6 +756,12 @@ void AudioEngine::shutdown() {
             ma_device_stop(&pImpl_->device);
             pImpl_->deviceStarted.store(false, std::memory_order_release);
         }
+#ifdef MA_SUPPORT_WASAPI
+        if (pImpl_->deviceClock != nullptr) {
+            static_cast<IAudioClock*>(pImpl_->deviceClock)->Release();
+            pImpl_->deviceClock = nullptr;
+        }
+#endif
         ma_device_uninit(&pImpl_->device);
     }
     delete pImpl_;
@@ -986,6 +997,29 @@ bool AudioEngine::deviceReport(AudioDeviceReport& out) const noexcept {
     out.mmcssActive = device.pContext->backend == ma_backend_wasapi && device.wasapi.hAvrtHandle != nullptr;
 #endif
     return true;
+}
+
+bool AudioEngine::sampleDeviceClock(DeviceClockSample& out) noexcept {
+    out = {};
+#ifdef MA_SUPPORT_WASAPI
+    if (!pImpl_ || !pImpl_->deviceInitialized || pImpl_->device.pContext->backend != ma_backend_wasapi) return false;
+    if (pImpl_->deviceClock == nullptr) {
+        auto* client = static_cast<IAudioClient*>(pImpl_->device.wasapi.pAudioClientPlayback);
+        void* clock = nullptr;
+        if (client == nullptr || FAILED(client->GetService(__uuidof(IAudioClock), &clock)) || clock == nullptr) return false;
+        pImpl_->deviceClock = clock;
+    }
+    auto* clock = static_cast<IAudioClock*>(pImpl_->deviceClock);
+    UINT64 frequency = 0, position = 0, qpc = 0;
+    if (FAILED(clock->GetFrequency(&frequency)) || FAILED(clock->GetPosition(&position, &qpc)) || frequency == 0) return false;
+    out.valid = true;
+    out.position = position;
+    out.frequency = frequency;
+    out.qpc100ns = qpc;
+    return true;
+#else
+    return false;
+#endif
 }
 
 MasterLimiter& AudioEngine::masterLimiter() noexcept {
