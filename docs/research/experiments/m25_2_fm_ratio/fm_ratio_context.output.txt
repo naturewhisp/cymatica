@@ -1,0 +1,8 @@
+Trama notes: 400; with Corpo sounding at onset: 400
+Trama pitches (Hz): [392.0, 440.0, 466.16, 523.25, 587.33, 659.26, 698.46, 880.0, 987.77, 1046.5]
+1.88 (attuale)   C1 0.8277 (FAIL)  C2 P5 1.303 P8 1.023 TT 1.336 (pass)  C3 1.1664  [C3 Corpo+Vettore 1.8109]
+1.0              C1 0.0014 (pass)  C2 P5 0.038 P8 0.001 TT 0.210 (pass)  C3 0.4890  [C3 Corpo+Vettore 0.8042]
+2.0              C1 0.0003 (pass)  C2 P5 0.085 P8 0.008 TT 0.068 (FAIL)  C3 0.2803  [C3 Corpo+Vettore 0.4803]
+sqrt2            C1 0.0399 (FAIL)  C2 P5 0.426 P8 0.609 TT 0.509 (FAIL)  C3 1.5703  [C3 Corpo+Vettore 2.3596]
+passing C1+C2: ['1.0'] ; within 5% of best C3: ['1.0']
+choice (smallest change of K among ties): 1.0

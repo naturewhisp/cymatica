@@ -1,0 +1,1502 @@
+{
+  "binding_evidence": {
+    "checks": {
+      "capture_complete": "PASS",
+      "coordinator": "PASS",
+      "determinism": "PASS",
+      "dsp_anomalies": "PASS",
+      "event_chain": "PASS",
+      "golden_canonical_plan": "PASS",
+      "golden_decision_trace": "PASS",
+      "golden_pcm": "PASS",
+      "non_silent_sections": "PASS",
+      "note_off_pairing": "PASS",
+      "role_activity": "PASS",
+      "safe_stop": "PASS",
+      "sample_ceiling": "PASS",
+      "scheduling_accounting": "PASS",
+      "silence_after_stop": "PASS",
+      "transport_acks": "PASS",
+      "true_peak_engineering_check": {
+        "binding_in_procedural_v1": false,
+        "result": "PASS"
+      },
+      "zero_clipping": "PASS"
+    },
+    "event_chain": {
+      "applied": 2784,
+      "canceled": 0,
+      "consumed": 2784,
+      "dropped": 0,
+      "expected": 2784,
+      "first_mismatch": "",
+      "ignored": 0,
+      "mismatches": 0,
+      "passed": true,
+      "path": "nominal",
+      "sent": 2784,
+      "spsc_drained": true
+    },
+    "failure_reason": "",
+    "fixture_probe_v1_verdict": "PASS",
+    "hashes": {
+      "canonical_plan": 5693144463743088024,
+      "content_fingerprint": 1197742024240268652,
+      "content_fingerprint_jit_match": true,
+      "decision_trace": 10949526468471789087,
+      "golden_canonical_plan": 5693144463743088024,
+      "golden_decision_trace": 10949526468471789087,
+      "golden_pcm_content": 7790666370008029299,
+      "jit_golden_status": "PASS",
+      "jit_offline_plan_match": true,
+      "jit_plan": 5693144463743088024,
+      "pcm_content": 7790666370008029299
+    },
+    "run_seed": 1337,
+    "scheduling": {
+      "deferred_scheduled_events": 0,
+      "dropped_scheduled_events": 0,
+      "engine_processed_events": 2784,
+      "expected_engine_events": 2784,
+      "generated_events": 1392,
+      "orphan_note_recovered": 0,
+      "phrases_planned": 24,
+      "planner_note_offs": 4,
+      "scheduler_backpressure_drops": 0,
+      "voice_drop_count": 0
+    },
+    "signal": {
+      "captured_frames": 8825200,
+      "clipped_samples": 0,
+      "dropped_frames": 0,
+      "max_gain_reduction_db": 0.0,
+      "peak_amplitude": 0.4521541893482208,
+      "requested_frames": 8825200
+    },
+    "source": "fixture_probe_v1 (same render, not re-run)",
+    "transport_acks": [
+      {
+        "command_id": 1,
+        "sample_frame": 0,
+        "status": 1,
+        "transport_epoch": 1
+      },
+      {
+        "command_id": 2,
+        "sample_frame": 3072000,
+        "status": 1,
+        "transport_epoch": 2
+      },
+      {
+        "command_id": 3,
+        "sample_frame": 5705142,
+        "status": 1,
+        "transport_epoch": 3
+      },
+      {
+        "command_id": 4,
+        "sample_frame": 8777142,
+        "status": 1,
+        "transport_epoch": 4
+      }
+    ]
+  },
+  "build_id": "0187208",
+  "canonical_plan_hash": 5693144463743088024,
+  "capture": {
+    "applied_log_overflow": 0,
+    "reconstruction_mismatched_samples": 0,
+    "reconstruction_status": "OK",
+    "stem_frames": 8825200,
+    "stem_overflow_frames": 0,
+    "valid": true
+  },
+  "content_end_frame": 8777142,
+  "content_fingerprint": 1197742024240268652,
+  "diversity": {
+    "distinct_fingerprints": 1,
+    "gate": false,
+    "generalisation_of_calibration": "INCONCLUSIVE",
+    "grid": "sixteenths of the phrase bar",
+    "k_min_distinct": 8,
+    "m1_identical_pair_share": 1.0,
+    "m2_feature_distance": {
+      "max": null,
+      "mean": null,
+      "median": null,
+      "min": null,
+      "n": 0
+    },
+    "note": "identical pairs are 0 by identity for M2-M4 and are not recomputed; diversity is not a gate and is not to be maximised (ADR-0006 D-M2-16)",
+    "outcome": "NULL_DIVERSITY",
+    "pairs": 2016,
+    "pairs_with_distinct_content": 0,
+    "phrase_groups_seed_1337": 14,
+    "phrase_groups_seed_1337_symbolic": 8,
+    "roles": {
+      "corpo": {
+        "m1_identical_phrase_share": 1.0,
+        "m3_cardinality_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        },
+        "m4_edit_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        }
+      },
+      "pulso": {
+        "m1_identical_phrase_share": 1.0,
+        "m3_cardinality_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        },
+        "m4_edit_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        }
+      },
+      "trama": {
+        "m1_identical_phrase_share": 1.0,
+        "m3_cardinality_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        },
+        "m4_edit_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        }
+      },
+      "vettore": {
+        "m1_identical_phrase_share": 1.0,
+        "m3_cardinality_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        },
+        "m4_edit_distance": {
+          "max": null,
+          "mean": null,
+          "median": null,
+          "min": null,
+          "n": 0
+        }
+      }
+    },
+    "seeds": {
+      "first": 1,
+      "last": 64,
+      "n": 64
+    },
+    "status": "MEASURED"
+  },
+  "evidence_kind": "technical, single fixture (fixture-m2-4-v1, seed 1337): no perceptual claim, no generalisation",
+  "failures": [],
+  "findings": [],
+  "fixture_probe_v1_passed": true,
+  "manifest_version": "1.0",
+  "measures": {
+    "loudness": {
+      "analysis_status": "OK",
+      "gate": false,
+      "integrated_lufs": -20.356420411892742,
+      "max_momentary_lufs": -17.391344839083455,
+      "max_short_term_lufs": -19.462202706258797,
+      "note": "about 183 s: no 30-minute rolling measure (ADR-0004 §5)",
+      "standard": "ITU-R BS.1770-5, EBU Tech 3341",
+      "status": {
+        "status": "MEASURED"
+      },
+      "trial_target_lufs": -23.0,
+      "trial_tolerance_lu": 2.0
+    },
+    "loudness_per_stem": {
+      "bus_mix": {
+        "sections": [
+          {
+            "aligned": true,
+            "analysis_status": "OK",
+            "end_frame": 3072000,
+            "integrated_lufs": -20.111519899511986,
+            "max_momentary_lufs": -17.391344839083455,
+            "max_short_term_lufs": -19.462202706258797,
+            "section": 0,
+            "start_frame": 0,
+            "status": {
+              "status": "MEASURED"
+            }
+          },
+          {
+            "aligned": true,
+            "analysis_status": "OK",
+            "end_frame": 5705142,
+            "integrated_lufs": -20.506741527547845,
+            "max_momentary_lufs": -19.453415257062378,
+            "max_short_term_lufs": -20.2594682093526,
+            "section": 1,
+            "start_frame": 3072000,
+            "status": {
+              "status": "MEASURED"
+            }
+          },
+          {
+            "aligned": true,
+            "analysis_status": "OK",
+            "end_frame": 8777142,
+            "integrated_lufs": -20.477232524961458,
+            "max_momentary_lufs": -19.4589856455539,
+            "max_short_term_lufs": -20.22360016872197,
+            "section": 2,
+            "start_frame": 5705142,
+            "status": {
+              "status": "MEASURED"
+            }
+          }
+        ],
+        "whole": {
+          "analysis_status": "OK",
+          "end_frame": 8825200,
+          "integrated_lufs": -20.356420411892742,
+          "max_momentary_lufs": -17.391344839083455,
+          "max_short_term_lufs": -19.462202706258797,
+          "start_frame": 0,
+          "status": {
+            "status": "MEASURED"
+          }
+        }
+      },
+      "gate": false,
+      "roles": {
+        "corpo": {
+          "relative_to_bus_mix_lu": -4.462955339131579,
+          "sections": [
+            {
+              "aligned": true,
+              "analysis_status": "OK",
+              "end_frame": 3072000,
+              "integrated_lufs": -24.771484782573975,
+              "max_momentary_lufs": -23.462401876744405,
+              "max_short_term_lufs": -24.477443201620257,
+              "relative_to_bus_mix_lu": -4.659964883061988,
+              "section": 0,
+              "start_frame": 0,
+              "status": {
+                "status": "MEASURED"
+              }
+            },
+            {
+              "aligned": true,
+              "analysis_status": "OK",
+              "end_frame": 5705142,
+              "integrated_lufs": -25.07932205546683,
+              "max_momentary_lufs": -23.752828592985303,
+              "max_short_term_lufs": -24.83471872593792,
+              "relative_to_bus_mix_lu": -4.5725805279189835,
+              "section": 1,
+              "start_frame": 3072000,
+              "status": {
+                "status": "MEASURED"
+              }
+            },
+            {
+              "aligned": true,
+              "analysis_status": "OK",
+              "end_frame": 8777142,
+              "integrated_lufs": -24.6433677245813,
+              "max_momentary_lufs": -23.291946048173223,
+              "max_short_term_lufs": -24.39963553578093,
+              "relative_to_bus_mix_lu": -4.166135199619841,
+              "section": 2,
+              "start_frame": 5705142,
+              "status": {
+                "status": "MEASURED"
+              }
+            }
+          ],
+          "whole": {
+            "analysis_status": "OK",
+            "end_frame": 8825200,
+            "integrated_lufs": -24.81937575102432,
+            "max_momentary_lufs": -23.286447648923495,
+            "max_short_term_lufs": -24.398361760562338,
+            "start_frame": 0,
+            "status": {
+              "status": "MEASURED"
+            }
+          }
+        },
+        "pulso": {
+          "relative_to_bus_mix_lu": -6.130560259300893,
+          "sections": [
+            {
+              "aligned": true,
+              "analysis_status": "OK",
+              "end_frame": 3072000,
+              "integrated_lufs": -25.704822059284417,
+              "max_momentary_lufs": -21.54673750390532,
+              "max_short_term_lufs": -24.834637563289334,
+              "relative_to_bus_mix_lu": -5.593302159772431,
+              "section": 0,
+              "start_frame": 0,
+              "status": {
+                "status": "MEASURED"
+              }
+            },
+            {
+              "aligned": true,
+              "analysis_status": "OK",
+              "end_frame": 5705142,
+              "integrated_lufs": -27.738498954979907,
+              "max_momentary_lufs": -27.357482299668476,
+              "max_short_term_lufs": -27.723889052784656,
+              "relative_to_bus_mix_lu": -7.231757427432061,
+              "section": 1,
+              "start_frame": 3072000,
+              "status": {
+                "status": "MEASURED"
+              }
+            },
+            {
+              "aligned": true,
+              "analysis_status": "OK",
+              "end_frame": 8777142,
+              "integrated_lufs": -26.339172288424322,
+              "max_momentary_lufs": -26.252022950426113,
+              "max_short_term_lufs": -27.243437686573113,
+              "relative_to_bus_mix_lu": -5.861939763462864,
+              "section": 2,
+              "start_frame": 5705142,
+              "status": {
+                "status": "MEASURED"
+              }
+            }
+          ],
+          "whole": {
+            "analysis_status": "OK",
+            "end_frame": 8825200,
+            "integrated_lufs": -26.486980671193635,
+            "max_momentary_lufs": -21.54673750390532,
+            "max_short_term_lufs": -24.834637563289334,
+            "start_frame": 0,
+            "status": {
+              "status": "MEASURED"
+            }
+          }
+        },
+        "trama": {
+          "relative_to_bus_mix_lu": -13.765565654899454,
+          "sections": [
+            {
+              "aligned": true,
+              "analysis_status": "OK",
+              "end_frame": 3072000,
+              "integrated_lufs": -33.85033192547219,
+              "max_momentary_lufs": -29.265503316760057,
+              "max_short_term_lufs": -32.83659296691036,
+              "relative_to_bus_mix_lu": -13.738812025960204,
+              "section": 0,
+              "start_frame": 0,
+              "status": {
+                "status": "MEASURED"
+              }
+            },
+            {
+              "aligned": true,
+              "analysis_status": "OK",
+              "end_frame": 5705142,
+              "integrated_lufs": -34.62473783903254,
+              "max_momentary_lufs": -31.02169371117586,
+              "max_short_term_lufs": -33.500081904805654,
+              "relative_to_bus_mix_lu": -14.117996311484696,
+              "section": 1,
+              "start_frame": 3072000,
+              "status": {
+                "status": "MEASURED"
+              }
+            },
+            {
+              "aligned": true,
+              "analysis_status": "OK",
+              "end_frame": 8777142,
+              "integrated_lufs": -33.567130995985856,
+              "max_momentary_lufs": -29.26550331676005,
+              "max_short_term_lufs": -32.83659296691035,
+              "relative_to_bus_mix_lu": -13.089898471024398,
+              "section": 2,
+              "start_frame": 5705142,
+              "status": {
+                "status": "MEASURED"
+              }
+            }
+          ],
+          "whole": {
+            "analysis_status": "OK",
+            "end_frame": 8825200,
+            "integrated_lufs": -34.121986066792196,
+            "max_momentary_lufs": -29.26499779287354,
+            "max_short_term_lufs": -32.83659296691036,
+            "start_frame": 0,
+            "status": {
+              "status": "MEASURED"
+            }
+          }
+        },
+        "vettore": {
+          "relative_to_bus_mix_lu": -3.855381056514247,
+          "sections": [
+            {
+              "aligned": true,
+              "analysis_status": "OK",
+              "end_frame": 3072000,
+              "integrated_lufs": -24.026535305689315,
+              "max_momentary_lufs": -23.06918313866342,
+              "max_short_term_lufs": -23.910499965142492,
+              "relative_to_bus_mix_lu": -3.9150154061773286,
+              "section": 0,
+              "start_frame": 0,
+              "status": {
+                "status": "MEASURED"
+              }
+            },
+            {
+              "aligned": true,
+              "analysis_status": "OK",
+              "end_frame": 5705142,
+              "integrated_lufs": -24.116463863808573,
+              "max_momentary_lufs": -23.146998078910354,
+              "max_short_term_lufs": -23.99218866294301,
+              "relative_to_bus_mix_lu": -3.6097223362607274,
+              "section": 1,
+              "start_frame": 3072000,
+              "status": {
+                "status": "MEASURED"
+              }
+            },
+            {
+              "aligned": true,
+              "analysis_status": "OK",
+              "end_frame": 8777142,
+              "integrated_lufs": -24.481967376019806,
+              "max_momentary_lufs": -23.82354707854538,
+              "max_short_term_lufs": -24.42134514685754,
+              "relative_to_bus_mix_lu": -4.004734851058348,
+              "section": 2,
+              "start_frame": 5705142,
+              "status": {
+                "status": "MEASURED"
+              }
+            }
+          ],
+          "whole": {
+            "analysis_status": "OK",
+            "end_frame": 8825200,
+            "integrated_lufs": -24.21180146840699,
+            "max_momentary_lufs": -23.06918313866342,
+            "max_short_term_lufs": -23.88432934741491,
+            "start_frame": 0,
+            "status": {
+              "status": "MEASURED"
+            }
+          }
+        }
+      },
+      "scope": "role stems and their bus sum before the master stage, same ranges as the mix; K-weighted and gated, so a stem silent in part of a range is measured on its active part",
+      "standard": "ITU-R BS.1770-5, EBU Tech 3341",
+      "status": {
+        "status": "MEASURED"
+      }
+    },
+    "sections": [
+      {
+        "end_frame": 3072000,
+        "integrated_lufs": -20.111519899511986,
+        "loudness_analysis_status": "OK",
+        "max_momentary_lufs": -17.391344839083455,
+        "max_short_term_lufs": -19.462202706258797,
+        "section": 0,
+        "start_frame": 0,
+        "status": {
+          "status": "MEASURED"
+        },
+        "true_peak": {
+          "dbtp": -6.960301399230957,
+          "status": {
+            "status": "MEASURED"
+          }
+        }
+      },
+      {
+        "end_frame": 5705142,
+        "integrated_lufs": -20.506741527547845,
+        "loudness_analysis_status": "OK",
+        "max_momentary_lufs": -19.453415257062378,
+        "max_short_term_lufs": -20.2594682093526,
+        "section": 1,
+        "start_frame": 3072000,
+        "status": {
+          "status": "MEASURED"
+        },
+        "true_peak": {
+          "dbtp": -6.866310119628906,
+          "status": {
+            "status": "MEASURED"
+          }
+        }
+      },
+      {
+        "end_frame": 8777142,
+        "integrated_lufs": -20.477232524961458,
+        "loudness_analysis_status": "OK",
+        "max_momentary_lufs": -19.4589856455539,
+        "max_short_term_lufs": -20.22360016872197,
+        "section": 2,
+        "start_frame": 5705142,
+        "status": {
+          "status": "MEASURED"
+        },
+        "true_peak": {
+          "dbtp": -7.398477554321289,
+          "status": {
+            "status": "MEASURED"
+          }
+        }
+      }
+    ],
+    "status": {
+      "status": "MEASURED"
+    },
+    "true_peak": {
+      "above_trial": false,
+      "dbtp": -6.866310119628906,
+      "gate": false,
+      "max_gain_reduction_db": 0.0,
+      "status": {
+        "status": "MEASURED"
+      },
+      "trial_value_dbtp": -1.0
+    }
+  },
+  "onsets": {
+    "note": "MEASURED; AC-AO-02 thresholds proposed in 5c, ratified at M2.5",
+    "profile": "stem_onset_profile_v1",
+    "profile_sha256": "1ad4410052efe85e0fb4d4ea00c7e77383da9a1cea05e4b49fc5fea93bd8b3cd",
+    "roles": {
+      "corpo": {
+        "analysis_status": "MEASURED",
+        "detections": 96,
+        "matched_50ms": 95,
+        "precision_50": 0.9895833333333334,
+        "precision_excl_releases_50": 1.0,
+        "recall_50": 0.9895833333333334,
+        "references": 96,
+        "release_detections": 1,
+        "status": "MEASURED"
+      },
+      "pulso": {
+        "analysis_status": "MEASURED",
+        "detections": 416,
+        "matched_50ms": 416,
+        "precision_50": 1.0,
+        "precision_excl_releases_50": 1.0,
+        "recall_50": 1.0,
+        "references": 416,
+        "release_detections": 0,
+        "status": "MEASURED"
+      },
+      "trama": {
+        "analysis_status": "MEASURED",
+        "detections": 795,
+        "matched_50ms": 395,
+        "precision_50": 0.4968553459119497,
+        "precision_excl_releases_50": 1.0,
+        "recall_50": 0.9875,
+        "references": 400,
+        "release_detections": 400,
+        "status": "MEASURED"
+      },
+      "vettore": {
+        "analysis_status": "MEASURED",
+        "detections": 384,
+        "matched_50ms": 383,
+        "precision_50": 0.9973958333333334,
+        "precision_excl_releases_50": 1.0,
+        "recall_50": 0.9973958333333334,
+        "references": 384,
+        "release_detections": 1,
+        "status": "MEASURED"
+      }
+    },
+    "status": {
+      "status": "MEASURED"
+    },
+    "tolerance_ms": 50
+  },
+  "pcm_content_hash": 7790666370008029299,
+  "phrase_groups": {
+    "groups": [
+      "g6b11f0b02bc79bf4",
+      "g6b11f0b02bc79bf4",
+      "g6b11f0b02bc79bf4",
+      "g6b11f0b02bc79bf4",
+      "g6b36c137351b25a5",
+      "g6b36c137351b25a5",
+      "g6b36c137351b25a5",
+      "ge6b715e68a1d92d5",
+      "gef9a0d4e2a0e7508",
+      "g7ff765a9a93d8d04",
+      "g2a71a1b48d5d98de",
+      "gefc535185f91602a",
+      "g30706f66892572a6",
+      "gae016c6e32cbc10c",
+      "g7d7ed8ef871f62a0",
+      "g74624485be3ecf6a",
+      "g5b77af2f71248ab6",
+      "gb0e4e3b405222d1c",
+      "gb0e4e3b405222d1c",
+      "gb0e4e3b405222d1c",
+      "gb0e4e3b405222d1c",
+      "gb0e4e3b405222d1c",
+      "gb0e4e3b405222d1c",
+      "ga5ea71f281e0901d"
+    ],
+    "rule": "per-phrase content fingerprint, frames relative to the phrase start (DIF-5e.0-02)"
+  },
+  "presence_per_phrase": {
+    "phrases": [
+      {
+        "phrase": 0,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.505939281392994,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.457807058636316
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -26.50537480031712,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.457242577560443
+          },
+          "trama": {
+            "planned": false,
+            "rms_dbfs": null,
+            "signal": "EXACT_SILENCE",
+            "stem_to_mix_db": null
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.83513632674401,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.78700410398733
+          }
+        },
+        "section": 0,
+        "start_bar": 0
+      },
+      {
+        "phrase": 1,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.52115306921339,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.266748965283376
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -26.507958593983037,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.253554490053024
+          },
+          "trama": {
+            "planned": false,
+            "rms_dbfs": null,
+            "signal": "EXACT_SILENCE",
+            "stem_to_mix_db": null
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.835399589539705,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.580995485609695
+          }
+        },
+        "section": 0,
+        "start_bar": 4
+      },
+      {
+        "phrase": 2,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.521482390019706,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.26742396531289
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -26.506528376119064,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.252469951412247
+          },
+          "trama": {
+            "planned": false,
+            "rms_dbfs": null,
+            "signal": "EXACT_SILENCE",
+            "stem_to_mix_db": null
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.835399589539705,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.58134116483289
+          }
+        },
+        "section": 0,
+        "start_bar": 8
+      },
+      {
+        "phrase": 3,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.521449511690314,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.267481600292254
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -26.50704606974097,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.253078158342907
+          },
+          "trama": {
+            "planned": false,
+            "rms_dbfs": null,
+            "signal": "EXACT_SILENCE",
+            "stem_to_mix_db": null
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.835399589539705,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.581431678141648
+          }
+        },
+        "section": 0,
+        "start_bar": 12
+      },
+      {
+        "phrase": 4,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.36842395615305,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.777279471524575
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -28.0308457916382,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.43970130700973
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.74023402940732,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -16.149089544778846
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.83726477307772,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.246120288449248
+          }
+        },
+        "section": 0,
+        "start_bar": 16
+      },
+      {
+        "phrase": 5,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.36794841137401,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.767441733608172
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -28.031755719209176,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.431249041443341
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.740601802126896,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -16.14009512436106
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.836667429610948,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.236160751845116
+          }
+        },
+        "section": 0,
+        "start_bar": 20
+      },
+      {
+        "phrase": 6,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.367868444568927,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.768541645417685
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -28.032123254431323,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.432796455280078
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.740601802126896,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -16.141275002975654
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.836667429610948,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.237340630459708
+          }
+        },
+        "section": 0,
+        "start_bar": 24
+      },
+      {
+        "phrase": 7,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.3677487421314,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.766612825832094
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -28.03420515537557,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.433069239076263
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.740601802126896,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -16.13946588582759
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.836667429610948,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.235531513311642
+          }
+        },
+        "section": 0,
+        "start_bar": 28
+      },
+      {
+        "phrase": 8,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.258773441334064,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.79254496378901
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -27.666447056026946,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.200218578481893
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.08484262002836,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -15.61861414248331
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.820956999614125,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.354728522069072
+          }
+        },
+        "section": 1,
+        "start_bar": 32
+      },
+      {
+        "phrase": 9,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.361470262109663,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.917895105729107
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -27.66844359542089,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.224868439040334
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.08483136560226,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -15.64125620922171
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.822232049975007,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.378656893594456
+          }
+        },
+        "section": 1,
+        "start_bar": 36
+      },
+      {
+        "phrase": 10,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.36149595756768,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.915368274436373
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -27.66339976697016,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.2172720838388535
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.08483572411214,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -15.638708040980836
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.822232024905304,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.376104341773998
+          }
+        },
+        "section": 1,
+        "start_bar": 40
+      },
+      {
+        "phrase": 11,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.361318918069397,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.915592714131816
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -27.667991817706515,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.222265613768937
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.08486662523161,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -15.639140421294034
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.82223204997502,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.376505846037442
+          }
+        },
+        "section": 1,
+        "start_bar": 44
+      },
+      {
+        "phrase": 12,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.36137297623687,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.920395258717635
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -27.666650559928897,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.225672842409663
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.08482725458155,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -15.643849537062316
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.822243498762838,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.381265781243605
+          }
+        },
+        "section": 1,
+        "start_bar": 48
+      },
+      {
+        "phrase": 13,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.361839570240683,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.922282932029736
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -27.66647317785843,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.226916539647478
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.08487907801386,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -15.645322439802916
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.82224916323035,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.382692525019399
+          }
+        },
+        "section": 1,
+        "start_bar": 52
+      },
+      {
+        "phrase": 14,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.3614747851618,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.921396750128575
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -27.669402428661275,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.229324393628056
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.084786356273085,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -15.644708321239861
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.822245332694305,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.382167297661082
+          }
+        },
+        "section": 1,
+        "start_bar": 56
+      },
+      {
+        "phrase": 15,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.361066766664596,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.922985617363867
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -27.667365924026754,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.229284774726023
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.0848425494866,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -15.646761400185873
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.822237577694743,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.3841564283940135
+          }
+        },
+        "section": 1,
+        "start_bar": 60
+      },
+      {
+        "phrase": 16,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.37368610098215,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.722476384789845
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -28.268597139000462,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.6173874228081555
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.74060180212694,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -16.089392085934627
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.800644515134785,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.149434798942478
+          }
+        },
+        "section": 2,
+        "start_bar": 64
+      },
+      {
+        "phrase": 17,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.316526539839714,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.62874236133519
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -28.269886921522907,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.582102743018381
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.74060180212694,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -16.05281762362241
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.798313921166628,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.110529742662102
+          }
+        },
+        "section": 2,
+        "start_bar": 68
+      },
+      {
+        "phrase": 18,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.316408320786696,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.62962535292117
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -28.268592115614005,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.581809147748481
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.74060180212694,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -16.05381883426141
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.798313921166628,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.111530953301103
+          }
+        },
+        "section": 2,
+        "start_bar": 72
+      },
+      {
+        "phrase": 19,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.316383470758907,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.629435237034011
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -28.269320768764562,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.5823725350396645
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.74060180212694,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -16.053653568402037
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.798313921166628,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.111365687441729
+          }
+        },
+        "section": 2,
+        "start_bar": 76
+      },
+      {
+        "phrase": 20,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.316671312169344,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.628633325639863
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -28.270578526692884,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.582540540163404
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.74060180212694,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -16.052563815597452
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.798313921166628,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.110275934637145
+          }
+        },
+        "section": 2,
+        "start_bar": 80
+      },
+      {
+        "phrase": 21,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.316273789351545,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.629665559118653
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -28.268185182152344,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.581576951919454
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.74060180212694,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -16.053993571894043
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.798313921166628,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.111705690933734
+          }
+        },
+        "section": 2,
+        "start_bar": 84
+      },
+      {
+        "phrase": 22,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.316572034413277,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.630138313518544
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -28.265589134434993,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.57915541354026
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.74060180212694,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -16.054168081232202
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.798313921166628,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.1118802002718935
+          }
+        },
+        "section": 2,
+        "start_bar": 88
+      },
+      {
+        "phrase": 23,
+        "roles": {
+          "corpo": {
+            "planned": true,
+            "rms_dbfs": -27.321588280571753,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.632002149783639
+          },
+          "pulso": {
+            "planned": true,
+            "rms_dbfs": -28.268261855386953,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -5.578675724598839
+          },
+          "trama": {
+            "planned": true,
+            "rms_dbfs": -38.74060180212694,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -16.05101567133882
+          },
+          "vettore": {
+            "planned": true,
+            "rms_dbfs": -26.802250054413722,
+            "signal": "PRESENT",
+            "stem_to_mix_db": -4.112663923625609
+          }
+        },
+        "section": 2,
+        "start_bar": 92
+      }
+    ],
+    "profile": "presence_profile_v1",
+    "status": {
+      "status": "MEASURED"
+    },
+    "validated": false
+  },
+  "rendered_frames": 8825200,
+  "scenario": "procedural_v1",
+  "staff_view": {
+    "diagnostic_only": true,
+    "dir": "artifacts\\cacp\\procedural_v1",
+    "files": [
+      "staff_p00.png",
+      "staff_p01.png",
+      "staff_p02.png",
+      "staff_p03.png",
+      "staff_p04.png",
+      "staff_p05.png",
+      "staff_p06.png",
+      "staff_p07.png",
+      "staff_p08.png",
+      "staff_p09.png",
+      "staff_p10.png",
+      "staff_p11.png",
+      "staff_p12.png",
+      "staff_p13.png",
+      "staff_p14.png",
+      "staff_p15.png",
+      "staff_p16.png",
+      "staff_p17.png",
+      "staff_p18.png",
+      "staff_p19.png",
+      "staff_p20.png",
+      "staff_p21.png",
+      "staff_p22.png",
+      "staff_p23.png"
+    ],
+    "legend": {
+      "bottom_strip_green": "detected onset matched to an applied NoteOn (+-50 ms)",
+      "bottom_strip_orange": "unmatched, within 50 ms of an applied NoteOff (release)",
+      "bottom_strip_red": "detected onset unmatched",
+      "footer": "colour legend",
+      "grey_vertical_lines": "bars (light), beats (medium), grid steps (dark): quarters and sixteenths in 4/4",
+      "header": "phrase, section, tempo and meter; bar numbers from 1",
+      "lane_labels": [
+        "KICK / DRUMS",
+        "BASS + CHORDS",
+        "ARP SYNTH",
+        "LEAD SYNTH"
+      ],
+      "lanes_top_to_bottom": [
+        "pulso",
+        "corpo",
+        "trama",
+        "vettore"
+      ],
+      "middle_bars": "planned notes, height = log pitch within the role range of the render",
+      "role_colours": {
+        "corpo": "blue",
+        "pulso": "red",
+        "trama": "purple",
+        "vettore": "yellow"
+      },
+      "top_strip_white": "applied NoteOn"
+    },
+    "pixels_per_second": 100.0
+  },
+  "verdict": "PASS",
+  "verdict_scope": "binding checks only: O3 chain, determinism and goldens, PCM integrity and approved limiter invariants, capture validity, exact bus-mix reconstruction",
+  "wav_file": "artifacts\\cacp\\procedural_v1\\procedural_v1.wav",
+  "wav_write_success": true
+}

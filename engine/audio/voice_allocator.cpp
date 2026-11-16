@@ -15,6 +15,7 @@ constexpr float kPulsoClickMinHz = 1200.0f;       // click band-pass centre, sca
 constexpr float kPulsoClickMaxHz = 3500.0f;
 constexpr float kPulsoClickQ = 0.9f;
 constexpr float kVettoreGlideTauMs = 15.0f;       // one-pole portamento
+constexpr float kTramaFmRatio = 1.0f;             // FM modulator:carrier of Trama (M2.5.2, was 1 + 1.76 t)
 constexpr float kVettoreVibratoHz = 5.5f;
 constexpr float kVettoreVibratoDepth = 0.005f;    // +/- 0.5 % of f0, scaled by timbreParam
 }
@@ -593,8 +594,10 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
                             break;
                         }
                         case MusicRole::Trama: {
-                            // 2-operator FM
-                            const float harmonicRatio = 1.0f + 1.76f * slot.timbreParam;
+                            // 2-operator FM, modulator:carrier 1:1 (harmonic spectrum). M2.5.2: was 1 + 1.76 * timbreParam
+                            // (1.88 at the planner's 0.50, inharmonic); chosen by the pre-registered Sethares criteria
+                            // (docs/research/M2_5_2_FM_Ratio_Preregistration.md). The index still follows timbreParam.
+                            constexpr float harmonicRatio = kTramaFmRatio;
                             const float modFreq = slot.pitchHz * harmonicRatio;
                             slot.fmModPhaseIncrement = (kTwoPi * modFreq) / fs;
                             const float maxIdx = carsonMaxModulationIndex(slot.pitchHz, modFreq, fs) *

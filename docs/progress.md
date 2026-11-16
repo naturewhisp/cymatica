@@ -3165,3 +3165,20 @@ Pacchetto CP-2 archiviato senza invio. ADR-0003 D-M2-06 annotato con la ricalibr
 - **Verifica autonoma** (D-M2-30): il cambio di volume è verificato senza ascolto.
 - **Build e test:** Release e Debug headless con `/WX`, 270/270 ciascuna.
 - **Prossimo passo:** F4b (durata e peso nelle basse del kick) con criteri misurabili, poi F2. Non committato.
+
+**Proposta D-M2-32 (2026-11-16, da approvare):** [M2_5_D-M2-32_Proposal.md](M2_5_D-M2-32_Proposal.md). Unisce M2.5.3 e M2.5.4 in una fase «Struttura e sviluppo», non più condizionale, con il contratto minimo di R-M25-7 (opzione B) e un solo ascolto umano cumulativo a fine fase. Parte dopo la chiusura di M2.5.2. Non applicata.
+
+**M2.5.2, rapporto FM della Trama: pre-registrazione** [M2_5_2_FM_Ratio_Preregistration.md](research/M2_5_2_FM_Ratio_Preregistration.md), SHA-256 (LF) `f55dcde4c7eb171be1182b276f87537a0ce2e8840caad610a119568f1d6938a8`. Verifica autonoma (D-M2-30): criteri C1–C3 sul modello di Sethares e predizioni F1–F5.
+
+**M2.5.2, rapporto FM della Trama, risultati (2026-11-16):** [M2_5_2_FM_Ratio_Results.md](research/M2_5_2_FM_Ratio_Results.md), ADR-0007 D-M2-33.
+- **Scelta:** m/c **1:1** con la regola pre-registrata. È l'unico candidato che supera C1 e C2; il 2,0, che avrebbe la dissonanza di contesto più bassa, cade su C2.
+- **Compensazione:** bus della Trama da −10 a **−9,0 dB**, perché con 1:1 la Trama scendeva di 1,03 LU e faceva fallire il controllo di attività di `timbre_bus_probe_v1`. Predizione mancata e dichiarata: l'allineamento di loudness raccomandato alla review di CP-1 non era nella pre-registrazione. La soglia del controllo non è stata cambiata.
+- **Predizioni F1–F5 confermate:**
+  - piano, trace ed eventi invariati;
+  - Pulso, Corpo e Vettore identici a tutte le cifre;
+  - mix +0,009 LU;
+  - limiter 0 dB, true peak invariato.
+- **Golden PCM:** `365661633327826884` → **`7790666370008029299`**.
+- **Onset della Trama:** richiamo degli attacchi con il profilo congelato da 1,0 a 0,9875. A δ 0,3 la calibrazione si allinea ai rilasci (offset 95 ms): nota per la ricalibrazione di M2.5.5. `acao02_v1` resta `INCONCLUSIVE`, limite noto.
+- **Build e suite:** Release e Debug `/WX` 270/270; `full_m2_suite` tutto verde salvo `acao02_v1`.
+- **Prossimi passi:** F2, poi F4b. Non committato.

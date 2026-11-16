@@ -294,8 +294,9 @@ inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0x4f021cb9e863759
 // windows-2025 CI runner (run 41501164874). Same versioning rule as the other goldens: it changes only with a
 // reviewed synthesis, fixture or toolchain change, recorded with its reason.
 // History: 15126969907236845529 (M2.4 baseline, Pulso bus -6 dB) -> 365661633327826884 (M2.5.2 F4a, Pulso bus
-// +2 dB, ADR-0007 D-M2-31; plan, trace and events unchanged).
-inline constexpr std::uint64_t kFixtureProbeV1GoldenPcmHash = 365661633327826884ULL;
+// +2 dB, ADR-0007 D-M2-31; plan, trace and events unchanged) -> 7790666370008029299 (M2.5.2, Trama FM ratio
+// 1:1 with Trama bus -9 dB for loudness alignment; plan, trace and events unchanged).
+inline constexpr std::uint64_t kFixtureProbeV1GoldenPcmHash = 7790666370008029299ULL;
 // Minimum post-bus telemetry energy for a role to count as active in a section (D-M2-11)
 inline constexpr float kFixtureRoleActivityFloor = 1.0e-4f;
 

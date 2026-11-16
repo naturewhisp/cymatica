@@ -35,7 +35,7 @@ public:
     // Nominal role bus gains (ADR-0003 D-M2-06)
     static constexpr float kPulsoGain   = 1.2589254118f; // +2.0 dB (M2.5.2 F4a, ADR-0007 D-M2-31; was -6.0 dB)
     static constexpr float kCorpoGain   = 0.3981071705f; // -8.0 dB
-    static constexpr float kTramaGain   = 0.3162277660f; // -10.0 dB
+    static constexpr float kTramaGain   = 0.3548133892f; // -9.0 dB (M2.5.2: loudness alignment of the 1:1 FM ratio; was -10.0 dB)
     static constexpr float kVettoreGain = 0.5011872336f; // -6.0 dB
 
     // Micro-ducking parameters (-3.0 dB attenuation on Corpo from Pulso)
