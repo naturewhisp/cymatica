@@ -1,0 +1,370 @@
+{
+  "P7": {
+    "detail": "repeat run identical",
+    "outcome": "SUPPORTED"
+  },
+  "clips": {
+    "dir": "kick_level_ab_v1",
+    "files": [
+      "f4a_A_+00dB_raw.wav",
+      "f4a_A_+00dB_aligned.wav",
+      "f4a_B_+00dB_raw.wav",
+      "f4a_B_+00dB_aligned.wav",
+      "f4a_Aprime_+00dB_raw.wav",
+      "f4a_Aprime_+00dB_aligned.wav",
+      "f4a_A_+03dB_raw.wav",
+      "f4a_A_+03dB_aligned.wav",
+      "f4a_B_+03dB_raw.wav",
+      "f4a_B_+03dB_aligned.wav",
+      "f4a_Aprime_+03dB_raw.wav",
+      "f4a_Aprime_+03dB_aligned.wav",
+      "f4a_A_+06dB_raw.wav",
+      "f4a_A_+06dB_aligned.wav",
+      "f4a_B_+06dB_raw.wav",
+      "f4a_B_+06dB_aligned.wav",
+      "f4a_Aprime_+06dB_raw.wav",
+      "f4a_Aprime_+06dB_aligned.wav",
+      "f4a_A_+09dB_raw.wav",
+      "f4a_A_+09dB_aligned.wav",
+      "f4a_B_+09dB_raw.wav",
+      "f4a_B_+09dB_aligned.wav",
+      "f4a_Aprime_+09dB_raw.wav",
+      "f4a_Aprime_+09dB_aligned.wav",
+      "f4a_A_+12dB_raw.wav",
+      "f4a_A_+12dB_aligned.wav",
+      "f4a_B_+12dB_raw.wav",
+      "f4a_B_+12dB_aligned.wav",
+      "f4a_Aprime_+12dB_raw.wav",
+      "f4a_Aprime_+12dB_aligned.wav"
+    ],
+    "selection": "phrases 3-4 of each section (bars 9-16), 10 ms fades; raw and loudness-aligned to offset 0"
+  },
+  "deterministic": {
+    "limiter_confounded": [],
+    "measures": [
+      {
+        "bus_integrated_lufs": -21.254975218459972,
+        "capture_invalid": "",
+        "events_hash": "10441546757030478663",
+        "golden_pcm_status": "PASS",
+        "max_gain_reduction_db": 0.0,
+        "mix_integrated_lufs": -21.254975218459972,
+        "null_test": null,
+        "offset_db": 0.0,
+        "pcm_content_hash": "15126969907236845529",
+        "scale": 1.0,
+        "section_mix_lufs": [
+          -21.149430246422718,
+          -21.267763646519587,
+          -21.345228071336344
+        ],
+        "section_pulso_lufs": [
+          -33.70482273580088,
+          -35.73849962247923,
+          -34.33917296880429
+        ],
+        "stem_integrated_lufs": {
+          "corpo": -24.81937574704185,
+          "pulso": -34.48698134671284,
+          "trama": -34.0870090440686,
+          "vettore": -24.21180146840699
+        },
+        "true_peak_dbtp": -10.446222305297852
+      },
+      {
+        "bus_integrated_lufs": -21.073677223245156,
+        "capture_invalid": "",
+        "events_hash": "10441546757030478663",
+        "golden_pcm_status": "NOT_APPLICABLE",
+        "max_gain_reduction_db": 0.0,
+        "mix_integrated_lufs": -21.073677223245156,
+        "null_test": {
+          "bus_max_abs_residual": 1.0476365019940204e-07,
+          "bus_worst_sample": 3075948,
+          "stems": {
+            "corpo": {
+              "max_abs_residual": 9.685754776000977e-08,
+              "worst_sample": 1951022
+            },
+            "pulso": {
+              "max_abs_residual": 1.7957191289497132e-08,
+              "worst_sample": 5376426
+            },
+            "trama": {
+              "max_abs_residual": 0.0,
+              "worst_sample": 0
+            },
+            "vettore": {
+              "max_abs_residual": 0.0,
+              "worst_sample": 0
+            }
+          }
+        },
+        "offset_db": 3.0,
+        "pcm_content_hash": "7702512095942581626",
+        "scale": 1.4125375747680664,
+        "section_mix_lufs": [
+          -20.934641055050058,
+          -21.12771003919863,
+          -21.162051893871666
+        ],
+        "section_pulso_lufs": [
+          -30.70482249208156,
+          -32.7384993815937,
+          -31.339172720794053
+        ],
+        "stem_integrated_lufs": {
+          "corpo": -24.819375722531724,
+          "pulso": -31.48698110235122,
+          "trama": -34.0870090440686,
+          "vettore": -24.21180146840699
+        },
+        "true_peak_dbtp": -9.348272323608398
+      },
+      {
+        "bus_integrated_lufs": -20.734017014996628,
+        "capture_invalid": "",
+        "events_hash": "10441546757030478663",
+        "golden_pcm_status": "NOT_APPLICABLE",
+        "max_gain_reduction_db": 0.0,
+        "mix_integrated_lufs": -20.734017014996628,
+        "null_test": {
+          "bus_max_abs_residual": 1.0715586107323816e-07,
+          "bus_worst_sample": 4997700,
+          "stems": {
+            "corpo": {
+              "max_abs_residual": 1.043081283569336e-07,
+              "worst_sample": 4997698
+            },
+            "pulso": {
+              "max_abs_residual": 2.404695820246161e-08,
+              "worst_sample": 11184162
+            },
+            "trama": {
+              "max_abs_residual": 0.0,
+              "worst_sample": 0
+            },
+            "vettore": {
+              "max_abs_residual": 0.0,
+              "worst_sample": 0
+            }
+          }
+        },
+        "offset_db": 6.0,
+        "pcm_content_hash": "17684208495023142031",
+        "scale": 1.9952622652053833,
+        "section_mix_lufs": [
+          -20.537613281870193,
+          -20.85468231125558,
+          -20.824018283902078
+        ],
+        "section_pulso_lufs": [
+          -27.70482299636649,
+          -29.73849989775081,
+          -28.339173230702826
+        ],
+        "stem_integrated_lufs": {
+          "corpo": -24.819375772824756,
+          "pulso": -28.486981611180877,
+          "trama": -34.0870090440686,
+          "vettore": -24.21180146840699
+        },
+        "true_peak_dbtp": -8.001429557800293
+      },
+      {
+        "bus_integrated_lufs": -20.125613693540824,
+        "capture_invalid": "",
+        "events_hash": "10441546757030478663",
+        "golden_pcm_status": "NOT_APPLICABLE",
+        "max_gain_reduction_db": 0.0,
+        "mix_integrated_lufs": -20.125613693540824,
+        "null_test": {
+          "bus_max_abs_residual": 1.1175870895385742e-07,
+          "bus_worst_sample": 6499582,
+          "stems": {
+            "corpo": {
+              "max_abs_residual": 1.1175870895385742e-07,
+              "worst_sample": 6499582
+            },
+            "pulso": {
+              "max_abs_residual": 4.000252928904047e-08,
+              "worst_sample": 3456124
+            },
+            "trama": {
+              "max_abs_residual": 0.0,
+              "worst_sample": 0
+            },
+            "vettore": {
+              "max_abs_residual": 0.0,
+              "worst_sample": 0
+            }
+          }
+        },
+        "offset_db": 9.0,
+        "pcm_content_hash": "12339948410904980696",
+        "scale": 2.818382978439331,
+        "section_mix_lufs": [
+          -19.842393409294473,
+          -20.348357757999985,
+          -20.22648508282896
+        ],
+        "section_pulso_lufs": [
+          -24.704822787701872,
+          -26.73849967948345,
+          -25.339173019095156
+        ],
+        "stem_integrated_lufs": {
+          "corpo": -24.819375733500834,
+          "pulso": -25.486981399426693,
+          "trama": -34.0870090440686,
+          "vettore": -24.21180146840699
+        },
+        "true_peak_dbtp": -6.1011433601379395
+      },
+      {
+        "bus_integrated_lufs": -19.123288182391732,
+        "capture_invalid": "",
+        "events_hash": "10441546757030478663",
+        "golden_pcm_status": "NOT_APPLICABLE",
+        "max_gain_reduction_db": 0.0,
+        "mix_integrated_lufs": -19.123288182391732,
+        "null_test": {
+          "bus_max_abs_residual": 1.284264286027792e-07,
+          "bus_worst_sample": 5952128,
+          "stems": {
+            "corpo": {
+              "max_abs_residual": 1.043081283569336e-07,
+              "worst_sample": 10860885
+            },
+            "pulso": {
+              "max_abs_residual": 7.601880014362905e-08,
+              "worst_sample": 3840160
+            },
+            "trama": {
+              "max_abs_residual": 0.0,
+              "worst_sample": 0
+            },
+            "vettore": {
+              "max_abs_residual": 0.0,
+              "worst_sample": 0
+            }
+          }
+        },
+        "offset_db": 12.0,
+        "pcm_content_hash": "5483008004358923767",
+        "scale": 3.981071710586548,
+        "section_mix_lufs": [
+          -18.722067024221396,
+          -19.476991054077313,
+          -19.24308268554785
+        ],
+        "section_pulso_lufs": [
+          -21.7048229758717,
+          -23.73849987066732,
+          -22.339173206518012
+        ],
+        "stem_integrated_lufs": {
+          "corpo": -24.81937572588509,
+          "pulso": -22.486981588048206,
+          "trama": -34.0870090440686,
+          "vettore": -24.21180146840699
+        },
+        "true_peak_dbtp": -3.517829418182373
+      }
+    ],
+    "predictions": {
+      "P1": {
+        "detail": "offset 0: PCM content hash equals the golden",
+        "outcome": "SUPPORTED"
+      },
+      "P2": {
+        "detail": "same applied events in every variant",
+        "outcome": "SUPPORTED"
+      },
+      "P3": [
+        {
+          "detail": "pulso 1.796e-08; corpo 9.686e-08; trama 0.000e+00; vettore 0.000e+00; bus 1.048e-07",
+          "outcome": "SUPPORTED"
+        },
+        {
+          "detail": "pulso 2.405e-08; corpo 1.043e-07; trama 0.000e+00; vettore 0.000e+00; bus 1.072e-07",
+          "outcome": "SUPPORTED"
+        },
+        {
+          "detail": "pulso 4.000e-08; corpo 1.118e-07; trama 0.000e+00; vettore 0.000e+00; bus 1.118e-07",
+          "outcome": "SUPPORTED"
+        },
+        {
+          "detail": "pulso 7.602e-08; corpo 1.043e-07; trama 0.000e+00; vettore 0.000e+00; bus 1.284e-07",
+          "outcome": "SUPPORTED"
+        }
+      ],
+      "P4": [
+        {
+          "detail": "Pulso rise 3.000 LU, predicted 3.000 +/- 0.050",
+          "outcome": "SUPPORTED"
+        },
+        {
+          "detail": "Pulso rise 6.000 LU, predicted 6.000 +/- 0.050",
+          "outcome": "SUPPORTED"
+        },
+        {
+          "detail": "Pulso rise 9.000 LU, predicted 9.000 +/- 0.050",
+          "outcome": "SUPPORTED"
+        },
+        {
+          "detail": "Pulso rise 12.000 LU, predicted 12.000 +/- 0.050",
+          "outcome": "SUPPORTED"
+        }
+      ],
+      "P5": [
+        {
+          "detail": "mix rise 0.181 LU, predicted 0.200 +/- 0.300",
+          "outcome": "SUPPORTED"
+        },
+        {
+          "detail": "mix rise 0.521 LU, predicted 0.570 +/- 0.300",
+          "outcome": "SUPPORTED"
+        },
+        {
+          "detail": "mix rise 1.129 LU, predicted 1.240 +/- 0.300",
+          "outcome": "SUPPORTED"
+        },
+        {
+          "detail": "mix rise 2.132 LU, predicted 2.320 +/- 0.300",
+          "outcome": "SUPPORTED"
+        }
+      ],
+      "P6": [
+        {
+          "detail": "limiter reduction 0.000 dB",
+          "outcome": "SUPPORTED"
+        },
+        {
+          "detail": "limiter reduction 0.000 dB",
+          "outcome": "SUPPORTED"
+        },
+        {
+          "detail": "limiter reduction 0.000 dB",
+          "outcome": "SUPPORTED"
+        },
+        {
+          "detail": "limiter reduction 0.000 dB",
+          "outcome": "NO_PREDICTION"
+        }
+      ]
+    }
+  },
+  "offsets_db": [
+    0.0,
+    3.0,
+    6.0,
+    9.0,
+    12.0
+  ],
+  "preregistration": "docs/research/M2_5_2_F4_Kick_Level_Preregistration.md",
+  "reasons": [],
+  "repeat_identical": true,
+  "scenario": "kick_level_ab_v1",
+  "status": "MEASURED"
+}

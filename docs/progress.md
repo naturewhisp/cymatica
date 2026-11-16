@@ -3097,4 +3097,32 @@ Il titolare ha approvato tutte le proposte del [dossier](CP1_decision_dossier.md
 - **DIF-CP1-D22-01 (MED), validità del monitor non richiesta da D-M2-22:** verificato: `device_clock.status` è `MEASURED` con un solo campione valido, e fallimenti, copertura e intervallo non hanno condizioni. **Corretto in D-M2-22:** il monitor deve risultare `MEASURED` con client invariato, 0 letture fallite, copertura minima e intervallo massimo fra letture fissati in una pre-registrazione prima della qualificazione, motivati anche dalla copertura osservata (circa 80 %), senza adattarli a posteriori; solo allora conta «nessun salto oltre 5 ms». **Destinazione per il codice:** prima della qualificazione, insieme a OSS-CP1-CLOCK-R2-01 (intervallo misurato con `SteadyClock`), il probe deve applicare la stessa regola allo stato `device_clock`. Nessuna misura già acquisita cambia.
 - **OSS-CP1-01 (LOW):** **corretta**: l'introduzione di ADR-0007 dice ora che la specifica è stata emendata esplicitamente da D-M2-21.
 - **Indicazioni per M2.5.2, registrate:** negli A/B di timbro (FM, LFO, saturazione, supersaw) allineare la loudness, mentre per F4 il livello è la variabile sperimentale; il costo DSP va misurato nella catena implementata, non dedotto dai microbenchmark di R-M25-3. Ordine: F4, F2, rapporto FM, poi LFO, saturazione e supersaw.
-- Solo documentazione; build e test non applicabili. Non committato.
+- Solo documentazione; build e test non applicabili. Committato in `ca625ef`.
+
+**Review mirata della correzione (su `ca625ef`, baseline `ba700ae`): verdetto OK.** DIF-CP1-D22-01 chiuso: D-M2-22 richiede `device_clock.status` `MEASURED`, client invariato, 0 letture fallite, copertura minima e intervallo massimo fra letture fissati in una pre-registrazione, divieto di adattamento retroattivo, salti oltre 5 ms valutati solo con il monitor valido; tre corse per uscita e controllo positivo `glitchcal` preservati. OSS-CP1-01 chiuso. Nessun'altra remediation richiesta; nessuna modifica a codice, test o golden PCM.
+- **CI:** [43946214696](https://github.com/naturewhisp/cymatica/actions/runs/43946214696) su `4e3d9b8` verde; [43949270698](https://github.com/naturewhisp/cymatica/actions/runs/43949270698) su `ba700ae` annullata, sostituita dal commit successivo; [43949891759](https://github.com/naturewhisp/cymatica/actions/runs/43949891759) su `ca625ef` **verde**. **CP-1 chiuso formalmente il 2026-11-16**: review OK e CI verde sullo stesso SHA.
+- **Rinviate alla qualificazione, non difetti di questo commit:** pre-registrare le soglie numeriche di copertura e intervallo massimo; applicarle automaticamente nel probe (status fail-closed, intervallo misurato con `SteadyClock`, OSS-CP1-CLOCK-R2-01). Prima del gate M2.5.6.
+- **M2.5.2:** il revisore la ritiene pronta secondo D-M2-26, priorità F4; parte solo con l'autorizzazione esplicita del titolare (ADR-0007 §6).
+
+### M2.5.2 — Mix e immagine stereo (avviata il 2026-11-16)
+
+**Autorizzazione:** il titolare ha autorizzato M2.5.2 il 2026-11-16 («Sì, avvia F4»), secondo ADR-0007 §6 e D-M2-26. Ordine: F4, F2, rapporto FM, poi LFO, saturazione e supersaw come A/B.
+
+**F4a, livello del kick: pre-registrazione** [M2_5_2_F4_Kick_Level_Preregistration.md](research/M2_5_2_F4_Kick_Level_Preregistration.md), SHA-256 (LF) `fc8a15ba1a526e73adb63af6f1ccc0967d736aecfe4781e0e8f38cb8081cefe3`, registrata prima del codice e delle misure. Una sola variabile, il guadagno di bus di Pulso, con override solo offline. Varianti 0, +3, +6, +9 e +12 dB, predizioni P1–P7 e clip per sezione, grezze e allineate. Il valore di produzione si decide a CP-2.
+
+**F4a, risultati (2026-11-16):** [M2_5_2_F4_Kick_Level_Results.md](research/M2_5_2_F4_Kick_Level_Results.md), [esperimento](research/experiments/m25_2_f4_kick_level/README.md). Scenario `kick_level_ab_v1` `MEASURED`; **P1–P7 tutte confermate**.
+- **Validità della prova (P1–P3):**
+  - l'offset 0 è uguale al golden PCM;
+  - gli eventi sono gli stessi in tutte le varianti;
+  - null test: Trama e Vettore con scarto 0, Corpo ≈ 1·10⁻⁷, cioè ducking invariato;
+  - riduzione del limiter 0 dB anche a +12 dB.
+- **Misure:** Pulso sale esattamente di g. Il mix sale di +0,18 / +0,52 / +1,13 / +2,13 LU, sempre un po' meno della predizione (non correlata) ma entro ±0,3. Pulso rispetto a Corpo passa da −9,67 LU a −0,67 LU a +9 dB.
+- **Clip:** 30 per l'ascolto (A, B, A', grezze e allineate), senza campioni a fondo scala. Ispezione dell'inviluppo: a +9 dB i colpi emergono e la loro spaziatura irregolare (F1) diventa visibile.
+- **Codice:**
+  - override offline `AudioEngine::setPulsoBusGainScale` (rifiutato con un device, scala da 0 a 4 esclusi i valori non finiti) e `RoleBusProcessor::setPulsoGainScale`, con il riferimento del ducking che segue il guadagno;
+  - campo `pulsoBusGainScale` in `ProbeAnalysisCapture`; con l'override lo stato golden è `NOT_APPLICABLE`;
+  - scenario `kick_level_ab_v1`, test `[kick_level_ab]`.
+  
+  Produzione invariata (`kPulsoGain` −6 dB, golden PCM invariato).
+- **Build e test:** Release e Debug headless con `-WarningsAsErrors`, 270/270 ciascuna.
+- **Prossimo passo:** pacchetto d'ascolto per CP-2 (coppie dalle clip allineate, controlli B0, chiave del titolare). Il valore di `kPulsoGain` e il golden si aggiornano dopo l'esito. Poi F4b (durata e peso nelle basse, A/B di timbro con la sua pre-registrazione) e F2. Non committato.

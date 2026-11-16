@@ -93,6 +93,11 @@ public:
 
     // Offline stem tap (D-M2-13): null by default; set only in quiescence
     void setStemSink(RoleStemSink* sink) noexcept { stemSink_ = sink; }
+    // Offline kick-level experiment (M2.5.2 F4a): linear scale of the Pulso bus gain, 1 = production. The
+    // ducking reference follows the effective Pulso gain, so the ducking depth and shape stay unchanged and only
+    // the kick level varies. Written only through AudioEngine::setPulsoBusGainScale on an offline engine.
+    void setPulsoGainScale(float scale) noexcept { pulsoGainScale_ = scale; }
+    [[nodiscard]] float pulsoGainScale() const noexcept { return pulsoGainScale_; }
     [[nodiscard]] RoleStemSink* stemSink() const noexcept { return stemSink_; }
     // Frames rendered without bus processing (frozen pause/stop silence) are written to the sink as zeros
     void appendSilentStemFrames(std::uint32_t frameCount) noexcept;
@@ -117,6 +122,7 @@ private:
     RoleStemSink* stemSink_{nullptr};
     std::uint32_t sampleRate_{48000};
     bool duckingEnabled_{true};
+    float pulsoGainScale_{1.0f};
     bool delayBypassed_{false};
 
     // Preallocated per-block role buffers (max 1024 frames = 21.3 ms)

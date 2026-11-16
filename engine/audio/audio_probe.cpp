@@ -2477,7 +2477,10 @@ std::string ProfileProbeResult::toJson() const {
 }
 
 std::string fixturePcmGoldenStatus(const FixtureProbeResult& r, std::uint64_t expected) {
-    if (!r.goldenApplicable || r.injectedFault != FixtureInjectedFault::None || r.noteReleaseOverride != 0) return "NOT_APPLICABLE";
+    if (!r.goldenApplicable || r.injectedFault != FixtureInjectedFault::None || r.noteReleaseOverride != 0 ||
+        r.pulsoBusGainScaleOverride != 1.0f) {
+        return "NOT_APPLICABLE";
+    }
     return r.pcmContentHash == expected ? "PASS" : "FAIL";
 }
 
@@ -2587,6 +2590,14 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     if (capture != nullptr && capture->noteReleaseFrames != 0) {
         (void)engine.setNoteReleaseFrames(capture->noteReleaseFrames);
         result.noteReleaseOverride = capture->noteReleaseFrames;
+    }
+    if (capture != nullptr && capture->pulsoBusGainScale != 1.0f) {
+        if (!engine.setPulsoBusGainScale(capture->pulsoBusGainScale)) {
+            result.passed = false;
+            result.failureReason = "Pulso bus gain scale refused by the engine";
+            return result;
+        }
+        result.pulsoBusGainScaleOverride = capture->pulsoBusGainScale;
     }
     result.contentEndFrame = coordinator.contentEndFrame();
     result.lookaheadFrames = coordinator.lookaheadFrames();

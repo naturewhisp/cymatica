@@ -350,6 +350,7 @@ struct FixtureProbeResult {
     bool goldenPlanPassed{false};
     std::string goldenPcmStatus{"NOT_RUN"};   // PASS / FAIL (seed 1337, nominal path) or NOT_APPLICABLE
     std::uint32_t noteReleaseOverride{0};     // 5e-08 offline release experiment (0 = production release)
+    float pulsoBusGainScaleOverride{1.0f};    // M2.5.2 F4a offline kick-level experiment (1 = production)
     std::uint64_t expectedEngineEvents{0}; // 2 x generatedEvents: one NoteOn and one NoteOff per intent
     // O3 chain and plan identities (ADR-0006 D-M2-12, Inc-5 phase 5a)
     std::uint64_t jitPlanHash{0};             // canonicalPlanHash of the intents the Coordinator planned just in time
@@ -497,6 +498,8 @@ struct ProbeAnalysisCapture {
     std::vector<PlannedNoteOff>* noteOffs{nullptr};        // planner NoteOffs of the open pads
     // Offline release experiment (5e-08): release of ordinary NoteOffs in frames, 0 = the 2 ms de-click
     std::uint32_t noteReleaseFrames{0};
+    // Offline kick-level experiment (M2.5.2 F4a): linear scale of the Pulso bus gain, 1 = production
+    float pulsoBusGainScale{1.0f};
     VoiceConfounders* confounders{nullptr};                // voice drops, release cuts and overlaps of the run
 };
 

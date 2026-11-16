@@ -212,6 +212,10 @@ public:
     // Accepted only by an engine created with initOffline() (DIF-5e.3-01): an engine with a physical device refuses
     // it whether or not the device is started, so the realtime path can never carry the override.
     bool setNoteReleaseFrames(std::uint32_t frames) noexcept;
+    // Offline kick-level experiment (M2.5.2 F4a): linear scale of the Pulso bus gain, 1 = production. Same rule as
+    // setNoteReleaseFrames (offline engine only); refused unless finite and 0 < scale <= kMaxPulsoBusGainScale.
+    static constexpr float kMaxPulsoBusGainScale = 4.0f; // +12.04 dB
+    bool setPulsoBusGainScale(float scale) noexcept;
     // Rule of setNoteReleaseFrames, testable without hardware: offline engine and no device running
     [[nodiscard]] static constexpr bool noteReleaseOverrideAllowed(bool offlineEngine, bool deviceStarted) noexcept {
         return offlineEngine && !deviceStarted;

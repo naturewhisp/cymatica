@@ -156,7 +156,8 @@ void RoleBusProcessor::processAndMix(float* pDestInterleaved,
     // so a ringing delay or a decaying tail never sees a gain step when the role goes idle (ADR-0004 §2.5).
     for (std::size_t r = 0; r < kRoleCount; ++r) {
         if (roleActiveVoices[r] == 0) continue;
-        const float target = nominalBusGain(r, roleTimbreParam[r]);
+        float target = nominalBusGain(r, roleTimbreParam[r]);
+        if (r == kP && roleTimbreParam[r] > 0.0f) target *= pulsoGainScale_; // F4a offline experiment, 1 = production
         if (roleInputSilentPrev_[r]) {
             busGainSmoothers_[r].snapTo(target); // bus input was exactly zero: no audible step
         } else {
@@ -206,7 +207,7 @@ void RoleBusProcessor::processAndMix(float* pDestInterleaved,
 
         float duckGain = 1.0f;
         if (duckingEnabled_) {
-            const float duckFactor = std::clamp(duckingEnv_ / kDuckingFullScaleLevel, 0.0f, 1.0f);
+            const float duckFactor = std::clamp(duckingEnv_ / (kDuckingFullScaleLevel * pulsoGainScale_), 0.0f, 1.0f);
             duckGain = 1.0f - (1.0f - kMinDuckingGain) * duckFactor;
         }
         lastDuckingGain_ = duckGain;

@@ -13,6 +13,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <memory>
 
 #if defined(_MSC_VER) || defined(__x86_64__) || defined(_M_X64)
@@ -920,6 +921,16 @@ bool AudioEngine::setNoteReleaseFrames(std::uint32_t frames) noexcept {
         return false; // offline engines only (DIF-5e.3-01)
     }
     pImpl_->voiceAllocator.setNoteReleaseFrames(frames);
+    return true;
+}
+
+bool AudioEngine::setPulsoBusGainScale(float scale) noexcept {
+    if (!pImpl_) return false;
+    if (!noteReleaseOverrideAllowed(!pImpl_->deviceInitialized, pImpl_->deviceStarted.load(std::memory_order_acquire))) {
+        return false; // offline engines only, like the release override
+    }
+    if (!std::isfinite(scale) || !(scale > 0.0f) || scale > kMaxPulsoBusGainScale) return false;
+    pImpl_->voiceAllocator.roleBusProcessor().setPulsoGainScale(scale);
     return true;
 }
 

@@ -14,6 +14,8 @@ add_library(cymatica_cacp STATIC
     evaluation_pack.h
     fft.cpp
     fft.h
+    kick_level_ab.cpp
+    kick_level_ab.h
     loudness.cpp
     loudness.h
     m2_suite.cpp

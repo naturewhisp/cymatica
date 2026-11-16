@@ -9,6 +9,7 @@
 #include "evaluation_pack.h"
 #include "onset_parity.h"
 #include "procedural_scenario.h"
+#include "kick_level_ab.h"
 #include "release_ab.h"
 #include "trama_diagnosis.h"
 #include "m2_suite.h"
@@ -220,6 +221,12 @@ int main(int argc, char** argv) {
                 std::printf("[cacp] Verdict: %s\n", res.status.c_str());
                 std::printf("%s\n", res.toJson().c_str());
                 return (res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
+            } else if (std::strcmp(scenario, "kick_level_ab") == 0 || std::strcmp(scenario, "kick_level_ab_v1") == 0) {
+                std::printf("[cacp] Running scenario '%s' (M2.5.2 F4a kick_level_ab_v1: offline kick-level A/B, MEASURED, not a gate)...\n", scenario);
+                auto res = cymatica::cacp::runKickLevelAbV1("artifacts/cacp", true);
+                std::printf("[cacp] Verdict: %s\n", res.status.c_str());
+                std::printf("%s\n", res.toJson().c_str());
+                return (res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
             } else if (std::strcmp(scenario, "trama_miss_diagnosis") == 0 || std::strcmp(scenario, "trama_miss_diagnosis_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5e.3b: causal diagnosis of the missed Trama attacks, MEASURED, not a gate)...\n", scenario);
                 auto res = cymatica::cacp::runTramaMissDiagnosisV1("artifacts/cacp", true);
@@ -251,7 +258,7 @@ int main(int argc, char** argv) {
                 return (res.completed && res.inputValid) ? 0 : 1;
             } else {
                 std::fprintf(stderr, "[cacp] ERROR: unknown scenario '%s' (known: tone_test, voice_test, "
-                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, device_probe, onset_parity, acao02, evaluation_pack, procedural, release_ab, trama_miss_diagnosis, full_m2_suite "
+                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, device_probe, onset_parity, acao02, evaluation_pack, procedural, release_ab, kick_level_ab, trama_miss_diagnosis, full_m2_suite "
                                      "and their *_v* aliases)\n",
                              scenario);
                 return 2;
