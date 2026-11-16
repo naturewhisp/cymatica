@@ -1,7 +1,7 @@
 # ADR-0007 — Ingresso in M2.5: sotto-fasi, checkpoint e calendario delle decisioni
 
 - **Data:** 2026-11-03
-- **Stato:** `accepted for implementation`: D-M2-17..20 approvate dal titolare il 2026-11-04 (fase M2.5.0). Le decisioni del §5 restano ai rispettivi checkpoint. M2.5.1 è autorizzata dal titolare; stato in [progress.md](../progress.md).
+- **Stato:** `accepted for implementation`: D-M2-17..20 approvate dal titolare il 2026-11-04 (fase M2.5.0); D-M2-21..29, decisioni di CP-1, approvate il 2026-11-16 (§10). Le altre decisioni del §5 restano ai rispettivi checkpoint. M2.5.1 è autorizzata dal titolare; stato in [progress.md](../progress.md).
 - **Milestone:** M2 — sottofase M2.5, «Integrazione e verifica finale».
 - **Owner:** coordinatore dello sviluppo, su richiesta del titolare del 2026-11-03: dividere M2.5 in sotto-fasi con checkpoint, chiudere i punti aperti e rinviare le decisioni al momento opportuno anziché prenderle tutte all'ingresso.
 - **Gerarchia:** Specifica > DESIGN > AGENTS > ADR > piano operativo > ricerca. Questo ADR **organizza** M2.5 e non modifica:
@@ -136,7 +136,9 @@ Ogni fase che tocca il codice si chiude con build Release, Debug e Headless, 0 w
 |---|---|---|
 | R-M25-1 | Bilanciamento: rumore rosa, curve isofoniche, loudness per stem | M2.5.2 |
 | R-M25-2 | Immagine stereo: precedenza e alternative al delay 11/17 ms | M2.5.2 |
-| R-M25-3 | Effetti (riverbero, chorus, saturazione): costo DSP rispetto a D-M2-10 e ADR-0004 | dopo CP-1 |
+| R-M25-3 | Effetti (riverbero, chorus, saturazione): costo DSP rispetto a D-M2-10 e ADR-0004. Parte anticipata eseguita per CP-1 ([risultati](../research/CP1_RM25_3_Early_Results.md)) | dopo CP-1 |
+| R-M25-10 | Stress con controllo positivo del percorso audio e confronto controbilanciato Default contro Games (MMCSS); aggiunta da D-M2-28 | prima di M2.5.6 |
+| R-M25-12 | Punto di cattura del loopback rispetto al volume. **Eseguita e chiusa:** [risultati](../research/experiments/cp1_volume_loopback/README.md) (cursore per app applicato come livello² prima della cattura) | CP-1 |
 | R-M25-4 | Transizioni: continuità dei pattern contro rampe di tempo | M2.5.3 |
 | R-M25-5 | Onset: normalizzazione robusta o locale (H-04) | prima di CP-4 |
 | R-M25-6 | Statistica per gruppi e permutazioni (H-05) | prima di CP-4 |
@@ -180,10 +182,10 @@ Registro unico dei suggerimenti raccolti il [2026-10-28](../m2_4_human_listening
 | Kick: più peso nelle basse, durata oltre i 54–62 ms attuali | F4, M2.5.2 |
 | Kick campionato o drum kit in un campionatore | R-M25-9, confronto A/B con il kick sintetico |
 | Backbeat e ghost notes per ancorare il metro | F1, CP-2 |
-| LFO sul filtro a quarti o ottavi, su pad o lead | CP-1, poi M2.5.2 |
-| Saturazione ed eventuale distorsione, sul synth o sul master | CP-1, poi M2.5.2 |
-| Supersaw sul lead: due voci all'unisono, leggermente stonate e aperte | CP-1, poi M2.5.2 |
-| Modulazioni di altri parametri, per esempio l'attacco | CP-1, come estensione dell'LFO |
+| LFO sul filtro a quarti o ottavi, su pad o lead | **Adottata** a CP-1 come A/B in M2.5.2 (D-M2-29) |
+| Saturazione ed eventuale distorsione, sul synth o sul master | **Adottata** a CP-1 come A/B in M2.5.2, ADAA o sovracampionamento secondo la misura (D-M2-29) |
+| Supersaw sul lead: due voci all'unisono, leggermente stonate e aperte | **Adottata** a CP-1 come A/B in M2.5.2, fasi deterministiche (D-M2-29) |
+| Modulazioni di altri parametri, per esempio l'attacco | **Rinviata** a CP-1: dopo l'esito dell'A/B dell'LFO in M2.5.2 (D-M2-29) |
 | Rifare il delay della Trama, oggi lateralizzato | F2, M2.5.2 |
 | Giudicare la larghezza stereo a orecchio: il Side/Mid può dire il contrario del percepito | F2 e R-M25-2: bilanciamento fra i canali più ascolto |
 | Bilanciamento con rumore rosa e curve isofoniche | R-M25-1, M2.5.2 |
@@ -194,7 +196,7 @@ Registro unico dei suggerimenti raccolti il [2026-10-28](../m2_4_human_listening
 | Variazione melodica decisa o nuovo suono dopo il secondo loop | F3 e F5, CP-3 |
 | VST open source con preset. Il determinismo non lo esclude a priori: su molti synth la fase degli oscillatori si può bloccare; provare render ripetuti e con blocchi diversi, e distinguere il bit esatto dei golden dal replay, che dipende da eventi e piano | R-M25-9 |
 | Viste con nomi di strumenti e griglia | P-M25-08, M2.5.1 |
-| Ascoltare a un volume che permetta di giudicare il kick | P-M25-03, CP-1 |
+| Ascoltare a un volume che permetta di giudicare il kick | **Adottata** a CP-1 nel protocollo d'ascolto (D-M2-27, D-M2-29) |
 | Null test del rilascio: residuo di −14 dB su clip giudicate uguali, con il rilascio cambiato su tutti i ruoli insieme. Esportare il residuo, misurarlo per ruolo e nel tempo, escludere errori nelle clip, provare un A/B per ruolo a partire dal kick. Ipotesi da verificare: kick chiuso quando l'inviluppo è già al 14–35 %, quindi serve più decay e non più rilascio; FM mascherata da livello basso e delay; residuo dovuto alle code sovrapposte di pad e lead | H-03, prima di CP-4. Fino ad allora il ridimensionamento di F6 è provvisorio |
 | Ipotesi del titolare (2026-11-05): parte del problema è la dissolvenza di 2 ms quando una voce viene interrotta. Verifica sul piano e sul codice: i ruoli non si interrompono fra loro, ma i 2 ms esistono in tre casi. Ogni NoteOff ordinario. I 190 tagli di rilascio di Corpo: a ogni cambio d'accordo la nota nuova riusa la voce appena rilasciata, che sfuma sempre in 2 ms, a qualunque rilascio impostato: l'A/B del rilascio non ha mai variato questo punto (190 in tutte e 5 le varianti). L'attacco del ducking di 2 ms con cui Pulso abbassa Corpo. Effetto udibile non verificato | H-03, prima di CP-4: null test per ruolo, poi A/B offline che cambi solo la durata delle code di Corpo dovute al riutilizzo delle voci. Pause e Stop restano separati: sono dissolvenze di sicurezza, vincolate ai tempi approvati |
 | Null test: invertire di fase una clip e sommarla all'altra per capire quanto è cambiato | D-M2-19: da riportare in ogni confronto A/B, accanto all'hash. Residuo molto basso: nulla di significativo è cambiato. Residuo alto: non prova una differenza udibile (clip del rilascio: −14 dB, giudicate uguali) |
@@ -205,3 +207,19 @@ Registro unico dei suggerimenti raccolti il [2026-10-28](../m2_4_human_listening
 - Nessuna modifica al runtime C++, ai test o ai golden: build e test del progetto non applicabili. Il commit aggiunge solo documenti e strumenti offline di ricerca in `docs/research/experiments/`.
 - Link interni controllati; ogni ID del §5 e del §8 ha un riscontro nei documenti di handoff.
 - Review del titolare: approvazione di D-M2-17..20. M2.5.1 parte solo con un'autorizzazione esplicita.
+
+## 10. Decisioni di CP-1 (2026-11-16)
+
+Il titolare ha approvato il 2026-11-16 tutte le proposte del [dossier delle decisioni di CP-1](../CP1_decision_dossier.md), con un'annotazione su D-M2-27. Le evidenze, le alternative e i motivi sono nel dossier; qui resta il registro unico. Stato di tutte: `accepted for implementation`, nessuna `validated`.
+
+| ID | Decisione (dossier) | Esito approvato | Contratti toccati | Verifica |
+|---|---|---|---|---|
+| **D-M2-21** | Cambio di metro, P-M25-01 (D1) | **Opzione B + C.** La fixture resta in 4/4; la specifica §32 è emendata (0.8.5): in M2 la transizione obbligatoria nel contenuto è quella di tempo, e il cambio di time signature via `SetTempoMap` è qualificato da uno scenario tecnico ripetibile con manifest, distinto dalla fixture musicale. Un metro diverso come scelta musicale resta possibile più avanti con R-M25-11 | Specifica §32 (M2 e riga M2.5); nessun golden | Scenario tecnico 4/4 → 3/4 → 4/4 con manifest, promosso dalla [prova di fattibilità](../research/M2_5_1b_Meter_Feasibility.md); destinazione: M2.5.3, al più tardi prima del gate |
+| **D-M2-22** | Criterio PASS del device (D2) | Per ogni uscita qualificata, tutti insieme: controllo positivo `glitchcal` superato, ripetuto dopo ogni cambio di driver; binario compilato da un commit; manifest con endpoint e formato attesi, rerouting disattivato e client invariato, cursore dell'app a 1 e volume di sistema registrati; PCM della callback uguale al golden; `suspected_underruns` 0; nessun salto `IAudioClock` oltre 5 ms; loopback con 0 slittamenti, silenzi, raffiche e overflow; ascolto umano della stessa corsa senza artefatti; **tre corse** per uscita. Un rilevatore che non reagisce al controllo positivo rende la corsa `INVALID` | D-M2-10 resta la corsa; questo è la soglia | Al gate M2.5.6, su ogni uscita dichiarata; limite dichiarato sugli eventi rari |
+| **D-M2-23** | Canale ETW `/GlitchDetection` (D3) | **Non attivato.** Da riconsiderare se un artefatto viene sentito e nessun rilevatore lo vede, o per un'uscita senza loopback affidabile | Nessuno | Riesame se ricorre la condizione |
+| **D-M2-24** | Default di MMCSS nel runtime (D4) | **Rinviato a R-M25-10**; il default non cambia, il probe usa `games` | Nessuno | R-M25-10, prima di M2.5.6 |
+| **D-M2-25** | Margine DSP per gli effetti (D5) | Margine indicativo ≈ 1,6 ms per 512 frame (D-M2-10). Ogni effetto entra solo con la sua misura nel profilo D-M2-10 e con l'azzeramento dei denormali nelle strutture a retroazione; riverbero, chorus e delay restano a R-M25-3 | D-M2-10, ADR-0004 | Misura di ogni effetto prima dell'integrazione |
+| **D-M2-26** | Perimetro di M2.5.2 (D6) | F4 (kick), F2 (stereo della Trama) e **rapporto FM della Trama**, ciascuno con A/B, null test e golden aggiornato con motivo. LFO sul filtro, saturazione e supersaw entrano come A/B successivi, uno per pacchetto, dopo F4, con misura di costo e ipotesi registrata prima dell'ascolto; la supersaw usa fasi da uno stream deterministico isolato. La riassegnazione delle voci libere richiede un ADR dedicato, fuori da M2.5 | Golden PCM (ogni intervento); D-M2-03 invariato | Gli A/B e l'ascolto di CP-2 |
+| **D-M2-27** | Protocollo d'ascolto, P-M25-03 (D7) | **Adottato**: [protocollo](../m2_5_listening_protocol_P-M25-03.md). **Annotazione del titolare:** in una sessione di 45 minuti al massimo va garantita varietà per non annoiare l'ascoltatore; recepita nel protocollo (§2bis) | Procedura degli ascolti di CP-2, CP-3 e gate | Il modulo di risposta di ogni sessione |
+| **D-M2-28** | Ricerche R-M25-10..12 (D8) | R-M25-10 aggiunta al §7; R-M25-12 eseguita e chiusa; R-M25-11 non aggiunta, perché D-M2-21 non sceglie l'opzione A | §7 | §7 |
+| **D-M2-29** | Voci di §8.1 in scadenza a CP-1 (D9) | LFO, saturazione e supersaw adottate come A/B in M2.5.2 (D-M2-26); modulazioni di altri parametri rinviate a dopo l'esito dell'LFO; volume per giudicare il kick adottato nel protocollo (D-M2-27) | §8.1 | §8.1 |

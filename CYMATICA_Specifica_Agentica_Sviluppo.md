@@ -1,7 +1,7 @@
 # CYMATICA — Specifica tecnica per sviluppo agentico e generazione adattiva
 
 **Documento:** specifica tecnica-operativa per prototipo e sviluppo incrementale  
-**Versione:** 0.8.4 — eccezione diagnostica circoscritta all'unico owner audio (2026-11-10); 0.8.3 integrazione controllo agentico e osservazione audiovisiva richiesta il 2026-10-07 (baseline 0.8.1/0.8.2 accettata)
+**Versione:** 0.8.5 — transizione di M2 nel contenuto e cambio di metro qualificato da scenario tecnico (2026-11-16); 0.8.4 eccezione diagnostica circoscritta all'unico owner audio (2026-11-10); 0.8.3 integrazione controllo agentico e osservazione audiovisiva richiesta il 2026-10-07 (baseline 0.8.1/0.8.2 accettata)
 **Data:** 2026-10-07
 **Baseline revisionata:** 0.8 su commit `4aa2d5271aea11ad8aa088932c5afad8d6aaeec7`, integrata in `ac1ac59`; 0.8.1 su `ac1ac59`  
 **Target primario:** Windows x64  
@@ -15,6 +15,12 @@
 ---
 
 ## 0. Changelog
+
+### 0.8.5 — 2026-11-16
+
+Decisione del titolare a CP-1 (ADR-0007 D-M2-21, opzione B + C del [dossier](docs/CP1_decision_dossier.md); rilievo OSS-M2.5.1b-01). Riconciliazione esplicita, non un indebolimento silenzioso.
+
+- §32 M2 e riga M2.5: la transizione obbligatoria **nel contenuto musicale** è quella di tempo via `SetTempoMap`; il **cambio di time signature** via `SetTempoMap` resta un requisito di M2 ed è qualificato da uno **scenario tecnico ripetibile con manifest**, distinto dalla fixture. Motivo: la [prova di fattibilità](docs/research/M2_5_1b_Meter_Feasibility.md) mostra che il cambio di metro è tecnicamente alla portata, ma senza una gerarchia di accenti un metro diverso nella fixture non darebbe una differenza udibile. Un metro diverso come scelta musicale resta possibile più avanti, con la ricerca R-M25-11.
 
 ### 0.8.4 — 2026-11-10
 
@@ -3214,7 +3220,7 @@ Deliverable:
 Accettazione:
 
 - musica continua 3 minuti senza crackle;
-- almeno due sezioni distinguibili (inclusa transizione di tempo/metrica via `SetTempoMap`);
+- almeno due sezioni distinguibili (inclusa transizione di tempo via `SetTempoMap`); il cambio di time signature via `SetTempoMap` è qualificato da uno scenario tecnico ripetibile con manifest, distinto dal contenuto musicale (0.8.5, ADR-0007 D-M2-21);
 - intent e audio restano sincronizzati;
 - stesso seed produce stesso event trace;
 - la callback esegue, non pianifica.
@@ -3231,7 +3237,7 @@ M2 si esegue nelle sottofasi seguenti, senza aggiungere milestone o modificare i
 | **M2.2 — Controllo e osservazione del tono** | Dopo i contratti pertinenti M2.1: dispatcher comune SPACE/runner, AudioProbe, WAV, metriche e manifest sulla baseline M1. Nessun VisualProbe obbligatorio. | AC-AO-01A superato, inclusa prova OS automatica o manuale documentata, RT safety e overflow/lifecycle. AC-AO-01B riportato separatamente come supplementare capability-dependent; capacità client assente non blocca il gate del progetto. |
 | **M2.3 — Transport e scheduler** | Dopo i contratti tempo/eventi/budget M2.1: SetTempoMap sample-accurate con ack, scheduler ahead-of-time, ordinamento, limiti e saturazione. Le sonde M2.2 forniscono evidenza audio per l'integrazione. | Test dei confini temporali e cambi tempo/metrica, ack, capacità/backpressure e callback bounded; eventi applicati nei tempi accettati, nessuna pianificazione nella callback. |
 | **M2.4 — Musica procedurale v1** | Integrare con M2.3 form/phrase skeleton, quattro ruoli, ritmi euclidei, scale/modi, memoria minima del motivo, synth/mix e telemetria. Funzioni pure possono essere sviluppate dopo i propri contratti M2.1 senza attendere tutta M2.3. | Test mirati dei generatori e stessi event trace a parità di seed/profilo; contenuto con almeno due sezioni distinguibili pronto per la verifica integrata. Nessuna attestazione anticipata di qualità percettiva. |
-| **M2.5 — Integrazione e verifica finale** | Integrare M2.2–M2.4, verificare AC-AO-02 e tutti i criteri M2 originali; raccogliere evidenze su build, profilo e procedure identificati. | Tre minuti di musica continua senza crackle, due sezioni distinguibili con transizione tempo/metrica, sincronismo intent/audio, trace deterministico e callback che esegue soltanto. Build/configurazioni e review indipendente secondo AGENTS; ogni mandatory failed/not_run/blocked lascia M2 incompleta. |
+| **M2.5 — Integrazione e verifica finale** | Integrare M2.2–M2.4, verificare AC-AO-02 e tutti i criteri M2 originali; raccogliere evidenze su build, profilo e procedure identificati. | Tre minuti di musica continua senza crackle, due sezioni distinguibili con transizione di tempo nel contenuto e cambio di metro qualificato da scenario tecnico (0.8.5), sincronismo intent/audio, trace deterministico e callback che esegue soltanto. Build/configurazioni e review indipendente secondo AGENTS; ogni mandatory failed/not_run/blocked lascia M2 incompleta. |
 
 Ogni passaggio registra comando/procedura, build/commit, ambiente, esito e posizione dell'evidenza. I test pertinenti si eseguono durante lo sviluppo; le sottofasi non sostituiscono le verifiche runtime, hardware o umane richieste né la remediation/re-review del gate finale. M2.5 può dichiararsi conclusa solo quando M2 soddisfa integralmente tali condizioni.
 

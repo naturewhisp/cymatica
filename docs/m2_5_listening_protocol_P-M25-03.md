@@ -1,6 +1,6 @@
-# Protocollo d'ascolto di M2.5 (P-M25-03) — bozza per CP-1
+# Protocollo d'ascolto di M2.5 (P-M25-03)
 
-- **Stato:** **proposto**, da decidere a CP-1 e da fissare **prima** dell'ascolto di CP-2 (ADR-0007, P-M25-03). Non è ancora adottato.
+- **Stato:** **adottato** dal titolare a CP-1 il 2026-11-16 (ADR-0007 D-M2-27), con l'annotazione sulla varietà della sessione recepita al §2bis. Vale per gli ascolti di CP-2, CP-3 e del gate.
 - **Fonti:** [proposta d'ingresso](research/M2_5_Entry_Music_Quality_Proposal.md) (P-M25-03 e precisazioni), [dossier R-M25-7](research/M2_5_F5_Music_Director_Research.md) (estensione per CP-1, batteria B0–B7), [ascolto del 2026-10-28](m2_4_human_listening_2026-10-28.md) (scale 1–7), [ascolto del 2026-11-03](m2_4_human_listening_2026-11-03.md) (indicazioni per il pacchetto successivo), ADR-0007 §8.1 (volume per giudicare il kick), [prova del volume USB](research/experiments/cp1_volume_loopback/README.md) (volume dell'app).
 - **Perimetro:** gli ascolti umani previsti da ADR-0007: CP-2, CP-3 e il gate. L'agente non ascolta e non conta come partecipante.
 
@@ -20,6 +20,18 @@
    - **volume fisso** per tutta la sessione, scelto all'inizio in modo che il kick sia giudicabile (suggerimento dell'esperto);
    - cursore dell'applicazione nel mixer di Windows al **100 %**, verificato; volume di sistema annotato. Su questo PC il cursore dell'app attenua il segnale con legge quadratica (prova R-M25-12) e rende i confronti illeggibili se non è noto.
 5. **Durata:** al massimo 45 minuti, con una pausa a metà.
+
+## 2bis. Varietà della sessione (annotazione del titolare)
+
+In 45 minuti al massimo la sessione deve restare varia, perché la noia altera i giudizi. Regole:
+- il **brano completo** si ascolta al più due volte per sessione (ascolto libero e ascolto con l'istante del calo);
+- gli estratti A/B durano 8–16 battute e vengono da **punti e sezioni diversi** del brano, non sempre dallo stesso passaggio;
+- nessun estratto si ripete più di due volte, salvo il duplicato nascosto dei controlli B0;
+- i compiti si **alternano**: descrizione, scale, istante del calo, A/B, tapping del tempo, domande brevi; mai due blocchi lunghi dello stesso compito di seguito;
+- se le prove richieste superano 45 minuti, si dividono in **due sessioni** in giorni diversi, invece di comprimerle;
+- il modulo registra la durata effettiva e l'eventuale affaticamento dichiarato dall'ascoltatore.
+
+La varietà riguarda i compiti e l'ordine, non il contenuto sotto prova, che resta quello del pacchetto.
 
 ## 3. Ordine dentro la sessione
 
@@ -67,7 +79,7 @@ Linguaggio quotidiano, nessun termine tecnico; si può rispondere «non so».
 ## 7. Modulo di risposta
 
 ```text
-Data e ora, sessione:
+Data e ora, sessione, durata effettiva:
 Ascoltatore (esperto / secondo ascoltatore; nessun nome nei documenti):
 Apparecchiatura (cuffie / diffusori / interfaccia):
 Volume di sistema e cursore dell'app (verificato al 100 %):
@@ -80,6 +92,7 @@ Q1 … Q8 (esperto) oppure domande 1–7 (secondo ascoltatore):
 A/B — per ogni coppia: ordine presentato, rilevazione, preferenza, giudizio motivato:
 Controlli B0 — coppia identica: risposta;  duplicato nascosto: risposta:
 Chiave rivelata a fine sessione:
+Affaticamento o noia dichiarati (se sì, da quando):
 Esito complessivo (libero, anche negativo o inconcludente):
 ```
 
