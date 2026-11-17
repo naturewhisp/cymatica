@@ -3245,3 +3245,25 @@ Pacchetto CP-2 archiviato senza invio. ADR-0003 D-M2-06 annotato con la ricalibr
 - **Il kick è troncato dal NoteOff** del planner a 53,6 e 62,5 ms, cioè la durata «54–62 ms» notata dall'esperto. **Per F4b:** la durata oggi la decide il planner, non il timbro.
 - **Differenze dichiarate:** Stop riportato come taglio, Pause come causa propria; nessuno dei due compare nella fixture.
 - **Build e suite:** Release e Debug `/WX` 286/286; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
+
+**Pacchetto di misura 3, ILD/ITD/IACC per banda: pre-registrazione** [M2_5_Pkg3_Binaural_Bands_Preregistration.md](research/M2_5_Pkg3_Binaural_Bands_Preregistration.md), SHA-256 (LF) `cc028388ea8a44e1f3f457dd07029905a78fcbe338f6111c40fd32708cd8d2bf`. Gammatone a 24 bande ERB; prove C1–C6, con l'oracolo scipy; predizioni T1–T3 sulla Trama.
+
+**Pacchetto di misura 3, risultati (2026-11-17):** [M2_5_Pkg3_Binaural_Bands_Results.md](research/M2_5_Pkg3_Binaural_Bands_Results.md).
+- **Esito:** strumento **validato** (C1–C6; oracolo scipy concorde). Trama: T1 (primo fronte centrato in ogni banda), T2 (nota −1,33 dB, IACC 0,89) e T3 (dispersione 2,72 dB) confermate.
+- **Correzioni dichiarate:** normalizzazione per ritardo della correlazione (l'IACC superava 1 sulle finestre brevi); oracolo in variante FIR, perché il gammatone IIR di scipy è instabile sotto 250 Hz.
+
+**Pacchetto di misura 4, loudness specifica e mascheramento: pre-registrazione** [M2_5_Pkg4_Specific_Loudness_Masking_Preregistration.md](research/M2_5_Pkg4_Specific_Loudness_Masking_Preregistration.md), SHA-256 (LF) `e1fbcdd80cb499cae39938639b383617ab0534b32f3a5b8f4a9e34df33c9c89d`. MoSQITo 1.2.1 (con matplotlib, che importa senza dichiararlo) aggiunto all'ambiente fissato; prove L1–L5; predizioni M1–M3.
+
+**Pacchetto di misura 5, descrittori timbrici: pre-registrazione** [M2_5_Pkg5_Timbre_Descriptors_Preregistration.md](research/M2_5_Pkg5_Timbre_Descriptors_Preregistration.md), SHA-256 (LF) `0f90c18d842754c1cd0244c22a45c72aa4e0925e25b13611d0237f4f0167c2e6`. Sei descrittori di Peeters 2011 e separabilità leave-one-out; prove D1–D5 (oracolo numpy indipendente invece di librosa, motivato); predizioni P1–P3.
+
+**Pacchetto di misura 5, risultati (2026-11-17):** [M2_5_Pkg5_Timbre_Descriptors_Results.md](research/M2_5_Pkg5_Timbre_Descriptors_Results.md).
+- **Esito:** strumento **validato** (D1–D5; oracolo numpy concorde a 5·10⁻⁹).
+- **Predizioni:** P1 e P2 confermate, la Trama a FM 1:1 è separabile da Corpo e Vettore (accuratezza 1,0). **P3 mancata:** dispari/pari della Trama −3,0 dB contro +4,9 di Corpo, cioè uno spettro diverso dal dente di sega, con dispersione 0,71 contro 1,76.
+- **Correzioni dichiarate:** due test unitari (valore analitico del dente di sega; dati del classificatore). Limite del leave-one-out su 6 note.
+
+**Pacchetto di misura 4, risultati (2026-11-17):** [M2_5_Pkg4_Specific_Loudness_Masking_Results.md](research/M2_5_Pkg4_Specific_Loudness_Masking_Results.md).
+- **Esito:** strumento **validato** (L1–L5 con MoSQITo).
+- **Predizioni:** M1 e M2 confermate in B e A′; in A la Trama tace nell'estratto pre-registrato (errore di disegno dichiarato). **M3 mancata:** il mix scende a −8,7 dB/ottava, più scuro del rosa (−3) e del valore di Pestana (circa −5).
+- **Trama:** il ruolo più coperto (perdita 0,85–0,92). La perdita include la compressione di loudness nella stessa banda: valgono i confronti, non i valori assoluti.
+- **Dipendenze:** MoSQITo, pyuff e matplotlib, con le sue dipendenze, fissati per hash in `tools/pyenv` e registrati in `docs/dependencies.md`.
+- **Build e suite dei pacchetti 3–5:** Release e Debug headless `/WX` 291/291; `full_m2_suite` verde salvo `acao02_v1`, il limite noto. Licenze dell'ambiente lette dai metadati: una prima stesura indicava per errore pyuff come GPL-3.0, ed è MIT. Non committato.

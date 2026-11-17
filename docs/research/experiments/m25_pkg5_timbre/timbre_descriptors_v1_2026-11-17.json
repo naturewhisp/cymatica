@@ -1,0 +1,191 @@
+{
+  "D5_repeat_identical": true,
+  "descriptors": [
+    "harmonic_centroid",
+    "harmonic_spread",
+    "odd_even_db",
+    "attack_ms",
+    "centroid_slope_per_s",
+    "spectral_flux"
+  ],
+  "measures": {
+    "D1_corpo_split_accuracy": 0.5,
+    "D2_sine_saw_accuracy": 1.0,
+    "D3_fm188_saw_accuracy": 1.0,
+    "accuracy": {
+      "corpo_vettore": 0.9166666666666666,
+      "trama_corpo": 1.0,
+      "trama_vettore": 1.0
+    },
+    "notes": {
+      "corpo": [
+        {
+          "attack_ms": 10.0,
+          "centroid_slope_per_s": -0.4398463803634306,
+          "harmonic_centroid": 2.0348277185937085,
+          "harmonic_spread": 1.983353665365524,
+          "odd_even_db": 4.899138358692902,
+          "spectral_flux": 0.008459712859530608
+        },
+        {
+          "attack_ms": 12.0,
+          "centroid_slope_per_s": -0.40382454541234497,
+          "harmonic_centroid": 1.9847819740933168,
+          "harmonic_spread": 1.862754601438211,
+          "odd_even_db": 4.928023604382287,
+          "spectral_flux": 0.009037301850631396
+        },
+        {
+          "attack_ms": 10.0,
+          "centroid_slope_per_s": -0.37031354676356304,
+          "harmonic_centroid": 1.956929739759639,
+          "harmonic_spread": 1.7917174387514618,
+          "odd_even_db": 4.922868607062236,
+          "spectral_flux": 0.009535650844937878
+        },
+        {
+          "attack_ms": 13.0,
+          "centroid_slope_per_s": -0.3468161134989111,
+          "harmonic_centroid": 1.927561660878834,
+          "harmonic_spread": 1.724501246240057,
+          "odd_even_db": 4.93850977000739,
+          "spectral_flux": 0.00855975040327523
+        },
+        {
+          "attack_ms": 13.0,
+          "centroid_slope_per_s": -0.304974390186944,
+          "harmonic_centroid": 1.8885237488448023,
+          "harmonic_spread": 1.6349777113395905,
+          "odd_even_db": 4.960757062292324,
+          "spectral_flux": 0.008109965595051843
+        },
+        {
+          "attack_ms": 16.0,
+          "centroid_slope_per_s": -0.2780114862075747,
+          "harmonic_centroid": 1.8656006953825806,
+          "harmonic_spread": 1.5814565018258069,
+          "odd_even_db": 4.968737318876591,
+          "spectral_flux": 0.009973586989255366
+        }
+      ],
+      "trama": [
+        {
+          "attack_ms": 16.0,
+          "centroid_slope_per_s": 1.0045034581859418,
+          "harmonic_centroid": 2.216277763884857,
+          "harmonic_spread": 0.7964024590286484,
+          "odd_even_db": -3.303180014123714,
+          "spectral_flux": 0.015156679948184234
+        },
+        {
+          "attack_ms": 17.0,
+          "centroid_slope_per_s": 1.776236740038795,
+          "harmonic_centroid": 1.9698205614328934,
+          "harmonic_spread": 0.5779423821039741,
+          "odd_even_db": -5.330594395877082,
+          "spectral_flux": 0.014564344486319608
+        },
+        {
+          "attack_ms": 34.0,
+          "centroid_slope_per_s": 1.970432295692503,
+          "harmonic_centroid": 2.1294356028880492,
+          "harmonic_spread": 0.8486660720550069,
+          "odd_even_db": -2.3202636315227707,
+          "spectral_flux": 0.015383379966644201
+        },
+        {
+          "attack_ms": 18.0,
+          "centroid_slope_per_s": 1.0777694162766251,
+          "harmonic_centroid": 2.1955224010171306,
+          "harmonic_spread": 0.6680863200812062,
+          "odd_even_db": -2.7997264046178936,
+          "spectral_flux": 0.014923388290580238
+        },
+        {
+          "attack_ms": 19.0,
+          "centroid_slope_per_s": 2.499676441907827,
+          "harmonic_centroid": 2.397236824859719,
+          "harmonic_spread": 0.7593123891488746,
+          "odd_even_db": 1.5813789946273928,
+          "spectral_flux": 0.015404076531436908
+        },
+        {
+          "attack_ms": 19.0,
+          "centroid_slope_per_s": 1.3526963799781409,
+          "harmonic_centroid": 2.0183879359679135,
+          "harmonic_spread": 0.6334272581757384,
+          "odd_even_db": -5.886251468778142,
+          "spectral_flux": 0.016647876807522395
+        }
+      ],
+      "vettore": [
+        {
+          "attack_ms": 4.0,
+          "centroid_slope_per_s": -0.18544638078523515,
+          "harmonic_centroid": 2.012723642579872,
+          "harmonic_spread": 1.8878031833948523,
+          "odd_even_db": 4.854661606558772,
+          "spectral_flux": 0.013823657969784391
+        },
+        {
+          "attack_ms": 4.0,
+          "centroid_slope_per_s": 0.0036244886941111673,
+          "harmonic_centroid": 1.93296067546728,
+          "harmonic_spread": 1.7138738481401747,
+          "odd_even_db": 4.892420258103709,
+          "spectral_flux": 0.021701298845008793
+        },
+        {
+          "attack_ms": 7.0,
+          "centroid_slope_per_s": -0.04916997385345381,
+          "harmonic_centroid": 1.889379471572854,
+          "harmonic_spread": 1.6145614601849216,
+          "odd_even_db": 4.913525259149852,
+          "spectral_flux": 0.02070653476817324
+        },
+        {
+          "attack_ms": 6.0,
+          "centroid_slope_per_s": -0.04433768907366535,
+          "harmonic_centroid": 1.847841679694529,
+          "harmonic_spread": 1.5219496577931926,
+          "odd_even_db": 4.92602168914673,
+          "spectral_flux": 0.022915179046165596
+        },
+        {
+          "attack_ms": 6.0,
+          "centroid_slope_per_s": 0.016131074800489642,
+          "harmonic_centroid": 1.7850586598261156,
+          "harmonic_spread": 1.3938600079991463,
+          "odd_even_db": 4.962219033758749,
+          "spectral_flux": 0.024825222515722174
+        },
+        {
+          "attack_ms": 6.0,
+          "centroid_slope_per_s": -0.032027060732648674,
+          "harmonic_centroid": 1.7491571564940993,
+          "harmonic_spread": 1.3192718177951537,
+          "odd_even_db": 4.97801044371718,
+          "spectral_flux": 0.024930608418282183
+        }
+      ]
+    },
+    "pitches_hz": [
+      220.0,
+      261.6300048828125,
+      293.6600036621094,
+      329.6300048828125,
+      392.0,
+      440.0
+    ],
+    "standardized_distance": {
+      "corpo_vettore": 2.5349230418345896,
+      "trama_corpo": 4.211947153656506,
+      "trama_vettore": 4.387107488424027
+    }
+  },
+  "oracle_wavs": "timbre_descriptors_v1/<role>_<pitch index>.wav",
+  "preregistration": "docs/research/M2_5_Pkg5_Timbre_Descriptors_Preregistration.md",
+  "reasons": [],
+  "scenario": "timbre_descriptors_v1",
+  "status": "MEASURED"
+}

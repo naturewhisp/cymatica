@@ -1,0 +1,11 @@
+C1 pan -6 dB: scipy ILD -6.000, cymatica -6.000 -> AGREE
+C1 pan -3 dB: scipy ILD -3.000, cymatica -3.000 -> AGREE
+C1 pan +0 dB: scipy ILD +0.000, cymatica +0.000 -> AGREE
+C1 pan +3 dB: scipy ILD +3.000, cymatica +3.000 -> AGREE
+C1 pan +6 dB: scipy ILD +6.000, cymatica +6.000 -> AGREE
+C2 delay -29: scipy ITD -29, cymatica -29 -> AGREE
+C2 delay -14: scipy ITD -14, cymatica -14 -> AGREE
+C2 delay +14: scipy ITD +14, cymatica +14 -> AGREE
+C2 delay +29: scipy ITD +29, cymatica +29 -> AGREE
+C3 decorrelated: scipy ILD +0.026, cymatica +0.024 -> AGREE
+C5: AGREE

@@ -13,6 +13,9 @@
 #include "trama_stereo.h"
 #include "discontinuity.h"
 #include "fade_events.h"
+#include "binaural.h"
+#include "stem_export.h"
+#include "timbre_descriptors.h"
 #include "release_ab.h"
 #include "trama_diagnosis.h"
 #include "m2_suite.h"
@@ -248,6 +251,24 @@ int main(int argc, char** argv) {
                 std::printf("[cacp] Verdict: %s\n", res.status.c_str());
                 std::printf("%s\n", res.toJson().c_str());
                 return (res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
+            } else if (std::strcmp(scenario, "binaural") == 0 || std::strcmp(scenario, "binaural_v1") == 0) {
+                std::printf("[cacp] Running scenario '%s' (measurement package 3: ILD/ITD/IACC per auditory band, MEASURED, not a gate)...\n", scenario);
+                auto res = cymatica::cacp::runBinauralV1("artifacts/cacp", true);
+                std::printf("[cacp] Verdict: %s\n", res.status.c_str());
+                std::printf("%s\n", res.toJson().c_str());
+                return (res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
+            } else if (std::strcmp(scenario, "stem_export") == 0 || std::strcmp(scenario, "stem_export_v1") == 0) {
+                std::printf("[cacp] Running scenario '%s' (measurement package 4: section excerpts of stems and mixes as float WAV)...\n", scenario);
+                auto res = cymatica::cacp::runStemExportV1("artifacts/cacp");
+                std::printf("[cacp] Verdict: %s\n", res.status.c_str());
+                std::printf("%s\n", res.toJson().c_str());
+                return (res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
+            } else if (std::strcmp(scenario, "timbre_descriptors") == 0 || std::strcmp(scenario, "timbre_descriptors_v1") == 0) {
+                std::printf("[cacp] Running scenario '%s' (measurement package 5: timbre descriptors and separability, MEASURED, not a gate)...\n", scenario);
+                auto res = cymatica::cacp::runTimbreDescriptorsV1("artifacts/cacp", true);
+                std::printf("[cacp] Verdict: %s\n", res.status.c_str());
+                std::printf("%s\n", res.toJson().c_str());
+                return (res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
             } else if (std::strcmp(scenario, "trama_miss_diagnosis") == 0 || std::strcmp(scenario, "trama_miss_diagnosis_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5e.3b: causal diagnosis of the missed Trama attacks, MEASURED, not a gate)...\n", scenario);
                 auto res = cymatica::cacp::runTramaMissDiagnosisV1("artifacts/cacp", true);
@@ -279,7 +300,7 @@ int main(int argc, char** argv) {
                 return (res.completed && res.inputValid) ? 0 : 1;
             } else {
                 std::fprintf(stderr, "[cacp] ERROR: unknown scenario '%s' (known: tone_test, voice_test, "
-                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, device_probe, onset_parity, acao02, evaluation_pack, procedural, release_ab, kick_level_ab, trama_stereo, discontinuity, fade_events, trama_miss_diagnosis, full_m2_suite "
+                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, device_probe, onset_parity, acao02, evaluation_pack, procedural, release_ab, kick_level_ab, trama_stereo, discontinuity, fade_events, binaural, stem_export, timbre_descriptors, trama_miss_diagnosis, full_m2_suite "
                                      "and their *_v* aliases)\n",
                              scenario);
                 return 2;

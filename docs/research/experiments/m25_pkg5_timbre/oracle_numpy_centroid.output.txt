@@ -1,0 +1,19 @@
+corpo     220.00 Hz centroid numpy   447.66 cymatica   447.66 spread numpy   436.34 cymatica   436.34
+corpo     261.63 Hz centroid numpy   519.28 cymatica   519.28 spread numpy   487.35 cymatica   487.35
+corpo     293.66 Hz centroid numpy   574.67 cymatica   574.67 spread numpy   526.16 cymatica   526.16
+corpo     329.63 Hz centroid numpy   635.38 cymatica   635.38 spread numpy   568.45 cymatica   568.45
+corpo     392.00 Hz centroid numpy   740.30 cymatica   740.30 spread numpy   640.91 cymatica   640.91
+corpo     440.00 Hz centroid numpy   820.86 cymatica   820.86 spread numpy   695.84 cymatica   695.84
+trama     220.00 Hz centroid numpy   487.58 cymatica   487.58 spread numpy   175.21 cymatica   175.21
+trama     261.63 Hz centroid numpy   515.36 cymatica   515.36 spread numpy   151.21 cymatica   151.21
+trama     293.66 Hz centroid numpy   625.33 cymatica   625.33 spread numpy   249.22 cymatica   249.22
+trama     329.63 Hz centroid numpy   723.71 cymatica   723.71 spread numpy   220.22 cymatica   220.22
+trama     392.00 Hz centroid numpy   939.72 cymatica   939.72 spread numpy   297.65 cymatica   297.65
+trama     440.00 Hz centroid numpy   888.09 cymatica   888.09 spread numpy   278.71 cymatica   278.71
+vettore   220.00 Hz centroid numpy   442.80 cymatica   442.80 spread numpy   415.32 cymatica   415.32
+vettore   261.63 Hz centroid numpy   505.72 cymatica   505.72 spread numpy   448.40 cymatica   448.40
+vettore   293.66 Hz centroid numpy   554.84 cymatica   554.84 spread numpy   474.13 cymatica   474.13
+vettore   329.63 Hz centroid numpy   609.10 cymatica   609.10 spread numpy   501.68 cymatica   501.68
+vettore   392.00 Hz centroid numpy   699.74 cymatica   699.74 spread numpy   546.39 cymatica   546.39
+vettore   440.00 Hz centroid numpy   769.63 cymatica   769.63 spread numpy   580.48 cymatica   580.48
+D4: worst relative difference 4.78e-09 -> AGREE

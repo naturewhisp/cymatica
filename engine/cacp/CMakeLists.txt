@@ -3,6 +3,8 @@
 add_library(cymatica_cacp STATIC
     acao02_calibration.cpp
     acao02_calibration.h
+    binaural.cpp
+    binaural.h
     check_selftest.cpp
     check_selftest.h
     analysis_status.h
@@ -42,6 +44,10 @@ add_library(cymatica_cacp STATIC
     sha256.h
     stereo.cpp
     stem_analysis.cpp
+    stem_export.cpp
+    stem_export.h
+    timbre_descriptors.cpp
+    timbre_descriptors.h
     stem_analysis.h
     stereo.h
     stft.cpp
