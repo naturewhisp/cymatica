@@ -3325,3 +3325,13 @@ Pacchetto CP-2 archiviato senza invio. ADR-0003 D-M2-06 annotato con la ricalibr
 - pacchetti di misura 1–5, 2b e 4b.
 
 Limite noto: `acao02_v1` resta `INCONCLUSIVE` fino al ricongelamento di M2.5.5. Domande aperte: [registro per l'ascolto cumulativo](m2_5_cumulative_listening_questions.md). **Prossima fase:** M2.5.3–4, «Struttura e sviluppo» (D-M2-32).
+
+### M2.5.3–4 — Struttura e sviluppo (ingresso, 2026-11-17)
+
+Il titolare ha avviato la fase il 2026-11-17 («Sì, avvia»). [Documento d'ingresso](M2_5_3_4_Entry.md) (AGENTS §1.1): perimetro di D-M2-32, criteri della specifica da non rompere, punti aperti E1–E6 con proposte. Da decidere ora:
+- **E1:** pacchetto di misura 6 sullo sviluppo, prima della variazione derivata;
+- **E2:** versione esplicita della policy del planner;
+- **E3:** ordine dei pacchetti (scenario del metro, misura 6, F3, F1, contratto minimo).
+
+Nessun codice in questo passo. Non committato.
+- **Decisione del titolare (2026-11-17): E1–E3 approvati** (ADR-0007 D-M2-38). Primo pacchetto: scenario tecnico del cambio di metro (D-M2-21).
