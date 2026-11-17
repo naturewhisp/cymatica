@@ -908,7 +908,8 @@ std::int32_t voicingDistance(const TriadVoicing& a, const TriadVoicing& b) noexc
 void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
                                      const PhraseGrid& grid,
                                      const Motif& baseMotif,
-                                     std::vector<PhraseCandidate>& outCandidates) const {
+                                     std::vector<PhraseCandidate>& outCandidates,
+                                     std::int32_t repairDyadOfCandidate) const {
     outCandidates.clear();
     outCandidates.reserve(config_.candidateCount);
 
@@ -933,6 +934,8 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
                         : kCandidateRecipesA;
 
     for (std::uint32_t k = 0; k < config_.candidateCount; ++k) {
+        const bool repairDyad = (repairDyadOfCandidate >= 0);
+        if (repairDyad && k != static_cast<std::uint32_t>(repairDyadOfCandidate)) continue;
         PhraseCandidate cand{};
         const auto& recipe = recipes[k % kMaxCandidates];
         cand.candidateIndex = static_cast<std::uint8_t>(k);
@@ -971,7 +974,33 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
             // Per-bar voicing chain (voice leading from the previous chord onset when policy says so)
             const std::optional<std::int16_t> prevHarmony = (cand.voicingPolicy == CorpoVoicingPolicy::VoiceLed && prevVoicing.has_value())
                 ? std::optional<std::int16_t>(prevVoicing->corpoHarmonyDegree) : std::nullopt;
-            const TriadVoicing barVoicing = voiceTriad(chord, prevHarmony);
+            TriadVoicing barVoicing = voiceTriad(chord, prevHarmony);
+            // Contract point 1, variant C1c (R-HAR-5, D-M2-41), winner only after selection: when the upper Corpo
+            // voice (third or fifth) forms interval class 1 or 6 with a Vettore pitch attacking in this bar and the
+            // other chord tone forms none, Corpo swaps its upper voice and the upper role takes the tone it leaves.
+            if (repairDyad) {
+                const auto contradicts = [&](std::int16_t harmonyDegree) noexcept {
+                    const std::int32_t h = degreeToMidiNote(phrase.scale, harmonyDegree);
+                    const Motif& vm = cand.transformedMotif;
+                    for (std::size_t m = 0; m < vm.noteCount; ++m) {
+                        const auto& note = vm.notes[m];
+                        if (note.stepOffset >= steps || note.durationSteps == 0) continue;
+                        const std::int32_t v = degreeToMidiNote(phrase.scale, note.scaleDegree + 7 * vm.registerOctaveOffset,
+                                                                note.chromaticOffset);
+                        const std::int32_t d = ((v - h) % 12 + 12) % 12;
+                        const std::int32_t ic = (d > 6) ? 12 - d : d;
+                        if (ic == 1 || ic == 6) return true;
+                    }
+                    return false;
+                };
+                const std::int16_t other = barVoicing.isThirdInCorpo ? chord.fifthDegree : chord.thirdDegree;
+                if (contradicts(barVoicing.corpoHarmonyDegree) && !contradicts(other)) {
+                    barVoicing.upperColorDegree = barVoicing.corpoHarmonyDegree;
+                    barVoicing.corpoHarmonyDegree = other;
+                    barVoicing.isThirdInCorpo = !barVoicing.isThirdInCorpo;
+                    ++cand.corpoDyadRepairedBars;
+                }
+            }
             if (b == 0) cand.voicing = barVoicing;
 
             const auto pulsoRhythm = core::euclideanRhythm(steps, cand.pulsoPulses, cand.pulsoRotation);
@@ -1413,6 +1442,26 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
             }
             if (validCandidates[i].scoreFixedPoint == winner.scoreFixedPoint) {
                 ++trace.tiedTopCandidates;
+            }
+        }
+        // Contract point 1, variant C1c (D-M2-41): repair the Corpo dyad of the winner only, after selection. The
+        // selection, the scores and the trace candidates stay those of the unrepaired generation.
+        std::vector<PhraseCandidate> repaired;
+        generateCandidates(phrase, grid, baseMotif, repaired, static_cast<std::int32_t>(winner.candidateIndex));
+        if (repaired.size() == 1 && repaired[0].corpoDyadRepairedBars > 0) {
+            PhraseCandidate& r = repaired[0];
+            r.violation = validateHardConstraints(r, phrase, committedHorizonFrame, false);
+            if (r.violation == HardConstraintViolation::None) {
+                SimulatedVoiceTracker trackerCopy = voiceTracker_;
+                r.simulatedStealsCount = simulateCandidate(r, phrase, nextEventId_, trackerCopy);
+                r.features = winner.features;
+                r.scoreFixedPoint = winner.scoreFixedPoint;
+                r.tieBreakHash = winner.tieBreakHash;
+                trace.corpoDyadRepairedBars = r.corpoDyadRepairedBars;
+                winner = r;
+                winnerTracker = trackerCopy;
+            } else {
+                trace.corpoDyadRepairRejected = true;
             }
         }
         // Copy tie-break hashes back for the trace

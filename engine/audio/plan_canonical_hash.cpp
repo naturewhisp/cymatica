@@ -53,6 +53,8 @@ std::uint64_t canonicalPlanHash(const std::vector<std::vector<MusicIntentEvent>>
         f.byte(t.fallbackTriggered ? 1 : 0); f.byte(static_cast<std::uint8_t>(t.fallbackKind));
         for (const auto v : t.fallbackLevelViolations) f.byte(static_cast<std::uint8_t>(v));
         f.u64(t.firstEventId); f.u64(t.finalEventCount); f.u32(t.plannerNoteOffCount);
+        // Format 2 (M2.5.3-4 contract point 1, D-M2-41): Corpo dyad repair of the winner
+        f.u32(t.corpoDyadRepairedBars); f.byte(t.corpoDyadRepairRejected ? 1 : 0);
     }
     return f.h;
 }

@@ -13,7 +13,8 @@ namespace cymatica::audio {
 // (floats by IEEE-754 bit pattern), hashed with FNV-1a 64. Pitches come from std::pow, so values are only
 // guaranteed for the pinned MSVC toolchain/CRT (ADR-0001). Any change to the serialized field set or order
 // requires a new format version and reviewed golden updates.
-inline constexpr std::uint32_t kCanonicalPlanHashFormatVersion = 1;
+// Format 1: M2.4 to M2.5.3-4 F1. Format 2: adds the Corpo dyad repair fields of each trace (D-M2-41).
+inline constexpr std::uint32_t kCanonicalPlanHashFormatVersion = 2;
 
 [[nodiscard]] std::uint64_t canonicalPlanHash(const std::vector<std::vector<MusicIntentEvent>>& intentsPerPhrase,
                                               const std::vector<PlannedNoteOff>& noteOffs,

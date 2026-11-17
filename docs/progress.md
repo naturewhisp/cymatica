@@ -3392,3 +3392,49 @@ Lo scenario è una voce vincolante di `full_m2_suite` e ha un test `[meter_chang
   - Pulso cambia in 18 frasi, Trama in 14 (8–11, 14–23).
 - **Lettura di 0:32:** a 0:32 (frase 4) entra la Trama, con le stesse note di prima nelle frasi 4–7. Il cambiamento percepito viene quindi dal suono, non dalle note: rispetto all'ascolto del 2026-11-03, M2.5.2 ha cambiato timbro (FM 1:1), centratura e livello della Trama, e il kick ora è sul tempo fin dall'inizio.
 - **A→B ancora brusco:** è un primo indizio che F3 da solo non basta (voce 8 del registro). Il seguito resta quello dichiarato in D-M2-39, la rampa di tempo con un ADR per `MusicClock`, da decidere a CP-3 o CP-4. Resta da verificare all'ascolto cumulativo.
+
+**M2.5.3–4, contratto minimo punto 1, diade di Corpo: pre-registrazione** [M2_5_3_C1_Corpo_Dyad_Preregistration.md](research/M2_5_3_C1_Corpo_Dyad_Preregistration.md), SHA-256 (LF) `73123df7420311c4a998490d3416f1ede622bc943f176ac133a4aab858191eba`. Se la terza in Corpo forma tritono o seconda minore con Vettore nella battuta e la quinta no, Corpo passa a fondamentale e quinta (R-HAR-5, primo passo). Predizioni P1–P8; base: 16 battute contraddette, tutte sull'accordo di Sol in A e A′.
+
+**M2.5.3–4, punto 1, esito di C1 (2026-11-17): negativo.**
+- La regola pre-registrata ripara solo la terza. Il tritono Si–Fa sparisce, ma la condotta delle parti porta Mi contro Fa sull'accordo di La minore: le battute contraddette restano 16, e la seconda minore dura 8,0 s come prima il tritono.
+- **Predizioni mancate:** P1, P4, P5 e P6. Nelle frasi 0–3 il vincitore passa da 2 a 0, quindi cambiano anche Pulso e Vettore.
+- **C1 non si adotta.** Dati in [m25_3_c1_corpo_dyad](research/experiments/m25_3_c1_corpo_dyad/).
+
+**Variante C1b, diade simmetrica: pre-registrazione** [M2_5_3_C1b_Corpo_Dyad_Symmetric_Preregistration.md](research/M2_5_3_C1b_Corpo_Dyad_Symmetric_Preregistration.md), SHA-256 (LF) `5e2ec7c5e9675c8a47bba5ae562fd3764823bb5643ab60a3fe98f8232b845251`. Dichiarata come informata dall'esito di C1. Predizioni Q1–Q6.
+
+**M2.5.3–4, punto 1, esito di C1b (2026-11-17), non committato; adozione sospesa in attesa del titolare.**
+- **Confermate Q1, Q2, Q3 e Q5:**
+  - battute contraddette da 16 a 0;
+  - Corpo–Vettore ic6 e ic1 = 0 in A e A′, mentre resta 6,2% di ic1 in B, col basso;
+  - basso identico;
+  - voce alta cambiata solo nelle 16 battute di Sol;
+  - picchi di Corpo a 9 e 17.
+- **Q4 mancata:** il vincitore cambia in 12 frasi su 24 (0–3 e 16–23).
+  - La riparazione cambia la distanza di condotta delle parti dei candidati, e nella fixture i punteggi in testa distano meno dell'1%.
+  - Con il vincitore cambia la melodia: in A, da ContourInversion a OctaveShift; in A′, da OctaveShift −1 a +1, cioè Vettore sale di due ottave.
+  - È un effetto casuale del punteggio, non una decisione dichiarata, e tocca il punto 3 del contratto (registro di Vettore in A′).
+- **Scenari:** fixture e `meter_change_v1` falliscono solo sui golden (`meter_change_v1`: solo il PCM). Golden non aggiornati.
+- **Dati:** [m25_3_c1_corpo_dyad](research/experiments/m25_3_c1_corpo_dyad/).
+
+**Approfondimento C1b, su richiesta del titolare (2026-11-17):** [README dell'esperimento](research/experiments/m25_3_c1_corpo_dyad/README.md).
+- **La melodia che vince con C1b non è più consonante:** CTnCTR, quota di note d'accordo e PCS sono uguali entro 0,06.
+- **Registro:** in A′ Vettore sale sopra Corpo, come chiede il punto 3, ma entra nel registro di Trama (74–84).
+- **Varietà:** A perde il secondo ostinato.
+- **Fragilità:** in A e A′ il vincitore supera il secondo dello 0,4%, sia in F1 sia in C1b. **Nuovo rilievo:** la scelta della melodia in quelle sezioni non è robusta.
+- **Raccomandazione:** C1c, cioè riparare la diade dopo la scelta, e portare «Vettore sopra Corpo in A′» al punto 3 come ipotesi dichiarata.
+
+**Variante C1c, diade riparata dopo la scelta: pre-registrazione** [M2_5_3_C1c_Corpo_Dyad_After_Selection_Preregistration.md](research/M2_5_3_C1c_Corpo_Dyad_After_Selection_Preregistration.md), SHA-256 (LF) `d8ada8f860854ef1acaad48a1fec679f413ba8b22e5556be737c609c0094f46a`. Scelta del titolare: «Sì, C1c». La selezione resta quella di F1, e si ripara solo il vincitore. Hash canonico del piano al formato 2. Predizioni R1–R7.
+
+**M2.5.3–4, punto 1, diade di Corpo, risultati di C1c (2026-11-17):** [M2_5_3_C1_Corpo_Dyad_Results.md](research/M2_5_3_C1_Corpo_Dyad_Results.md), ADR-0007 D-M2-41. Adottata C1c, scelta del titolare.
+- **R1–R7 confermate:**
+  - selezione identica a F1;
+  - battute contraddette da 16 a 0;
+  - Pulso, Vettore e basso identici;
+  - voce alta di Corpo cambiata solo nelle 16 battute di Sol (Si → Re);
+  - 2 riparazioni per frase in A e A′, nessuna in B;
+  - picchi di Corpo a 9 e 17.
+- **Effetto descrittivo, non predetto:** sparisce anche il tritono Trama–Vettore di A e A′.
+- **Golden:** aggiornati con la storia; hash canonico del piano al formato 2. Il PCM della fixture passa a `795499972965883485`.
+- **Registro:** voce 9.
+- **Build e suite:** Release e Debug `/WX` 299/299; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
+- **Prossimo:** punto 2 del contratto, Vettore che legge l'accordo, con ablazione.

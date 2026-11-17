@@ -1950,6 +1950,8 @@ std::uint64_t fixtureTraceHash(const std::vector<PhraseDecisionTrace>& traces) n
         fnvMix(h, static_cast<std::uint64_t>(t.winningTransformParam));
         fnvMix(h, static_cast<std::uint64_t>(t.finalEventCount));
         fnvMix(h, static_cast<std::uint64_t>(t.plannerNoteOffCount));
+        fnvMix(h, static_cast<std::uint64_t>(t.corpoDyadRepairedBars));          // D-M2-41
+        fnvMix(h, static_cast<std::uint64_t>(t.corpoDyadRepairRejected ? 1 : 0));
         for (std::size_t c = 0; c < t.candidatesGenerated; ++c) {
             fnvMix(h, t.candidates[c].candidateId);
             fnvMix(h, static_cast<std::uint64_t>(t.candidates[c].score));

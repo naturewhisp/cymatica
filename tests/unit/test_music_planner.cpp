@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
+#include <map>
 #include <cstring>
 #include <set>
 #include <vector>
@@ -696,8 +697,9 @@ TEST_CASE("Golden regression: canonical event list + decision traces of the A->B
     // Revision history: 0x8621158d2d35ecf8 (Inc-3 remediation) -> 0x2983fc5a5463d4cb (DIF-M2-R6-01: tick now
     // uses the normative M1 ceil mapping; sampleFrame, pitch and all decisions unchanged) -> 0x44c54bd1ac626c3d
     // (M2.5.3-4 F3: planner policy 1.0.2.0 and Pulso/Trama pattern continuity at the section boundary)
-    // -> 0x6d73bd838ab32526 (M2.5.3-4 F1: undeclared phrases are anchored, Pulso rotation 0; D-M2-40).
-    constexpr std::uint64_t kGoldenHash = 0x6d73bd838ab32526ULL;
+    // -> 0x6d73bd838ab32526 (M2.5.3-4 F1: undeclared phrases are anchored, Pulso rotation 0; D-M2-40)
+    // -> 0xa3ca0dbd6a6f9d0e (M2.5.3-4 C1c: canonical format 2, Corpo dyad repair of the winner; D-M2-41).
+    constexpr std::uint64_t kGoldenHash = 0xa3ca0dbd6a6f9d0eULL;
     const PlannedRun run = planProbeForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical hash = 0x" << std::hex << h);
@@ -1083,7 +1085,8 @@ TEST_CASE("Golden regression: canonical plan of fixture-m2-4-v1", "[music_planne
     // decision-trace hash kFixtureProbeV1GoldenTraceHash is unchanged).
     // M2.5.3-4 F3: 0x4f021cb9e8637598 -> 0xb91ce72feeb37bc7 (planner policy 1.0.2.0, boundary pattern continuity)
     // M2.5.3-4 F1: -> 0x7aa477a5519f9cf8 (declared metric anchor, fixture-metric-v1; D-M2-40)
-    constexpr std::uint64_t kGoldenFixtureHash = 0x7aa477a5519f9cf8ULL;
+    // M2.5.3-4 C1c: -> 0xc5fc6a007f0a0a34 (canonical format 2, Corpo dyad repaired after selection; D-M2-41)
+    constexpr std::uint64_t kGoldenFixtureHash = 0xc5fc6a007f0a0a34ULL;
     const PlannedRun run = planFixtureForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical fixture hash = 0x" << std::hex << h);
@@ -1126,7 +1129,7 @@ TEST_CASE("fixture_probe_v1 scheduling accounting rejects missing or extra engin
 }
 
 TEST_CASE("Canonical plan hash: shared serialization is versioned and sensitive to every section (DIF-INC4-R3-03)", "[music_planner][canonical_plan_hash]") {
-    STATIC_REQUIRE(kCanonicalPlanHashFormatVersion == 1);
+    STATIC_REQUIRE(kCanonicalPlanHashFormatVersion == 2);
     PlannedRun run = planFixtureForm(1337ULL);
     const std::uint64_t h = canonicalPlanHash(run.intents, run.noteOffs, run.traces);
     CHECK(h == kFixtureProbeV1GoldenPlanHash);
@@ -1142,6 +1145,13 @@ TEST_CASE("Canonical plan hash: shared serialization is versioned and sensitive 
     PlannedRun trace = run;                         // a decision trace
     trace.traces[3].winningScore += 1;
     CHECK(canonicalPlanHash(trace.intents, trace.noteOffs, trace.traces) != h);
+
+    PlannedRun repair = run;                        // format 2: the Corpo dyad repair fields (D-M2-41)
+    repair.traces[3].corpoDyadRepairedBars += 1;
+    CHECK(canonicalPlanHash(repair.intents, repair.noteOffs, repair.traces) != h);
+    repair = run;
+    repair.traces[3].corpoDyadRepairRejected = !repair.traces[3].corpoDyadRepairRejected;
+    CHECK(canonicalPlanHash(repair.intents, repair.noteOffs, repair.traces) != h);
 }
 
 TEST_CASE("fixture_probe_v1: rejected SetTempoMap leads to a terminal fail-closed safe stop (D-INC4-R3-01)", "[music_planner][fixture_safe_stop]") {
@@ -1281,5 +1291,49 @@ TEST_CASE("F1: incoherent metric declarations are structural violations (R-MET-1
         INFO("state " << static_cast<int>(c.state) << " steps " << c.steps);
         const auto& t = planner.decisionTraces().back();
         CHECK((t.planViolation == HardConstraintViolation::None) == c.valid);
+    }
+}
+
+TEST_CASE("Contract point 1, C1c: Corpo dyad repaired after selection (R-HAR-5, D-M2-41)", "[music_planner][corpo_dyad]") {
+    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+    REQUIRE(optClock.has_value());
+    const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(*optClock);
+    const PlannedRun run = planFixtureForm(1337ULL);
+    REQUIRE(run.traces.size() == 24);
+
+    // R1: selection of F1 (commit 97d07e7): same winners, no tie at the top
+    const std::array<std::uint64_t, 24> winnersF1{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6};
+    for (std::size_t i = 0; i < 24; ++i) {
+        const auto& t = run.traces[i];
+        INFO("phrase " << i);
+        CHECK((t.winningCandidateId & 0xFFULL) == winnersF1[i]);
+        CHECK(t.tiedTopCandidates == 1);
+        CHECK_FALSE(t.corpoDyadRepairRejected);
+        // R4: two swaps (G, then the A minor bar that voice leading brings to E) in A and A', none in B
+        CHECK(t.corpoDyadRepairedBars == ((i >= 8 && i < 16) ? 0U : 2U));
+    }
+
+    // R2 (by construction of the rule): no Corpo upper voice forms interval class 1 or 6 with a Vettore pitch
+    // attacking in the same Corpo span
+    const auto midiOf = [](float hz) { return static_cast<int>(std::lround(69.0 + 12.0 * std::log2(hz / 440.0))); };
+    for (std::size_t i = 0; i < 24; ++i) {
+        std::map<std::uint64_t, std::vector<int>> corpo;
+        std::map<std::uint64_t, std::uint64_t> corpoEnd;
+        for (const auto& e : run.intents[i]) {
+            if (e.role != MusicRole::Corpo) continue;
+            corpo[e.sampleFrame].push_back(midiOf(e.pitchHz));
+            corpoEnd[e.sampleFrame] = (e.durationFrames > 0) ? e.sampleFrame + e.durationFrames : phrases[i].endFrame;
+        }
+        for (const auto& [on, notes] : corpo) {
+            const int upper = *std::max_element(notes.begin(), notes.end());
+            for (const auto& e : run.intents[i]) {
+                if (e.role != MusicRole::Vettore || e.sampleFrame < on || e.sampleFrame >= corpoEnd[on]) continue;
+                const int d = ((midiOf(e.pitchHz) - upper) % 12 + 12) % 12;
+                const int ic = (std::min)(d, 12 - d);
+                INFO("phrase " << i << " corpo onset " << on);
+                CHECK(ic != 1);
+                CHECK(ic != 6);
+            }
+        }
     }
 }

@@ -306,6 +306,7 @@ struct PhraseCandidate {
     std::int32_t scoreFixedPoint{0};    // 0..100000 deterministic integer score
     std::uint64_t tieBreakHash{0};
     std::uint32_t simulatedStealsCount{0};
+    std::uint32_t corpoDyadRepairedBars{0}; // Bars whose Corpo upper voice the dyad repair swapped (C1c)
 };
 
 enum class FallbackKind : std::uint8_t {
@@ -363,6 +364,9 @@ struct PhraseDecisionTrace {
     std::uint64_t firstEventId{0};
     std::size_t finalEventCount{0};
     std::uint32_t plannerNoteOffCount{0};
+    // Contract point 1, variant C1c (D-M2-41): Corpo dyad repair applied to the winner after selection
+    std::uint32_t corpoDyadRepairedBars{0};
+    bool corpoDyadRepairRejected{false};   // the repaired winner violated a hard constraint; unrepaired winner kept
 
     [[nodiscard]] constexpr bool operator==(const PhraseDecisionTrace& other) const noexcept = default;
 };
@@ -584,10 +588,13 @@ private:
     std::vector<PhraseDecisionTrace> traces_{};
     std::vector<PlannedNoteOff> plannedNoteOffs_{};
 
+    // repairDyadOfCandidate >= 0: generate only that candidate index, with the Corpo dyad repair of contract point 1
+    // (variant C1c, D-M2-41); -1: every candidate, without repair (selection)
     void generateCandidates(const PhrasePlan& phrase,
                             const PhraseGrid& grid,
                             const Motif& baseMotif,
-                            std::vector<PhraseCandidate>& outCandidates) const;
+                            std::vector<PhraseCandidate>& outCandidates,
+                            std::int32_t repairDyadOfCandidate = -1) const;
 
     void buildFallbackLevel(FallbackKind level,
                             const PhrasePlan& phrase,

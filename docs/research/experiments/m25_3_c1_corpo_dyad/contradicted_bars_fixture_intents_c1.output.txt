@@ -1,0 +1,4 @@
+bars per section {0: 32, 1: 32, 2: 32}
+contradicted bars per section {0: 8, 2: 8}
+  section 0 bass A upper E vs Vettore F: 8 bars
+  section 2 bass A upper E vs Vettore F: 8 bars
