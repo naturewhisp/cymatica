@@ -207,6 +207,9 @@ struct PhrasePlan {
     bool delayCorpoOnsetByOneBeat{false};
     // Per-phrase role mask and recipe table, declared by the phrase expander (ADR-0005 D-M2-08)
     bool maskTrama{false};
+    // Contract point 4 (D-M2-44): Pulso silent in this phrase. Forbidden in Spostato and when Corpo is delayed in bar 0
+    // (beat 1 would have no anchor, R-MET-2)
+    bool maskPulso{false};
     CandidateRecipeSet recipeSet{CandidateRecipeSet::Standard};
     // Declared metric state and Pulso displacement in grid steps (R-MET-1); default anchored
     MetricState metricState{MetricState::Ancorato};

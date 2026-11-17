@@ -669,6 +669,8 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
         } else if (p == 6) {
             phrases[8 + p].metricState = MetricState::Ritorno;
         }
+        // fixture-orchestration-v1 (R-ROL-7, D-M2-44): Trama thins out before the declared displacement
+        phrases[8 + p].maskTrama = (p == 2 || p == 3);
     }
 
     // 3. Section A': phrases 16..23 (bars 64..95)
@@ -685,6 +687,10 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
         phrases[16 + p].recipeSet = CandidateRecipeSet::RepriseAPrime;
         // Final phrase: explicit planner release one simulation tick (400 frames at 120 Hz) before Stop
         phrases[16 + p].releaseLeadFrames = (p == 7) ? kFixtureM24V1ReleaseLeadFrames : 0;
+        // fixture-orchestration-v1 (R-ROL-7, D-M2-44): A' takes up the orchestration of A (Trama from its fifth
+        // phrase); the kick rests in the phrase before the final cadence
+        phrases[16 + p].maskTrama = (p < 4);
+        phrases[16 + p].maskPulso = (p == 6);
     }
 
     return phrases;
@@ -1014,7 +1020,7 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
 
             // 1. Pulso: Bjorklund grid, half-step hits
             for (std::uint32_t s = 0; s < steps; ++s) {
-                if (!pulsoRhythm[s]) continue;
+                if (!pulsoRhythm[s] || phrase.maskPulso) continue;
                 pushEvent(cand, makeEvent(grid.stepFrame(b, s), grid.halfStepFrame(b, s), MusicRole::Pulso, pulsoMidi,
                                           (s == 0) ? 0.95f : 0.75f, 0.30f + 0.05f * static_cast<float>(k % 4), false));
                 ++melodicRhythmicOnsets;
@@ -1070,7 +1076,8 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
             // Role mask declared by the phrase plan (ADR-0005 D-M2-08: section A phrases 0..3 without Trama)
             if (!phrase.maskTrama) {
                 for (std::uint32_t s = 0; s < steps; ++s) {
-                    if (!tramaRhythm[s] || pulsoRhythm[s]) continue;
+                    // Complementary to the sounding Pulso: with Pulso masked, Trama plays its whole pattern (D-M2-44)
+                    if (!tramaRhythm[s] || (pulsoRhythm[s] && !phrase.maskPulso)) continue;
                     const std::int16_t deg = (s % 2 == 0) ? barVoicing.upperColorDegree : barVoicing.corpoHarmonyDegree;
                     const std::uint64_t tramaOffFrame = std::min(grid.stepFrame(b, s + cand.tramaSustainSteps), maxPhraseOffFrame);
                     pushEvent(cand, makeEvent(grid.stepFrame(b, s), tramaOffFrame, MusicRole::Trama,
@@ -1155,7 +1162,8 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
         const std::int32_t registerMilli = (motif.noteCount > 0)
             ? (registerSum * prof.tensionPerRegisterDegreeMilli) / static_cast<std::int32_t>(motif.noteCount) : 0;
         const std::int32_t effectiveTramaPulses = phrase.maskTrama ? 0 : static_cast<std::int32_t>(cand.tramaPulses);
-        const std::int32_t extraPulses = static_cast<std::int32_t>(cand.pulsoPulses) + effectiveTramaPulses -
+        const std::int32_t effectivePulsoPulses = phrase.maskPulso ? 0 : static_cast<std::int32_t>(cand.pulsoPulses);
+        const std::int32_t extraPulses = effectivePulsoPulses + effectiveTramaPulses -
                                          static_cast<std::int32_t>(prof.densityBaselinePulses);
         const std::int32_t densityMilli = std::max(0, extraPulses) * prof.tensionPerExtraPulseMilli;
         const std::int32_t harmonicMilli = (grid.barCount > 0) ? harmonicTensionSum / static_cast<std::int32_t>(grid.barCount) : 0;
@@ -1436,6 +1444,8 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
         // R-MET-1 (D-M2-40): a displacement only in Spostato, strictly inside every bar of the phrase
         bool metricOk = (phrase.metricState == MetricState::Spostato) ? (phrase.pulsoDisplacementSteps > 0)
                                                                         : (phrase.pulsoDisplacementSteps == 0);
+        // Contract point 4 (D-M2-44): Pulso may rest only where beat 1 keeps an anchor and no displacement is declared
+        if (phrase.maskPulso && (phrase.metricState == MetricState::Spostato || phrase.delayCorpoOnsetByOneBeat)) metricOk = false;
         if (ok && phrase.metricState == MetricState::Spostato) {
             for (std::uint32_t b = 0; b < phrase.barCount; ++b) {
                 if (static_cast<std::uint32_t>(phrase.pulsoDisplacementSteps) >= grid.stepsPerBar[b]) metricOk = false;

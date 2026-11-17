@@ -989,7 +989,9 @@ TEST_CASE("Fixture M2.4 V1: section functions, tension profile and phrase flags 
         INFO("phrase " << i);
         const auto& p = phrases[i];
         CHECK(p.sectionIndex == i / 8);
-        CHECK(p.maskTrama == (i < 4));
+        // fixture-orchestration-v1 (M2.5.3-4 contract point 4, D-M2-44); before: maskTrama only in phrases 0-3
+        CHECK(p.maskTrama == (i < 4 || i == 10 || i == 11 || (i >= 16 && i < 20)));
+        CHECK(p.maskPulso == (i == 22));
         CHECK(p.recipeSet == (i < 8 ? CandidateRecipeSet::Standard
                               : i < 16 ? CandidateRecipeSet::ContrastB : CandidateRecipeSet::RepriseAPrime));
         CHECK(p.isCrossSectionPadPhrase == (i == 7 || i == 15));
@@ -1022,8 +1024,18 @@ TEST_CASE("Fixture M2.4 V1: planned content honours role masks, recipes, pad lea
     const auto countRole = [](const std::vector<MusicIntentEvent>& v, MusicRole r) {
         return std::count_if(v.begin(), v.end(), [r](const MusicIntentEvent& e) { return e.role == r; });
     };
-    for (std::size_t i = 0; i < 4; ++i) CHECK(countRole(run.intents[i], MusicRole::Trama) == 0);
-    for (std::size_t i = 4; i < 24; ++i) CHECK(countRole(run.intents[i], MusicRole::Trama) > 0);
+    // fixture-orchestration-v1 (D-M2-44): Trama absent in 0-3, 10-11, 16-19; Pulso absent in 22 (E1)
+    std::size_t full = 0;
+    for (std::size_t i = 0; i < 24; ++i) {
+        INFO("phrase " << i);
+        const bool tramaOff = i < 4 || i == 10 || i == 11 || (i >= 16 && i < 20);
+        CHECK((countRole(run.intents[i], MusicRole::Trama) == 0) == tramaOff);
+        CHECK((countRole(run.intents[i], MusicRole::Pulso) == 0) == (i == 22));
+        CHECK(countRole(run.intents[i], MusicRole::Corpo) > 0);
+        CHECK(countRole(run.intents[i], MusicRole::Vettore) > 0);
+        if (!tramaOff && i != 22) ++full;
+    }
+    CHECK(full == 13);
 
     // Recipes: B only ModalTranspose / ContourInversion; A' never transposes (anchor-preserving reprise)
     for (std::size_t i = 8; i < 24; ++i) {
@@ -1102,7 +1114,8 @@ TEST_CASE("Golden regression: canonical plan of fixture-m2-4-v1", "[music_planne
     // M2.5.3-4 C1c: -> 0xc5fc6a007f0a0a34 (canonical format 2, Corpo dyad repaired after selection; D-M2-41)
     // M2.5.3-4 contract point 2: -> 0x18cc6d32dc2fa60c (canonical format 3, Vettore reads the chord; D-M2-42)
     // M2.5.3-4 contract point 3: -> 0x17aade206b9ac268 (canonical format 4, dominant register; D-M2-43)
-    constexpr std::uint64_t kGoldenFixtureHash = 0x17aade206b9ac268ULL;
+    // M2.5.3-4 contract point 4: -> 0xeb6a2fd17e8f0722 (role masks fixture-orchestration-v1; D-M2-44)
+    constexpr std::uint64_t kGoldenFixtureHash = 0xeb6a2fd17e8f0722ULL;
     const PlannedRun run = planFixtureForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical fixture hash = 0x" << std::hex << h);
@@ -1274,6 +1287,7 @@ TEST_CASE("F1: declared metric anchor of fixture-m2-4-v1 (R-MET-1/2, D-M2-40)", 
                 }
             }
             INFO("phrase " << i << " bar " << b);
+            if (ph.maskPulso) continue; // point 4 (D-M2-44): Corpo anchors beat 1, checked in [role_masks]
             if (ph.metricState == MetricState::Spostato) {
                 // P1: the declared eighth displacement of the 4-pulse pattern
                 CHECK(on[2]); CHECK(on[6]); CHECK(on[10]); CHECK(on[14]);
@@ -1289,7 +1303,9 @@ TEST_CASE("F1: declared metric anchor of fixture-m2-4-v1 (R-MET-1/2, D-M2-40)", 
     }
 
     // P3: winners as before F1 (commit 7287aed) and no score tie among valid candidates at the top
-    const std::array<std::uint64_t, 24> winnersBefore{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6};
+    // M2.5.3-4 contract point 4 (D-M2-44): the declared role masks of fixture-orchestration-v1 change the winner of
+    // phrases 10-11, 17-19 and 22 (accepted by the pre-registered rule E6); before: 6 in every phrase from 8 on
+    const std::array<std::uint64_t, 24> winnersBefore{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 5, 5, 6, 6, 6, 6, 6, 5, 5, 5, 6, 6, 1, 6};
     for (std::size_t i = 0; i < 24; ++i) {
         const auto& t = run.traces[i];
         INFO("phrase " << i);
@@ -1331,7 +1347,9 @@ TEST_CASE("Contract point 1, C1c: Corpo dyad repaired after selection (R-HAR-5, 
     REQUIRE(run.traces.size() == 24);
 
     // R1: selection of F1 (commit 97d07e7): same winners, no tie at the top
-    const std::array<std::uint64_t, 24> winnersF1{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6};
+    // M2.5.3-4 contract point 4 (D-M2-44): the declared role masks of fixture-orchestration-v1 change the winner of
+    // phrases 10-11, 17-19 and 22 (accepted by the pre-registered rule E6); before: 6 in every phrase from 8 on
+    const std::array<std::uint64_t, 24> winnersF1{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 5, 5, 6, 6, 6, 6, 6, 5, 5, 5, 6, 6, 1, 6};
     for (std::size_t i = 0; i < 24; ++i) {
         const auto& t = run.traces[i];
         INFO("phrase " << i);
@@ -1339,7 +1357,9 @@ TEST_CASE("Contract point 1, C1c: Corpo dyad repaired after selection (R-HAR-5, 
         CHECK(t.tiedTopCandidates == 1);
         CHECK_FALSE(t.corpoDyadRepairRejected);
         // R4: two swaps (G, then the A minor bar that voice leading brings to E) in A and A', none in B
-        CHECK(t.corpoDyadRepairedBars == ((i >= 8 && i < 16) ? 0U : 2U));
+        // Point 4 (D-M2-44): with the winners of 17-19 and 22 the A minor bar needs no second swap
+        constexpr std::array<std::uint32_t, 24> kDyadRepairs{2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 1, 1, 2, 2, 1, 2};
+        CHECK(t.corpoDyadRepairedBars == kDyadRepairs[i]);
     }
 
     // R2 (by construction of the rule): no Corpo upper voice forms interval class 1 or 6 with a Vettore pitch
@@ -1387,9 +1407,9 @@ TEST_CASE("Contract point 2: Vettore reads the chord after selection, with ablat
     }
     // V4: 8 in A, 24 in B, 8 in A'
     CHECK(perSection[0] == 8);
-    CHECK(perSection[1] == 24);
+    CHECK(perSection[1] == 22); // 24 before point 4 (D-M2-44): the winner of phrases 10-11 changes
     CHECK(perSection[2] == 8);
-    CHECK(adapted == 40);
+    CHECK(adapted == 38);       // 40 before point 4
 
     // V5: only Vettore pitches differ; onsets, durations, roles and the other roles are identical
     std::uint32_t changedPitches = 0;
@@ -1414,13 +1434,55 @@ TEST_CASE("Contract point 2: Vettore reads the chord after selection, with ablat
 TEST_CASE("Contract point 3: the dominant Vettore sits above the Corpo upper voice (R-ROL-1, R-REG-3, D-M2-43)", "[music_planner][dominant_register]") {
     const PlannedRun run = planFixtureForm(1337ULL);
     REQUIRE(run.traces.size() == 24);
-    const std::array<std::uint64_t, 24> winnersF1{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6};
+    // M2.5.3-4 contract point 4 (D-M2-44): the declared role masks of fixture-orchestration-v1 change the winner of
+    // phrases 10-11, 17-19 and 22 (accepted by the pre-registered rule E6); before: 6 in every phrase from 8 on
+    const std::array<std::uint64_t, 24> winnersF1{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 5, 5, 6, 6, 6, 6, 6, 5, 5, 5, 6, 6, 1, 6};
     for (std::size_t i = 0; i < 24; ++i) {
         const auto& t = run.traces[i];
         INFO("phrase " << i);
         // D1: +12 in A, 0 in B, +24 in A'; the selection is unchanged
-        CHECK(t.vettoreRegisterShift == ((i < 8) ? 12 : (i < 16) ? 0 : 24));
+        // D1, updated by point 4 (D-M2-44): the new winners of 10-11, 17-19 and 22 need +12
+        constexpr std::array<int, 24> kShift{12, 12, 12, 12, 12, 12, 12, 12, 0, 0, 12, 12, 0, 0, 0, 0, 24, 12, 12, 12, 24, 24, 12, 24};
+        CHECK(t.vettoreRegisterShift == kShift[i]);
         CHECK_FALSE(t.vettoreRegisterUnmet);
         CHECK((t.winningCandidateId & 0xFFULL) == winnersF1[i]);
+    }
+}
+
+TEST_CASE("Contract point 4: Pulso may rest only with an anchored beat 1 (R-MET-2, D-M2-44)", "[music_planner][role_masks]") {
+    const MusicClock clock = probeClock();
+    const auto phrases = MusicPlanner::makePlannerProbeV1Phrases(clock);
+    struct Case { MetricState state; std::int32_t steps; bool delayCorpo; bool valid; };
+    for (const Case c : {Case{MetricState::Ancorato, 0, false, true}, Case{MetricState::Ritorno, 0, false, true},
+                         Case{MetricState::Spostato, 2, false, false}, Case{MetricState::Ancorato, 0, true, false}}) {
+        PhrasePlan p = phrases[0];
+        p.maskPulso = true;
+        p.metricState = c.state;
+        p.pulsoDisplacementSteps = c.steps;
+        p.delayCorpoOnsetByOneBeat = c.delayCorpo;
+        MusicPlanner planner({.runSeed = 1337ULL});
+        std::vector<MusicIntentEvent> out;
+        planner.planPhrase(p, clock, p.startFrame, 1, out, nullptr);
+        INFO("state " << static_cast<int>(c.state) << " delayCorpo " << c.delayCorpo);
+        CHECK((planner.decisionTraces().back().planViolation == HardConstraintViolation::None) == c.valid);
+        if (c.valid) {
+            CHECK(std::none_of(out.begin(), out.end(), [](const MusicIntentEvent& e) { return e.role == MusicRole::Pulso; }));
+        }
+    }
+
+    // E3: every bar of every non-displaced fixture phrase has a Pulso or Corpo onset on beat 1
+    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+    REQUIRE(optClock.has_value());
+    const auto fx = MusicPlanner::makeFixtureM24V1Phrases(*optClock);
+    const PlannedRun run = planFixtureForm(1337ULL);
+    for (std::size_t i = 0; i < 24; ++i) {
+        if (fx[i].metricState == MetricState::Spostato) continue;
+        for (std::uint32_t b = 0; b < fx[i].barCount; ++b) {
+            const std::uint64_t beat1 = optClock->frameAtBar(fx[i].startBar + b);
+            INFO("phrase " << i << " bar " << b);
+            CHECK(std::any_of(run.intents[i].begin(), run.intents[i].end(), [&](const MusicIntentEvent& e) {
+                return (e.role == MusicRole::Pulso || e.role == MusicRole::Corpo) && e.sampleFrame == beat1;
+            }));
+        }
     }
 }

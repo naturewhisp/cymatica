@@ -1,0 +1,24 @@
+P 0 w 2 kind 4 param 2 score 75175 margin 425 shift 12 adapted 1 dyad 2 ties
+P 1 w 2 kind 4 param 2 score 75175 margin 425 shift 12 adapted 1 dyad 2 ties
+P 2 w 2 kind 4 param 2 score 75175 margin 425 shift 12 adapted 1 dyad 2 ties
+P 3 w 2 kind 4 param 2 score 75175 margin 425 shift 12 adapted 1 dyad 2 ties
+P 4 w 0 kind 0 param 0 score 87500 margin 13375 shift 12 adapted 1 dyad 2
+P 5 w 0 kind 0 param 0 score 87500 margin 13375 shift 12 adapted 1 dyad 2
+P 6 w 0 kind 0 param 0 score 87500 margin 13375 shift 12 adapted 1 dyad 2
+P 7 w 0 kind 0 param 0 score 87500 margin 13375 shift 12 adapted 1 dyad 2
+P 8 w 6 kind 4 param 4 score 81600 margin 14350 shift 0 adapted 3 dyad 0 ties
+P 9 w 6 kind 4 param 4 score 81600 margin 2650 shift 0 adapted 3 dyad 0 ties
+P 10 w 5 kind 4 param 2 score 71450 margin 3600 shift 12 adapted 2 dyad 0
+P 11 w 5 kind 4 param 2 score 71450 margin 3600 shift 12 adapted 2 dyad 0
+P 12 w 6 kind 4 param 4 score 81600 margin 16850 shift 0 adapted 3 dyad 0
+P 13 w 6 kind 4 param 4 score 81600 margin 16850 shift 0 adapted 3 dyad 0
+P 14 w 6 kind 4 param 4 score 81600 margin 2650 shift 0 adapted 3 dyad 0 ties
+P 15 w 6 kind 4 param 4 score 81600 margin 2650 shift 0 adapted 3 dyad 0 ties
+P 16 w 6 kind 2 param -1 score 71400 margin 400 shift 24 adapted 1 dyad 2
+P 17 w 5 kind 4 param 2 score 74925 margin 2500 shift 12 adapted 1 dyad 1
+P 18 w 5 kind 4 param 2 score 74925 margin 2500 shift 12 adapted 1 dyad 1
+P 19 w 5 kind 4 param 2 score 74925 margin 2500 shift 12 adapted 1 dyad 1
+P 20 w 6 kind 2 param -1 score 85150 margin 400 shift 24 adapted 1 dyad 2
+P 21 w 6 kind 2 param -1 score 85150 margin 400 shift 24 adapted 1 dyad 2
+P 22 w 1 kind 4 param 2 score 79925 margin 1025 shift 12 adapted 1 dyad 1
+P 23 w 6 kind 2 param -1 score 85150 margin 400 shift 24 adapted 1 dyad 2

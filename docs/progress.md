@@ -3491,3 +3491,25 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
 - **Non estratti:** gli spostamenti di `meter_change_v1` e della forma di prova.
 - **Build e suite:** Release e Debug `/WX` 301/301; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
 - **Prossimo:** punto 4, entrate e uscite dei ruoli.
+
+**M2.5.3–4, contratto minimo punto 4, entrate e uscite dei ruoli: pre-registrazione** [M2_5_3_C4_Role_Entries_Exits_Preregistration.md](research/M2_5_3_C4_Role_Entries_Exits_Preregistration.md), SHA-256 (LF) `2e371d1068fe2abda55b31e10449e3c7bfa8d5cdac3ec1c3a5942edf392d243b`.
+- **Diagnosi:** pieno organico in 20 frasi su 24.
+- **Profilo `fixture-orchestration-v1`:**
+  - Trama assente in 0–3, 10–11 e 16–19;
+  - Pulso assente in 22;
+  - pieno organico in 13 frasi.
+- **Contratto:** `maskPulso`, con vincoli duri legati allo stato metrico.
+- **Predizioni:** E1–E8.
+
+**M2.5.3–4, punto 4, entrate e uscite dei ruoli, risultati (2026-11-17):** [M2_5_3_C4_Role_Entries_Exits_Results.md](research/M2_5_3_C4_Role_Entries_Exits_Results.md), ADR-0007 D-M2-44.
+- **Confermate E1–E5, E7 ed E8:**
+  - pieno organico da 20 a 13 frasi;
+  - Pulso può tacere solo con il tempo 1 ancorato da Corpo;
+  - nella 22 la Trama suona il pattern intero;
+  - le frasi non mascherate restano identiche.
+- **E6, descrittivo:** le maschere cambiano il vincitore in 10–11, 17–19 e 22, sempre verso un'inversione del contorno, con margini fra il 2,5 e il 3,6%. Cambio accettato per la regola pre-registrata.
+- **Effetto non predetto:** A′ riprende anche le due figure dell'ostinato di A, e la vicinanza alla Trama in A′ scende da 32 a 16.
+- **Test e golden:** test dei punti precedenti aggiornati con la storia. `meter_change_v1` e la forma di prova restano invariati.
+- **Registro:** voce 12.
+- **Build e suite:** Release e Debug `/WX` 302/302; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
+- **Prossimo:** punto 5, variazione derivata e ripresa.

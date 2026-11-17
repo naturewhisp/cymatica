@@ -171,15 +171,17 @@ TEST_CASE("Symbolic groups of fixture-m2-4-v1 follow the prediction registered i
     // Predicted partition: A {0-3} {4-6} {7}, B {8} {9-14} {15}, A' {16} {17-23}.
     // M2.5.3-4 F1 (D-M2-40): the declared displacement of B phrases 12-13 splits them off; the return phrase 14 is
     // anchored like 9-11: B {8} {9-11, 14} {12-13} {15}, 9 groups.
-    const std::vector<int> predicted{0, 0, 0, 0, 1, 1, 1, 2, 3, 4, 4, 4, 8, 8, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7};
+    // M2.5.3-4 contract point 4 (D-M2-44): the role masks and the winners they change split B {9, 14} {10-11}
+    // {12-13} and A' {16} {17-19} {20, 21, 23} {22}: 12 groups.
+    const std::vector<int> predicted{0, 0, 0, 0, 1, 1, 1, 2, 3, 4, 5, 5, 8, 8, 4, 9, 6, 10, 10, 10, 7, 7, 11, 7};
     for (std::size_t i = 0; i < ids.size(); ++i) {
         for (std::size_t j = 0; j < ids.size(); ++j) {
             INFO("phrases " << i << " and " << j);
             CHECK((ids[i] == ids[j]) == (predicted[i] == predicted[j]));
         }
     }
-    CHECK(std::set<std::string>(ids.begin(), ids.end()).size() == 9); // 8 before M2.5.3-4 F1
-    // The frame rule of v2 keeps its 14 groups (unchanged, still readable)
+    CHECK(std::set<std::string>(ids.begin(), ids.end()).size() == 12); // 8 before M2.5.3-4 F1, 9 before point 4
+    // The frame rule of v2 stays readable (14 groups before point 4, 16 after)
     const auto frameIds = phraseGroupIds(p);
-    CHECK(std::set<std::string>(frameIds.begin(), frameIds.end()).size() == 14);
+    CHECK(std::set<std::string>(frameIds.begin(), frameIds.end()).size() == 16); // 14 before point 4 (D-M2-44)
 }
