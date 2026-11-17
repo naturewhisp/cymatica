@@ -208,6 +208,8 @@ public:
     bool setAppliedEventLog(AppliedEventLog* log) noexcept;
     // Offline per-role stem tap (ADR-0006 D-M2-13): same quiescence contract as the applied-event log.
     bool setRoleStemSink(RoleStemSink* sink) noexcept;
+    // Offline fade-event log (measurement package 2b): same quiescence contract as the stem sink.
+    bool setFadeEventLog(FadeEventLog* log) noexcept;
     // Offline release experiment (ADR-0006 5e-08): release of ordinary NoteOffs in frames, 0 = the 2 ms de-click.
     // Accepted only by an engine created with initOffline() (DIF-5e.3-01): an engine with a physical device refuses
     // it whether or not the device is started, so the realtime path can never carry the override.

@@ -130,6 +130,20 @@ int VoiceAllocator::selectSlotForRole(MusicRole role) noexcept {
     return static_cast<int>(s1);
 }
 
+void VoiceAllocator::logFade(std::size_t slotIndex, FadeCause cause, std::uint64_t frame, std::uint32_t fadeFrames) noexcept {
+    if (fadeLog_ == nullptr || slotIndex >= kTotalSlots) return;
+    const VoiceSlot& s = slots_[slotIndex];
+    FadeEventRecord r;
+    r.frame = frame;
+    r.role = static_cast<std::uint8_t>(s.role);
+    r.slot = static_cast<std::uint8_t>(slotIndex);
+    r.cause = cause;
+    r.envAmplitude = s.envelopeLevel * s.velocity * kNominalVoiceScale;
+    r.busGain = roleBusProcessor_.currentBusGain(s.role);
+    r.fadeFrames = fadeFrames;
+    fadeLog_->push(r);
+}
+
 int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
     const int idx = selectSlotForRole(event.role);
     if (idx < 0 || idx >= static_cast<int>(kTotalSlots)) {
@@ -154,9 +168,11 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
             // Rule 2 voice steal on active voice
             ++voiceDropCount_;
             ++roleVoiceDrops_[roleIndex];
+            logFade(static_cast<std::size_t>(idx), FadeCause::Steal, event.sampleFrame, 0);
         } else {
             ++releaseCutCount_; // a release cut short by a new note (5e-08 confounder)
             ++roleReleaseCuts_[roleIndex];
+            logFade(static_cast<std::size_t>(idx), FadeCause::ReleaseCut, event.sampleFrame, 0);
         }
 
         // Capture current output into dedicated steal tail with 2 ms linear fade-out
@@ -328,6 +344,7 @@ int VoiceAllocator::onNoteOff(const ScheduledAudioEvent& event) noexcept {
         slot.state = VoiceState::Release;
         slot.stageFrame = 0;
         slot.releaseStartLevel = slot.envelopeLevel;
+        logFade(static_cast<std::size_t>(matched), FadeCause::Release, event.sampleFrame, slot.releaseSamples);
         return matched;
     }
 
@@ -350,6 +367,7 @@ void VoiceAllocator::checkLifetimes(std::uint64_t currentLogicalFrame) noexcept 
                 slot.releaseSamples = declickFrames_; // safety release: never the experimental override (DIF-5e.3-02)
                 slot.stageFrame = 0;
                 slot.releaseStartLevel = slot.envelopeLevel;
+                logFade(static_cast<std::size_t>(&slot - slots_.data()), FadeCause::Safety, currentLogicalFrame, slot.releaseSamples);
             }
         } else {
             // Open pad (durationFrames == 0): conservative safety backstop
@@ -360,6 +378,7 @@ void VoiceAllocator::checkLifetimes(std::uint64_t currentLogicalFrame) noexcept 
                 slot.releaseSamples = declickFrames_; // safety release: never the experimental override (DIF-5e.3-02)
                 slot.stageFrame = 0;
                 slot.releaseStartLevel = slot.envelopeLevel;
+                logFade(static_cast<std::size_t>(&slot - slots_.data()), FadeCause::Safety, currentLogicalFrame, slot.releaseSamples);
                 ++orphanNoteRecoveredCount_;
             }
         }
@@ -376,6 +395,9 @@ void VoiceAllocator::onStart() noexcept {
 }
 
 void VoiceAllocator::onPause() noexcept {
+    for (std::size_t i = 0; i < kTotalSlots; ++i) {
+        if (slots_[i].state != VoiceState::Idle) logFade(i, FadeCause::Pause, lastLogicalFrame_, declickFrames_);
+    }
     transportRamp_ = TransportRamp::FadingOut;
     transportRampRemaining_ = declickFrames_;
     transportRampStep_ = (transportRampLevel_ > 0.0f && declickFrames_ > 0)
@@ -396,6 +418,9 @@ void VoiceAllocator::onStop() noexcept {
     //    into static steal tail for a single linear 2 ms physical de-click (ADR-0003 D-M2-03/04)
     const float effTransportGain = std::clamp(transportRampLevel_, 0.0f, 1.0f);
 
+    for (std::size_t i = 0; i < kTotalSlots; ++i) {
+        if (slots_[i].state != VoiceState::Idle) logFade(i, FadeCause::Stop, lastLogicalFrame_, 0);
+    }
     for (auto& slot : slots_) {
         float voiceOutL = slot.currentVoiceOutputL();
         float voiceOutR = slot.currentVoiceOutputR();
@@ -486,6 +511,7 @@ std::uint32_t VoiceAllocator::activeVoiceCount() const noexcept {
 void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uint64_t currentLogicalFrame,
                                  bool isTransportPaused, bool accumulate) noexcept {
     if (pOut == nullptr || frameCount == 0) return;
+    lastLogicalFrame_ = currentLogicalFrame;
 
     if (!accumulate) {
         for (std::size_t i = 0; i < static_cast<std::size_t>(frameCount) * 2; ++i) {

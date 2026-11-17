@@ -2587,6 +2587,7 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     AppliedEventLog appliedLog(kEventChainLogCapacity);
     (void)engine.setAppliedEventLog(&appliedLog); // offline engine: quiescent by construction
     if (capture != nullptr) (void)engine.setRoleStemSink(capture->stems);
+    if (capture != nullptr && capture->fadeLog != nullptr) (void)engine.setFadeEventLog(capture->fadeLog);
     if (capture != nullptr && capture->noteReleaseFrames != 0) {
         (void)engine.setNoteReleaseFrames(capture->noteReleaseFrames);
         result.noteReleaseOverride = capture->noteReleaseFrames;
@@ -2659,6 +2660,7 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     result.chainSpscDrained = engine.scheduledEventQueueEmpty();
     (void)engine.setAppliedEventLog(nullptr);
     (void)engine.setRoleStemSink(nullptr); // the stale-event check below is outside the scenario capture
+    (void)engine.setFadeEventLog(nullptr);
     if (capture != nullptr && capture->applied != nullptr) {
         capture->applied->assign(appliedLog.records().begin(), appliedLog.records().end());
     }

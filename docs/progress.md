@@ -3236,3 +3236,12 @@ Pacchetto CP-2 archiviato senza invio. ADR-0003 D-M2-06 annotato con la ricalibr
   - v2 con strumentazione diretta dei salti d'inviluppo nei punti di furto, taglio e dissolvenza (verità dall'allocatore), oppure con un predittore a lungo termine;
   - W1 differenziale per A2.
 - **Build:** Release e Debug `/WX` 281/281. Non committato.
+
+**Pacchetto di misura 2b, registro delle dissolvenze (rilevatore v2): pre-registrazione** [M2_5_Pkg2b_Fade_Event_Log_Preregistration.md](research/M2_5_Pkg2b_Fade_Event_Log_Preregistration.md), SHA-256 (LF) `fa2a5e95f1a6fec3e85513e6ba834893d511d16f96e54c518aa11a42c59f0a79`. L'allocatore registra ogni interruzione di voce (causa, ampiezza d'inviluppo e in uscita, durata della dissolvenza). Prove E1–E6, tra cui la coerenza esatta con i contatori esistenti e il PCM invariato. Unica predizione descrittiva: 190 `release_cut` di Corpo. Approvato dal titolare il 2026-11-17. Non implementato, non committato.
+
+**Pacchetto di misura 2b, registro delle dissolvenze, risultati (2026-11-17):** [M2_5_Pkg2b_Fade_Event_Log_Results.md](research/M2_5_Pkg2b_Fade_Event_Log_Results.md).
+- **Esito:** strumento **validato**, E1–E6 confermate. Predizione dei 190 `release_cut` di Corpo confermata, coerenti con i contatori. PCM invariato con il registro installato.
+- **Misura:** 1 582 interruzioni in 183 s; **ogni nota finisce con una dissolvenza di 2 ms a pieno livello** (−21…−27 dBFS); i tagli di Corpo sono a pieno sustain.
+- **Il kick è troncato dal NoteOff** del planner a 53,6 e 62,5 ms, cioè la durata «54–62 ms» notata dall'esperto. **Per F4b:** la durata oggi la decide il planner, non il timbro.
+- **Differenze dichiarate:** Stop riportato come taglio, Pause come causa propria; nessuno dei due compare nella fixture.
+- **Build e suite:** Release e Debug `/WX` 286/286; `full_m2_suite` verde salvo `acao02_v1`. Non committato.

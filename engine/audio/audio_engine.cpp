@@ -915,6 +915,13 @@ bool AudioEngine::setRoleStemSink(RoleStemSink* sink) noexcept {
     return true;
 }
 
+bool AudioEngine::setFadeEventLog(FadeEventLog* log) noexcept {
+    if (!pImpl_) return false;
+    if (pImpl_->deviceStarted.load(std::memory_order_acquire)) return false; // quiescence contract
+    pImpl_->voiceAllocator.setFadeEventLog(log);
+    return true;
+}
+
 bool AudioEngine::setNoteReleaseFrames(std::uint32_t frames) noexcept {
     if (!pImpl_) return false;
     if (!noteReleaseOverrideAllowed(!pImpl_->deviceInitialized, pImpl_->deviceStarted.load(std::memory_order_acquire))) {

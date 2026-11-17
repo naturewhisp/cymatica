@@ -29,6 +29,7 @@ add_library(cymatica_audio STATIC
     synth_dsp.h
     voice_allocator.cpp
     voice_allocator.h
+    fade_event_log.h
 )
 
 target_include_directories(cymatica_audio PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

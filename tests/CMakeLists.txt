@@ -28,6 +28,7 @@ add_executable(cymatica_tests
     unit/test_trama_stereo.cpp
     unit/test_labeled_calibration.cpp
     unit/test_discontinuity.cpp
+    unit/test_fade_event_log.cpp
     unit/test_trama_diagnosis.cpp
     unit/test_m2_suite.cpp
 )

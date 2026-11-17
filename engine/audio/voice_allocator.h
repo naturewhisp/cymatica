@@ -1,6 +1,7 @@
 #pragma once
 
 #include "audio_telemetry.h"
+#include "fade_event_log.h"
 #include "music_intent.h"
 #include "role_bus_processor.h"
 #include "synth_dsp.h"
@@ -220,7 +221,12 @@ public:
     [[nodiscard]] std::uint32_t releaseCutCount(MusicRole role) const noexcept { return perRole(roleReleaseCuts_, role); }
     [[nodiscard]] std::uint32_t releaseOverlapCount(MusicRole role) const noexcept { return perRole(roleReleaseOverlaps_, role); }
 
+    // Measurement package 2b: offline fade-event log, null by default. Install and remove only in quiescence
+    // (AudioEngine::setFadeEventLog, or a standalone allocator in tests); push never allocates.
+    void setFadeEventLog(FadeEventLog* log) noexcept { fadeLog_ = log; }
+
 private:
+    void logFade(std::size_t slotIndex, FadeCause cause, std::uint64_t frame, std::uint32_t fadeFrames) noexcept;
     friend class AudioEngine; // the only writer of the release override (DIF-5e.3-01)
     void setNoteReleaseFrames(std::uint32_t frames) noexcept { noteReleaseOverride_ = frames; }
     [[nodiscard]] static std::uint32_t perRole(const std::array<std::uint32_t, kRoleCount>& a, MusicRole role) noexcept {
@@ -240,6 +246,8 @@ private:
     std::array<std::uint32_t, kRoleCount> roleVoiceDrops_{};
     std::array<std::uint32_t, kRoleCount> roleReleaseCuts_{};
     std::array<std::uint32_t, kRoleCount> roleReleaseOverlaps_{};
+    FadeEventLog* fadeLog_{nullptr};
+    std::uint64_t lastLogicalFrame_{0};   // logical frame of the latest rendered slice (fade log of Stop/Pause)
 
     // Inc-2 Role buses and Telemetry
     RoleBusProcessor roleBusProcessor_{};

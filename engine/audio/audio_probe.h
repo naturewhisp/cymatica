@@ -1,6 +1,7 @@
 #pragma once
 
 #include "audio_control.h"
+#include "fade_event_log.h"
 #include "device_loopback_tap.h"
 #include "event_chain_log.h"
 #include "music_intent.h"
@@ -504,6 +505,7 @@ struct ProbeAnalysisCapture {
     std::uint32_t noteReleaseFrames{0};
     // Offline kick-level experiment (M2.5.2 F4a): linear scale of the Pulso bus gain, 1 = production
     float pulsoBusGainScale{1.0f};
+    FadeEventLog* fadeLog{nullptr};                        // measurement package 2b, fixture scenario only
     VoiceConfounders* confounders{nullptr};                // voice drops, release cuts and overlaps of the run
 };
 
