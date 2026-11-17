@@ -284,11 +284,14 @@ struct PlannerProbeResult {
 // Regression golden of the fixture_probe_v1 decision trace (seed 1337, policy DEFAULT_POLICY_VERSION_ID,
 // kPlannerScoringProfileV1). Produced by commit 9c61f88 and unchanged by the explicit PhrasePlan flags of
 // the Inc-4 remediation; it may only change together with a reviewed policy or fixture version bump.
-inline constexpr std::uint64_t kFixtureProbeV1GoldenTraceHash = 10949526468471789087ULL;
+// History: 10949526468471789087 -> 10233665394142753888 (M2.5.3-4 F3: planner policy 1.0.2.0 and Pulso/Trama
+// pattern continuity at section boundaries; ADR-0007 D-M2-38, D-M2-39).
+inline constexpr std::uint64_t kFixtureProbeV1GoldenTraceHash = 10233665394142753888ULL;
 // Regression golden of the full canonical plan of fixture_probe_v1 (events + planner NoteOffs + decision traces,
 // canonicalPlanHash format version 1, DIF-INC4-R3-03). Same value as the [fixture_golden] test, which uses the
 // same shared serialization.
-inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0x4f021cb9e8637598ULL;
+// History: 0x4f021cb9e8637598 -> 0xb91ce72feeb37bc7 (M2.5.3-4 F3, same reason as the trace).
+inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0xb91ce72feeb37bc7ULL;
 // Regression golden of the fixture_probe_v1 PCM (seed 1337, nominal path; FNV-1a of the recorded float samples,
 // pcmContentHash). Verified separately from the plan (DIF-5e.1-01): a synthesis change that alters the audio
 // without changing events or decisions must fail. Recorded identically on the development machine and on the
@@ -299,8 +302,9 @@ inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0x4f021cb9e863759
 // 1:1 with Trama bus -9 dB for loudness alignment; plan, trace and events unchanged) -> 18256941985354732249
 // (M2.5.2 F2, Trama voice centred at constant power; plan, trace and events unchanged) -> 8159713709400020277
 // (M2.5.2 F4b, Pulso one-shot: the kick follows its designed envelope; plan, trace and events unchanged)
-// -> 15689200359660949538 (M2.5.2 F4c, Pulso decay x1.5; plan, trace and events unchanged).
-inline constexpr std::uint64_t kFixtureProbeV1GoldenPcmHash = 15689200359660949538ULL;
+// -> 15689200359660949538 (M2.5.2 F4c, Pulso decay x1.5; plan, trace and events unchanged)
+// -> 15914153099858413724 (M2.5.3-4 F3, boundary pattern continuity: phrase 8 changes).
+inline constexpr std::uint64_t kFixtureProbeV1GoldenPcmHash = 15914153099858413724ULL;
 // Minimum post-bus telemetry energy for a role to count as active in a section (D-M2-11)
 inline constexpr float kFixtureRoleActivityFloor = 1.0e-4f;
 

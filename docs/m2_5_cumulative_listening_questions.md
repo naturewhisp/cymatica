@@ -16,3 +16,4 @@
 | 5 | Kick: durata e peso | +8 dB di bus, one-shot e decadimento ×1,5: da 54–62 ms troncati a 116 ms, quota sotto 100 Hz 0,74 → 0,82 | Il kick ha abbastanza corpo e durata? È troppo lungo o rimbomba? Si sente il tempo forte? | D-M2-31, D-M2-35, D-M2-37 |
 | 6 | Dissolvenze di 2 ms | Ogni nota finisce con 2 ms a pieno livello; 190 tagli di Corpo a pieno sustain | Senti scatti, «click» o fine delle note troppo brusche? Dove? | Pacchetto 2b, H-03 |
 | 7 | Q3 per sezione e F1 | Kick fuori dal tempo forte in B e A′ (passi 2, 6, 10, 14) | Per ciascuna parte: riesci a battere il piede a tempo? Dove cambia? | CP-2, ADR-0007 §4 |
+| 8 | Transizione A→B | F3: Pulso e Trama proseguono per una frase dopo il confine; tempo, modo, motivo e Corpo cambiano al confine | Il passaggio dalla prima alla seconda parte è brusco, naturale o troppo poco marcato? | D-M2-39 |

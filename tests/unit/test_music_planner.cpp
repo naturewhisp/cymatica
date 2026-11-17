@@ -34,7 +34,7 @@ MusicClock probeClock() {
 }
 
 PlannedRun planProbeForm(std::uint64_t seed, AudioScheduler* scheduler = nullptr,
-                         PolicyVersionId policy = DEFAULT_POLICY_VERSION_ID) {
+                         PolicyVersionId policy = kPlannerPolicyVersion) {
     const MusicClock clock = probeClock();
     const auto phrases = MusicPlanner::makePlannerProbeV1Phrases(clock);
     MusicPlanner planner({.runSeed = seed, .policyVersion = policy, .candidateCount = 6, .sampleRate = 48000});
@@ -144,11 +144,11 @@ TEST_CASE("MusicPlanner replay determinism: canonical equality of intents, NoteO
     // Trace is self-describing: seed, policy, scoring profile and per-candidate records
     const auto& t0 = a.traces[0];
     CHECK(t0.runSeed == 0xCAFEBABEULL);
-    CHECK(t0.policyVersion == DEFAULT_POLICY_VERSION_ID.toU32());
+    CHECK(t0.policyVersion == kPlannerPolicyVersion.toU32());
     CHECK(t0.scoringProfileVersion == kPlannerScoringProfileV1.versionId);
     CHECK(t0.candidatesGenerated == 6);
-    CHECK(t0.decisionId == deriveDecisionId(0, 0, 0, kPhraseDecisionSlot, DEFAULT_POLICY_VERSION_ID.toU32()));
-    CHECK(t0.tieBreakDecisionId == deriveDecisionId(0, 0, 0, kTieBreakDecisionSlot, DEFAULT_POLICY_VERSION_ID.toU32()));
+    CHECK(t0.decisionId == deriveDecisionId(0, 0, 0, kPhraseDecisionSlot, kPlannerPolicyVersion.toU32()));
+    CHECK(t0.tieBreakDecisionId == deriveDecisionId(0, 0, 0, kTieBreakDecisionSlot, kPlannerPolicyVersion.toU32()));
     CHECK(t0.decisionId != t0.tieBreakDecisionId);
 }
 
@@ -195,8 +195,8 @@ TEST_CASE("Seed isolation is metamorphic and the tie-break key is domain separat
         }
     }
 
-    // Explicit policy version: a different policy changes decision ids and tie-break hashes
-    const PlannedRun c = planProbeForm(1337ULL, nullptr, PolicyVersionId{1, 0, 2, 0});
+    // Explicit policy version: a different policy (here the M2.4 planner's 1.0.1.0) changes decision ids and tie-break hashes
+    const PlannedRun c = planProbeForm(1337ULL, nullptr, DEFAULT_POLICY_VERSION_ID);
     CHECK(c.traces[0].tieBreakDecisionId != a.traces[0].tieBreakDecisionId);
     CHECK(c.traces[0].candidates[0].tieBreakHash != a.traces[0].candidates[0].tieBreakHash);
 
@@ -694,8 +694,9 @@ TEST_CASE("Golden regression: canonical event list + decision traces of the A->B
     // Pitches come from std::pow, so the value is only guaranteed for the pinned MSVC toolchain/CRT (ADR-0001).
     // Correctness is established by the independent structural oracles in the other test cases.
     // Revision history: 0x8621158d2d35ecf8 (Inc-3 remediation) -> 0x2983fc5a5463d4cb (DIF-M2-R6-01: tick now
-    // uses the normative M1 ceil mapping; sampleFrame, pitch and all decisions unchanged).
-    constexpr std::uint64_t kGoldenHash = 0x2983fc5a5463d4cbULL;
+    // uses the normative M1 ceil mapping; sampleFrame, pitch and all decisions unchanged) -> 0x44c54bd1ac626c3d
+    // (M2.5.3-4 F3: planner policy 1.0.2.0 and Pulso/Trama pattern continuity at the section boundary).
+    constexpr std::uint64_t kGoldenHash = 0x44c54bd1ac626c3dULL;
     const PlannedRun run = planProbeForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical hash = 0x" << std::hex << h);
@@ -1079,7 +1080,8 @@ TEST_CASE("Golden regression: canonical plan of fixture-m2-4-v1", "[music_planne
     // REGRESSION GOLDEN, NOT AN ORACLE (same serialization and caveats as the A->B probe golden above).
     // Produced by the Inc-4 remediation with behaviour identical to commit 9c61f88 (the fixture_probe_v1
     // decision-trace hash kFixtureProbeV1GoldenTraceHash is unchanged).
-    constexpr std::uint64_t kGoldenFixtureHash = 0x4f021cb9e8637598ULL;
+    // M2.5.3-4 F3: 0x4f021cb9e8637598 -> 0xb91ce72feeb37bc7 (planner policy 1.0.2.0, boundary pattern continuity)
+    constexpr std::uint64_t kGoldenFixtureHash = 0xb91ce72feeb37bc7ULL;
     const PlannedRun run = planFixtureForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical fixture hash = 0x" << std::hex << h);

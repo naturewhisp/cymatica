@@ -16,6 +16,7 @@
 #include "binaural.h"
 #include "meter_change.h"
 #include "development_measures.h"
+#include "plan_export.h"
 #include "stem_export.h"
 #include "timbre_descriptors.h"
 #include "release_ab.h"
@@ -299,6 +300,10 @@ int main(int argc, char** argv) {
                 std::printf("[cacp] Status: %s\n", res.status.c_str());
                 std::printf("%s\n", res.toJson().c_str());
                 return (res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
+            } else if (std::strcmp(scenario, "plan_export") == 0 || std::strcmp(scenario, "plan_export_v1") == 0) {
+                const std::string path = cymatica::cacp::runPlanExportV1("artifacts/cacp");
+                std::printf("[cacp] plan_export_v1: %s\n", path.empty() ? "FAILED" : path.c_str());
+                return path.empty() ? 1 : 0;
             } else if (std::strcmp(scenario, "trama_miss_diagnosis") == 0 || std::strcmp(scenario, "trama_miss_diagnosis_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5e.3b: causal diagnosis of the missed Trama attacks, MEASURED, not a gate)...\n", scenario);
                 auto res = cymatica::cacp::runTramaMissDiagnosisV1("artifacts/cacp", true);
@@ -330,7 +335,7 @@ int main(int argc, char** argv) {
                 return (res.completed && res.inputValid) ? 0 : 1;
             } else {
                 std::fprintf(stderr, "[cacp] ERROR: unknown scenario '%s' (known: tone_test, voice_test, "
-                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, device_probe, onset_parity, acao02, evaluation_pack, procedural, release_ab, kick_level_ab, trama_stereo, discontinuity, fade_events, binaural, stem_export, stem_export_v2, stem_export_v3, kick_decay_ab, meter_change, development_measures, timbre_descriptors, trama_miss_diagnosis, full_m2_suite "
+                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, device_probe, onset_parity, acao02, evaluation_pack, procedural, release_ab, kick_level_ab, trama_stereo, discontinuity, fade_events, binaural, stem_export, stem_export_v2, stem_export_v3, kick_decay_ab, meter_change, development_measures, plan_export, timbre_descriptors, trama_miss_diagnosis, full_m2_suite "
                                      "and their *_v* aliases)\n",
                              scenario);
                 return 2;

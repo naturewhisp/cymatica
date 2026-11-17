@@ -36,6 +36,8 @@ add_library(cymatica_cacp STATIC
     onset.h
     onset_parity.cpp
     onset_parity.h
+    plan_export.cpp
+    plan_export.h
     png_writer.cpp
     png_writer.h
     presence_stats.cpp

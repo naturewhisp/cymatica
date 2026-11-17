@@ -11,8 +11,10 @@ namespace cymatica::cacp {
 // via SetTempoMap, distinct from the musical fixture. 24 bars, A 4/4, B 3/4 with a 12-step motif, A' 4/4, 120 BPM,
 // seed 1, offline chain at 48 kHz. Binding checks M1-M6; verdict PASS only when all pass.
 
-// Golden of the scenario PCM (FNV-1a of the float samples), recorded at the first run on 2026-11-17
-inline constexpr std::uint64_t kMeterChangeGoldenPcmHash = 4922831055463163399ULL;
+// Golden of the scenario PCM (FNV-1a of the float samples), recorded at the first run on 2026-11-17.
+// History: 4922831055463163399 -> 58770584194502935 (M2.5.3-4 F3: the 3/4 section's first phrase keeps the
+// Pulso/Trama patterns of the previous phrase; every binding check M1-M6 still passes).
+inline constexpr std::uint64_t kMeterChangeGoldenPcmHash = 58770584194502935ULL;
 
 struct MeterChangeResult {
     std::string verdict{"NOT_RUN"};             // PASS or FAIL

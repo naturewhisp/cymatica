@@ -3356,3 +3356,17 @@ Lo scenario è una voce vincolante di `full_m2_suite` e ha un test `[meter_chang
 - **Q6 mancata:** anche la M4 supera lignaggio e sezioni. La lettura di M2.5.1c si corregge: non aveva fallito la distanza, ma la prova del variogramma a lag 1, che non si usa più per diagnosticare lo sviluppo.
 - **Uso in M2.5.3–4:** rango del genitore e novità di Foote, con la M4 come riferimento.
 - **Build:** Release e Debug `/WX` 296/296. Non committato. **Prossimo pacchetto:** F3, continuità dei pattern ai confini di sezione.
+
+**M2.5.3–4, F3 continuità ai confini: pre-registrazione** [M2_5_3_F3_Boundary_Continuity_Preregistration.md](research/M2_5_3_F3_Boundary_Continuity_Preregistration.md), SHA-256 (LF) `9e33b75d07323eeca8f537a03731d1d211ae033d20a2375bf99155c6cdf34f08`. Passo 0: versione della policy 1.0.1.0 → 1.0.2.0 (E2). Passo 1: nella prima frase di ogni sezione Pulso e Trama mantengono i parametri euclidei della frase precedente. Predizioni P0–P4.
+
+**M2.5.3–4, F3 continuità ai confini, risultati (2026-11-17):** [M2_5_3_F3_Boundary_Continuity_Results.md](research/M2_5_3_F3_Boundary_Continuity_Results.md), ADR-0007 D-M2-39.
+- **Confermate P0–P3:**
+  - policy del planner 1.0.2.0 con intent identici byte per byte;
+  - cambia solo la frase 8, e in essa solo Pulso e Trama;
+  - la prima battuta di B ripete i loro attacchi dell'ultima battuta di A;
+  - le sezioni di Corpo restano alle frasi 9 e 17.
+- **P4 mancata in parte:** `meter_change_v1` resta PASS in tutti i controlli, ma il suo PCM cambia. La continuità vale anche per la sua forma; golden aggiornato.
+- **Deviazione dichiarata:** versione propria del planner (`kPlannerPolicyVersion`) invece del default globale, che serve anche RunRecord e SeedBank.
+- **Golden:** aggiornati, con la storia nel codice. Il PCM della fixture passa a `15914153099858413724`.
+- **Nuovo scenario `plan_export_v1`.** Voce 8 aggiunta al registro delle domande, sulla transizione A→B.
+- **Build e suite:** Release e Debug `/WX` 296/296; `full_m2_suite` verde salvo `acao02_v1`. Non committato. **Prossimo pacchetto:** F1, àncora metrica dichiarata.

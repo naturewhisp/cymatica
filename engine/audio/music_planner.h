@@ -460,9 +460,14 @@ inline constexpr PlannerScoringProfile kPlannerScoringProfileV1{
 inline constexpr std::uint32_t kPhraseDecisionSlot = 0;   // Phrase decision identity (trace key, no draw)
 inline constexpr std::uint32_t kTieBreakDecisionSlot = 1; // Tie-break hash among equal-score candidates
 
+// Policy version of the planner (ADR-0007 D-M2-38, E2): part of the tie-break keys and of every decision trace.
+// 1.0.1.0 = M2.4 planner; 1.0.2.0 = M2.5.3-4 planner (F3 boundary continuity onwards). Only the planner's version
+// changes: RunRecord and SeedBank keep core::DEFAULT_POLICY_VERSION_ID.
+inline constexpr core::PolicyVersionId kPlannerPolicyVersion{1, 0, 2, 0};
+
 struct MusicPlannerConfig {
     std::uint64_t runSeed{1337ULL};
-    core::PolicyVersionId policyVersion{core::DEFAULT_POLICY_VERSION_ID};
+    core::PolicyVersionId policyVersion{kPlannerPolicyVersion};
     std::uint32_t candidateCount{6}; // Default 6, allowed [4, 8]
     std::uint32_t sampleRate{48000}; // Must equal the planning MusicClock internal rate
     std::uint32_t simulationHz{core::FixedStepConfig{}.simulationHz}; // Fixed-step tick rate (MusicIntentEvent::tick)
@@ -524,6 +529,7 @@ public:
     struct PlannerCheckpoint {
         SimulatedVoiceTracker voiceTracker{};
         std::optional<TriadVoicing> lastCorpoVoicing{};
+        std::optional<std::array<std::int32_t, 4>> lastPatterns{};
         std::uint64_t nextEventId{1};
         std::uint32_t totalFallbacks{0};
         std::size_t traceCount{0};
@@ -558,6 +564,9 @@ private:
     FormPlan formPlan_{};
     SimulatedVoiceTracker voiceTracker_{};
     std::optional<TriadVoicing> lastCorpoVoicing_{};
+    // F3 (policy 1.0.2.0): Euclidean parameters of the last committed phrase {pulso pulses, pulso rotation, trama
+    // pulses, trama rotation}, carried into the first phrase of the next section
+    std::optional<std::array<std::int32_t, 4>> lastPatterns_{};
     std::uint64_t nextEventId_{1};
     std::uint32_t totalFallbacks_{0};
     std::vector<PhraseDecisionTrace> traces_{};

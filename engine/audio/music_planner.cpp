@@ -514,12 +514,14 @@ void MusicPlanner::reset(std::uint64_t newSeed) noexcept {
     plannedNoteOffs_.clear();
     voiceTracker_.reset();
     lastCorpoVoicing_.reset();
+    lastPatterns_.reset();
 }
 
 MusicPlanner::PlannerCheckpoint MusicPlanner::createCheckpoint() const noexcept {
     return PlannerCheckpoint{
         .voiceTracker = voiceTracker_,
         .lastCorpoVoicing = lastCorpoVoicing_,
+        .lastPatterns = lastPatterns_,
         .nextEventId = nextEventId_,
         .totalFallbacks = totalFallbacks_,
         .traceCount = traces_.size(),
@@ -530,6 +532,7 @@ MusicPlanner::PlannerCheckpoint MusicPlanner::createCheckpoint() const noexcept 
 void MusicPlanner::restoreCheckpoint(const PlannerCheckpoint& cp) noexcept {
     voiceTracker_ = cp.voiceTracker;
     lastCorpoVoicing_ = cp.lastCorpoVoicing;
+    lastPatterns_ = cp.lastPatterns;
     nextEventId_ = cp.nextEventId;
     totalFallbacks_ = cp.totalFallbacks;
     if (cp.traceCount < traces_.size()) {
@@ -936,6 +939,15 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
         cand.tramaPulses = 6 + ((k + 1) % 3);           // 6, 7 or 8 pulses per bar
         cand.tramaRotation = static_cast<std::int32_t>((k + 2) % 4);
         cand.tramaSustainSteps = kTramaSustainSteps[(k / 2) % kTramaSustainSteps.size()];
+        // F3 (policy 1.0.2.0): the first phrase of every section after the first keeps the Euclidean patterns of
+        // Pulso and Trama of the previous phrase, so that they do not change on the same boundary as tempo, mode
+        // and motif; they change from the second phrase on
+        if (phrase.sectionIndex > 0 && phrase.phraseIndex == 0 && lastPatterns_.has_value()) {
+            cand.pulsoPulses = static_cast<std::uint32_t>((*lastPatterns_)[0]);
+            cand.pulsoRotation = (*lastPatterns_)[1];
+            cand.tramaPulses = static_cast<std::uint32_t>((*lastPatterns_)[2]);
+            cand.tramaRotation = (*lastPatterns_)[3];
+        }
 
         bool structuralOk = true;
         std::optional<TriadVoicing> prevVoicing = lastCorpoVoicing_;
@@ -1490,6 +1502,8 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
     if (winner.lastCorpoVoicing.has_value()) {
         lastCorpoVoicing_ = winner.lastCorpoVoicing;
     }
+    lastPatterns_ = std::array<std::int32_t, 4>{static_cast<std::int32_t>(winner.pulsoPulses), winner.pulsoRotation,
+                                                static_cast<std::int32_t>(winner.tramaPulses), winner.tramaRotation};
 
     trace.finalEventCount = winner.eventCount;
     traces_.push_back(trace);
