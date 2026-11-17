@@ -45,6 +45,8 @@ add_library(cymatica_cacp STATIC
     staff_view.cpp
     staff_view.h
     trama_diagnosis.cpp
+    trama_stereo.cpp
+    trama_stereo.h
     trama_diagnosis.h
 )
 

@@ -1,0 +1,52 @@
+{
+  "events_hash": "11924286746732527031",
+  "first_wavefront": {
+    "energy_l": 1.5824371501635761,
+    "energy_r": 0.3956039269730795,
+    "ild_db": 6.020658761260902
+  },
+  "first_wavefront_window_s": 0.005,
+  "golden_pcm_status": "PASS",
+  "golden_plan_passed": true,
+  "golden_trace_passed": true,
+  "lr_correlation": 0.8023668587915078,
+  "max_gain_reduction_db": 0.0,
+  "mix_integrated_lufs": -20.356420411892742,
+  "pcm_content_hash": "7790666370008029299",
+  "preregistration": "docs/research/M2_5_2_F2_Trama_Stereo_Preregistration.md",
+  "reasons": [],
+  "scenario": "trama_stereo_v1",
+  "sections": [
+    {
+      "energy_l": 308.26729483949066,
+      "energy_r": 102.2866465197593,
+      "ild_db": 4.791085108987327
+    },
+    {
+      "energy_l": 592.6402687879305,
+      "energy_r": 225.86293065390808,
+      "ild_db": 4.189461986667386
+    },
+    {
+      "energy_l": 616.520768351929,
+      "energy_r": 204.56973056989582,
+      "ild_db": 4.79106337812593
+    }
+  ],
+  "side_mid_db": -7.597551717164474,
+  "status": "MEASURED",
+  "stem_integrated_lufs": {
+    "corpo": -24.81937575102432,
+    "pulso": -26.486980671193635,
+    "trama": -34.121986066792196,
+    "vettore": -24.21180146840699
+  },
+  "trama_attacks": 400,
+  "trama_integrated_lufs": -34.121986066792196,
+  "true_peak_dbtp": -6.866310119628906,
+  "whole": {
+    "energy_l": 1517.4283319774383,
+    "energy_r": 532.7193077427073,
+    "ild_db": 4.546097510084198
+  }
+}

@@ -15,6 +15,7 @@ constexpr float kPulsoClickMinHz = 1200.0f;       // click band-pass centre, sca
 constexpr float kPulsoClickMaxHz = 3500.0f;
 constexpr float kPulsoClickQ = 0.9f;
 constexpr float kVettoreGlideTauMs = 15.0f;       // one-pole portamento
+constexpr float kTramaCentrePan = 0.790569415f;   // sqrt((1^2 + 0.5^2) / 2): same power as the old L 1.0 / R 0.5 pan
 constexpr float kTramaFmRatio = 1.0f;             // FM modulator:carrier of Trama (M2.5.2, was 1 + 1.76 t)
 constexpr float kVettoreVibratoHz = 5.5f;
 constexpr float kVettoreVibratoDepth = 0.005f;    // +/- 0.5 % of f0, scaled by timbreParam
@@ -605,14 +606,10 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
                             const float modSignal = std::sin(slot.fmModPhase) * (maxIdx * slot.envelopeLevel);
                             s = std::sin(slot.phase + modSignal);
                             const float scaled = s * slot.velocity * slot.envelopeLevel * kNominalVoiceScale;
-                            // Wide stereo spread
-                            if (slot.slotIndex == 4) {
-                                sampleL = scaled;
-                                sampleR = scaled * 0.5f;
-                            } else {
-                                sampleL = scaled * 0.5f;
-                                sampleR = scaled;
-                            }
+                            // Centred, constant power (M2.5.2 F2): was L 1.0 / R 0.5 on slot 4 (the only slot ever used,
+                            // AG-MM-12), which lateralised the Trama to the left. The stereo micro-delay still gives width.
+                            sampleL = scaled * kTramaCentrePan;
+                            sampleR = sampleL;
                             // Oscillator phases are physical: they keep running through the pause ramp so the
                             // 2 ms fade-out acts on a continuing waveform instead of a frozen DC value.
                             slot.fmModPhase += slot.fmModPhaseIncrement;

@@ -3182,3 +3182,32 @@ Pacchetto CP-2 archiviato senza invio. ADR-0003 D-M2-06 annotato con la ricalibr
 - **Onset della Trama:** richiamo degli attacchi con il profilo congelato da 1,0 a 0,9875. A δ 0,3 la calibrazione si allinea ai rilasci (offset 95 ms): nota per la ricalibrazione di M2.5.5. `acao02_v1` resta `INCONCLUSIVE`, limite noto.
 - **Build e suite:** Release e Debug `/WX` 270/270; `full_m2_suite` tutto verde salvo `acao02_v1`.
 - **Prossimi passi:** F2, poi F4b. Non committato.
+
+**M2.5.2, F2 immagine stereo della Trama: pre-registrazione** [M2_5_2_F2_Trama_Stereo_Preregistration.md](research/M2_5_2_F2_Trama_Stereo_Preregistration.md), SHA-256 (LF) `26649356ba28e7c1550cf875e67d63cd2f523cac27818b83876769d51455ec1d`. Variabile: il pan della voce Trama, da L 1,0 / R 0,5 al centro a potenza costante; delay invariato. Misure: ILD del primo fronte e dell'intero stem. Predizioni S1–S6.
+
+**M2.5, ricerca sulle lacune della verifica audio autonoma (proposta, non decisione)** [M2_5_Measurement_Gaps_Research.md](research/M2_5_Measurement_Gaps_Research.md). Sette lacune per D-M2-30, ciascuna con evidenza nel repository, fonti (livelli AM/SEC/NV, nessuna letta per intero), strumenti di terzi con licenza e una regola comune di validazione (controllo positivo dose-risposta, negativo, invarianza, valore pubblicato, oracolo). Priorità proposta, senza nuove dipendenze: onset etichettati attacco/rilascio con offset vincolato (`acao02_v1`), rilevatore di discontinuità per il descrittore `click` oggi `unverifiable`, ILD/ITD/IACC per banda gammatone, loudness specifica ISO 532-1 e perdita per mascheramento, descrittori timbrici. Da approvare: venv Python locale fissato (numpy, scipy, MoSQITo, librosa, mir_eval) come oracolo; facoltativi Octave+AMT e IDyOM. Esclusi per licenza o piattaforma: Timbre Toolbox, modelli madmom, Essentia; ViSQOL rinviato. Trovato durante la verifica: `10.1121/1.408170` non è Sethares 1993 (non citato nel repository). Nessun codice, decisione o dipendenza modificati; build e test non applicabili. Non committato.
+- **F2, misura prima del cambio** (`trama_stereo_v1`, nuovo scenario): ILD del primo fronte **+6,02 dB** (S1 confermata); ILD dell'intero stem **+4,55 dB** (S3, parte «prima», **mancata**: l'eco a 11 ms e quella a 17 ms interferiscono diversamente con il suono diretto). Aspettativa registrata dopo questa misura, quindi non pre-registrata: dopo la centratura l'intero stem resterà a circa −1,5 dB, fuori dalla tolleranza di S3.
+
+**M2.5.2, F2 immagine stereo della Trama, risultati (2026-11-16):** [M2_5_2_F2_Trama_Stereo_Results.md](research/M2_5_2_F2_Trama_Stereo_Results.md), ADR-0007 D-M2-34.
+- **Cambio:** voce della Trama centrata a potenza costante.
+- **Confermate:**
+  - S1 e S2: ILD del primo fronte da +6,02 a 0,00 dB;
+  - S5: piano, trace ed eventi invariati, altri stem identici, mix +0,014 LU, limiter 0 dB;
+  - S6: correlazione 0,80.
+- **Mancate:**
+  - **S3:** ILD dell'intero stem +4,55 prima e −1,47 dB dopo, per la differenza di filtraggio a pettine fra i tap a 11 e 17 ms;
+  - **S4:** loudness della Trama +0,35 LU, non compensata, come da pre-registrazione.
+
+  Possibile seguito F2b (delay simmetrico), da pre-registrare.
+- **Codice e test:** nuovo scenario `trama_stereo_v1` con test `[trama_stereo]`. Il test di continuità L/R per voci stereo passa da Trama a Corpo.
+- **Golden PCM:** `7790666370008029299` → **`18256941985354732249`**.
+- **Build e suite:** Release e Debug `/WX` 272/272; `full_m2_suite` verde salvo `acao02_v1`.
+- **Prossimo passo:** F4b. Non committato.
+
+**Dossier delle lacune di misura, decisione del titolare (2026-11-17):** [M2_5_Measurement_Gaps_Research.md](research/M2_5_Measurement_Gaps_Research.md).
+- **Approvati:** pacchetti 1–5, tutto codice CACP offline senza dipendenze nuove (onset etichettati con offset vincolato, rilevatore di discontinuità, ILD/ITD/IACC per banda, loudness specifica e mascheramento, descrittori timbrici). Approvati anche gli strumenti di riferimento indipendente:
+  - ambiente Python locale con versioni fissate (numpy, scipy, MoSQITo, librosa, mir_eval);
+  - Octave con AMT;
+  - IDyOM con SBCL.
+- **Non approvato:** acquisto della norma ISO 532-1. I valori di riferimento della loudness specifica si confrontano con l'oracolo MoSQITo, con il limite dichiarato che la sua validazione non è documentata.
+- **Regole che restano:** ogni dipendenza si registra in `docs/dependencies.md` con versione, hash, licenza e provenienza prima dell'uso (AGENTS §2); niente installazioni globali; download fissati in cartelle isolate; ogni pacchetto con una sua pre-registrazione; nessuna misura diventa un gate senza soglia ratificata.
