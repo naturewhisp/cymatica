@@ -39,17 +39,19 @@ json summary(std::vector<double> v) {
 
 } // namespace
 
-FixturePlan planFixtureM24V1(std::uint64_t seed) {
+namespace {
+FixturePlan planFixtureVariant(std::uint64_t seed, const audio::FixtureVariant& variant) {
     FixturePlan plan;
+    plan.variant = variant;
     const auto clock = audio::MusicPlanner::makeFixtureM24V1Clock();
     if (!clock) {
         plan.error = "fixture clock unavailable";
         return plan;
     }
-    const auto phrases = audio::MusicPlanner::makeFixtureM24V1Phrases(*clock);
+    const auto phrases = audio::MusicPlanner::makeFixtureM24V1Phrases(*clock, variant);
     audio::MusicPlanner planner({.runSeed = seed, .candidateCount = 8, .sampleRate = kFs,
                                  .lookaheadFrames = audio::AudioSchedulerConfig{}.lookaheadFrames});
-    planner.setFormPlan(audio::MusicPlanner::makeFixtureM24V1Form());
+    planner.setFormPlan(audio::MusicPlanner::makeFixtureM24V1Form(variant));
     for (const auto& p : phrases) {
         std::vector<audio::MusicIntentEvent> out;
         planner.planPhrase(p, *clock, 0, p.sectionIndex + 1ULL, out, nullptr); // epoch excluded from content
@@ -61,6 +63,13 @@ FixturePlan planFixtureM24V1(std::uint64_t seed) {
     plan.traces = planner.decisionTraces();
     plan.ok = true;
     return plan;
+}
+} // namespace
+
+FixturePlan planFixtureM24V1(std::uint64_t seed) { return planFixtureVariant(seed, audio::kFixtureReferenceVariant); }
+
+FixturePlan planFixtureM24V1Procedural(std::uint64_t seed) {
+    return planFixtureVariant(seed, audio::MusicPlanner::drawFixtureVariant(seed, audio::kPlannerPolicyVersion));
 }
 
 std::optional<std::uint64_t> phraseContentFingerprint(const std::vector<audio::MusicIntentEvent>& phraseIntents,
@@ -276,7 +285,7 @@ DiversityResult measureSeedDiversity() {
     std::vector<SeedData> data;
     for (std::uint64_t s = kDiversitySeedFirst; s <= kDiversitySeedLast; ++s) {
         SeedData sd;
-        sd.plan = planFixtureM24V1(s);
+        sd.plan = planFixtureM24V1Procedural(s); // contract point 6 (D-M2-47): the seed draws its authored path
         if (!sd.plan.ok) {
             d.status = "INCONCLUSIVE";
             d.error = "planning failed for seed " + std::to_string(s) + ": " + sd.plan.error;
@@ -301,9 +310,19 @@ DiversityResult measureSeedDiversity() {
         sd.tokens = planTokens(sd.plan);
         d.seeds.push_back(s);
         d.fingerprints.push_back(sd.fp);
+        d.variants.push_back(sd.plan.variant);
         data.push_back(std::move(sd));
     }
     d.distinctFingerprints = std::set<std::uint64_t>(d.fingerprints.begin(), d.fingerprints.end()).size();
+    {
+        std::set<std::uint64_t> keys;
+        for (const auto& v : d.variants) {
+            keys.insert((static_cast<std::uint64_t>(v.aTramaEntry) << 32) | (static_cast<std::uint64_t>(v.bDisplacementStart) << 24) |
+                        (static_cast<std::uint64_t>(static_cast<std::uint8_t>(v.aPrimeKickRest)) << 16) |
+                        (static_cast<std::uint64_t>(v.auraMotifA) << 8) | static_cast<std::uint64_t>(v.auraMotifB));
+        }
+        d.distinctVariants = keys.size();
+    }
 
     std::size_t identicalPairs = 0;
     std::array<double, kRoleCount> phraseShareSum{};
@@ -362,6 +381,12 @@ std::string diversityJson(const DiversityResult& d) {
                                 {"m3_cardinality_distance", summary(d.m3Distances[r])},
                                 {"m4_edit_distance", summary(d.m4Distances[r])}};
     }
+    json variantsJson = json::array();
+    for (std::size_t i = 0; i < d.variants.size() && i < d.seeds.size(); ++i) {
+        const auto& v = d.variants[i];
+        variantsJson.push_back({{"seed", d.seeds[i]}, {"a_trama_entry", v.aTramaEntry}, {"b_displacement_start", v.bDisplacementStart},
+                                {"a_prime_kick_rest", v.aPrimeKickRest}, {"aura_motif_a", v.auraMotifA}, {"aura_motif_b", v.auraMotifB}});
+    }
     json j{{"status", d.status},
            {"gate", false},
            {"outcome", d.outcome},
@@ -377,6 +402,9 @@ std::string diversityJson(const DiversityResult& d) {
            {"roles", roles},
            {"phrase_groups_seed_1337", d.phraseGroups1337},
            {"phrase_groups_seed_1337_symbolic", d.phraseGroups1337Symbolic},
+           {"variant_table", "fixture-variants-v1 (D-M2-47); seed 1337 reference fixture unchanged"},
+           {"distinct_variants", d.distinctVariants},
+           {"variants", variantsJson},
            {"note", "identical pairs are 0 by identity for M2-M4 and are not recomputed; diversity is not a gate and is not "
                     "to be maximised (ADR-0006 D-M2-16)"}};
     if (!d.error.empty()) j["error"] = d.error;

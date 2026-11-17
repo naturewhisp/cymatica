@@ -31,9 +31,13 @@ struct FixturePlan {
     std::vector<audio::PlannedNoteOff> noteOffs{};
     std::vector<PackPhrase> phrases{};
     std::vector<audio::PhraseDecisionTrace> traces{};   // decision traces of the planned phrases (D-M2-45 lineage)
+    audio::FixtureVariant variant{};                     // path of fixture-variants-v1 (reference unless procedural)
 };
 // Plans fixture-m2-4-v1 offline with the given seed (same planner configuration as fixture_probe_v1)
 [[nodiscard]] FixturePlan planFixtureM24V1(std::uint64_t seed);
+// Contract point 6 (D-M2-47): plans the path of fixture-variants-v1 drawn from the seed (procedural runs). The
+// reference fixture, every golden and every measurement keep planFixtureM24V1.
+[[nodiscard]] FixturePlan planFixtureM24V1Procedural(std::uint64_t seed);
 
 // Per-phrase content fingerprint (frames relative to the phrase start, all roles or one role; DIF-5e.0-02):
 // only the NoteOffs bound to the phrase's own NoteOns are joined. nullopt on an invalid fingerprint.
@@ -97,6 +101,9 @@ struct DiversityResult {
     std::array<std::vector<double>, kRoleCount> m4Distances{};
     std::size_t phraseGroups1337{0};          // distinct musical groups among the phrases of seed 1337 (frame rule, v2)
     std::size_t phraseGroups1337Symbolic{0};  // the same with the symbolic rule (v3, ADR-0006 5e.3c)
+    // Contract point 6 (D-M2-47): path of fixture-variants-v1 drawn by each seed, and the distinct paths
+    std::vector<audio::FixtureVariant> variants{};
+    std::size_t distinctVariants{0};
     std::string error{};
 };
 [[nodiscard]] DiversityResult measureSeedDiversity();

@@ -654,7 +654,9 @@ void MusicPlanner::restoreCheckpoint(const PlannerCheckpoint& cp) noexcept {
     }
 }
 
-FormPlan MusicPlanner::makeFixtureM24V1Form() noexcept {
+FormPlan MusicPlanner::makeFixtureM24V1Form() noexcept { return makeFixtureM24V1Form(kFixtureReferenceVariant); }
+
+FormPlan MusicPlanner::makeFixtureM24V1Form(const FixtureVariant& variant) noexcept {
     FormPlan fp{};
     fp.sectionCount = 3;
 
@@ -666,7 +668,7 @@ FormPlan MusicPlanner::makeFixtureM24V1Form() noexcept {
         .tempoMap = TempoMap{.bpm = RationalBpm{120, 1}, .timeSignatureNum = 4, .timeSignatureDen = 4, .subdivisionsPerBeat = 4, .beatsPerBar = 4, .barsPerPhrase = 4},
         .scale = ModalScale{.rootMidiNote = 62, .mode = ScaleMode::Dorian}, // D4
         .baseTension = 0.20f,
-        .sectionMotif = makeDorianBaseMotif(),
+        .sectionMotif = variant.auraMotifA ? makeDorianAuraMotif() : makeDorianBaseMotif(),
         .sustainPadIntoNextSection = true
     };
 
@@ -678,7 +680,7 @@ FormPlan MusicPlanner::makeFixtureM24V1Form() noexcept {
         .tempoMap = TempoMap{.bpm = RationalBpm{140, 1}, .timeSignatureNum = 4, .timeSignatureDen = 4, .subdivisionsPerBeat = 4, .beatsPerBar = 4, .barsPerPhrase = 4},
         .scale = ModalScale{.rootMidiNote = 55, .mode = ScaleMode::Aeolian}, // G3
         .baseTension = 0.60f, // ADR-0005 D-M2-08 (was 0.50f)
-        .sectionMotif = makeAeolianBaseMotif(),
+        .sectionMotif = variant.auraMotifB ? makeAeolianAuraMotif() : makeAeolianBaseMotif(),
         .sustainPadIntoNextSection = true
     };
 
@@ -690,7 +692,7 @@ FormPlan MusicPlanner::makeFixtureM24V1Form() noexcept {
         .tempoMap = TempoMap{.bpm = RationalBpm{120, 1}, .timeSignatureNum = 4, .timeSignatureDen = 4, .subdivisionsPerBeat = 4, .beatsPerBar = 4, .barsPerPhrase = 4},
         .scale = ModalScale{.rootMidiNote = 62, .mode = ScaleMode::Dorian}, // D4
         .baseTension = 0.35f, // ADR-0005 D-M2-08 (was 0.70f)
-        .sectionMotif = makeDorianBaseMotif(),
+        .sectionMotif = variant.auraMotifA ? makeDorianAuraMotif() : makeDorianBaseMotif(),
         .sustainPadIntoNextSection = false
     };
 
@@ -709,7 +711,11 @@ std::optional<MusicClock> MusicPlanner::makeFixtureM24V1Clock() noexcept {
 }
 
 std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicClock& clock) noexcept {
-    const FormPlan form = makeFixtureM24V1Form();
+    return makeFixtureM24V1Phrases(clock, kFixtureReferenceVariant);
+}
+
+std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicClock& clock, const FixtureVariant& variant) noexcept {
+    const FormPlan form = makeFixtureM24V1Form(variant);
     std::array<PhrasePlan, 24> phrases{};
 
     // Section A & A' (Re Dorico): degrees 0-3-4-0 (i-IV-v-i)
@@ -746,7 +752,7 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
         phrases[p].isCrossSectionPadPhrase = isCrossPad;
         phrases[p].crossSectionNoteOffFrame = crossOff;
         phrases[p].delayCorpoOnsetByOneBeat = false;
-        phrases[p].maskTrama = (p < 4); // Trama only in the second half of A (counterpoint)
+        phrases[p].maskTrama = (p < variant.aTramaEntry); // Trama from phrase 4 in the reference (D-M2-08, D-M2-47)
         phrases[p].recipeSet = CandidateRecipeSet::Standard;
         // fixture-lineage-v1 (contract point 5, D-M2-45): opening from the section motif, chain, return at the cadence
         phrases[p].motifSource = (p == 0 || p == 7) ? MotifSource::SectionBase : MotifSource::PreviousWinner;
@@ -770,14 +776,16 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
         phrases[8 + p].recipeSet = CandidateRecipeSet::ContrastB;
         // fixture-metric-v1 (R-MET-1/6, D-M2-40): reference exposed in 8..11, Pulso displaced by an eighth in 12..13,
         // return in 14, anchored again in 15
-        if (p == 4 || p == 5) {
+        // fixture-variants-v1 (D-M2-47): the displacement starts at variant.bDisplacementStart (12 in the reference)
+        const std::uint32_t d = variant.bDisplacementStart - 8U;
+        if (p == d || p == d + 1) {
             phrases[8 + p].metricState = MetricState::Spostato;
             phrases[8 + p].pulsoDisplacementSteps = 2;
-        } else if (p == 6) {
+        } else if (p == d + 2) {
             phrases[8 + p].metricState = MetricState::Ritorno;
         }
         // fixture-orchestration-v1 (R-ROL-7, D-M2-44): Trama thins out before the declared displacement
-        phrases[8 + p].maskTrama = (p == 2 || p == 3);
+        phrases[8 + p].maskTrama = (p + 2 == d || p + 1 == d);
         // fixture-lineage-v1 (D-M2-45)
         phrases[8 + p].motifSource = (p == 0 || p == 7) ? MotifSource::SectionBase : MotifSource::PreviousWinner;
     }
@@ -798,8 +806,8 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
         phrases[16 + p].releaseLeadFrames = (p == 7) ? kFixtureM24V1ReleaseLeadFrames : 0;
         // fixture-orchestration-v1 (R-ROL-7, D-M2-44): A' takes up the orchestration of A (Trama from its fifth
         // phrase); the kick rests in the phrase before the final cadence
-        phrases[16 + p].maskTrama = (p < 4);
-        phrases[16 + p].maskPulso = (p == 6);
+        phrases[16 + p].maskTrama = (p < variant.aTramaEntry);
+        phrases[16 + p].maskPulso = (static_cast<std::int32_t>(16 + p) == variant.aPrimeKickRest);
         // fixture-lineage-v1 (D-M2-45): A' recalls the opening of A, then the chain, return at the final cadence
         phrases[16 + p].motifSource = (p == 0) ? MotifSource::RecallSectionOpening
                                     : (p == 7) ? MotifSource::SectionBase : MotifSource::PreviousWinner;
@@ -904,6 +912,42 @@ Motif MusicPlanner::makeDorianBaseMotif() noexcept {
     return m;
 }
 
+// AURA cell (docs/research/AURA_Music_Source_Notes.md, A1; owner's repository, commit c68aaf3): 0 . 0 2 4 . 3 2 in
+// eighths over one bar, anchors on degrees 0 and 4 (D-M2-47)
+namespace {
+Motif makeAuraCell(std::uint32_t id) noexcept {
+    Motif m{};
+    m.motifId = id;
+    m.targetRole = MusicRole::Vettore;
+    m.lengthSteps = 16;
+    m.noteCount = 6;
+    m.notes[0] = MotifNote{.scaleDegree = 0, .chromaticOffset = 0, .stepOffset = 0, .durationSteps = 2, .velocity = 0.85f, .isAnchor = true};
+    m.notes[1] = MotifNote{.scaleDegree = 0, .chromaticOffset = 0, .stepOffset = 4, .durationSteps = 2, .velocity = 0.75f, .isAnchor = false};
+    m.notes[2] = MotifNote{.scaleDegree = 2, .chromaticOffset = 0, .stepOffset = 6, .durationSteps = 2, .velocity = 0.75f, .isAnchor = false};
+    m.notes[3] = MotifNote{.scaleDegree = 4, .chromaticOffset = 0, .stepOffset = 8, .durationSteps = 2, .velocity = 0.80f, .isAnchor = true};
+    m.notes[4] = MotifNote{.scaleDegree = 3, .chromaticOffset = 0, .stepOffset = 12, .durationSteps = 2, .velocity = 0.70f, .isAnchor = false};
+    m.notes[5] = MotifNote{.scaleDegree = 2, .chromaticOffset = 0, .stepOffset = 14, .durationSteps = 2, .velocity = 0.70f, .isAnchor = false};
+    return m;
+}
+} // namespace
+
+Motif MusicPlanner::makeDorianAuraMotif() noexcept { return makeAuraCell(102); }  // D . D F A . G F
+Motif MusicPlanner::makeAeolianAuraMotif() noexcept { return makeAuraCell(202); } // G . G Bb D . C Bb
+
+FixtureVariant MusicPlanner::drawFixtureVariant(std::uint64_t runSeed, core::PolicyVersionId policy) noexcept {
+    const auto draw = [&](std::uint64_t dimension) noexcept {
+        const core::RandomKey key{runSeed, static_cast<std::uint32_t>(core::StreamId::Director), kVariantDecisionBase + dimension, 0};
+        return core::randomU64(key, policy.toU32());
+    };
+    FixtureVariant v{};
+    v.aTramaEntry = kVariantTramaEntries[draw(0) % kVariantTramaEntries.size()];
+    v.bDisplacementStart = kVariantDisplacementStarts[draw(1) % kVariantDisplacementStarts.size()];
+    v.aPrimeKickRest = kVariantKickRests[draw(2) % kVariantKickRests.size()];
+    v.auraMotifA = (draw(3) % 2) == 1;
+    v.auraMotifB = (draw(4) % 2) == 1;
+    return v;
+}
+
 Motif MusicPlanner::makeAeolianBaseMotif() noexcept {
     Motif m{};
     m.motifId = 201;
@@ -922,6 +966,8 @@ Motif MusicPlanner::resolveBaseMotif(std::uint32_t baseMotifId, const ModalScale
     const Motif aeolian = makeAeolianBaseMotif();
     if (baseMotifId == dorian.motifId) return dorian;
     if (baseMotifId == aeolian.motifId) return aeolian;
+    if (baseMotifId == 102) return makeDorianAuraMotif();  // fixture-variants-v1 (D-M2-47)
+    if (baseMotifId == 202) return makeAeolianAuraMotif();
     return (scale.mode == ScaleMode::Aeolian) ? aeolian : dorian;
 }
 

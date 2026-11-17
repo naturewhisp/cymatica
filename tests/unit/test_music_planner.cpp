@@ -1583,3 +1583,69 @@ TEST_CASE("Contract point 5b: chain operations are bounded and verifiable (D-M2-
     CHECK_FALSE(verifyMotifTransformInvariants(base, bad, MotifTransformKind::Liquidation, 0));
     CHECK_FALSE(verifyMotifTransformInvariants(base, o, MotifTransformKind::Liquidation, 0));
 }
+
+TEST_CASE("Contract point 6: the seed draws an authored path, reference untouched (D-M2-47)", "[music_planner][seed_variants]") {
+    // S1: the reference factories are alternative 0 of every dimension
+    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+    REQUIRE(optClock.has_value());
+    const auto ref = MusicPlanner::makeFixtureM24V1Phrases(*optClock);
+    const auto ref0 = MusicPlanner::makeFixtureM24V1Phrases(*optClock, kFixtureReferenceVariant);
+    for (std::size_t i = 0; i < 24; ++i) {
+        INFO("phrase " << i);
+        CHECK(ref[i].maskTrama == ref0[i].maskTrama);
+        CHECK(ref[i].maskPulso == ref0[i].maskPulso);
+        CHECK(ref[i].metricState == ref0[i].metricState);
+        CHECK(ref[i].baseMotifId == ref0[i].baseMotifId);
+    }
+    // S2: deterministic, depends on seed and policy only, on the Director stream
+    CHECK(MusicPlanner::drawFixtureVariant(7, kPlannerPolicyVersion) == MusicPlanner::drawFixtureVariant(7, kPlannerPolicyVersion));
+
+    for (std::uint64_t seed = 1; seed <= 64; ++seed) {
+        const FixtureVariant v = MusicPlanner::drawFixtureVariant(seed, kPlannerPolicyVersion);
+        CHECK(std::find(kVariantTramaEntries.begin(), kVariantTramaEntries.end(), v.aTramaEntry) != kVariantTramaEntries.end());
+        CHECK(std::find(kVariantDisplacementStarts.begin(), kVariantDisplacementStarts.end(), v.bDisplacementStart) != kVariantDisplacementStarts.end());
+        CHECK(std::find(kVariantKickRests.begin(), kVariantKickRests.end(), v.aPrimeKickRest) != kVariantKickRests.end());
+
+    }
+}
+
+TEST_CASE("Contract point 6: all 256 paths of fixture-variants-v1 plan safely (D-M2-47)", "[music_planner][seed_variants][slow]") {
+    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+    REQUIRE(optClock.has_value());
+    const MusicClock& clock = *optClock;
+    std::size_t planned = 0;
+    for (const auto e : kVariantTramaEntries)
+    for (const auto d : kVariantDisplacementStarts)
+    for (const auto r : kVariantKickRests)
+    for (const bool ma : {false, true})
+    for (const bool mb : {false, true}) {
+        const FixtureVariant v{.aTramaEntry = e, .bDisplacementStart = d, .aPrimeKickRest = r, .auraMotifA = ma, .auraMotifB = mb};
+        const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(clock, v);
+        MusicPlanner planner({.runSeed = 1337ULL, .candidateCount = 8, .sampleRate = 48000});
+        planner.setFormPlan(MusicPlanner::makeFixtureM24V1Form(v));
+        std::vector<std::vector<MusicIntentEvent>> intents;
+        for (const auto& p : phrases) {
+            std::vector<MusicIntentEvent> out;
+            planner.planPhrase(p, clock, 0, p.sectionIndex + 1ULL, out, nullptr);
+            intents.push_back(out);
+        }
+        const auto& traces = planner.decisionTraces();
+        REQUIRE(traces.size() == 24);
+        INFO("variant e=" << int(e) << " d=" << int(d) << " r=" << int(r) << " A=" << ma << " B=" << mb);
+        bool ok = true;
+        for (std::size_t i = 0; i < 24; ++i) {
+            const auto& t = traces[i];
+            ok = ok && !t.fallbackTriggered && t.planViolation == HardConstraintViolation::None && !t.vettoreRegisterUnmet;
+            if (phrases[i].metricState == MetricState::Spostato) continue;
+            for (std::uint32_t b = 0; b < phrases[i].barCount; ++b) {
+                const std::uint64_t beat1 = clock.frameAtBar(phrases[i].startBar + b);
+                ok = ok && std::any_of(intents[i].begin(), intents[i].end(), [&](const MusicIntentEvent& ev) {
+                    return (ev.role == MusicRole::Pulso || ev.role == MusicRole::Corpo) && ev.sampleFrame == beat1;
+                });
+            }
+        }
+        CHECK(ok);
+        ++planned;
+    }
+    CHECK(planned == 256);
+}

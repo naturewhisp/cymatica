@@ -3562,3 +3562,38 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
 - **Profilo di punteggio:** versione 2.
 - **Build e suite:** Release e Debug `/WX` 304/304; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
 - **Prossimo:** punto 6, seed oltre i pareggi.
+
+**M2.5.3–4, punto 6, diagnosi (2026-11-17, piano `b0e614e`):**
+- **Il seed oggi:** agisce solo sui pareggi, e nella fixture non ce n'è nessuno. I 64 seed danno quindi lo stesso brano (`NULL_DIVERSITY`, Teorema D).
+- **Dove entra il seed:** tutte le misure e i golden usano la fixture con seed 1337; lo scenario di diversità pianifica i seed da 1 a 64.
+- **Proposta del dossier:** «lo stato decide quando, il seed sceglie quale percorso fra alternative d'autore».
+- **Tabella chiusa proposta,** sulle dimensioni già dichiarate nel contratto: 4 alternative per sezione, 64 combinazioni.
+  - A: frase di entrata della Trama (4, 2, 6, 3);
+  - B: inizio dello spostamento metrico (12, 10, 11, 13), con la Trama che esce nelle due frasi prima e il ritorno due frasi dopo;
+  - A′: pausa del kick (22, 21, 20, nessuna), con la Trama che rientra come in A.
+- **Scelta di disegno chiesta al titolare:** la fixture di riferimento resta il profilo d'autore, oppure anche il seed 1337 sceglie dalla tabella.
+
+**Spunti musicali da AURA (2026-11-17):** [AURA_Music_Source_Notes.md](research/AURA_Music_Source_Notes.md). Otto voci, ciascuna con una destinazione:
+- la cella melodica entra nel punto 6;
+- il tema intero e la progressione melodica vanno al 6b;
+- «stesso tema in stati diversi» va a M3, con priorità alta: è l'intento dichiarato di AURA, la musica che cambia con la fase di gioco;
+- il giro armonico con la sensibile, gli arpeggi, il basso in ottave (legato alla richiesta dell'esperto) e la campana d'atmosfera restano proposti.
+
+**M2.5.3–4, punto 6, il seed sceglie fra alternative d'autore: pre-registrazione** [M2_5_3_C6_Seed_Variants_Preregistration.md](research/M2_5_3_C6_Seed_Variants_Preregistration.md), SHA-256 (LF) `d8f36b7e1957c8409913f91d8d4f230c1dc9373a09793d422aabd6a05ba74009`.
+- **Scelte del titolare:** fixture di riferimento fissa; cella di AURA nella tabella.
+- **Tabella `fixture-variants-v1`:** 5 dimensioni, 256 combinazioni.
+- **Criteri:** S1–S6.
+
+**M2.5.3–4, punto 6, il seed sceglie fra alternative d'autore, risultati (2026-11-17):** [M2_5_3_C6_Seed_Variants_Results.md](research/M2_5_3_C6_Seed_Variants_Results.md), ADR-0007 D-M2-47. **Adottato: S1–S6 superati.**
+- **Fixture di riferimento invariata,** con tutti i golden uguali.
+- **Le 256 varianti** si pianificano tutte in sicurezza.
+- **Seed da 1 a 64:** 58 brani distinti e 58 percorsi distinti; prima ne usciva 1 (Teorema D superato). La cella di AURA apre A in 31 seed e B in 43.
+- **Limite misurato:** l'armonia resta quasi uguale fra i seed (83% di frasi di Corpo identiche). Prossima dimensione: il giro armonico (voce A5 delle note su AURA).
+- **Registro:** voce 14.
+- **Build e suite:** Release e Debug `/WX` 307/307; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
+- **Contratto minimo di R-M25-7:** punti 1–6 completati, più 5b.
+- **Seguito previsto per la fase:**
+  - 6b, melodia lunga una frase dal tema di AURA;
+  - alternative armoniche;
+  - ascolto cumulativo con le voci 1–14;
+  - CP-3.

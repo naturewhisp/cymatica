@@ -251,6 +251,23 @@ struct SectionPlan {
 
 inline constexpr std::size_t kMaxSections = 8;
 
+// Contract point 6 (D-M2-47): one path of the closed authored table fixture-variants-v1. Alternative 0 of every
+// dimension is the authored reference profile, which the reference fixture always uses.
+struct FixtureVariant {
+    std::uint8_t aTramaEntry{4};          // first A phrase with Trama: 4, 2, 6 or 3 (A' mirrors it)
+    std::uint8_t bDisplacementStart{12};  // first displaced B phrase: 12, 10, 11 or 13
+    std::int8_t aPrimeKickRest{22};       // A' phrase without Pulso: 22, 21, 20 or -1 (none)
+    bool auraMotifA{false};               // opening motif of A and A': the AURA cell instead of the authored motif
+    bool auraMotifB{false};               // opening motif of B: the AURA cell instead of the authored motif
+
+    [[nodiscard]] constexpr bool operator==(const FixtureVariant& other) const noexcept = default;
+};
+inline constexpr FixtureVariant kFixtureReferenceVariant{};
+inline constexpr std::array<std::uint8_t, 4> kVariantTramaEntries{4, 2, 6, 3};
+inline constexpr std::array<std::uint8_t, 4> kVariantDisplacementStarts{12, 10, 11, 13};
+inline constexpr std::array<std::int8_t, 4> kVariantKickRests{22, 21, 20, -1};
+inline constexpr std::uint64_t kVariantDecisionBase = 0xC6000000ULL; // decision id of dimension d = base + d
+
 struct FormPlan {
     std::size_t sectionCount{0};
     std::array<SectionPlan, kMaxSections> sections{};
@@ -570,9 +587,14 @@ public:
                                                    CadenceGoal cadenceGoal) noexcept;
 
     // Factory profiles
-    [[nodiscard]] static FormPlan makeFixtureM24V1Form() noexcept;   // 96 bars A-B-A' (~182.86s)
+    [[nodiscard]] static FormPlan makeFixtureM24V1Form() noexcept;   // 96 bars A-B-A' (~182.86s), reference variant
+    [[nodiscard]] static FormPlan makeFixtureM24V1Form(const FixtureVariant& variant) noexcept;
+    // Contract point 6 (D-M2-47): the path of fixture-variants-v1 drawn from the seed on StreamId::Director
+    [[nodiscard]] static FixtureVariant drawFixtureVariant(std::uint64_t runSeed, core::PolicyVersionId policy) noexcept;
     [[nodiscard]] static std::optional<MusicClock> makeFixtureM24V1Clock() noexcept;
     [[nodiscard]] static std::array<PhrasePlan, 24> makeFixtureM24V1Phrases(const MusicClock& clock) noexcept;
+    [[nodiscard]] static std::array<PhrasePlan, 24> makeFixtureM24V1Phrases(const MusicClock& clock,
+                                                                         const FixtureVariant& variant) noexcept;
     [[nodiscard]] static FormPlan makePlannerProbeV1Form() noexcept; // 8 bars A-B test (~14.86s)
     // Planning clock of planner_probe_v1: section A tempo map, section B tempo map at frameAtBar(4).
     [[nodiscard]] static std::optional<MusicClock> makePlannerProbeV1Clock() noexcept;
@@ -580,6 +602,9 @@ public:
     [[nodiscard]] static std::array<PhrasePlan, 2> makePlannerProbeV1Phrases(const MusicClock& clock) noexcept;
     [[nodiscard]] static Motif makeDorianBaseMotif() noexcept;
     [[nodiscard]] static Motif makeAeolianBaseMotif() noexcept;
+    // The AURA cell 0 . 0 2 4 . 3 2 in eighths (docs/research/AURA_Music_Source_Notes.md, A1), in Dorian / Aeolian
+    [[nodiscard]] static Motif makeDorianAuraMotif() noexcept;
+    [[nodiscard]] static Motif makeAeolianAuraMotif() noexcept;
     [[nodiscard]] static Motif resolveBaseMotif(std::uint32_t baseMotifId, const ModalScale& scale) noexcept;
 
     // Accessors & Telemetry
