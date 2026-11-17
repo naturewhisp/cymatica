@@ -158,6 +158,7 @@ void RoleBusProcessor::processAndMix(float* pDestInterleaved,
         if (roleActiveVoices[r] == 0) continue;
         float target = nominalBusGain(r, roleTimbreParam[r]);
         if (r == kP && roleTimbreParam[r] > 0.0f) target *= pulsoGainScale_; // F4a offline experiment, 1 = production
+        if (r == kT && roleTimbreParam[r] > 0.0f) target *= tramaGainScale_; // package 4b offline experiment, 1 = production
         if (roleInputSilentPrev_[r]) {
             busGainSmoothers_[r].snapTo(target); // bus input was exactly zero: no audible step
         } else {

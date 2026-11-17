@@ -218,6 +218,8 @@ public:
     // setNoteReleaseFrames (offline engine only); refused unless finite and 0 < scale <= kMaxPulsoBusGainScale.
     static constexpr float kMaxPulsoBusGainScale = 4.0f; // +12.04 dB
     bool setPulsoBusGainScale(float scale) noexcept;
+    // Offline Trama-level experiment (measurement package 4b): same rule and range as setPulsoBusGainScale.
+    bool setTramaBusGainScale(float scale) noexcept;
     // Rule of setNoteReleaseFrames, testable without hardware: offline engine and no device running
     [[nodiscard]] static constexpr bool noteReleaseOverrideAllowed(bool offlineEngine, bool deviceStarted) noexcept {
         return offlineEngine && !deviceStarted;

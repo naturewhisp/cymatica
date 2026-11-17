@@ -1,0 +1,15 @@
+A without 35.1 K2 True K3 True dN/dB 0.266
+    0 alone 5.54 inc 0.751 loss 0.865
+    3 alone 6.73 inc 1.269 loss 0.811
+    6 alone 8.16 inc 2.048 loss 0.749
+    9 alone 9.88 inc 3.148 loss 0.681
+B without 33.26 K2 True K3 True dN/dB 0.199
+    0 alone 5.4 inc 0.456 loss 0.916
+    3 alone 6.57 inc 0.805 loss 0.877
+    6 alone 7.97 inc 1.376 loss 0.827
+    9 alone 9.65 inc 2.248 loss 0.767
+Aprime without 33.33 K2 True K3 True dN/dB 0.287
+    0 alone 5.55 inc 0.842 loss 0.848
+    3 alone 6.73 inc 1.417 loss 0.79
+    6 alone 8.16 inc 2.26 loss 0.723
+    9 alone 9.89 inc 3.427 loss 0.653

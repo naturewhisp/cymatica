@@ -98,6 +98,10 @@ public:
     // the kick level varies. Written only through AudioEngine::setPulsoBusGainScale on an offline engine.
     void setPulsoGainScale(float scale) noexcept { pulsoGainScale_ = scale; }
     [[nodiscard]] float pulsoGainScale() const noexcept { return pulsoGainScale_; }
+    // Offline Trama-level experiment (measurement package 4b): linear scale of the Trama bus gain, 1 = production.
+    // The Trama delay sits after the bus gain, so the echo follows. Written only through AudioEngine.
+    void setTramaGainScale(float scale) noexcept { tramaGainScale_ = scale; }
+    [[nodiscard]] float tramaGainScale() const noexcept { return tramaGainScale_; }
     [[nodiscard]] RoleStemSink* stemSink() const noexcept { return stemSink_; }
     // Frames rendered without bus processing (frozen pause/stop silence) are written to the sink as zeros
     void appendSilentStemFrames(std::uint32_t frameCount) noexcept;
@@ -123,6 +127,7 @@ private:
     std::uint32_t sampleRate_{48000};
     bool duckingEnabled_{true};
     float pulsoGainScale_{1.0f};
+    float tramaGainScale_{1.0f};
     bool delayBypassed_{false};
 
     // Preallocated per-block role buffers (max 1024 frames = 21.3 ms)

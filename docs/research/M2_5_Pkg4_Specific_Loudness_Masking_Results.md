@@ -3,6 +3,7 @@
 - **Pre-registrazione:** [M2_5_Pkg4_Specific_Loudness_Masking_Preregistration.md](M2_5_Pkg4_Specific_Loudness_Masking_Preregistration.md), SHA-256 (LF) `e1fbcdd80cb499cae39938639b383617ab0534b32f3a5b8f4a9e34df33c9c89d`.
 - **Esecuzione, 2026-11-17:** Release `stem_export_v1` (golden PCM PASS), poi `loudness_masking.py` con MoSQITo 1.2.1. Dati: [esperimento](experiments/m25_pkg4_loudness/README.md).
 - **Esito:** strumento **validato** (L1–L5). M1 e M2 confermate in B e A′ e non misurabili in A; **M3 mancata**.
+- **Correzione successiva (2026-11-17, pacchetto 4b):** la lettura «il mix è scuro, più del rumore rosa e di Pestana» è **ritirata**. Il metodo di pendenza qui usato (bin lineari fra 50 Hz e 16 kHz) pesa soprattutto gli acuti e non è confrontabile con Pestana (99–4000 Hz). Con bande di terzo d'ottava il mix vale −5,4 dB/ottava in quella gamma, e −12,4 sopra i 2 kHz ([risultati 4b](M2_5_Pkg4b_Slope_And_Trama_Sensitivity_Results.md)). I numeri qui sotto restano come registro della misura originale.
 
 ## 1. Validazione
 

@@ -3267,3 +3267,15 @@ Pacchetto CP-2 archiviato senza invio. ADR-0003 D-M2-06 annotato con la ricalibr
 - **Trama:** il ruolo più coperto (perdita 0,85–0,92). La perdita include la compressione di loudness nella stessa banda: valgono i confronti, non i valori assoluti.
 - **Dipendenze:** MoSQITo, pyuff e matplotlib, con le sue dipendenze, fissati per hash in `tools/pyenv` e registrati in `docs/dependencies.md`.
 - **Build e suite dei pacchetti 3–5:** Release e Debug headless `/WX` 291/291; `full_m2_suite` verde salvo `acao02_v1`, il limite noto. Licenze dell'ambiente lette dai metadati: una prima stesura indicava per errore pyuff come GPL-3.0, ed è MIT. Non committato.
+
+**Pacchetto di misura 4b, approfondimento della misura 4: pre-registrazione** [M2_5_Pkg4b_Slope_And_Trama_Sensitivity_Preregistration.md](research/M2_5_Pkg4b_Slope_And_Trama_Sensitivity_Preregistration.md), SHA-256 (LF) `3a59681f8615e870b232331a16e2dc841733e87257cdbf43ae26d1c1f40d9546`. Richiesto dal titolare il 2026-11-17.
+- **Ritirata** l'affermazione del pacchetto 4 «mix più scuro di Pestana»: gamma e pesatura dei punti non erano confrontabili.
+- **Pendenza a terzi d'ottava** fra 99 e 4000 Hz, con un controllo a curva che dimostra la distorsione del metodo vecchio.
+- **Sensibilità della Trama** a +3, +6 e +9 dB, con override offline.
+- **Sezione A** misurata dove la Trama suona.
+- Prove G1–G3 e K1–K3.
+
+**Pacchetto di misura 4b, risultati (2026-11-17):** [M2_5_Pkg4b_Slope_And_Trama_Sensitivity_Results.md](research/M2_5_Pkg4b_Slope_And_Trama_Sensitivity_Results.md). Tutte le prove e le predizioni confermate (G1–G3, K1–K3).
+- **Pendenza:** con bande di terzo d'ottava il mix vale **−5,4 dB/ottava** fra 99 e 4000 Hz, in linea con Pestana (circa −5). Il −8,7 del pacchetto 4 era una distorsione del metodo, dimostrata dal controllo a curva (−5,91 contro −10,36), e la lettura «mix scuro» è ritirata anche nei risultati del pacchetto 4. Resta una caduta ripida sopra i 2 kHz (−12,4 dB/ottava): ipotesi per l'ascolto cumulativo.
+- **Trama:** incremento di loudness nel mix ×2,7 a +6 dB e ×4,2 a +9 dB (0,20–0,29 sone per dB); perdita da 0,85–0,92 a 0,65–0,77 a +9 dB. Misurata anche la sezione A dove la Trama suona (perdita 0,865).
+- **Codice e build:** override offline del bus della Trama; scenario `stem_export_v2`. Release e Debug `/WX` 292/292. Non committato.

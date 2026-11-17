@@ -193,3 +193,17 @@ TEST_CASE("kick_level_ab_v1: loudness alignment gain", "[kick_level_ab]") {
     REQUIRE_THAT(*loudnessAlignGain(-20.0, -20.0), Catch::Matchers::WithinAbs(1.0, 1e-12));
     REQUIRE_THAT(*loudnessAlignGain(-18.0, -24.0), Catch::Matchers::WithinRel(0.5011872336, 1e-9));
 }
+
+TEST_CASE("package 4b: the Trama gain override is offline only, bounded, and scales only the Trama bus", "[kick_level_ab][trama_gain_override]") {
+    AudioEngine engine;
+    REQUIRE(engine.initOffline({48000, 2, 220.0f}));
+    REQUIRE_FALSE(engine.setTramaBusGainScale(0.0f));
+    REQUIRE_FALSE(engine.setTramaBusGainScale(std::numeric_limits<float>::quiet_NaN()));
+    REQUIRE_FALSE(engine.setTramaBusGainScale(4.01f));
+    REQUIRE(engine.setTramaBusGainScale(2.0f));
+    RoleBusProcessor bus;
+    bus.init(48000);
+    REQUIRE(bus.tramaGainScale() == 1.0f);
+    bus.setTramaGainScale(2.0f);
+    REQUIRE(bus.pulsoGainScale() == 1.0f);
+}
