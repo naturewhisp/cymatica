@@ -1,0 +1,357 @@
+{
+  "sections": {
+    "A": [
+      {
+        "offset_db": 0,
+        "mix_sone": 35.84807987466828,
+        "alone_sone": {
+          "trama": 5.54194669614967,
+          "corpo": 27.818376119987512,
+          "vettore": 26.409532316517023
+        },
+        "increment_sone": {
+          "trama": 0.7507932156071391,
+          "corpo": 6.175041280148481,
+          "vettore": 5.439773457351205
+        },
+        "loss": {
+          "trama": 0.8645253632394622,
+          "corpo": 0.778022942334448,
+          "vettore": 0.7940223479857283
+        },
+        "mix_lufs_rise": 0.0,
+        "presence": false,
+        "subordination": true,
+        "safety": true
+      },
+      {
+        "offset_db": 2,
+        "mix_sone": 36.16819056800169,
+        "alone_sone": {
+          "trama": 6.306956959936308,
+          "corpo": 27.818376119987512,
+          "vettore": 26.409532316517023
+        },
+        "increment_sone": {
+          "trama": 1.0709039089405508,
+          "corpo": 6.106387822832591,
+          "vettore": 5.347947665469718
+        },
+        "loss": {
+          "trama": 0.8302027561400442,
+          "corpo": 0.7804908598368849,
+          "vettore": 0.7974993422308728
+        },
+        "mix_lufs_rise": 0.1155308499536929,
+        "presence": false,
+        "subordination": true,
+        "safety": true
+      },
+      {
+        "offset_db": 4,
+        "mix_sone": 36.594306415350744,
+        "alone_sone": {
+          "trama": 7.172916062800878,
+          "corpo": 27.818376119987512,
+          "vettore": 26.409532316517023
+        },
+        "increment_sone": {
+          "trama": 1.4970197562896033,
+          "corpo": 6.034166792473886,
+          "vettore": 5.250490325162858
+        },
+        "loss": {
+          "trama": 0.7912955145183942,
+          "corpo": 0.7830870225333413,
+          "vettore": 0.8011895757094077
+        },
+        "mix_lufs_rise": 0.2905472312990156,
+        "presence": true,
+        "subordination": true,
+        "safety": true
+      },
+      {
+        "offset_db": 6,
+        "mix_sone": 37.14553141319649,
+        "alone_sone": {
+          "trama": 8.155229861563903,
+          "corpo": 27.818376119987512,
+          "vettore": 26.409532316517023
+        },
+        "increment_sone": {
+          "trama": 2.0482447541353466,
+          "corpo": 5.959726849509636,
+          "vettore": 5.1507845794147755
+        },
+        "loss": {
+          "trama": 0.7488427930414507,
+          "corpo": 0.7857629495048932,
+          "vettore": 0.8049649453203919
+        },
+        "mix_lufs_rise": 0.5518549703021733,
+        "presence": true,
+        "subordination": true,
+        "safety": false
+      },
+      {
+        "offset_db": 8,
+        "mix_sone": 37.839312171180865,
+        "alone_sone": {
+          "trama": 9.266659334301757,
+          "corpo": 27.818376119987512,
+          "vettore": 26.409532316517023
+        },
+        "increment_sone": {
+          "trama": 2.7420255121197243,
+          "corpo": 5.883389152928196,
+          "vettore": 5.054039851029465
+        },
+        "loss": {
+          "trama": 0.7040977321816766,
+          "corpo": 0.7885070959012241,
+          "vettore": 0.8086281956659803
+        },
+        "mix_lufs_rise": 0.9335060994590236,
+        "presence": true,
+        "subordination": true,
+        "safety": false
+      }
+    ],
+    "B": [
+      {
+        "offset_db": 0,
+        "mix_sone": 33.734674741044316,
+        "alone_sone": {
+          "trama": 5.401821367087424,
+          "corpo": 24.351558109171243,
+          "vettore": 26.62903692791323
+        },
+        "increment_sone": {
+          "trama": 0.4559164301291787,
+          "corpo": 4.346580462225951,
+          "vettore": 7.161436919872603
+        },
+        "loss": {
+          "trama": 0.915599498919565,
+          "corpo": 0.8215070903167815,
+          "vettore": 0.7310666195229237
+        },
+        "mix_lufs_rise": 0.0,
+        "presence": false,
+        "subordination": true,
+        "safety": true
+      },
+      {
+        "offset_db": 2,
+        "mix_sone": 33.94719775298282,
+        "alone_sone": {
+          "trama": 6.153846928967387,
+          "corpo": 24.351558109171243,
+          "vettore": 26.62903692791323
+        },
+        "increment_sone": {
+          "trama": 0.6684394420676796,
+          "corpo": 4.305388619627951,
+          "vettore": 7.01118832222399
+        },
+        "loss": {
+          "trama": 0.891378604345649,
+          "corpo": 0.8231986388580834,
+          "vettore": 0.7367089038479389
+        },
+        "mix_lufs_rise": 0.11211347497914304,
+        "presence": false,
+        "subordination": true,
+        "safety": true
+      },
+      {
+        "offset_db": 4,
+        "mix_sone": 34.24644577090027,
+        "alone_sone": {
+          "trama": 7.005083340330976,
+          "corpo": 24.351558109171243,
+          "vettore": 26.62903692791323
+        },
+        "increment_sone": {
+          "trama": 0.967687459985136,
+          "corpo": 4.253189485435474,
+          "vettore": 6.843358744978467
+        },
+        "loss": {
+          "trama": 0.861859250922286,
+          "corpo": 0.8253422033051082,
+          "vettore": 0.7430114065520302
+        },
+        "mix_lufs_rise": 0.2822594842859907,
+        "presence": false,
+        "subordination": true,
+        "safety": true
+      },
+      {
+        "offset_db": 6,
+        "mix_sone": 34.655210432996505,
+        "alone_sone": {
+          "trama": 7.966489675687308,
+          "corpo": 24.351558109171243,
+          "vettore": 26.62903692791323
+        },
+        "increment_sone": {
+          "trama": 1.3764521220813677,
+          "corpo": 4.195144390182644,
+          "vettore": 6.665015990173263
+        },
+        "loss": {
+          "trama": 0.8272197444399984,
+          "corpo": 0.8277258329271885,
+          "vettore": 0.749708710524682
+        },
+        "mix_lufs_rise": 0.5368115597902978,
+        "presence": true,
+        "subordination": true,
+        "safety": false
+      },
+      {
+        "offset_db": 8,
+        "mix_sone": 35.19764677027356,
+        "alone_sone": {
+          "trama": 9.052190878118767,
+          "corpo": 24.351558109171243,
+          "vettore": 26.62903692791323
+        },
+        "increment_sone": {
+          "trama": 1.9188884593584206,
+          "corpo": 4.1313246853138885,
+          "vettore": 6.482031019843543
+        },
+        "loss": {
+          "trama": 0.7880194435584852,
+          "corpo": 0.8303465976676886,
+          "vettore": 0.7565803435779191
+        },
+        "mix_lufs_rise": 0.9094793398173628,
+        "presence": true,
+        "subordination": true,
+        "safety": false
+      }
+    ],
+    "Aprime": [
+      {
+        "offset_db": 0,
+        "mix_sone": 34.189130433581845,
+        "alone_sone": {
+          "trama": 5.548459082830277,
+          "corpo": 27.867441066080776,
+          "vettore": 24.0731881010782
+        },
+        "increment_sone": {
+          "trama": 0.8426973137376663,
+          "corpo": 6.742889914283133,
+          "vettore": 3.781783669211549
+        },
+        "loss": {
+          "trama": 0.8481204779277556,
+          "corpo": 0.7580369902534636,
+          "vettore": 0.8429047430970653
+        },
+        "mix_lufs_rise": 0.0,
+        "presence": false,
+        "subordination": true,
+        "safety": true
+      },
+      {
+        "offset_db": 2,
+        "mix_sone": 34.54578550829633,
+        "alone_sone": {
+          "trama": 6.314405013575145,
+          "corpo": 27.867441066080776,
+          "vettore": 24.0731881010782
+        },
+        "increment_sone": {
+          "trama": 1.199352388452155,
+          "corpo": 6.593759321501626,
+          "vettore": 3.7430271655994325
+        },
+        "loss": {
+          "trama": 0.8100609026703697,
+          "corpo": 0.7633884178362071,
+          "vettore": 0.8445146878808383
+        },
+        "mix_lufs_rise": 0.11595935681808456,
+        "presence": true,
+        "subordination": true,
+        "safety": true
+      },
+      {
+        "offset_db": 4,
+        "mix_sone": 35.01217423228276,
+        "alone_sone": {
+          "trama": 7.181434717188813,
+          "corpo": 27.867441066080776,
+          "vettore": 24.0731881010782
+        },
+        "increment_sone": {
+          "trama": 1.6657411124385817,
+          "corpo": 6.447412618026178,
+          "vettore": 3.700566127463393
+        },
+        "loss": {
+          "trama": 0.7680489793423007,
+          "corpo": 0.7686399478610998,
+          "vettore": 0.846278518992769
+        },
+        "mix_lufs_rise": 0.2934906776957149,
+        "presence": true,
+        "subordination": true,
+        "safety": true
+      },
+      {
+        "offset_db": 6,
+        "mix_sone": 35.607386738598976,
+        "alone_sone": {
+          "trama": 8.164959717502224,
+          "corpo": 27.867441066080776,
+          "vettore": 24.0731881010782
+        },
+        "increment_sone": {
+          "trama": 2.2609536187547974,
+          "corpo": 6.307980972296626,
+          "vettore": 3.6565280986576205
+        },
+        "loss": {
+          "trama": 0.7230906584991145,
+          "corpo": 0.7736433367764625,
+          "vettore": 0.8481078582818098
+        },
+        "mix_lufs_rise": 0.5606276500727709,
+        "presence": true,
+        "subordination": true,
+        "safety": false
+      },
+      {
+        "offset_db": 8,
+        "mix_sone": 36.34592499854982,
+        "alone_sone": {
+          "trama": 9.277757192904007,
+          "corpo": 27.867441066080776,
+          "vettore": 24.0731881010782
+        },
+        "increment_sone": {
+          "trama": 2.9994918787056406,
+          "corpo": 6.175494430959233,
+          "vettore": 3.6133941333748965
+        },
+        "loss": {
+          "trama": 0.6767007568381107,
+          "corpo": 0.7783975063833249,
+          "vettore": 0.8498996427808805
+        },
+        "mix_lufs_rise": 0.9527986977504845,
+        "presence": true,
+        "subordination": true,
+        "safety": false
+      }
+    ]
+  },
+  "choice_db": null,
+  "offsets_passing_everywhere": []
+}

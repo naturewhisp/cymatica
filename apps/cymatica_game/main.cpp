@@ -275,6 +275,11 @@ int main(int argc, char** argv) {
                 std::printf("[cacp] Verdict: %s\n", res.status.c_str());
                 std::printf("%s\n", res.toJson().c_str());
                 return (res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
+            } else if (std::strcmp(scenario, "stem_export_v3") == 0) {
+                std::printf("[cacp] Running scenario '%s' (Trama level criterion: excerpts at Trama offsets 0..+8 dB)...\n", scenario);
+                auto res = cymatica::cacp::runStemExportV3("artifacts/cacp");
+                std::printf("[cacp] Verdict: %s\n", res.status.c_str());
+                return (res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
             } else if (std::strcmp(scenario, "trama_miss_diagnosis") == 0 || std::strcmp(scenario, "trama_miss_diagnosis_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (M2.4 Inc-5 5e.3b: causal diagnosis of the missed Trama attacks, MEASURED, not a gate)...\n", scenario);
                 auto res = cymatica::cacp::runTramaMissDiagnosisV1("artifacts/cacp", true);
@@ -306,7 +311,7 @@ int main(int argc, char** argv) {
                 return (res.completed && res.inputValid) ? 0 : 1;
             } else {
                 std::fprintf(stderr, "[cacp] ERROR: unknown scenario '%s' (known: tone_test, voice_test, "
-                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, device_probe, onset_parity, acao02, evaluation_pack, procedural, release_ab, kick_level_ab, trama_stereo, discontinuity, fade_events, binaural, stem_export, stem_export_v2, timbre_descriptors, trama_miss_diagnosis, full_m2_suite "
+                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, device_probe, onset_parity, acao02, evaluation_pack, procedural, release_ab, kick_level_ab, trama_stereo, discontinuity, fade_events, binaural, stem_export, stem_export_v2, stem_export_v3, timbre_descriptors, trama_miss_diagnosis, full_m2_suite "
                                      "and their *_v* aliases)\n",
                              scenario);
                 return 2;

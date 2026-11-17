@@ -1,0 +1,19 @@
+A
+  +0 dB loss T/C/V [0.865, 0.778, 0.794] inc T/C/V [0.75, 6.18, 5.44] mix +0.00 LU P False S True safe True
+  +2 dB loss T/C/V [0.83, 0.78, 0.797] inc T/C/V [1.07, 6.11, 5.35] mix +0.12 LU P False S True safe True
+  +4 dB loss T/C/V [0.791, 0.783, 0.801] inc T/C/V [1.5, 6.03, 5.25] mix +0.29 LU P True S True safe True
+  +6 dB loss T/C/V [0.749, 0.786, 0.805] inc T/C/V [2.05, 5.96, 5.15] mix +0.55 LU P True S True safe False
+  +8 dB loss T/C/V [0.704, 0.789, 0.809] inc T/C/V [2.74, 5.88, 5.05] mix +0.93 LU P True S True safe False
+B
+  +0 dB loss T/C/V [0.916, 0.822, 0.731] inc T/C/V [0.46, 4.35, 7.16] mix +0.00 LU P False S True safe True
+  +2 dB loss T/C/V [0.891, 0.823, 0.737] inc T/C/V [0.67, 4.31, 7.01] mix +0.11 LU P False S True safe True
+  +4 dB loss T/C/V [0.862, 0.825, 0.743] inc T/C/V [0.97, 4.25, 6.84] mix +0.28 LU P False S True safe True
+  +6 dB loss T/C/V [0.827, 0.828, 0.75] inc T/C/V [1.38, 4.2, 6.67] mix +0.54 LU P True S True safe False
+  +8 dB loss T/C/V [0.788, 0.83, 0.757] inc T/C/V [1.92, 4.13, 6.48] mix +0.91 LU P True S True safe False
+Aprime
+  +0 dB loss T/C/V [0.848, 0.758, 0.843] inc T/C/V [0.84, 6.74, 3.78] mix +0.00 LU P False S True safe True
+  +2 dB loss T/C/V [0.81, 0.763, 0.845] inc T/C/V [1.2, 6.59, 3.74] mix +0.12 LU P True S True safe True
+  +4 dB loss T/C/V [0.768, 0.769, 0.846] inc T/C/V [1.67, 6.45, 3.7] mix +0.29 LU P True S True safe True
+  +6 dB loss T/C/V [0.723, 0.774, 0.848] inc T/C/V [2.26, 6.31, 3.66] mix +0.56 LU P True S True safe False
+  +8 dB loss T/C/V [0.677, 0.778, 0.85] inc T/C/V [3.0, 6.18, 3.61] mix +0.95 LU P True S True safe False
+passing everywhere: [] choice: None

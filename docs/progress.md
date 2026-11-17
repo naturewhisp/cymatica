@@ -3297,3 +3297,10 @@ Pacchetto CP-2 archiviato senza invio. ADR-0003 D-M2-06 annotato con la ricalibr
 - **Golden PCM:** `18256941985354732249` → **`8159713709400020277`**.
 - **Build e suite:** Release e Debug `/WX` 293/293; `full_m2_suite` verde salvo `acao02_v1`.
 - **Prossimo passo:** livello della Trama (criterio da pre-registrare), poi chiusura di M2.5.2. Eventuale F4c. Non committato.
+
+**M2.5.2, livello della Trama: pre-registrazione del criterio** [M2_5_2_Trama_Level_Preregistration.md](research/M2_5_2_Trama_Level_Preregistration.md), SHA-256 (LF) `00a0680ce0fb382d6cd0025b10d1cfc90f41dd4f69e1cef0cb08b6ebd5e1a2b9`. Criterio relativo da DESIGN §8.3: presenza (Trama non più coperta del ruolo tonale più coperto) e subordinazione (contributo al mix minore di Corpo e Vettore), su +0…+8 dB a passi di 2 dB. Prove V1–V2, predizioni T1–T3.
+
+**M2.5.2, livello della Trama, risultati (2026-11-17):** [M2_5_2_Trama_Level_Results.md](research/M2_5_2_Trama_Level_Results.md), ADR-0007 D-M2-36.
+- **Esito:** nessun offset soddisfa il criterio pre-registrato in tutte le sezioni. In B la presenza richiede +6 dB, che supera il limite di sicurezza (+0,54 contro +0,5 LU). Per regola la Trama **resta −9 dB** e la scelta va all'ascolto cumulativo, con la scala −9 / −5 / −3 dB già misurata. Produzione invariata.
+- **Predizioni:** T1 confermata; T2 mancata (nessuna scelta); V1 confermata; V2 mancata in parte (mix spostato dal cambio F4b fra le due misure).
+- **M2.5.2 contenutisticamente completa:** F4a, F4b, F2, rapporto FM e livello della Trama, quest'ultimo rinviato per regola. Resta facoltativo F4c. Non committato.

@@ -2,6 +2,7 @@
 
 #include "acao02_calibration.h"
 #include "audio_probe.h"
+#include "loudness.h"
 #include "music_planner.h"
 #include "stem_analysis.h"
 
@@ -225,6 +226,129 @@ StemExportV2Result runStemExportV2(const std::string& outputDir) {
     r.manifestWriteSuccess = mf.is_open();
     if (r.manifestWriteSuccess) {
         mf << r.toJson();
+        r.manifestWriteSuccess = mf.good();
+    }
+    return r;
+}
+
+StemExportV2Result runStemExportV3(const std::string& outputDir) {
+    namespace fs = std::filesystem;
+    StemExportV2Result r;
+    std::error_code ec;
+    const fs::path dir = fs::path(outputDir) / "stem_export_v3";
+    fs::create_directories(dir, ec);
+    const auto write = [&](const std::string& name, const std::vector<float>& pcm) {
+        const auto bytes = encodeWavStereoFloat32(pcm, kFs);
+        std::ofstream o(dir / name, std::ios::binary);
+        o.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+        if (o.good()) r.files.push_back(name);
+        else r.reasons.push_back("cannot write " + name);
+    };
+    const auto fnv = [](const std::vector<float>& v) {
+        std::uint64_t h = 1469598103934665603ULL;
+        for (const float x : v) {
+            std::uint32_t bits = 0;
+            std::memcpy(&bits, &x, 4);
+            for (int k = 0; k < 4; ++k) {
+                h ^= (bits >> (8 * k)) & 0xFFU;
+                h *= 1099511628211ULL;
+            }
+        }
+        return h;
+    };
+    const auto clock = audio::MusicPlanner::makeFixtureM24V1Clock();
+    if (!clock) {
+        r.status = "INCONCLUSIVE";
+        r.reasons.emplace_back("fixture clock unavailable");
+        return r;
+    }
+    std::map<std::uint32_t, std::vector<const audio::PhrasePlan*>> bySection;
+    const auto phrases = audio::MusicPlanner::makeFixtureM24V1Phrases(*clock);
+    for (const auto& p : phrases) bySection[p.sectionIndex].push_back(&p);
+    std::array<std::pair<std::size_t, std::size_t>, 3> ranges{};
+    for (auto& [section, list] : bySection) {
+        std::sort(list.begin(), list.end(), [](const auto* a, const auto* b) { return a->startFrame < b->startFrame; });
+        if (section > 2 || list.size() < 6) continue;
+        const std::size_t first = section == 0 ? 4 : 2;
+        ranges[section] = {static_cast<std::size_t>(list[first]->startFrame), static_cast<std::size_t>(list[first + 1]->endFrame)};
+    }
+    std::array<std::array<std::uint64_t, 2>, 3> alone0{};
+    bool v1 = true;
+    json mixLufs = json::object();
+    for (const double db : {0.0, 2.0, 4.0, 6.0, 8.0}) {
+        StemCapture cap(kFixtureCaptureFrames);
+        std::vector<AppliedEventRecord> applied;
+        std::uint64_t overflow = 0;
+        audio::ProbeAnalysisCapture pc{};
+        pc.stems = cap.sink();
+        pc.applied = &applied;
+        pc.appliedOverflow = &overflow;
+        pc.tramaBusGainScale = db == 0.0 ? 1.0f : static_cast<float>(std::pow(10.0, db / 20.0));
+        const auto probe = audio::runFixtureProbeV1Offline(outputDir, false, audio::FixtureInjectedFault::None, &pc);
+        const CaptureCheck c{true, probe.passed, probe.failureReason, static_cast<std::size_t>(probe.requestedSampleFrames),
+                             cap.frames(), cap.overflowFrames(), overflow};
+        if (!captureInvalidReason(c).empty()) {
+            r.reasons.push_back("offset " + std::to_string(static_cast<int>(db)) + ": invalid capture: " + captureInvalidReason(c));
+            continue;
+        }
+        if (db == 0.0 && probe.goldenPcmStatus != "PASS") r.reasons.push_back("offset 0: golden PCM " + probe.goldenPcmStatus);
+        if (probe.maxGainReductionDb > 0.0f) r.reasons.push_back("offset " + std::to_string(static_cast<int>(db)) + ": limiter reduction");
+        const std::string tag = "_t" + std::to_string(static_cast<int>(db)) + "_";
+        for (std::size_t sec = 0; sec < 3; ++sec) {
+            const auto [s0, s1] = ranges[sec];
+            if (s1 <= s0) {
+                r.reasons.push_back(std::string("section ") + kSectionNames[sec] + ": excerpt unavailable");
+                continue;
+            }
+            const auto slice = [&](std::size_t role) {
+                const auto pcm = cap.stem(role);
+                return std::vector<float>(pcm.begin() + 2 * s0, pcm.begin() + 2 * s1);
+            };
+            const std::array<std::vector<float>, 4> st{slice(0), slice(1), slice(2), slice(3)};
+            const std::string base = std::string(kSectionNames[sec]) + tag;
+            const std::vector<float> mixEx(cap.busMix().begin() + 2 * s0, cap.busMix().begin() + 2 * s1);
+            write(base + "mix.wav", mixEx);
+            const LoudnessResult lr = measureLoudnessStereo(mixEx, kFs);
+            mixLufs[std::string(kSectionNames[sec]) + "_t" + std::to_string(static_cast<int>(db))] =
+                lr.integratedLufs ? json(*lr.integratedLufs) : json(nullptr);
+            write(base + "trama.wav", st[2]);
+            for (const std::size_t removed : {std::size_t{1}, std::size_t{2}, std::size_t{3}}) {
+                std::vector<float> w(st[0].size(), 0.0f);
+                for (std::size_t i = 0; i < w.size(); ++i) {
+                    float acc = 0.0f;
+                    for (std::size_t role = 0; role < 4; ++role) {
+                        if (role != removed) acc += st[role][i];
+                    }
+                    w[i] = acc;
+                }
+                write(base + "mix_without_" + kRoleNames[removed] + ".wav", w);
+            }
+            const std::array<std::uint64_t, 2> h{fnv(st[1]), fnv(st[3])};
+            if (db == 0.0) {
+                alone0[sec] = h;
+                write(std::string(kSectionNames[sec]) + "_corpo.wav", st[1]);
+                write(std::string(kSectionNames[sec]) + "_vettore.wav", st[3]);
+            } else if (h != alone0[sec]) {
+                v1 = false;
+            }
+        }
+    }
+    r.k1WithoutTramaIdentical = v1;   // here: V1, Corpo and Vettore alone identical at every offset
+    r.status = r.reasons.empty() ? "MEASURED" : "INCONCLUSIVE";
+    r.manifestFilePath = (fs::path(outputDir) / "stem_export_v3_manifest.json").lexically_normal().string();
+    std::ofstream mf(r.manifestFilePath);
+    r.manifestWriteSuccess = mf.is_open();
+    if (r.manifestWriteSuccess) {
+        json j;
+        j["scenario"] = "stem_export_v3";
+        j["status"] = r.status;
+        j["reasons"] = r.reasons;
+        j["preregistration"] = "docs/research/M2_5_2_Trama_Level_Preregistration.md";
+        j["dir"] = "stem_export_v3";
+        j["files"] = r.files;
+        j["V1_corpo_vettore_alone_identical"] = v1;
+        j["mix_excerpt_integrated_lufs"] = mixLufs;
+        mf << j.dump(2) << "\n";
         r.manifestWriteSuccess = mf.good();
     }
     return r;

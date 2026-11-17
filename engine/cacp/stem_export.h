@@ -41,4 +41,10 @@ struct StemExportV2Result {
 };
 [[nodiscard]] StemExportV2Result runStemExportV2(const std::string& outputDir = "artifacts/cacp");
 
+// Scenario stem_export_v3 (Trama level criterion, docs/research/M2_5_2_Trama_Level_Preregistration.md): same excerpts
+// as v2, Trama bus offsets 0, +2, +4, +6, +8 dB; per offset and section the bus mix, the Trama stem and the mix without
+// each of Trama, Corpo and Vettore (sums of the other three stems); Corpo and Vettore alone, checked identical at
+// every offset (V1).
+[[nodiscard]] StemExportV2Result runStemExportV3(const std::string& outputDir = "artifacts/cacp");
+
 } // namespace cymatica::cacp
