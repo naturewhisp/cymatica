@@ -1,6 +1,6 @@
 # Proposta D-M2-32 — Anticipare struttura e sviluppo del brano
 
-- **Stato:** **proposta**, 2026-11-16, da approvare dal titolare. Non è ancora una decisione e non va applicata prima dell'approvazione. Se approvata, va registrata in ADR-0007 §11 come D-M2-32.
+- **Stato:** **approvata** dal titolare il 2026-11-17, nella variante «prima si chiude M2.5.2» (F4b e livello della Trama). Registro: ADR-0007 §11, D-M2-32; sotto-fasi in ADR-0007 §3. Testo originale della proposta invariato qui sotto.
 - **Origine:** domanda del titolare del 2026-11-16: perché far ascoltare sempre lo stesso brano, senza variazioni apparenti? Vedi `progress.md` e ADR-0007 D-M2-30.
 - **Fonti:** [ADR-0007](adr/0007-m2-5-entry-decisions.md) §3 (sotto-fasi), §4 (CP-3), §5 (P-M25-06); [dossier R-M25-7](research/M2_5_F5_Music_Director_Research.md) (contratto minimo, opzione B; definizioni operative di sviluppo; batteria d'ascolto); [dossier delle evidenze](m2_procedural_evidence.md) (`NULL_DIVERSITY`, Teorema D); [risultati di M2.5.1c](research/M2_5_1c_Ensemble_Tools_Results.md) (metrica M4 non validata).
 

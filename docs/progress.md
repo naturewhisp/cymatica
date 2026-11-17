@@ -3279,3 +3279,7 @@ Pacchetto CP-2 archiviato senza invio. ADR-0003 D-M2-06 annotato con la ricalibr
 - **Pendenza:** con bande di terzo d'ottava il mix vale **−5,4 dB/ottava** fra 99 e 4000 Hz, in linea con Pestana (circa −5). Il −8,7 del pacchetto 4 era una distorsione del metodo, dimostrata dal controllo a curva (−5,91 contro −10,36), e la lettura «mix scuro» è ritirata anche nei risultati del pacchetto 4. Resta una caduta ripida sopra i 2 kHz (−12,4 dB/ottava): ipotesi per l'ascolto cumulativo.
 - **Trama:** incremento di loudness nel mix ×2,7 a +6 dB e ×4,2 a +9 dB (0,20–0,29 sone per dB); perdita da 0,85–0,92 a 0,65–0,77 a +9 dB. Misurata anche la sezione A dove la Trama suona (perdita 0,865).
 - **Codice e build:** override offline del bus della Trama; scenario `stem_export_v2`. Release e Debug `/WX` 292/292. Non committato.
+
+**Decisione del titolare, D-M2-32 (2026-11-17): approvata** nella variante «prima si chiude M2.5.2» (ADR-0007 §11).
+- M2.5.3 e M2.5.4 diventano la fase unica **M2.5.3–4, Struttura e sviluppo**, non più condizionale, con un solo ascolto umano cumulativo a fine fase. CP-3 riformulato in ADR-0007 §4; specifica §32 invariata.
+- **Prima si chiude M2.5.2:** F4b (durata del kick) e livello della Trama, verificati in autonomia.
