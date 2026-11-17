@@ -3539,3 +3539,26 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
 - **Nuovo scenario** `lineage_measures_v1`, che calcola K3–K5 con M5r su Vettore.
 - **Registro:** voce 13.
 - **Build e suite:** Release e Debug `/WX` 303/303; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
+
+**M2.5.3–4, punto 5b, operazioni pensate per la catena: pre-registrazione** [M2_5_3_C5b_Chain_Operations_Preregistration.md](research/M2_5_3_C5b_Chain_Operations_Preregistration.md), SHA-256 (LF) `b27807047c888bb6de896b3dee0ca30510bd43e4a1c3240429f68c1c0ba986b7`.
+- **Operazioni nuove:** ornamento di passaggio e liquidazione.
+- **Tabelle di catena senza inversione.**
+- **Profilo di punteggio:** versione 2.
+- **Criteri:** L1–L8, con regola d'adozione.
+
+**M2.5.3–4, punto 5b, operazioni pensate per la catena, risultati (2026-11-17):** [M2_5_3_C5b_Chain_Operations_Results.md](research/M2_5_3_C5b_Chain_Operations_Results.md), ADR-0007 D-M2-46. **Adottato: L1–L8 superati.**
+- **Rispetto al punto 5:**
+  - alternanze A-B-A da 5 su 12 a 0 su 15;
+  - genitore più vicino della mediana da 5/12 a 14/15;
+  - gruppi di Vettore da 5 a 14;
+  - percorsi cumulativi di 3 frasi in tutte le sezioni;
+  - ripresa riconosciuta senza parità.
+- **Nel piano:**
+  - in A la figura si arricchisce frase dopo frase;
+  - B si sviluppa, si dirada e riprende moto;
+  - A′ ripercorre il cammino di A: le frasi 18–19 sono identiche alle 1–2.
+- **Rischi da sentire:** melodia fino a 8 note per battuta; vicinanza alla Trama in A′ di 30 note su 156.
+- **Registro:** voce 13 aggiornata.
+- **Profilo di punteggio:** versione 2.
+- **Build e suite:** Release e Debug `/WX` 304/304; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
+- **Prossimo:** punto 6, seed oltre i pareggi.

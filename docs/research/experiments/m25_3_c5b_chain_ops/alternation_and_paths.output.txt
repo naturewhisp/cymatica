@@ -1,0 +1,2 @@
+C5 chained phrases with n-2 in the section 12 | A-B-A alternations 5 [2, 3, 10, 14, 19] | paths of 3 new chained phrases start at []
+C5b chained phrases with n-2 in the section 15 | A-B-A alternations 0 [] | paths of 3 new chained phrases start at [1, 9, 10, 11, 12, 18]

@@ -99,10 +99,14 @@ enum class MotifTransformKind : std::uint8_t {
     Reorchestrate           = 3,
     ContourInversion        = 4,
     EuclideanRhythmVariation = 5,
-    ChromaticAlteration     = 6
+    ChromaticAlteration     = 6,
+    // Chain operations (contract point 5b, D-M2-46): change something audible, are not involutions, stay bounded
+    PassingOrnament         = 7, // param = note index: split a note, second half a passing (or upper neighbour) tone
+    Liquidation             = 8  // drop the last non-anchor note, the previous note covers its span
 };
 
-inline constexpr std::size_t kMotifTransformKindCount = 7;
+inline constexpr std::size_t kMotifTransformKindCount = 9;
+inline constexpr std::uint8_t kMaxChainMotifNotes = 8; // PassingOrnament leaves a motif with 8 notes unchanged
 
 // Pure transformation functions preserving contour invariants
 [[nodiscard]] Motif applyModalTranspose(const Motif& in, std::int16_t degreeDelta) noexcept;
@@ -121,6 +125,8 @@ inline constexpr std::size_t kMotifTransformKindCount = 7;
 [[nodiscard]] bool verifyInversionSymmetric(const Motif& original, const Motif& inverted, std::int16_t pivot) noexcept;
 // Verifies the identity-preserving invariants of `transformed` relative to `base` for the given transform
 // kind and parameter (the same parameter recorded in the decision trace). Pure; usable as an oracle.
+[[nodiscard]] Motif applyPassingOrnament(const Motif& in, std::uint8_t noteIndex) noexcept;
+[[nodiscard]] Motif applyLiquidation(const Motif& in) noexcept;
 [[nodiscard]] bool verifyMotifTransformInvariants(const Motif& base, const Motif& transformed,
                                                   MotifTransformKind kind, std::int16_t transformParam) noexcept;
 
@@ -492,17 +498,19 @@ struct PlannerScoringProfile {
     std::int32_t rhythmPenaltyPerOnset{0};           // sub-score points lost per onset/bar of deviation
 };
 
-inline constexpr PlannerScoringProfile kPlannerScoringProfileV1{
-    .versionId = 1,
-    .name = "planner-scoring-v1-experimental",
+// Version 2 (M2.5.3-4 contract point 5b, D-M2-46): adds the tension of the two chain operations; every other value
+// is the one of planner-scoring-v1-experimental (version 1, M2.4 to point 5)
+inline constexpr PlannerScoringProfile kPlannerScoringProfileV2{
+    .versionId = 2,
+    .name = "planner-scoring-v2-experimental",
     .weightVoiceLeading = 25,
     .weightTension = 25,
     .weightMotif = 25,
     .weightRhythm = 25,
     .penaltyPerSteal = 2500,
     .voiceLeadingPenaltyPerDegree = 40,
-    //                      Identity, Transpose, Octave, Reorch, Inversion, Euclid, Chromatic
-    .transformTensionMilli = {0,      150,       120,    100,    250,       200,    300},
+    //                      Identity, Transpose, Octave, Reorch, Inversion, Euclid, Chromatic, Ornament, Liquidation
+    .transformTensionMilli = {0,      150,       120,    100,    250,       200,    300,       180,      50},
     .densityBaselinePulses = 10,
     .tensionPerExtraPulseMilli = 50,
     .tensionPerRegisterDegreeMilli = 15,
@@ -652,7 +660,8 @@ private:
                             const PhraseGrid& grid,
                             const Motif& baseMotif,
                             std::vector<PhraseCandidate>& outCandidates,
-                            std::int32_t repairDyadOfCandidate = -1) const;
+                            std::int32_t repairDyadOfCandidate = -1,
+                            bool chainRecipes = false) const; // contract point 5b: base from the previous winner
 
     void buildFallbackLevel(FallbackKind level,
                             const PhrasePlan& phrase,

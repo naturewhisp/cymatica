@@ -175,15 +175,17 @@ TEST_CASE("Symbolic groups of fixture-m2-4-v1 follow the prediction registered i
     // {12-13} and A' {16} {17-19} {20, 21, 23} {22}: 12 groups.
     // M2.5.3-4 contract point 5 (D-M2-45): the derivation chain alternates the figures of A {0, 2} {1, 3}, makes every
     // phrase of B distinct, and splits A' {16} {17, 19} {18} {20} {21, 23} {22}: 18 groups.
-    const std::vector<int> predicted{0, 1, 0, 1, 2, 2, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 13, 15, 16, 17, 16};
+    // Contract point 5b (D-M2-46): the chain operations make A progress {0} {1} {2} {3} {4-6} {7}, keep every phrase of
+    // B distinct, and A' retraces the path of A: phrases 18 and 19 equal 1 and 2 in every role. 20 groups.
+    const std::vector<int> predicted{0, 1, 2, 3, 4, 4, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1, 2, 16, 17, 18, 19};
     for (std::size_t i = 0; i < ids.size(); ++i) {
         for (std::size_t j = 0; j < ids.size(); ++j) {
             INFO("phrases " << i << " and " << j);
             CHECK((ids[i] == ids[j]) == (predicted[i] == predicted[j]));
         }
     }
-    CHECK(std::set<std::string>(ids.begin(), ids.end()).size() == 18); // 8 before M2.5.3-4 F1, 9 before point 4, 12 before point 5
+    CHECK(std::set<std::string>(ids.begin(), ids.end()).size() == 20); // 8 before M2.5.3-4 F1, 9 before point 4, 12 before point 5, 18 before 5b
     // The frame rule of v2 stays readable (14 groups before point 4, 16 after)
     const auto frameIds = phraseGroupIds(p);
-    CHECK(std::set<std::string>(frameIds.begin(), frameIds.end()).size() == 19); // 14 before point 4 (D-M2-44), 16 before point 5
+    CHECK(std::set<std::string>(frameIds.begin(), frameIds.end()).size() == 20); // 14 before point 4 (D-M2-44), 16 before point 5, 19 before 5b
 }

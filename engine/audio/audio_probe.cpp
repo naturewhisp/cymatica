@@ -1382,8 +1382,8 @@ std::string PlannerProbeResult::toJson() const {
     ss << "  \"scenario_id\": \"planner_probe_v1\",\n";
     ss << "  \"build_id\": \"" << escapeJsonString(buildId) << "\",\n";
     ss << "  \"verdict\": \"" << (passed ? "PASS" : "FAIL") << "\",\n";
-    ss << "  \"scoring_profile\": \"" << kPlannerScoringProfileV1.name << "\",\n";
-    ss << "  \"scoring_profile_version\": " << kPlannerScoringProfileV1.versionId << ",\n";
+    ss << "  \"scoring_profile\": \"" << kPlannerScoringProfileV2.name << "\",\n";
+    ss << "  \"scoring_profile_version\": " << kPlannerScoringProfileV2.versionId << ",\n";
     ss << "  \"final_transport_epoch\": " << transportEpoch << ",\n";
     ss << "  \"simulation_ticks\": " << simulationTicks << ",\n";
     ss << "  \"requested_sample_frames\": " << requestedSampleFrames << ",\n";

@@ -1,0 +1,3 @@
+A range 72 81 above/eq/below 187 1 0 of 188 | near Trama 16
+B range 60 67 above/eq/below 141 24 7 of 172 | near Trama 7
+A' range 72 81 above/eq/below 155 1 0 of 156 | near Trama 30

@@ -193,6 +193,56 @@ Motif applyChromaticAlteration(const Motif& in, std::uint8_t noteIdx, std::int8_
     return out;
 }
 
+// Contract point 5b (D-M2-46): the first note at or after `noteIndex` (cyclically) lasting at least 2 steps is split
+// in two halves; the second becomes a passing tone one degree towards the next note (the first note for the last
+// one), or an upper neighbour when the two notes are less than 2 degrees apart. Unchanged when no note qualifies or
+// the motif already has kMaxChainMotifNotes notes.
+Motif applyPassingOrnament(const Motif& in, std::uint8_t noteIndex) noexcept {
+    Motif out = in;
+    out.parentMotifId = in.motifId;
+    const std::size_t n = in.noteCount;
+    if (n == 0 || n >= kMaxChainMotifNotes || n >= kMaxMotifNotes) return out;
+    std::size_t chosen = n;
+    for (std::size_t off = 0; off < n && chosen == n; ++off) {
+        const std::size_t i = (noteIndex + off) % n;
+        if (in.notes[i].durationSteps >= 2) chosen = i;
+    }
+    if (chosen == n) return out;
+    const MotifNote& cur = in.notes[chosen];
+    const MotifNote& next = in.notes[(chosen + 1) % n];
+    const int diff = next.scaleDegree - cur.scaleDegree;
+    const int passing = (diff >= 2) ? cur.scaleDegree + 1 : (diff <= -2) ? cur.scaleDegree - 1 : cur.scaleDegree + 1;
+    const auto d1 = static_cast<std::uint8_t>(cur.durationSteps / 2);
+    const auto d2 = static_cast<std::uint8_t>(cur.durationSteps - d1);
+    for (std::size_t k = n; k > chosen + 1; --k) out.notes[k] = in.notes[k - 1];
+    out.notes[chosen].durationSteps = d1;
+    out.notes[chosen + 1] = MotifNote{.scaleDegree = static_cast<std::int16_t>(passing), .chromaticOffset = 0,
+                                      .stepOffset = static_cast<std::uint8_t>(cur.stepOffset + d1), .durationSteps = d2,
+                                      .velocity = cur.velocity, .isAnchor = false};
+    out.noteCount = static_cast<std::uint8_t>(n + 1);
+    return out;
+}
+
+// Contract point 5b (D-M2-46): the last non-anchor note with index > 0 is dropped and the previous note lasts until
+// its end (liquidation). Unchanged with 2 notes or fewer, or when no note can be dropped.
+Motif applyLiquidation(const Motif& in) noexcept {
+    Motif out = in;
+    out.parentMotifId = in.motifId;
+    const std::size_t n = in.noteCount;
+    if (n <= 2) return out;
+    std::size_t j = 0;
+    for (std::size_t k = n - 1; k > 0; --k) {
+        if (!in.notes[k].isAnchor) { j = k; break; }
+    }
+    if (j == 0) return out;
+    const auto end = static_cast<std::uint32_t>(in.notes[j].stepOffset) + in.notes[j].durationSteps;
+    out.notes[j - 1].durationSteps = static_cast<std::uint8_t>(end - in.notes[j - 1].stepOffset);
+    for (std::size_t k = j; k + 1 < n; ++k) out.notes[k] = in.notes[k + 1];
+    out.notes[n - 1] = MotifNote{};
+    out.noteCount = static_cast<std::uint8_t>(n - 1);
+    return out;
+}
+
 std::uint32_t deriveTransformedMotifId(std::uint32_t baseMotifId, MotifTransformKind kind,
                                        std::uint32_t variantIndex) noexcept {
     if (kind == MotifTransformKind::Identity) return baseMotifId;
@@ -228,7 +278,8 @@ bool verifyInversionSymmetric(const Motif& original, const Motif& inverted, std:
 
 bool verifyMotifTransformInvariants(const Motif& base, const Motif& t,
                                     MotifTransformKind kind, std::int16_t param) noexcept {
-    if (t.noteCount > base.noteCount || t.noteCount > kMaxMotifNotes || t.lengthSteps != base.lengthSteps) {
+    const std::size_t growth = (kind == MotifTransformKind::PassingOrnament) ? 1 : 0;
+    if (t.noteCount > base.noteCount + growth || t.noteCount > kMaxMotifNotes || t.lengthSteps != base.lengthSteps) {
         return false;
     }
     const auto sameRhythm = [&](std::size_t i) {
@@ -295,6 +346,48 @@ bool verifyMotifTransformInvariants(const Motif& base, const Motif& t,
                 if (!(t.notes[i] == base.notes[i])) return false;
             }
             return true;
+        case MotifTransformKind::PassingOrnament: {
+            if (t.registerOctaveOffset != base.registerOctaveOffset) return false;
+            if (t.noteCount == base.noteCount) { // unchanged: no qualifying note or full motif
+                for (std::size_t i = 0; i < t.noteCount; ++i) if (!(t.notes[i] == base.notes[i])) return false;
+                return true;
+            }
+            std::size_t i = 0;
+            while (i < base.noteCount && t.notes[i] == base.notes[i]) ++i;
+            if (i >= base.noteCount) return false;
+            const MotifNote& b = base.notes[i];
+            const MotifNote& a = t.notes[i];
+            const MotifNote& p = t.notes[i + 1];
+            if (a.scaleDegree != b.scaleDegree || a.chromaticOffset != b.chromaticOffset || a.stepOffset != b.stepOffset ||
+                a.isAnchor != b.isAnchor || a.durationSteps == 0 || p.durationSteps == 0 ||
+                a.durationSteps + p.durationSteps != b.durationSteps || p.stepOffset != a.stepOffset + a.durationSteps ||
+                p.isAnchor || p.chromaticOffset != 0 || absI32(p.scaleDegree - b.scaleDegree) != 1) {
+                return false;
+            }
+            for (std::size_t k = i + 1; k < base.noteCount; ++k) if (!(t.notes[k + 1] == base.notes[k])) return false;
+            return true;
+        }
+        case MotifTransformKind::Liquidation: {
+            if (t.registerOctaveOffset != base.registerOctaveOffset) return false;
+            if (t.noteCount == base.noteCount) {
+                for (std::size_t i = 0; i < t.noteCount; ++i) if (!(t.notes[i] == base.notes[i])) return false;
+                return true;
+            }
+            if (t.noteCount + 1 != base.noteCount || t.noteCount < 2) return false;
+            std::size_t j = 0;
+            while (j < t.noteCount && t.notes[j] == base.notes[j]) ++j;
+            // t.notes[j] is the previous note extended over the dropped base.notes[j + 1]
+            if (j >= t.noteCount || j + 1 >= base.noteCount || base.notes[j + 1].isAnchor) return false;
+            const MotifNote& a = t.notes[j];
+            const MotifNote& b = base.notes[j];
+            const auto end = static_cast<std::uint32_t>(base.notes[j + 1].stepOffset) + base.notes[j + 1].durationSteps;
+            if (a.scaleDegree != b.scaleDegree || a.chromaticOffset != b.chromaticOffset || a.stepOffset != b.stepOffset ||
+                a.isAnchor != b.isAnchor || static_cast<std::uint32_t>(a.stepOffset) + a.durationSteps != end) {
+                return false;
+            }
+            for (std::size_t k = j + 1; k < t.noteCount; ++k) if (!(t.notes[k] == base.notes[k + 1])) return false;
+            return true;
+        }
     }
     return false;
 }
@@ -875,6 +968,39 @@ constexpr std::array<CandidateRecipe, kMaxCandidates> kCandidateRecipesAPrime{{
     {MotifTransformKind::Identity, 0},
 }};
 
+// Chain recipes (contract point 5b, D-M2-46): used by phrases whose base is the previous winner. No contour inversion
+// (an involution makes the chain alternate two figures); B keeps no identity, A' keeps no transposition.
+constexpr std::array<CandidateRecipe, kMaxCandidates> kChainRecipesA{{
+    {MotifTransformKind::Identity, 0},
+    {MotifTransformKind::PassingOrnament, 0},
+    {MotifTransformKind::PassingOrnament, 1},
+    {MotifTransformKind::PassingOrnament, 2},
+    {MotifTransformKind::PassingOrnament, 3},
+    {MotifTransformKind::Liquidation, 0},
+    {MotifTransformKind::ModalTranspose, 1},
+    {MotifTransformKind::ModalTranspose, -1},
+}};
+constexpr std::array<CandidateRecipe, kMaxCandidates> kChainRecipesB{{
+    {MotifTransformKind::ModalTranspose, 1},
+    {MotifTransformKind::ModalTranspose, -1},
+    {MotifTransformKind::PassingOrnament, 0},
+    {MotifTransformKind::PassingOrnament, 1},
+    {MotifTransformKind::PassingOrnament, 2},
+    {MotifTransformKind::PassingOrnament, 3},
+    {MotifTransformKind::Liquidation, 0},
+    {MotifTransformKind::ModalTranspose, 2},
+}};
+constexpr std::array<CandidateRecipe, kMaxCandidates> kChainRecipesAPrime{{
+    {MotifTransformKind::Identity, 0},
+    {MotifTransformKind::PassingOrnament, 0},
+    {MotifTransformKind::PassingOrnament, 1},
+    {MotifTransformKind::PassingOrnament, 2},
+    {MotifTransformKind::PassingOrnament, 3},
+    {MotifTransformKind::Liquidation, 0},
+    {MotifTransformKind::EuclideanRhythmVariation, 1},
+    {MotifTransformKind::Identity, 0},
+}};
+
 // Trama note length in grid steps: staccato, legato, half-bar sustain (may cross the bar line, capped at the phrase end)
 constexpr std::array<std::uint32_t, 3> kTramaSustainSteps{1, 2, 8};
 
@@ -896,6 +1022,10 @@ Motif applyRecipe(const Motif& base, const CandidateRecipe& r) noexcept {
         case MotifTransformKind::OctaveShift:
         case MotifTransformKind::Reorchestrate:
             return applyReorchestration(base, MusicRole::Vettore, static_cast<std::int8_t>(r.param));
+        case MotifTransformKind::PassingOrnament:
+            return applyPassingOrnament(base, static_cast<std::uint8_t>(r.param));
+        case MotifTransformKind::Liquidation:
+            return applyLiquidation(base);
     }
     return base;
 }
@@ -941,11 +1071,12 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
                                      const PhraseGrid& grid,
                                      const Motif& baseMotif,
                                      std::vector<PhraseCandidate>& outCandidates,
-                                     std::int32_t repairDyadOfCandidate) const {
+                                     std::int32_t repairDyadOfCandidate,
+                                     bool chainRecipes) const {
     outCandidates.clear();
     outCandidates.reserve(config_.candidateCount);
 
-    const auto& prof = kPlannerScoringProfileV1;
+    const auto& prof = kPlannerScoringProfileV2;
     const bool openPadPhrase = phrase.chords[0].openPadSustain;
     const std::int32_t pulsoMidi = degreeToMidiNote(phrase.scale, -14);
 
@@ -960,10 +1091,14 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
             ? phrase.endFrame - phrase.releaseLeadFrames
             : phrase.endFrame;
 
-    // Deterministic recipe table declared by the phrase plan (ADR-0005 D-M2-08, INC4-R04)
-    const auto& recipes = (phrase.recipeSet == CandidateRecipeSet::ContrastB) ? kCandidateRecipesB
-                        : (phrase.recipeSet == CandidateRecipeSet::RepriseAPrime) ? kCandidateRecipesAPrime
-                        : kCandidateRecipesA;
+    // Deterministic recipe table declared by the phrase plan (ADR-0005 D-M2-08, INC4-R04); a phrase whose base is the
+    // previous winner uses the chain table of its section (contract point 5b, D-M2-46)
+    const bool chained = chainRecipes;
+    const auto& recipes = (phrase.recipeSet == CandidateRecipeSet::ContrastB)
+                              ? (chained ? kChainRecipesB : kCandidateRecipesB)
+                          : (phrase.recipeSet == CandidateRecipeSet::RepriseAPrime)
+                              ? (chained ? kChainRecipesAPrime : kCandidateRecipesAPrime)
+                              : (chained ? kChainRecipesA : kCandidateRecipesA);
 
     for (std::uint32_t k = 0; k < config_.candidateCount; ++k) {
         const bool repairDyad = (repairDyadOfCandidate >= 0);
@@ -1374,7 +1509,7 @@ std::int32_t MusicPlanner::scoreCandidateFixedPoint(
     const PhraseCandidate& candidate,
     std::int32_t targetTensionMilli
 ) const noexcept {
-    const auto& prof = kPlannerScoringProfileV1;
+    const auto& prof = kPlannerScoringProfileV2;
     const auto& f = candidate.features;
 
     // 1. Voice leading continuity (0..1000)
@@ -1445,7 +1580,7 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
     trace.tieBreakDecisionId = core::deriveDecisionId(phrase.sectionIndex, phrase.phraseIndex, phrase.startBar, kTieBreakDecisionSlot, policy);
     trace.runSeed = config_.runSeed;
     trace.policyVersion = policy;
-    trace.scoringProfileVersion = kPlannerScoringProfileV1.versionId;
+    trace.scoringProfileVersion = kPlannerScoringProfileV2.versionId;
     trace.sectionIndex = phrase.sectionIndex;
     trace.phraseIndex = phrase.phraseIndex;
     trace.startBar = phrase.startBar;
@@ -1515,10 +1650,12 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
     }
     trace.baseMotifId = baseMotif.motifId;
     trace.baseMotif = baseMotif;
+    // Contract point 5b (D-M2-46): chain recipes when the base is the previous winner (not after a lineage reset)
+    const bool chainRecipes = (phrase.motifSource == MotifSource::PreviousWinner) && (trace.baseSourcePhrase >= 0);
 
     std::vector<PhraseCandidate> candidates;
     if (grid.valid()) {
-        generateCandidates(phrase, grid, baseMotif, candidates);
+        generateCandidates(phrase, grid, baseMotif, candidates, -1, chainRecipes);
     }
 
     // Hard constraints first, then cross-phrase steal simulation on a tracker copy, then integer scoring
@@ -1554,7 +1691,7 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
         // Contract point 1, variant C1c (D-M2-41): repair the Corpo dyad of the winner only, after selection. The
         // selection, the scores and the trace candidates stay those of the unrepaired generation.
         std::vector<PhraseCandidate> repaired;
-        generateCandidates(phrase, grid, baseMotif, repaired, static_cast<std::int32_t>(winner.candidateIndex));
+        generateCandidates(phrase, grid, baseMotif, repaired, static_cast<std::int32_t>(winner.candidateIndex), chainRecipes);
         // Contract point 3 (R-ROL-1, R-REG-3, D-M2-43): when Vettore is the dominant role, shift its whole phrase by
         // 0, +12 or +24 semitones, keeping the first shift that puts at least half of its notes strictly above the
         // Corpo upper voice sounding at their onset (this phrase's Corpo, or a pad held from the previous phrase)

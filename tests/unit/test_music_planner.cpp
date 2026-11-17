@@ -146,7 +146,7 @@ TEST_CASE("MusicPlanner replay determinism: canonical equality of intents, NoteO
     const auto& t0 = a.traces[0];
     CHECK(t0.runSeed == 0xCAFEBABEULL);
     CHECK(t0.policyVersion == kPlannerPolicyVersion.toU32());
-    CHECK(t0.scoringProfileVersion == kPlannerScoringProfileV1.versionId);
+    CHECK(t0.scoringProfileVersion == kPlannerScoringProfileV2.versionId);
     CHECK(t0.candidatesGenerated == 6);
     CHECK(t0.decisionId == deriveDecisionId(0, 0, 0, kPhraseDecisionSlot, kPlannerPolicyVersion.toU32()));
     CHECK(t0.tieBreakDecisionId == deriveDecisionId(0, 0, 0, kTieBreakDecisionSlot, kPlannerPolicyVersion.toU32()));
@@ -435,8 +435,8 @@ TEST_CASE("Simulated voice tracking and voice stealing simulation", "[music_plan
 
 TEST_CASE("Integer score uses the versioned profile and simulated steals penalize candidates", "[music_planner][scoring]") {
     const PlannedRun run = planProbeForm(1337ULL);
-    const auto& prof = kPlannerScoringProfileV1;
-    CHECK(prof.versionId == 1);
+    const auto& prof = kPlannerScoringProfileV2;
+    CHECK(prof.versionId == 2); // 1 before M2.5.3-4 contract point 5b (two chain operations, D-M2-46)
     CHECK(prof.weightVoiceLeading + prof.weightTension + prof.weightMotif + prof.weightRhythm == 100);
 
     bool anySteal = false;
@@ -701,7 +701,7 @@ TEST_CASE("Fail-closed fallback ladder L1 -> L2 -> L3 with validated levels", "[
 
 TEST_CASE("Golden regression: canonical event list + decision traces of the A->B probe form", "[music_planner][golden]") {
     // REGRESSION GOLDEN, NOT AN ORACLE. The constant below was produced by this implementation
-    // (planner policy DEFAULT_POLICY_VERSION_ID, kPlannerScoringProfileV1, seed 1337, probe form A->B built
+    // (planner policy DEFAULT_POLICY_VERSION_ID, kPlannerScoringProfileV2, seed 1337, probe form A->B built
     // from MusicClock) by hashing the canonical little-endian serialization above with FNV-1a 64 (floats by
     // IEEE-754 bit pattern). It may only change together with a reviewed policy-version / scoring-profile bump.
     // Pitches come from std::pow, so the value is only guaranteed for the pinned MSVC toolchain/CRT (ADR-0001).
@@ -713,8 +713,9 @@ TEST_CASE("Golden regression: canonical event list + decision traces of the A->B
     // -> 0xa3ca0dbd6a6f9d0e (M2.5.3-4 C1c: canonical format 2, Corpo dyad repair of the winner; D-M2-41)
     // -> 0x078e7ac77d936659 (M2.5.3-4 contract point 2: canonical format 3, Vettore reads the chord; D-M2-42)
     // -> 0xb13b4a4e01a8fa6d (M2.5.3-4 contract point 3: canonical format 4, dominant register; D-M2-43)
-    // -> 0x62600d91a28e15e3 (M2.5.3-4 contract point 5: canonical format 5, same events; D-M2-45).
-    constexpr std::uint64_t kGoldenHash = 0x62600d91a28e15e3ULL;
+    // -> 0x62600d91a28e15e3 (M2.5.3-4 contract point 5: canonical format 5, same events; D-M2-45)
+    // -> 0x6497ef98eda7ac5f (M2.5.3-4 contract point 5b: scoring profile version 2 in the trace, same events; D-M2-46).
+    constexpr std::uint64_t kGoldenHash = 0x6497ef98eda7ac5fULL;
     const PlannedRun run = planProbeForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical hash = 0x" << std::hex << h);
@@ -1038,13 +1039,16 @@ TEST_CASE("Fixture M2.4 V1: planned content honours role masks, recipes, pad lea
     }
     CHECK(full == 13);
 
-    // Recipes: B only ModalTranspose / ContourInversion; A' never transposes (anchor-preserving reprise)
+    // Recipes: B only ModalTranspose / ContourInversion, plus the chain operations in its chained phrases (contract
+    // point 5b, D-M2-46); A' never transposes (anchor-preserving reprise)
     for (std::size_t i = 8; i < 24; ++i) {
         const auto& t = run.traces[i];
+        const bool chained = t.baseSourcePhrase >= 0 && t.baseSourcePhrase + 1 == static_cast<std::int32_t>(i);
         for (std::size_t c = 0; c < t.candidatesGenerated; ++c) {
             const auto k = t.candidates[c].transformKind;
             if (i < 16) {
-                CHECK((k == MotifTransformKind::ModalTranspose || k == MotifTransformKind::ContourInversion));
+                CHECK((k == MotifTransformKind::ModalTranspose || k == MotifTransformKind::ContourInversion ||
+                       (chained && (k == MotifTransformKind::PassingOrnament || k == MotifTransformKind::Liquidation))));
             } else {
                 CHECK(k != MotifTransformKind::ModalTranspose);
             }
@@ -1117,7 +1121,8 @@ TEST_CASE("Golden regression: canonical plan of fixture-m2-4-v1", "[music_planne
     // M2.5.3-4 contract point 3: -> 0x17aade206b9ac268 (canonical format 4, dominant register; D-M2-43)
     // M2.5.3-4 contract point 4: -> 0xeb6a2fd17e8f0722 (role masks fixture-orchestration-v1; D-M2-44)
     // M2.5.3-4 contract point 5: -> 0xf2ce734ee88095a7 (canonical format 5, derivation chain; D-M2-45)
-    constexpr std::uint64_t kGoldenFixtureHash = 0xf2ce734ee88095a7ULL;
+    // M2.5.3-4 contract point 5b: -> 0x39017615657f1fbd (chain operations; D-M2-46)
+    constexpr std::uint64_t kGoldenFixtureHash = 0x39017615657f1fbdULL;
     const PlannedRun run = planFixtureForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical fixture hash = 0x" << std::hex << h);
@@ -1313,8 +1318,9 @@ TEST_CASE("F1: declared metric anchor of fixture-m2-4-v1 (R-MET-1/2, D-M2-40)", 
     // P3: winners as before F1 (commit 7287aed) and no score tie among valid candidates at the top
     // M2.5.3-4 contract point 4 (D-M2-44): the declared role masks of fixture-orchestration-v1 change the winner of
     // phrases 10-11, 17-19 and 22 (accepted by the pre-registered rule E6); before: 6 in every phrase from 8 on.
-    // M2.5.3-4 contract point 5 (D-M2-45): the derivation chain brings phrase 10 back to 6
-    const std::array<std::uint64_t, 24> winnersBefore{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 6, 5, 6, 6, 6, 6, 6, 5, 5, 5, 6, 6, 1, 6};
+    // M2.5.3-4 contract point 5 (D-M2-45): the derivation chain brings phrase 10 back to 6.
+    // Contract point 5b (D-M2-46): the chain recipes change the winner of most chained phrases
+    const std::array<std::uint64_t, 24> winnersBefore{2, 4, 4, 4, 0, 0, 0, 0, 6, 5, 4, 4, 6, 6, 5, 6, 6, 5, 4, 4, 5, 0, 3, 6};
     for (std::size_t i = 0; i < 24; ++i) {
         const auto& t = run.traces[i];
         INFO("phrase " << i);
@@ -1358,8 +1364,9 @@ TEST_CASE("Contract point 1, C1c: Corpo dyad repaired after selection (R-HAR-5, 
     // R1: selection of F1 (commit 97d07e7): same winners, no tie at the top
     // M2.5.3-4 contract point 4 (D-M2-44): the declared role masks of fixture-orchestration-v1 change the winner of
     // phrases 10-11, 17-19 and 22 (accepted by the pre-registered rule E6); before: 6 in every phrase from 8 on.
-    // M2.5.3-4 contract point 5 (D-M2-45): the derivation chain brings phrase 10 back to 6
-    const std::array<std::uint64_t, 24> winnersF1{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 6, 5, 6, 6, 6, 6, 6, 5, 5, 5, 6, 6, 1, 6};
+    // M2.5.3-4 contract point 5 (D-M2-45): the derivation chain brings phrase 10 back to 6.
+    // Contract point 5b (D-M2-46): the chain recipes change the winner of most chained phrases
+    const std::array<std::uint64_t, 24> winnersF1{2, 4, 4, 4, 0, 0, 0, 0, 6, 5, 4, 4, 6, 6, 5, 6, 6, 5, 4, 4, 5, 0, 3, 6};
     for (std::size_t i = 0; i < 24; ++i) {
         const auto& t = run.traces[i];
         INFO("phrase " << i);
@@ -1369,7 +1376,8 @@ TEST_CASE("Contract point 1, C1c: Corpo dyad repaired after selection (R-HAR-5, 
         // R4: two swaps (G, then the A minor bar that voice leading brings to E) in A and A', none in B
         // Point 4 (D-M2-44): with the winners of 17-19 and 22 the A minor bar needs no second swap
         // Point 5 (D-M2-45): the chained B figure of phrases 9, 11 and 13 needs the dyad repair too
-        constexpr std::array<std::uint32_t, 24> kDyadRepairs{2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 0, 1, 0, 2, 0, 0, 2, 1, 1, 1, 2, 2, 1, 2};
+        // Point 5b (D-M2-46): the chained motifs of B and A' change the repairs
+        constexpr std::array<std::uint32_t, 24> kDyadRepairs{2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 1, 1, 0, 0, 2, 0, 2, 1, 2, 2, 1, 2, 1, 2};
         CHECK(t.corpoDyadRepairedBars == kDyadRepairs[i]);
     }
 
@@ -1418,9 +1426,9 @@ TEST_CASE("Contract point 2: Vettore reads the chord after selection, with ablat
     }
     // V4: 8 in A, 24 in B, 8 in A'
     CHECK(perSection[0] == 8);
-    CHECK(perSection[1] == 24); // 24 before point 4 (D-M2-44), 22 with point 4, 24 again with point 5 (D-M2-45)
+    CHECK(perSection[1] == 31); // 24 before point 4 (D-M2-44), 22 with point 4, 24 with point 5, 31 with 5b (D-M2-46)
     CHECK(perSection[2] == 8);
-    CHECK(adapted == 40);       // 40 before point 4, 38 with point 4, 40 with point 5
+    CHECK(adapted == 47);       // 40 before point 4, 38 with point 4, 40 with point 5, 47 with 5b
 
     // V5: only Vettore pitches differ; onsets, durations, roles and the other roles are identical
     std::uint32_t changedPitches = 0;
@@ -1447,15 +1455,17 @@ TEST_CASE("Contract point 3: the dominant Vettore sits above the Corpo upper voi
     REQUIRE(run.traces.size() == 24);
     // M2.5.3-4 contract point 4 (D-M2-44): the declared role masks of fixture-orchestration-v1 change the winner of
     // phrases 10-11, 17-19 and 22 (accepted by the pre-registered rule E6); before: 6 in every phrase from 8 on.
-    // M2.5.3-4 contract point 5 (D-M2-45): the derivation chain brings phrase 10 back to 6
-    const std::array<std::uint64_t, 24> winnersF1{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 6, 5, 6, 6, 6, 6, 6, 5, 5, 5, 6, 6, 1, 6};
+    // M2.5.3-4 contract point 5 (D-M2-45): the derivation chain brings phrase 10 back to 6.
+    // Contract point 5b (D-M2-46): the chain recipes change the winner of most chained phrases
+    const std::array<std::uint64_t, 24> winnersF1{2, 4, 4, 4, 0, 0, 0, 0, 6, 5, 4, 4, 6, 6, 5, 6, 6, 5, 4, 4, 5, 0, 3, 6};
     for (std::size_t i = 0; i < 24; ++i) {
         const auto& t = run.traces[i];
         INFO("phrase " << i);
         // D1: +12 in A, 0 in B, +24 in A'; the selection is unchanged
         // D1, updated by point 4 (D-M2-44): the new winners of 10-11, 17-19 and 22 need +12
         // Point 5 (D-M2-45): phrase 10 is back to the winner 6, which needs no shift
-        constexpr std::array<int, 24> kShift{12, 12, 12, 12, 12, 12, 12, 12, 0, 0, 0, 12, 0, 0, 0, 0, 24, 12, 12, 12, 24, 24, 12, 24};
+        // Point 5b (D-M2-46): the chained motifs keep the register of their parents
+        constexpr std::array<int, 24> kShift{12, 12, 12, 12, 12, 12, 12, 12, 0, 0, 0, 0, 0, 0, 0, 0, 24, 12, 12, 12, 12, 12, 12, 24};
         CHECK(t.vettoreRegisterShift == kShift[i]);
         CHECK_FALSE(t.vettoreRegisterUnmet);
         CHECK((t.winningCandidateId & 0xFFULL) == winnersF1[i]);
@@ -1522,9 +1532,54 @@ TEST_CASE("Contract point 5: derivation chain with bounds and reprise, fixture-l
         if (t.baseSourcePhrase >= 0) {
             CHECK(t.baseMotif == run.traces[static_cast<std::size_t>(t.baseSourcePhrase)].winningMotif);
         }
-        CHECK(t.lineageReset == (i == 12 || i == 17 || i == 21 || i == 22));
+        // Resets: 12, 17, 21, 22 with point 5; only 17 with the chain operations of 5b (D-M2-46)
+        CHECK(t.lineageReset == (i == 17));
     }
     // The section motif of A opens the piece; phrase 16 starts from the winner of phrase 0
     CHECK(run.traces[0].baseMotif == sectionA);
     CHECK(run.traces[16].baseMotif == run.traces[0].winningMotif);
+}
+
+TEST_CASE("Contract point 5b: chain operations are bounded and verifiable (D-M2-46)", "[music_planner][chain_ops]") {
+    const Motif base = MusicPlanner::makeDorianBaseMotif(); // D F A G, four quarter notes
+    // PassingOrnament on the last note: G splits, the passing tone moves one degree towards D (the next bar's first note)
+    const Motif o = applyPassingOrnament(base, 3);
+    REQUIRE(o.noteCount == 5);
+    CHECK(o.notes[3].scaleDegree == 3);
+    CHECK(o.notes[3].durationSteps == 2);
+    CHECK(o.notes[4].stepOffset == 14);
+    CHECK(o.notes[4].durationSteps == 2);
+    CHECK(o.notes[4].scaleDegree == 2);
+    CHECK_FALSE(o.notes[4].isAnchor);
+    CHECK(o.parentMotifId == base.motifId);
+    CHECK(verifyMotifTransformInvariants(base, o, MotifTransformKind::PassingOrnament, 3));
+    // Repeated ornaments stop at kMaxChainMotifNotes notes and at 1-step notes
+    Motif chain = base;
+    for (int i = 0; i < 12; ++i) chain = applyPassingOrnament(chain, 3);
+    CHECK(chain.noteCount <= kMaxChainMotifNotes);
+    for (std::size_t i = 0; i < chain.noteCount; ++i) CHECK(chain.notes[i].durationSteps >= 1);
+    const Motif full = applyPassingOrnament(chain, 0);
+    CHECK(full.noteCount == chain.noteCount); // no qualifying note or full motif: unchanged
+    CHECK(verifyMotifTransformInvariants(chain, full, MotifTransformKind::PassingOrnament, 0));
+    // Liquidation drops the last non-anchor note (G) and lets A cover its span
+    const Motif l = applyLiquidation(base);
+    REQUIRE(l.noteCount == 3);
+    CHECK(l.notes[2].scaleDegree == 4);
+    CHECK(l.notes[2].durationSteps == 8);
+    CHECK(verifyMotifTransformInvariants(base, l, MotifTransformKind::Liquidation, 0));
+    // Two notes or fewer: unchanged, still valid
+    const Motif l2 = applyLiquidation(applyLiquidation(l));
+    CHECK(l2.noteCount == 2);
+    CHECK(verifyMotifTransformInvariants(l2, applyLiquidation(l2), MotifTransformKind::Liquidation, 0));
+    // Tampered results are rejected
+    Motif bad = o;
+    bad.notes[4].scaleDegree = 5;                       // not a step away
+    CHECK_FALSE(verifyMotifTransformInvariants(base, bad, MotifTransformKind::PassingOrnament, 3));
+    bad = o;
+    bad.notes[4].durationSteps = 3;                     // spans do not add up
+    CHECK_FALSE(verifyMotifTransformInvariants(base, bad, MotifTransformKind::PassingOrnament, 3));
+    bad = l;
+    bad.notes[2].durationSteps = 4;                     // gap left by the dropped note
+    CHECK_FALSE(verifyMotifTransformInvariants(base, bad, MotifTransformKind::Liquidation, 0));
+    CHECK_FALSE(verifyMotifTransformInvariants(base, o, MotifTransformKind::Liquidation, 0));
 }
