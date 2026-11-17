@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <map>
 #include <sstream>
 
@@ -286,6 +287,7 @@ void finalizeAcao02Status(Acao02Result& r) {
         reason("bus-mix reconstruction " + r.reconstructionStatus + ", " + std::to_string(r.reconstructionMismatches) +
                " mismatched samples");
     }
+    for (const auto& why : r.labeledCalibrationFailures) reason("labelled calibration " + why);
     if (!r.profileFrozen) {
         reason("profile not frozen: verification not run");
     } else if (!r.calibratedEqualsFrozen) {
@@ -330,6 +332,68 @@ void finalizeAcao02Status(Acao02Result& r) {
     }
 }
 
+LabeledCalibrationPoint labeledCalibrationPoint(std::span<const double> attacksS, std::span<const double> releasesS,
+                                                std::span<const double> estimatesS, double delta, OffsetWindow window,
+                                                std::vector<double>* keptCorrectedOut) {
+    LabeledCalibrationPoint p;
+    p.delta = delta;
+    p.detections = estimatesS.size();
+    std::vector<double> attacks(attacksS.begin(), attacksS.end()), releases(releasesS.begin(), releasesS.end());
+    std::sort(attacks.begin(), attacks.end());
+    std::sort(releases.begin(), releases.end());
+    const auto nearest = [](const std::vector<double>& v, double t) {
+        double best = std::numeric_limits<double>::infinity(), at = 0.0;
+        const auto it = std::lower_bound(v.begin(), v.end(), t);
+        if (it != v.end() && std::abs(*it - t) < best) { best = std::abs(*it - t); at = *it; }
+        if (it != v.begin() && std::abs(*(it - 1) - t) < best) { best = std::abs(*(it - 1) - t); at = *(it - 1); }
+        return std::pair<double, double>{best, at};
+    };
+    const double centre = 0.5 * (window.loS + window.hiS);
+    std::vector<double> attackErrors, keptRaw;
+    for (const double e : estimatesS) {
+        const double t = e - centre;
+        const auto [da, a] = nearest(attacks, t);
+        const auto [dr, rl] = nearest(releases, t);
+        (void)rl;
+        if (da <= kLabelToleranceS && da <= dr) {
+            ++p.attackLabelled;
+            attackErrors.push_back(e - a);
+            keptRaw.push_back(e);
+        } else if (dr <= kLabelToleranceS) {
+            ++p.releaseLabelled;
+        } else {
+            ++p.falsePositives;
+            keptRaw.push_back(e);
+        }
+    }
+    if (attackErrors.empty()) {
+        p.offsetS = std::numeric_limits<double>::quiet_NaN();
+        return p;
+    }
+    std::sort(attackErrors.begin(), attackErrors.end());
+    const std::size_t n = attackErrors.size();
+    p.offsetS = (n % 2 == 1) ? attackErrors[n / 2] : 0.5 * (attackErrors[n / 2 - 1] + attackErrors[n / 2]);
+    p.admissible = p.offsetS >= window.loS && p.offsetS <= window.hiS;
+    std::vector<double> corrected = keptRaw;
+    for (auto& t : corrected) t -= p.offsetS;
+    const OnsetScore sc = matchOnsetsMaxCardinality(attacks, corrected, 0.050);
+    if (keptCorrectedOut != nullptr) *keptCorrectedOut = corrected;
+    p.matches = sc.matches;
+    p.attackRecall = attacks.empty() ? 0.0 : static_cast<double>(sc.matches) / static_cast<double>(attacks.size());
+    p.precision = corrected.empty() ? 0.0 : static_cast<double>(sc.matches) / static_cast<double>(corrected.size());
+    p.f = (p.precision + p.attackRecall) > 0.0 ? 2.0 * p.precision * p.attackRecall / (p.precision + p.attackRecall) : 0.0;
+    return p;
+}
+
+std::optional<LabeledCalibrationPoint> chooseLabeledPoint(std::span<const LabeledCalibrationPoint> points) {
+    std::optional<LabeledCalibrationPoint> best;
+    for (const auto& p : points) {
+        if (!p.admissible) continue;
+        if (!best || p.f > best->f + 1e-9 || (std::abs(p.f - best->f) <= 1e-9 && p.delta > best->delta)) best = p;
+    }
+    return best;
+}
+
 std::vector<SynthNote> syntheticNotesSetA(std::size_t role) { return syntheticSetA(role); }
 std::vector<SynthNote> syntheticNotesSetB(std::size_t role) { return syntheticSetB(role); }
 
@@ -372,6 +436,7 @@ Acao02Result runAcao02V1(const std::string& outputDir, bool writeFiles) {
 
     // ---- b. calibration on fixture-m2-4-v1, seed 1337 ----
     std::vector<AppliedEventRecord> applied1337;
+    std::array<std::vector<std::vector<double>>, kRoleCount> oracleLists{};   // raw detections per delta (oracle export)
     {
         cap.reset();
         std::uint64_t appliedOverflow = 0;
@@ -429,7 +494,44 @@ Acao02Result runAcao02V1(const std::string& outputDir, bool writeFiles) {
                     haveBest = true;
                 }
             }
-            r.calibrated[role] = RoleOnsetProfile{best.delta, best.offsetS};
+            r.previousProcedureChoice[role] = RoleOnsetProfile{best.delta, best.offsetS};
+            // Package 1: labelled events and bounded offset (the choice of record)
+            const double intrinsicS = r.intrinsic[role].errMedianMs / 1000.0;
+            r.offsetWindow[role] = OffsetWindow{intrinsicS - kLabeledOffsetMarginS, intrinsicS + kLabeledOffsetMarginS};
+            const auto releases = roleReleaseTimesS(applied1337, static_cast<audio::MusicRole>(role), kFs);
+            for (const double delta : kCalibrationDeltas) {
+                OnsetParams p{};
+                p.delta = delta;
+                const OnsetFrames fr = pickOnsetFrames(nov.values, p, kDescriptorsV1Stft, kFs);
+                std::vector<double> est;
+                for (const auto f : fr.frames) est.push_back(frameCentreSeconds(f, kDescriptorsV1Stft, kFs));
+                r.labeledGrid[role].push_back(labeledCalibrationPoint(refs, releases, est, delta, r.offsetWindow[role]));
+                if (writeFiles) oracleLists[role].push_back(std::move(est));
+            }
+            if (const auto chosen = chooseLabeledPoint(r.labeledGrid[role])) {
+                r.calibrated[role] = RoleOnsetProfile{chosen->delta, chosen->offsetS};
+                if (writeFiles) {
+                    // V5 oracle export: attacks and the kept, offset-corrected detections at the chosen delta
+                    for (std::size_t i = 0; i < kCalibrationDeltas.size(); ++i) {
+                        if (kCalibrationDeltas[i] != chosen->delta) continue;
+                        std::vector<double> kept;
+                        (void)labeledCalibrationPoint(refs, releases, oracleLists[role][i], chosen->delta, r.offsetWindow[role], &kept);
+                        namespace fs = std::filesystem;
+                        std::error_code ec;
+                        const fs::path dir = fs::path(outputDir) / "acao02_v1_oracle";
+                        fs::create_directories(dir, ec);
+                        std::ofstream o(dir / (std::string(kRoleNames[role]) + ".csv"));
+                        o << std::setprecision(17) << "kind,time_s\n";
+                        for (const double t : refs) o << "reference," << t << "\n";
+                        for (const double t : kept) o << "estimate," << t << "\n";
+                        o << "# matches," << chosen->matches << "\n";
+                    }
+                }
+            } else {
+                r.calibrated[role] = r.previousProcedureChoice[role];
+                r.labeledCalibrationFailures.push_back(std::string(kRoleNames[role]) +
+                                                       ": no admissible labelled calibration point (offset window)");
+            }
         }
         r.calibratedSha256 = stemProfileSha256(r.calibrated);
         r.calibrationScores = evaluateCapture(cap, applied1337, r.calibrated);
@@ -593,6 +695,21 @@ std::string Acao02Result::toJson() const {
               << ", \"f\": " << num(g.f) << "}" << (i + 1 < grid[r].size() ? ", " : "");
         }
         s << "]" << (r + 1 < kRoleCount ? ",\n" : "\n");
+    }
+    s << "    },\n    \"labelled_calibration\": {\n";
+    for (std::size_t r = 0; r < kRoleCount; ++r) {
+        s << "      \"" << kRoleNames[r] << "\": {\"window_ms\": [" << num(offsetWindow[r].loS * 1000.0) << ", "
+          << num(offsetWindow[r].hiS * 1000.0) << "], \"previous_procedure_choice\": {\"delta\": " << num(previousProcedureChoice[r].delta)
+          << ", \"offset_ms\": " << num(previousProcedureChoice[r].offsetS * 1000.0) << "}, \"grid\": [";
+        for (std::size_t i = 0; i < labeledGrid[r].size(); ++i) {
+            const auto& g = labeledGrid[r][i];
+            s << "{\"delta\": " << num(g.delta) << ", \"offset_ms\": " << (std::isfinite(g.offsetS) ? num(g.offsetS * 1000.0) : std::string("null"))
+              << ", \"admissible\": " << (g.admissible ? "true" : "false") << ", \"detections\": " << g.detections
+              << ", \"attack\": " << g.attackLabelled << ", \"release\": " << g.releaseLabelled << ", \"false_positive\": " << g.falsePositives
+              << ", \"matches\": " << g.matches << ", \"attack_recall\": " << num(g.attackRecall) << ", \"p\": " << num(g.precision)
+              << ", \"f\": " << num(g.f) << "}" << (i + 1 < labeledGrid[r].size() ? ", " : "");
+        }
+        s << "]}" << (r + 1 < kRoleCount ? ",\n" : "\n");
     }
     s << "    },\n    \"calibrated_profile\": {";
     for (std::size_t r = 0; r < kRoleCount; ++r) {

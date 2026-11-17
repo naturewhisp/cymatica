@@ -78,3 +78,7 @@ artifacts/
 # NotebookLM bundle & export script
 scripts/export_notebook_bundle.ps1
 *notebook_bundle*
+
+# Offline oracle environment (tools/pyenv): local venv and downloaded wheels, never committed
+tools/pyenv/.venv/
+tools/pyenv/wheels/

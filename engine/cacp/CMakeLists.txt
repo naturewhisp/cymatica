@@ -6,6 +6,8 @@ add_library(cymatica_cacp STATIC
     check_selftest.cpp
     check_selftest.h
     analysis_status.h
+    discontinuity.cpp
+    discontinuity.h
     diversity.cpp
     diversity.h
     ensemble_tools.cpp

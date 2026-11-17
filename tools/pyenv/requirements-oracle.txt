@@ -1,0 +1,6 @@
+# Oracle environment for offline measurement checks (approved 2026-11-17). Python 3.12.10.
+# Install: .venv/Scripts/python.exe -m pip install --no-index --find-links wheels --require-hashes -r requirements-oracle.txt
+decorator==5.3.1 --hash=sha256:f47fe6fdbd2edd623ecfe36875d37aba411624e2670dd395dddae1358689bb3c
+mir-eval==0.8.2 --hash=sha256:114cda33d8e17408c170598e0b36ed0d71ff4a2fee8eaf9e165b58ecf1c87170
+numpy==2.2.6 --hash=sha256:c1f9540be57940698ed329904db803cf7a402f3fc200bfe599334c9bd84a40b2
+scipy==1.15.3 --hash=sha256:52092bc0472cfd17df49ff17e70624345efece4e1a12b23783a1ac59a1b728ed

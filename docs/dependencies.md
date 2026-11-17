@@ -75,6 +75,7 @@ Non sono dipendenze del prodotto: nessun target CMake li usa, la CI non li esegu
 |---|---|---|---|
 | Python 3 (libreria standard) | Script di misura, riassunto delle serie su device e loro controlli negativi | `docs/research/experiments/` | Versione non fissata; l'ultima esecuzione registrata è con Python 3.14 (2026-11-09) |
 | numpy | Analisi del loopback, simulazioni e `expert_analysis.py` | `docs/research/experiments/` | Versione non fissata (2.4 il 2026-11-09); licenza BSD-3-Clause; installazione a cura di chi esegue lo script |
+| Ambiente oracolo `tools/pyenv` (Python 3.12.10; numpy 2.2.6, scipy 1.15.3, mir_eval 0.8.2, decorator 5.3.1) | Oracoli indipendenti dei pacchetti di misura (V5 del pacchetto 1: mir_eval sugli onset) | `tools/pyenv/` (venv e wheel ignorati da git) | **Versioni fissate con hash** in `tools/pyenv/requirements-oracle.txt`; wheel scaricati da PyPI il 2026-11-17 in una cartella isolata, installati senza rete con `--require-hashes`. Licenze: numpy BSD-3-Clause, scipy BSD-3-Clause, mir_eval MIT, decorator BSD-2-Clause. Approvato dal titolare il 2026-11-17 (dossier delle lacune di misura) |
 | `glitchcal.cpp` | Programma di prova in WASAPI puro (R-M25-8) | `docs/research/experiments/m25_glitch_calibration/` | Non compilato dal progetto; usa solo API di Windows |
 
 Un risultato di questi strumenti che diventi un gate richiede prima versioni fissate e una decisione registrata (AGENTS §2).

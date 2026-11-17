@@ -4,6 +4,9 @@
 #include "stem_analysis.h"
 
 #include <array>
+#include <optional>
+#include <span>
+#include <vector>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -59,6 +62,34 @@ struct CalibrationGridPoint {
     std::size_t pairs{0};
     double precision{0.0}, recall{0.0}, f{0.0};
 };
+
+// Measurement package 1 (docs/research/M2_5_Pkg1_Labeled_Onset_Calibration_Preregistration.md): calibration with
+// labelled events (O1: attacks from Applied NoteOns, releases from Applied NoteOffs) and a bounded offset (O2:
+// intrinsic latency of step a +- 15 ms). A point outside the window is never admissible.
+inline constexpr double kLabeledOffsetMarginS = 0.015;
+inline constexpr double kLabelToleranceS = 0.050;
+struct OffsetWindow {
+    double loS{0.0};
+    double hiS{0.0};
+};
+struct LabeledCalibrationPoint {
+    double delta{0.0};
+    double offsetS{0.0};                 // median signed error of the attack-labelled detections (NaN when none)
+    bool admissible{false};              // offset inside the window and at least one attack-labelled detection
+    std::size_t detections{0};
+    std::size_t attackLabelled{0};
+    std::size_t releaseLabelled{0};
+    std::size_t falsePositives{0};
+    std::size_t matches{0};              // one-to-one attack matches at 50 ms after the offset correction
+    double attackRecall{0.0};
+    double precision{0.0};               // matches / (attack-labelled + false positives): releases excluded
+    double f{0.0};
+};
+[[nodiscard]] LabeledCalibrationPoint labeledCalibrationPoint(std::span<const double> attacksS, std::span<const double> releasesS,
+                                                              std::span<const double> estimatesS, double delta, OffsetWindow window,
+                                                              std::vector<double>* keptCorrectedOut = nullptr);
+// Admissible point with the highest F (ties: larger delta); nullopt when no point is admissible
+[[nodiscard]] std::optional<LabeledCalibrationPoint> chooseLabeledPoint(std::span<const LabeledCalibrationPoint> points);
 
 struct RoleSetEvaluation {
     std::size_t references{0};
@@ -122,7 +153,11 @@ struct Acao02Result {
     bool fixturePassed{false};
     CaptureCheck calibrationCapture{};
     bool calibrationAnalysisOk{false};
-    std::array<std::vector<CalibrationGridPoint>, kRoleCount> grid{};
+    std::array<std::vector<CalibrationGridPoint>, kRoleCount> grid{};     // previous procedure, diagnostic only
+    std::array<RoleOnsetProfile, kRoleCount> previousProcedureChoice{};  // previous procedure's choice (diagnostic)
+    std::array<OffsetWindow, kRoleCount> offsetWindow{};                 // package 1, O2
+    std::array<std::vector<LabeledCalibrationPoint>, kRoleCount> labeledGrid{};
+    std::vector<std::string> labeledCalibrationFailures{};              // roles without an admissible point
     std::array<RoleOnsetProfile, kRoleCount> calibrated{};
     std::string calibratedSha256{};
     std::array<RoleSetEvaluation, kRoleCount> calibrationScores{};

@@ -3211,3 +3211,28 @@ Pacchetto CP-2 archiviato senza invio. ADR-0003 D-M2-06 annotato con la ricalibr
   - IDyOM con SBCL.
 - **Non approvato:** acquisto della norma ISO 532-1. I valori di riferimento della loudness specifica si confrontano con l'oracolo MoSQITo, con il limite dichiarato che la sua validazione non è documentata.
 - **Regole che restano:** ogni dipendenza si registra in `docs/dependencies.md` con versione, hash, licenza e provenienza prima dell'uso (AGENTS §2); niente installazioni globali; download fissati in cartelle isolate; ogni pacchetto con una sua pre-registrazione; nessuna misura diventa un gate senza soglia ratificata.
+
+**Pacchetto di misura 1, calibrazione degli onset etichettata e vincolata: pre-registrazione** [M2_5_Pkg1_Labeled_Onset_Calibration_Preregistration.md](research/M2_5_Pkg1_Labeled_Onset_Calibration_Preregistration.md), SHA-256 (LF) `3c9b3e4ea03bf70efc4ebe9f8cb76fa01c7265e675dd4297b987d2ef5723a9a5`. Prove V1–V5 (V5 con l'oracolo mir_eval) e predizioni Q1–Q5.
+
+**Pacchetto di misura 1, risultati (2026-11-17):** [M2_5_Pkg1_Labeled_Onset_Calibration_Results.md](research/M2_5_Pkg1_Labeled_Onset_Calibration_Results.md).
+- **Che cosa cambia:** la calibrazione di `acao02_v1` usa eventi etichettati (attacchi e rilasci) e un offset vincolato a ±15 ms dalla latenza intrinseca.
+- **Esiti:** V1–V5 superate, con l'oracolo mir_eval concorde su tutti i ruoli; Q1–Q5 confermate.
+  - Trama: δ 0,15, offset 10,9 ms; il punto a 95 ms non è più ammissibile.
+  - `acao02_v1` resta `INCONCLUSIVE` solo per il profilo congelato, da rifare in M2.5.5. Correzione del dossier: il pacchetto non lo «sblocca» da solo.
+- **Ambiente oracolo** `tools/pyenv` con versioni e hash fissati, registrato in `docs/dependencies.md`.
+- **Release:** 277/277. Non committato.
+
+**Pacchetto di misura 2, rilevatore di discontinuità: pre-registrazione** [M2_5_Pkg2_Discontinuity_Detector_Preregistration.md](research/M2_5_Pkg2_Discontinuity_Detector_Preregistration.md), SHA-256 (LF) `92b1ac5203cab7cb0996d23e8a7bd243fdfc56bb1f7eaac2490c00369dd0c7ad`. Predittore lineare di ordine 16 su blocchi di 1024 campioni, soglia 10; prove W1–W5; misura descrittiva sulla fixture.
+
+**Pacchetto di misura 2, risultati (2026-11-17):** [M2_5_Pkg2_Discontinuity_Detector_Results.md](research/M2_5_Pkg2_Discontinuity_Detector_Results.md).
+- **Esito:** il rilevatore A1 **non supera la propria validazione**:
+  - W1, richiamo 0,86 a −20 dBFS e 0,50 a −40 dBFS;
+  - W2, 2 candidati sulla sinusoide pura;
+  - W3, 82 candidati inspiegati su Pulso;
+  - Corpo e Vettore con decine di migliaia di candidati, cioè i reset periodici del dente di sega scambiati per click.
+
+  Lo scenario `discontinuity_v1` dà `TOOL_NOT_VALIDATED` e la sua tabella non si usa come misura. A2 differenziale supera W5. Correzione d'implementazione dichiarata: i primi 16 campioni di ogni buffer sono esclusi.
+- **Proposta, da pre-registrare:**
+  - v2 con strumentazione diretta dei salti d'inviluppo nei punti di furto, taglio e dissolvenza (verità dall'allocatore), oppure con un predittore a lungo termine;
+  - W1 differenziale per A2.
+- **Build:** Release e Debug `/WX` 281/281. Non committato.

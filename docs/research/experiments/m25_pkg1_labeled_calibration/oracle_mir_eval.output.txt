@@ -1,0 +1,5 @@
+pulso    refs  416 est  416 matches mir_eval  416 cymatica  416 F mir_eval 1.000000000000 cymatica 1.000000000000 -> AGREE
+corpo    refs   96 est   95 matches mir_eval   95 cymatica   95 F mir_eval 0.994764397906 cymatica 0.994764397906 -> AGREE
+trama    refs  400 est  400 matches mir_eval  400 cymatica  400 F mir_eval 1.000000000000 cymatica 1.000000000000 -> AGREE
+vettore  refs  384 est  383 matches mir_eval  383 cymatica  383 F mir_eval 0.998696219035 cymatica 0.998696219035 -> AGREE
+V5: AGREE
