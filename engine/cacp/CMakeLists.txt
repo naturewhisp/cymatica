@@ -27,6 +27,8 @@ add_library(cymatica_cacp STATIC
     m2_suite.cpp
     m2_suite.h
     mel.cpp
+    meter_change.cpp
+    meter_change.h
     mel.h
     onset.cpp
     onset.h

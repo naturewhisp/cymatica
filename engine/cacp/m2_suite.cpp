@@ -4,6 +4,7 @@
 #include "audio_probe.h"
 #include "check_selftest.h"
 #include "evaluation_pack.h"
+#include "meter_change.h"
 #include "onset_parity.h"
 #include "procedural_scenario.h"
 #include "release_ab.h"
@@ -116,6 +117,13 @@ SuiteResult runFullM2Suite(std::uint64_t packSeed, const std::string& outputDir,
         s.verdict = res.passed && golden ? "PASS" : "FAIL";
         s.valid = res.passed && golden;
         s.manifest = path(outputDir, "fixture_probe_v1_manifest.json");
+        s.notes.push_back("golden PCM " + res.goldenPcmStatus);
+    });
+    timed(r, "meter_change_v1", "binding", [&](SuiteStep& s) {
+        const auto res = runMeterChangeV1(outputDir, true);
+        s.verdict = res.verdict;
+        s.valid = res.verdict == "PASS";
+        s.manifest = path(outputDir, "meter_change_v1_manifest.json");
         s.notes.push_back("golden PCM " + res.goldenPcmStatus);
     });
     timed(r, "profile_test", "binding", [&](SuiteStep& s) {

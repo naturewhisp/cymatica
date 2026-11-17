@@ -1,0 +1,45 @@
+{
+  "M1_bar_frames": [
+    768000,
+    1344000,
+    2112000
+  ],
+  "M2_acks": {
+    "stop": "Applied",
+    "stop_frame": 2112000,
+    "tempo_1": "Applied",
+    "tempo_1_frame": 768000,
+    "tempo_2": "Applied",
+    "tempo_2_frame": 1344000
+  },
+  "M3_chain": {
+    "dispatched": 704,
+    "dropped": 0,
+    "generated_intents": 352,
+    "phrases_planned": 6,
+    "staged_at_end": 0
+  },
+  "M4_plan_3_4": {
+    "corpo_downbeats_missing": 0,
+    "fallbacks": 0,
+    "middle_noteons_off_grid": 0,
+    "phrases_with_invalid_candidates": 0
+  },
+  "M5_signal": {
+    "energy_a": 9693.099388294888,
+    "energy_a2": 9635.077863300914,
+    "energy_b": 8197.24925006553,
+    "finite": true
+  },
+  "M6_repeat": {
+    "identical": true,
+    "pcm_hash": "4922831055463163399",
+    "plan_hash": "7412619929652133079"
+  },
+  "failures": [],
+  "form": "24 bars: A 4/4, B 3/4 (12-step motif), A' 4/4; 120 BPM; seed 1; offline chain, 480-frame blocks",
+  "golden_pcm_status": "PASS",
+  "preregistration": "docs/research/M2_5_3_Meter_Change_Scenario_Preregistration.md",
+  "scenario": "meter_change_v1",
+  "verdict": "PASS"
+}

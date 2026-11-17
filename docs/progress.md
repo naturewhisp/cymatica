@@ -3335,3 +3335,16 @@ Il titolare ha avviato la fase il 2026-11-17 («Sì, avvia»). [Documento d'ingr
 
 Nessun codice in questo passo. Non committato.
 - **Decisione del titolare (2026-11-17): E1–E3 approvati** (ADR-0007 D-M2-38). Primo pacchetto: scenario tecnico del cambio di metro (D-M2-21).
+
+**M2.5.3–4, scenario tecnico del cambio di metro: pre-registrazione** [M2_5_3_Meter_Change_Scenario_Preregistration.md](research/M2_5_3_Meter_Change_Scenario_Preregistration.md), SHA-256 (LF) `0b6ef09b7a97b4d57588303a8c2df50c6bbb5e4714264178b3e53927a5405cd2`. Promuove la prova di fattibilità a scenario vincolante `meter_change_v1` (4/4 → 3/4 → 4/4), con controlli M1–M6, come chiede D-M2-21.
+
+**M2.5.3–4, scenario tecnico del cambio di metro, risultati (2026-11-17):** `meter_change_v1` **PASS**, predizione confermata ([esperimento](research/experiments/m25_3_meter_change/README.md)).
+- **M1:** battute 8, 16 e 24 ai frame 768 000, 1 344 000 e 2 112 000.
+- **M2:** i due `SetTempoMap` e lo Stop `Applied` ai frame attesi.
+- **M3:** 352 intent, 704 eventi inviati, 0 persi, scheduler vuoto.
+- **M4:** piano in 3/4 senza fallback, NoteOn sulla griglia, Corpo su ogni battere.
+- **M5:** segnale finito con energia nelle tre sezioni.
+- **M6:** ripetizione identica.
+- **Golden PCM dello scenario:** `4922831055463163399`, registrato su questa macchina; la CI lo verificherà sul runner.
+
+Lo scenario è una voce vincolante di `full_m2_suite` e ha un test `[meter_change]` che gira in CI. Il dossier delle evidenze aggiorna il criterio «transizione tempo/metrica»: il cambio di metro è ora qualificato da scenario (D-M2-21); resta da riconfermare la distinguibilità percettiva sulla build finale. Release e Debug `/WX` 294/294. Non committato. **Prossimo pacchetto:** misura 6, metriche di sviluppo validate.
