@@ -55,6 +55,12 @@ std::uint64_t canonicalPlanHash(const std::vector<std::vector<MusicIntentEvent>>
         f.u64(t.firstEventId); f.u64(t.finalEventCount); f.u32(t.plannerNoteOffCount);
         // Format 2 (M2.5.3-4 contract point 1, D-M2-41): Corpo dyad repair of the winner
         f.u32(t.corpoDyadRepairedBars); f.byte(t.corpoDyadRepairRejected ? 1 : 0);
+        // Format 3 (contract point 2, D-M2-42): Vettore notes moved to a chord tone
+        f.u32(t.vettoreAdaptedNotes);
+        for (std::uint32_t a = 0; a < t.vettoreAdaptedNotes && a < kMaxVettoreAdaptations; ++a) {
+            const auto& v = t.vettoreAdaptations[a];
+            f.byte(v.bar); f.byte(v.noteIndex); f.byte(static_cast<std::uint8_t>(v.semitones));
+        }
     }
     return f.h;
 }

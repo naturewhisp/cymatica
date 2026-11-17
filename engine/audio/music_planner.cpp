@@ -1074,6 +1074,28 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
             }
 
             // 4. Vettore: transformed motif (register offset applied in octaves)
+            // Contract point 2 (R-HAR-1, R-HAR-5 second step, D-M2-42), winner only after the dyad repair: a note
+            // outside the chord on step 0 of a chord change, or forming interval class 1 or 6 with a sounding Corpo
+            // voice, moves to the nearest chord tone in semitones (ties downward). Onsets and durations unchanged.
+            const bool readChord = repairDyad && config_.vettoreReadsChord;
+            const auto pcOf = [&](std::int32_t deg) noexcept {
+                return ((degreeToMidiNote(phrase.scale, deg) % 12) + 12) % 12;
+            };
+            const std::array<std::int32_t, 3> chordPcs{pcOf(chord.rootDegree), pcOf(chord.thirdDegree), pcOf(chord.fifthDegree)};
+            const auto isChordPc = [&](std::int32_t midi) noexcept {
+                const std::int32_t pc = ((midi % 12) + 12) % 12;
+                return pc == chordPcs[0] || pc == chordPcs[1] || pc == chordPcs[2];
+            };
+            const ChordSpec& prevChord = (b > 0) ? phrase.chords[(b - 1) % 4] : phrase.chords[(grid.barCount - 1) % 4];
+            const bool chordChange = (b == 0 && phrase.phraseIndex == 0) ||
+                                     prevChord.rootDegree != chord.rootDegree || prevChord.thirdDegree != chord.thirdDegree ||
+                                     prevChord.fifthDegree != chord.fifthDegree;
+            std::array<std::int32_t, 2> corpoMidi{};
+            const bool corpoSounding = prevVoicing.has_value();
+            if (corpoSounding) {
+                corpoMidi = {degreeToMidiNote(phrase.scale, prevVoicing->corpoBassDegree),
+                             degreeToMidiNote(phrase.scale, prevVoicing->corpoHarmonyDegree)};
+            }
             const Motif& motif = cand.transformedMotif;
             for (std::size_t m = 0; m < motif.noteCount; ++m) {
                 const auto& note = motif.notes[m];
@@ -1084,9 +1106,30 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
                 const std::uint32_t offStep = std::min<std::uint32_t>(note.stepOffset + note.durationSteps, steps);
                 const std::int32_t degree = note.scaleDegree + 7 * motif.registerOctaveOffset;
                 const std::uint64_t vOffFrame = std::min(grid.stepFrame(b, offStep), maxPhraseOffFrame);
+                std::int32_t vMidi = degreeToMidiNote(phrase.scale, degree, note.chromaticOffset);
+                if (readChord) {
+                    bool clash = false;
+                    if (corpoSounding) {
+                        for (const std::int32_t c : corpoMidi) {
+                            const std::int32_t d = ((vMidi - c) % 12 + 12) % 12;
+                            const std::int32_t icv = (d > 6) ? 12 - d : d;
+                            if (icv == 1 || icv == 6) clash = true;
+                        }
+                    }
+                    const bool offChordOnChange = chordChange && note.stepOffset == 0 && !isChordPc(vMidi);
+                    if ((clash || offChordOnChange) && cand.vettoreAdaptedNotes < kMaxVettoreAdaptations) {
+                        const std::int32_t before = vMidi;
+                        for (std::int32_t dist = 1; dist <= 6; ++dist) {
+                            if (isChordPc(vMidi - dist)) { vMidi -= dist; break; }
+                            if (isChordPc(vMidi + dist)) { vMidi += dist; break; }
+                        }
+                        cand.vettoreAdaptations[cand.vettoreAdaptedNotes] = VettoreAdaptation{
+                            static_cast<std::uint8_t>(b), static_cast<std::uint8_t>(m), static_cast<std::int8_t>(vMidi - before)};
+                        ++cand.vettoreAdaptedNotes;
+                    }
+                }
                 pushEvent(cand, makeEvent(grid.stepFrame(b, note.stepOffset), vOffFrame, MusicRole::Vettore,
-                                          degreeToMidiNote(phrase.scale, degree, note.chromaticOffset),
-                                          note.velocity, 0.60f, false));
+                                          vMidi, note.velocity, 0.60f, false));
                 ++melodicRhythmicOnsets;
             }
         }
@@ -1448,7 +1491,7 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
         // selection, the scores and the trace candidates stay those of the unrepaired generation.
         std::vector<PhraseCandidate> repaired;
         generateCandidates(phrase, grid, baseMotif, repaired, static_cast<std::int32_t>(winner.candidateIndex));
-        if (repaired.size() == 1 && repaired[0].corpoDyadRepairedBars > 0) {
+        if (repaired.size() == 1 && (repaired[0].corpoDyadRepairedBars > 0 || repaired[0].vettoreAdaptedNotes > 0)) {
             PhraseCandidate& r = repaired[0];
             r.violation = validateHardConstraints(r, phrase, committedHorizonFrame, false);
             if (r.violation == HardConstraintViolation::None) {
@@ -1458,6 +1501,8 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
                 r.scoreFixedPoint = winner.scoreFixedPoint;
                 r.tieBreakHash = winner.tieBreakHash;
                 trace.corpoDyadRepairedBars = r.corpoDyadRepairedBars;
+                trace.vettoreAdaptedNotes = r.vettoreAdaptedNotes;
+                trace.vettoreAdaptations = r.vettoreAdaptations;
                 winner = r;
                 winnerTracker = trackerCopy;
             } else {

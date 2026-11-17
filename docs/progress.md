@@ -3438,3 +3438,25 @@ Lo scenario è una voce vincolante di `full_m2_suite` e ha un test `[meter_chang
 - **Registro:** voce 9.
 - **Build e suite:** Release e Debug `/WX` 299/299; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
 - **Prossimo:** punto 2 del contratto, Vettore che legge l'accordo, con ablazione.
+
+**M2.5.3–4, contratto minimo punto 2, Vettore legge l'accordo: pre-registrazione** [M2_5_3_C2_Vettore_Reads_Chord_Preregistration.md](research/M2_5_3_C2_Vettore_Reads_Chord_Preregistration.md), SHA-256 (LF) `32dc6ca5de83f5780458b09d3859a39270e2dae39a0460d1c91fcaf0a4de0666`.
+- **Regola:** nel solo vincitore, dopo la diade, Vettore porta su una nota dell'accordo le note fuori dall'accordo sul tempo 1 dei cambi d'accordo (R-HAR-1) e quelle in classe 1 o 6 con Corpo.
+- **Ablazione:** `vettoreReadsChord`.
+- **Predizioni:** V1–V8; attese 40 note spostate.
+
+**M2.5.3–4, punto 2, Vettore legge l'accordo, risultati (2026-11-17):** [M2_5_3_C2_Vettore_Reads_Chord_Results.md](research/M2_5_3_C2_Vettore_Reads_Chord_Results.md), ADR-0007 D-M2-42.
+- **V1–V8 confermate:**
+  - selezione invariata;
+  - note dell'accordo sui tempi 1 dei cambi da 17/25 a 25/25 per sezione;
+  - conflitti Corpo–Vettore da 16 a 0, e ic1 di B da 6,2% a 0;
+  - 40 note spostate (8, 24, 8);
+  - cambiano solo le altezze di Vettore;
+  - l'ablazione restituisce il piano di C1c.
+- **Conseguenza non prevista:** il controllo d'invarianza del motivo di `planner_probe_v1` falliva. Non è stato allentato: il trace registra ogni adattamento, e l'hash canonico passa al formato 3.
+- **Descrittivo:**
+  - CTnCTR di Vettore sale verso il riferimento umano in A e A′ (0,70 e 0,69);
+  - in B lo supera (0,875), con il rischio di suonare troppo prevedibile;
+  - l'ostinato ha ora varianti per battuta guidate dall'accordo.
+- **Registro:** voce 10.
+- **Build e suite:** Release e Debug `/WX` 300/300; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
+- **Prossimo:** punto 3, `dominantRole` e registro di Vettore in A′.

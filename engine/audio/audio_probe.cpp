@@ -1587,8 +1587,15 @@ PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool w
                 for (std::size_t m = 0; m < t.winningMotif.noteCount; ++m) {
                     const auto& n = t.winningMotif.notes[m];
                     const std::uint64_t frame = clock.frameAtBeatStep(barBeat, n.stepOffset, tm.subdivisionsPerBeat);
+                    // Contract point 2 (D-M2-42): a chord-reading adaptation recorded in the trace offsets the pitch
+                    std::int32_t offset = 0;
+                    for (std::uint32_t a = 0; a < t.vettoreAdaptedNotes && a < kMaxVettoreAdaptations; ++a) {
+                        if (t.vettoreAdaptations[a].bar == b && t.vettoreAdaptations[a].noteIndex == m) {
+                            offset = t.vettoreAdaptations[a].semitones;
+                        }
+                    }
                     const float hz = midiNoteToPitchHz(degreeToMidiNote(phrase.scale,
-                        n.scaleDegree + 7 * t.winningMotif.registerOctaveOffset, n.chromaticOffset));
+                        n.scaleDegree + 7 * t.winningMotif.registerOctaveOffset, n.chromaticOffset) + offset);
                     const bool found = std::any_of(mainRun.intents[p].begin(), mainRun.intents[p].end(),
                         [&](const MusicIntentEvent& e) {
                             return e.role == MusicRole::Vettore && e.sampleFrame == frame && e.pitchHz == hz;
@@ -1952,6 +1959,12 @@ std::uint64_t fixtureTraceHash(const std::vector<PhraseDecisionTrace>& traces) n
         fnvMix(h, static_cast<std::uint64_t>(t.plannerNoteOffCount));
         fnvMix(h, static_cast<std::uint64_t>(t.corpoDyadRepairedBars));          // D-M2-41
         fnvMix(h, static_cast<std::uint64_t>(t.corpoDyadRepairRejected ? 1 : 0));
+        fnvMix(h, static_cast<std::uint64_t>(t.vettoreAdaptedNotes));             // D-M2-42
+        for (std::uint32_t a = 0; a < t.vettoreAdaptedNotes && a < kMaxVettoreAdaptations; ++a) {
+            const auto& v = t.vettoreAdaptations[a];
+            fnvMix(h, (static_cast<std::uint64_t>(v.bar) << 16) | (static_cast<std::uint64_t>(v.noteIndex) << 8) |
+                          static_cast<std::uint8_t>(v.semitones));
+        }
         for (std::size_t c = 0; c < t.candidatesGenerated; ++c) {
             fnvMix(h, t.candidates[c].candidateId);
             fnvMix(h, static_cast<std::uint64_t>(t.candidates[c].score));

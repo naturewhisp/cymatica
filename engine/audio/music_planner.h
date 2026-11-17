@@ -245,6 +245,18 @@ inline constexpr std::size_t kMaxEventsPerPhrase = 128;
 // [t, t + lookaheadFrames) of one candidate. Half the 256-slot engine SPSC (ADR-0003 D-M2-03).
 inline constexpr std::size_t kMaxSpscEventsPerLookaheadWindow = 128;
 
+// One Vettore note moved to a chord tone by contract point 2 (D-M2-42): bar of the phrase, index of the note in the
+// winning motif, semitone offset applied to the motif pitch. The trace keeps every adaptation so that the realized
+// Vettore notes stay explained by the winning motif plus these offsets (motif invariance, replay).
+struct VettoreAdaptation {
+    std::uint8_t bar{0};
+    std::uint8_t noteIndex{0};
+    std::int8_t semitones{0};
+
+    [[nodiscard]] constexpr bool operator==(const VettoreAdaptation& other) const noexcept = default;
+};
+inline constexpr std::size_t kMaxVettoreAdaptations = kMaxPhraseBars * kMaxMotifNotes;
+
 enum class HardConstraintViolation : std::uint8_t {
     None                            = 0,
     InvalidParameters               = 1,
@@ -307,6 +319,8 @@ struct PhraseCandidate {
     std::uint64_t tieBreakHash{0};
     std::uint32_t simulatedStealsCount{0};
     std::uint32_t corpoDyadRepairedBars{0}; // Bars whose Corpo upper voice the dyad repair swapped (C1c)
+    std::uint32_t vettoreAdaptedNotes{0};   // Vettore notes moved to a chord tone (contract point 2)
+    std::array<VettoreAdaptation, kMaxVettoreAdaptations> vettoreAdaptations{};
 };
 
 enum class FallbackKind : std::uint8_t {
@@ -367,6 +381,9 @@ struct PhraseDecisionTrace {
     // Contract point 1, variant C1c (D-M2-41): Corpo dyad repair applied to the winner after selection
     std::uint32_t corpoDyadRepairedBars{0};
     bool corpoDyadRepairRejected{false};   // the repaired winner violated a hard constraint; unrepaired winner kept
+    // Contract point 2 (D-M2-42): Vettore notes of the winner moved to a chord tone after the dyad repair
+    std::uint32_t vettoreAdaptedNotes{0};
+    std::array<VettoreAdaptation, kMaxVettoreAdaptations> vettoreAdaptations{}; // first vettoreAdaptedNotes entries
 
     [[nodiscard]] constexpr bool operator==(const PhraseDecisionTrace& other) const noexcept = default;
 };
@@ -488,6 +505,8 @@ struct MusicPlannerConfig {
     std::uint32_t sampleRate{48000}; // Must equal the planning MusicClock internal rate
     std::uint32_t simulationHz{core::FixedStepConfig{}.simulationHz}; // Fixed-step tick rate (MusicIntentEvent::tick)
     std::uint64_t lookaheadFrames{AudioSchedulerConfig{}.lookaheadFrames}; // Window of the SPSC density constraint
+    // Contract point 2 (D-M2-42): the winner's Vettore reads the chord after selection; false = ablation (C1c plan)
+    bool vettoreReadsChord{true};
 };
 
 class MusicPlanner {

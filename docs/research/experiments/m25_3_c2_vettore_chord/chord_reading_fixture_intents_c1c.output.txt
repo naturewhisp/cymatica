@@ -1,0 +1,7 @@
+(0, 'beat1_change') 25
+(0, 'beat1_change_chord_tone') 17
+(1, 'beat1_change') 25
+(1, 'beat1_change_chord_tone') 17
+(1, 'clash_with_corpo') 16
+(2, 'beat1_change') 25
+(2, 'beat1_change_chord_tone') 17

@@ -288,14 +288,16 @@ struct PlannerProbeResult {
 // pattern continuity at section boundaries; ADR-0007 D-M2-38, D-M2-39) -> 17158827938453439384 (M2.5.3-4 F1:
 // declared metric anchor, Pulso rotation only in the declared displacement of B phrases 12-13; D-M2-40)
 // -> 7595762444317258244 (M2.5.3-4 contract point 1, C1c: Corpo dyad repaired after selection, new trace fields;
-// D-M2-41).
-inline constexpr std::uint64_t kFixtureProbeV1GoldenTraceHash = 7595762444317258244ULL;
+// D-M2-41) -> 7802016689135067568 (M2.5.3-4 contract point 2: Vettore reads the chord after selection, adaptations
+// in the trace; D-M2-42).
+inline constexpr std::uint64_t kFixtureProbeV1GoldenTraceHash = 7802016689135067568ULL;
 // Regression golden of the full canonical plan of fixture_probe_v1 (events + planner NoteOffs + decision traces,
 // canonicalPlanHash format version 1, DIF-INC4-R3-03). Same value as the [fixture_golden] test, which uses the
 // same shared serialization.
 // History: 0x4f021cb9e8637598 -> 0xb91ce72feeb37bc7 (M2.5.3-4 F3, same reason as the trace) -> 0x7aa477a5519f9cf8
-// (M2.5.3-4 F1, same reason as the trace) -> 0xc5fc6a007f0a0a34 (M2.5.3-4 C1c, canonical format 2; D-M2-41).
-inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0xc5fc6a007f0a0a34ULL;
+// (M2.5.3-4 F1, same reason as the trace) -> 0xc5fc6a007f0a0a34 (M2.5.3-4 C1c, canonical format 2; D-M2-41)
+// -> 0x18cc6d32dc2fa60c (M2.5.3-4 contract point 2, canonical format 3; D-M2-42).
+inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0x18cc6d32dc2fa60cULL;
 // Regression golden of the fixture_probe_v1 PCM (seed 1337, nominal path; FNV-1a of the recorded float samples,
 // pcmContentHash). Verified separately from the plan (DIF-5e.1-01): a synthesis change that alters the audio
 // without changing events or decisions must fail. Recorded identically on the development machine and on the
@@ -309,8 +311,9 @@ inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0xc5fc6a007f0a0a3
 // -> 15689200359660949538 (M2.5.2 F4c, Pulso decay x1.5; plan, trace and events unchanged)
 // -> 15914153099858413724 (M2.5.3-4 F3, boundary pattern continuity: phrase 8 changes) -> 8239929959925757461
 // (M2.5.3-4 F1, declared metric anchor: Pulso on beat 1 except the declared displacement of B phrases 12-13)
-// -> 795499972965883485 (M2.5.3-4 C1c: Corpo plays G + D instead of G + B in the 16 G bars of A and A'; D-M2-41).
-inline constexpr std::uint64_t kFixtureProbeV1GoldenPcmHash = 795499972965883485ULL;
+// -> 795499972965883485 (M2.5.3-4 C1c: Corpo plays G + D instead of G + B in the 16 G bars of A and A'; D-M2-41)
+// -> 9396686444379387342 (M2.5.3-4 contract point 2: 40 Vettore notes moved to chord tones; D-M2-42).
+inline constexpr std::uint64_t kFixtureProbeV1GoldenPcmHash = 9396686444379387342ULL;
 // Minimum post-bus telemetry energy for a role to count as active in a section (D-M2-11)
 inline constexpr float kFixtureRoleActivityFloor = 1.0e-4f;
 
