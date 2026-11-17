@@ -3381,3 +3381,14 @@ Lo scenario è una voce vincolante di `full_m2_suite` e ha un test `[meter_chang
 - **Golden:** aggiornati con la storia. Il PCM della fixture passa a `8239929959925757461`; i gruppi simbolici vanno da 8 a 9.
 - **Registro:** voce 7 riformulata.
 - **Build e suite:** Release e Debug `/WX` 298/298; `full_m2_suite` verde salvo `acao02_v1`. Non committato. **Prossimo pacchetto:** contratto minimo, punto 1 (diade di Corpo).
+
+**Ascolto informale del titolare dopo F3 e F1 (2026-11-17, render `fixture_probe_v1`, PCM `8239929959925757461`; non è un gate, D-M2-30):**
+- **Osservazioni:**
+  - «la melodia che attacca pressappoco a 0:32 sembra leggermente cambiata, più variegata forse»;
+  - il passaggio A→B resta brusco;
+  - «il brano è molto simile ma in qualche modo diverso».
+- **Confronto simbolico con il piano prima di M2.5.3–4** (`fixture_intents_policy1010.csv`):
+  - Vettore e Corpo sono identici in tutte le 24 frasi;
+  - Pulso cambia in 18 frasi, Trama in 14 (8–11, 14–23).
+- **Lettura di 0:32:** a 0:32 (frase 4) entra la Trama, con le stesse note di prima nelle frasi 4–7. Il cambiamento percepito viene quindi dal suono, non dalle note: rispetto all'ascolto del 2026-11-03, M2.5.2 ha cambiato timbro (FM 1:1), centratura e livello della Trama, e il kick ora è sul tempo fin dall'inizio.
+- **A→B ancora brusco:** è un primo indizio che F3 da solo non basta (voce 8 del registro). Il seguito resta quello dichiarato in D-M2-39, la rampa di tempo con un ADR per `MusicClock`, da decidere a CP-3 o CP-4. Resta da verificare all'ascolto cumulativo.
