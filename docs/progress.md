@@ -3318,3 +3318,10 @@ Pacchetto CP-2 archiviato senza invio. ADR-0003 D-M2-06 annotato con la ricalibr
 **Indicazione del titolare (2026-11-17):** quanto è stato rinviato o deciso per regola andrà valutato nell'ascolto cumulativo, se possibile con domande. Aperto il [registro delle domande per l'ascolto cumulativo](m2_5_cumulative_listening_questions.md), con 7 voci: livello e timbro della Trama, stereo, acuti, kick, dissolvenze di 2 ms, Q3 e F1.
 
 **M2.5.2 completa nei contenuti:** F4a, F4b, F4c, F2, rapporto FM e livello della Trama (rinviato per regola). La chiusura formale attende la CI verde sull'ultimo commit. Non committato.
+
+**M2.5.2 chiusa formalmente (2026-11-17).** La [CI 44094198129](https://github.com/naturewhisp/cymatica/actions/runs/44094198129) su `678a336` è verde: Release e Debug su windows-2025, golden PCM `15689200359660949538` confermato sul runner. I commit intermedi da `5d5e115` a `6858a1f` sono arrivati con lo stesso push e sono coperti da questa corsa. Esito della fase:
+- F4a (+8 dB), F4b (one-shot), F4c (decadimento ×1,5), F2 (Trama centrata), rapporto FM 1:1 con Trama −9 dB;
+- livello della Trama rinviato per regola all'ascolto cumulativo;
+- pacchetti di misura 1–5, 2b e 4b.
+
+Limite noto: `acao02_v1` resta `INCONCLUSIVE` fino al ricongelamento di M2.5.5. Domande aperte: [registro per l'ascolto cumulativo](m2_5_cumulative_listening_questions.md). **Prossima fase:** M2.5.3–4, «Struttura e sviluppo» (D-M2-32).
