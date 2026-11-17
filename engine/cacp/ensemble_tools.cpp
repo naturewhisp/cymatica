@@ -201,7 +201,19 @@ RoleVariogram roleVariogram(const std::vector<PhraseTokens>& phrases, std::size_
         v.classification = "NO_DATA";
         return v;
     }
-    const auto d = roleDistanceMatrix(phrases, role);
+    return variogramOfMatrix(roleDistanceMatrix(phrases, role), role, v.phrasesWithNotes, permutations, seed);
+}
+
+RoleVariogram variogramOfMatrix(const std::vector<std::vector<double>>& d, std::size_t role, std::size_t phrasesWithNotes,
+                                std::size_t permutations, std::uint64_t seed) {
+    RoleVariogram v;
+    v.role = role;
+    v.phrasesWithNotes = phrasesWithNotes;
+    const std::size_t n = d.size();
+    if (n < 2 || phrasesWithNotes == 0 || permutations == 0) {
+        v.classification = "NO_DATA";
+        return v;
+    }
     v.degenerate = true;
     for (std::size_t i = 0; i < n && v.degenerate; ++i) {
         for (std::size_t j = 0; j < n; ++j) {

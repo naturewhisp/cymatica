@@ -1,0 +1,194 @@
+{
+  "V5_repeat_identical": true,
+  "admission_rule": "V1-V5 all passed; M4 is the reference and is never admitted here",
+  "measures": [
+    {
+      "F8_classification_descriptive": "ORDER_FREE",
+      "V1_adversarial": [
+        {
+          "classification": "DEGENERATE",
+          "id": "F1"
+        },
+        {
+          "classification": "ORDER_FREE",
+          "id": "F2"
+        },
+        {
+          "classification": "ORDERED",
+          "id": "F3"
+        },
+        {
+          "classification": "ORDER_FREE",
+          "id": "F4"
+        },
+        {
+          "classification": "ORDER_FREE",
+          "id": "F5"
+        },
+        {
+          "classification": "ORDER_FREE",
+          "id": "F6"
+        }
+      ],
+      "V1_horse": true,
+      "V2_hits_rank_1": 5,
+      "V2_lineage": true,
+      "V2_lineage_ranks": [
+        1,
+        1,
+        4,
+        1,
+        1,
+        1
+      ],
+      "V2_mrr": 0.875,
+      "V3_f9_boundaries_hit": 5,
+      "V3_f9_top5_peaks_1_based": [
+        21,
+        7,
+        19,
+        12,
+        14
+      ],
+      "V3_sections_f9": true,
+      "V4_corpo_top2_peaks_1_based": [
+        9,
+        17
+      ],
+      "V4_sections_fixture": true,
+      "admitted": false,
+      "inversion_distances_6_from_1_and_14_from_6": [
+        0.8571428571428571,
+        0.9333333333333333
+      ],
+      "measure": "M4"
+    },
+    {
+      "F8_classification_descriptive": "ORDER_FREE",
+      "V1_adversarial": [
+        {
+          "classification": "DEGENERATE",
+          "id": "F1"
+        },
+        {
+          "classification": "ORDER_FREE",
+          "id": "F2"
+        },
+        {
+          "classification": "ORDERED",
+          "id": "F3"
+        },
+        {
+          "classification": "ORDER_FREE",
+          "id": "F4"
+        },
+        {
+          "classification": "ORDER_FREE",
+          "id": "F5"
+        },
+        {
+          "classification": "ORDER_FREE",
+          "id": "F6"
+        }
+      ],
+      "V1_horse": true,
+      "V2_hits_rank_1": 4,
+      "V2_lineage": true,
+      "V2_lineage_ranks": [
+        1,
+        2,
+        6,
+        1,
+        1,
+        1
+      ],
+      "V2_mrr": 0.7777777777777778,
+      "V3_f9_boundaries_hit": 5,
+      "V3_f9_top5_peaks_1_based": [
+        21,
+        7,
+        19,
+        11,
+        16
+      ],
+      "V3_sections_f9": true,
+      "V4_corpo_top2_peaks_1_based": [
+        9,
+        17
+      ],
+      "V4_sections_fixture": true,
+      "admitted": true,
+      "inversion_distances_6_from_1_and_14_from_6": [
+        0.27499999999999997,
+        0.37356321839080464
+      ],
+      "measure": "M5"
+    },
+    {
+      "F8_classification_descriptive": "ORDER_FREE",
+      "V1_adversarial": [
+        {
+          "classification": "DEGENERATE",
+          "id": "F1"
+        },
+        {
+          "classification": "ORDER_FREE",
+          "id": "F2"
+        },
+        {
+          "classification": "ORDERED",
+          "id": "F3"
+        },
+        {
+          "classification": "ORDER_FREE",
+          "id": "F4"
+        },
+        {
+          "classification": "ORDER_FREE",
+          "id": "F5"
+        },
+        {
+          "classification": "ORDER_FREE",
+          "id": "F6"
+        }
+      ],
+      "V1_horse": true,
+      "V2_hits_rank_1": 4,
+      "V2_lineage": true,
+      "V2_lineage_ranks": [
+        1,
+        1,
+        8,
+        1,
+        1,
+        2
+      ],
+      "V2_mrr": 0.7708333333333334,
+      "V3_f9_boundaries_hit": 5,
+      "V3_f9_top5_peaks_1_based": [
+        21,
+        7,
+        19,
+        11,
+        16
+      ],
+      "V3_sections_f9": true,
+      "V4_corpo_top2_peaks_1_based": [
+        9,
+        17
+      ],
+      "V4_sections_fixture": true,
+      "admitted": true,
+      "inversion_distances_6_from_1_and_14_from_6": [
+        0.15731203125901444,
+        0.4497126436781609
+      ],
+      "measure": "M5r"
+    }
+  ],
+  "preregistration": "docs/research/M2_5_Pkg6_Development_Measures_Preregistration.md",
+  "reasons": [],
+  "scenario": "development_measures_v1",
+  "status": "MEASURED",
+  "truth": "F9 intent note: derivations 3<-1, 5<-1, 13<-1, 15<-1, 21<-1, 22<-2; section starts 7, 11, 15, 19, 21 (1-based)"
+}

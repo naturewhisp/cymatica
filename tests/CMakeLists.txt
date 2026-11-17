@@ -32,6 +32,7 @@ add_executable(cymatica_tests
     unit/test_binaural.cpp
     unit/test_timbre_descriptors.cpp
     unit/test_meter_change.cpp
+    unit/test_development_measures.cpp
     unit/test_trama_diagnosis.cpp
     unit/test_m2_suite.cpp
 )

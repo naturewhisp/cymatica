@@ -3348,3 +3348,11 @@ Nessun codice in questo passo. Non committato.
 - **Golden PCM dello scenario:** `4922831055463163399`, registrato su questa macchina; la CI lo verificherà sul runner.
 
 Lo scenario è una voce vincolante di `full_m2_suite` e ha un test `[meter_change]` che gira in CI. Il dossier delle evidenze aggiorna il criterio «transizione tempo/metrica»: il cambio di metro è ora qualificato da scenario (D-M2-21); resta da riconfermare la distinguibilità percettiva sulla build finale. Release e Debug `/WX` 294/294. Non committato. **Prossimo pacchetto:** misura 6, metriche di sviluppo validate.
+
+**Pacchetto di misura 6, misure dello sviluppo: pre-registrazione** [M2_5_Pkg6_Development_Measures_Preregistration.md](research/M2_5_Pkg6_Development_Measures_Preregistration.md), SHA-256 (LF) `156e7a43cdd62da03047debd96344b019d5a15de63f7a52e3c549f79675c4c41`. Candidate M5 (graduata sugli intervalli) e M5r (con il ritmo). Verità dichiarate dalla nota d'intento di F9 (derivazioni e sezioni), fissate prima di misurare. Prove V1–V5 con regola d'ammissione; predizioni Q1–Q6.
+
+**Pacchetto di misura 6, risultati (2026-11-17):** [M2_5_Pkg6_Development_Measures_Results.md](research/M2_5_Pkg6_Development_Measures_Results.md).
+- **M5 e M5r ammesse** (V1–V5): lignaggio di F9 4/6 al primo rango, sezioni di F9 5/5, confini di Corpo alle frasi 9 e 17.
+- **Q6 mancata:** anche la M4 supera lignaggio e sezioni. La lettura di M2.5.1c si corregge: non aveva fallito la distanza, ma la prova del variogramma a lag 1, che non si usa più per diagnosticare lo sviluppo.
+- **Uso in M2.5.3–4:** rango del genitore e novità di Foote, con la M4 come riferimento.
+- **Build:** Release e Debug `/WX` 296/296. Non committato. **Prossimo pacchetto:** F3, continuità dei pattern ai confini di sezione.

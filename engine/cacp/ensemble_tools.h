@@ -64,6 +64,10 @@ struct RoleVariogram {
 [[nodiscard]] RoleVariogram roleVariogram(const std::vector<PhraseTokens>& phrases, std::size_t role,
                                           std::size_t permutations = kEnsemblePermutations, std::uint64_t seed = kEnsembleNullSeed);
 
+// Variogram and permutation null of any distance matrix (the M4 path above uses it unchanged); measurement package 6
+[[nodiscard]] RoleVariogram variogramOfMatrix(const std::vector<std::vector<double>>& d, std::size_t role, std::size_t phrasesWithNotes,
+                                              std::size_t permutations = kEnsemblePermutations, std::uint64_t seed = kEnsembleNullSeed);
+
 // Spearman rho with average ranks for ties; nullopt when fewer than 3 points or a constant series
 [[nodiscard]] std::optional<double> spearmanRho(const std::vector<double>& x, const std::vector<double>& y);
 

@@ -8,6 +8,8 @@ add_library(cymatica_cacp STATIC
     check_selftest.cpp
     check_selftest.h
     analysis_status.h
+    development_measures.cpp
+    development_measures.h
     discontinuity.cpp
     discontinuity.h
     diversity.cpp
