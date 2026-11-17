@@ -1569,7 +1569,12 @@ PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool w
         for (std::size_t p = 0; ok && p < mainRun.traces.size(); ++p) {
             const auto& t = mainRun.traces[p];
             const auto& phrase = phrases[p];
-            if (t.fallbackTriggered || !(t.baseMotif == form.sections[phrase.sectionIndex].sectionMotif)) {
+            // Contract point 5 (D-M2-45): the base is the section motif, or the winning motif of the declared trace
+            const bool baseOk = (t.baseSourcePhrase < 0)
+                ? (t.baseMotif == form.sections[phrase.sectionIndex].sectionMotif)
+                : (static_cast<std::size_t>(t.baseSourcePhrase) < p &&
+                   t.baseMotif == mainRun.traces[static_cast<std::size_t>(t.baseSourcePhrase)].winningMotif);
+            if (t.fallbackTriggered || !baseOk) {
                 ok = false;
                 break;
             }
@@ -1967,6 +1972,8 @@ std::uint64_t fixtureTraceHash(const std::vector<PhraseDecisionTrace>& traces) n
         }
         fnvMix(h, static_cast<std::uint8_t>(t.vettoreRegisterShift));            // D-M2-43
         fnvMix(h, static_cast<std::uint64_t>(t.vettoreRegisterUnmet ? 1 : 0));
+        fnvMix(h, static_cast<std::uint64_t>(static_cast<std::uint32_t>(t.baseSourcePhrase)));  // D-M2-45
+        fnvMix(h, static_cast<std::uint64_t>(t.lineageReset ? 1 : 0));
         for (std::size_t c = 0; c < t.candidatesGenerated; ++c) {
             fnvMix(h, t.candidates[c].candidateId);
             fnvMix(h, static_cast<std::uint64_t>(t.candidates[c].score));

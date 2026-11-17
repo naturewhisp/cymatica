@@ -3513,3 +3513,29 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
 - **Registro:** voce 12.
 - **Build e suite:** Release e Debug `/WX` 302/302; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
 - **Prossimo:** punto 5, variazione derivata e ripresa.
+
+**M2.5.3–4, punto 5, diagnosi (2026-11-17, piano `656cf23`):**
+- **Nessuna derivazione cumulativa:** in tutte le 24 frasi i candidati trasformano il motivo base della sezione, quindi il lignaggio ha profondità 1 ovunque. Nessuna frase deriva dalla precedente, l'ordine non conta e la ripresa A′ non richiama materiale di A, ma lo stesso motivo base.
+- **Le trasformazioni non sono fatte per la catena:**
+  - l'inversione del contorno è quasi un'involuzione: applicata due volte torna all'originale, salvo l'aggancio degli ancoraggi;
+  - trasposizione modale, ottava e alterazione cromatica si sommano senza limite: dopo 8 frasi fino a ±16 gradi;
+  - la rotazione ritmica cicla.
+- **Scelta di disegno chiesta al titolare** prima della pre-registrazione.
+
+**M2.5.3–4, punto 5, variazione derivata: pre-registrazione** [M2_5_3_C5_Derived_Variation_Preregistration.md](research/M2_5_3_C5_Derived_Variation_Preregistration.md), SHA-256 (LF) `25e61d3346e9add396e19c63003c8abc48f9eb3109833bc85aeedfd359b95911`.
+- **Scelta del titolare:** «Catena con limiti».
+- **Profilo `fixture-lineage-v1`:**
+  - catena dal vincitore precedente;
+  - ritorni al motivo della sezione alle cadenze;
+  - la frase 16 richiama l'apertura di A;
+  - limite di 3 gradi sul baricentro.
+- **Criteri:** K1–K7, con regola d'adozione.
+
+**M2.5.3–4, punto 5, variazione derivata e ripresa, risultati (2026-11-17):** [M2_5_3_C5_Derived_Variation_Results.md](research/M2_5_3_C5_Derived_Variation_Results.md), ADR-0007 D-M2-45.
+- **Adottato per la regola pre-registrata:** superati K1, K2, K3 (di misura: 5 gruppi di Vettore contro 4), K5 (per parità), K6 e K7.
+- **K4 non superato:** il genitore è più vicino della mediana in 5 derivazioni su 12.
+- **Lettura:** lo sviluppo è poco cumulativo. L'inversione fa alternare due figure in A e A′, mentre in B nasce una figura nuova che ritorna.
+- **Seguito da decidere:** operazioni pensate per la catena (punto 5b o M6).
+- **Nuovo scenario** `lineage_measures_v1`, che calcola K3–K5 con M5r su Vettore.
+- **Registro:** voce 13.
+- **Build e suite:** Release e Debug `/WX` 303/303; `full_m2_suite` verde salvo `acao02_v1`. Non committato.

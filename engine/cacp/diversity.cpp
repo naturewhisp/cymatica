@@ -58,6 +58,7 @@ FixturePlan planFixtureM24V1(std::uint64_t seed) {
                                 p.startFrame, p.endFrame});
     }
     plan.noteOffs = planner.plannedNoteOffs();
+    plan.traces = planner.decisionTraces();
     plan.ok = true;
     return plan;
 }

@@ -517,6 +517,10 @@ void MusicPlanner::reset(std::uint64_t newSeed) noexcept {
     lastPatterns_.reset();
     heldCorpoUpperMidi_ = -1;
     heldCorpoUntilFrame_ = 0;
+    lastWinnerMotif_.reset();
+    lastWinnerTrace_ = -1;
+    sectionOpeningMotif_.fill(std::nullopt);
+    sectionOpeningTrace_.fill(-1);
 }
 
 MusicPlanner::PlannerCheckpoint MusicPlanner::createCheckpoint() const noexcept {
@@ -526,6 +530,10 @@ MusicPlanner::PlannerCheckpoint MusicPlanner::createCheckpoint() const noexcept 
         .lastPatterns = lastPatterns_,
         .heldCorpoUpperMidi = heldCorpoUpperMidi_,
         .heldCorpoUntilFrame = heldCorpoUntilFrame_,
+        .lastWinnerMotif = lastWinnerMotif_,
+        .lastWinnerTrace = lastWinnerTrace_,
+        .sectionOpeningMotif = sectionOpeningMotif_,
+        .sectionOpeningTrace = sectionOpeningTrace_,
         .nextEventId = nextEventId_,
         .totalFallbacks = totalFallbacks_,
         .traceCount = traces_.size(),
@@ -539,6 +547,10 @@ void MusicPlanner::restoreCheckpoint(const PlannerCheckpoint& cp) noexcept {
     lastPatterns_ = cp.lastPatterns;
     heldCorpoUpperMidi_ = cp.heldCorpoUpperMidi;
     heldCorpoUntilFrame_ = cp.heldCorpoUntilFrame;
+    lastWinnerMotif_ = cp.lastWinnerMotif;
+    lastWinnerTrace_ = cp.lastWinnerTrace;
+    sectionOpeningMotif_ = cp.sectionOpeningMotif;
+    sectionOpeningTrace_ = cp.sectionOpeningTrace;
     nextEventId_ = cp.nextEventId;
     totalFallbacks_ = cp.totalFallbacks;
     if (cp.traceCount < traces_.size()) {
@@ -643,6 +655,8 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
         phrases[p].delayCorpoOnsetByOneBeat = false;
         phrases[p].maskTrama = (p < 4); // Trama only in the second half of A (counterpoint)
         phrases[p].recipeSet = CandidateRecipeSet::Standard;
+        // fixture-lineage-v1 (contract point 5, D-M2-45): opening from the section motif, chain, return at the cadence
+        phrases[p].motifSource = (p == 0 || p == 7) ? MotifSource::SectionBase : MotifSource::PreviousWinner;
     }
 
     // 2. Section B: phrases 8..15 (bars 32..63)
@@ -671,6 +685,8 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
         }
         // fixture-orchestration-v1 (R-ROL-7, D-M2-44): Trama thins out before the declared displacement
         phrases[8 + p].maskTrama = (p == 2 || p == 3);
+        // fixture-lineage-v1 (D-M2-45)
+        phrases[8 + p].motifSource = (p == 0 || p == 7) ? MotifSource::SectionBase : MotifSource::PreviousWinner;
     }
 
     // 3. Section A': phrases 16..23 (bars 64..95)
@@ -691,6 +707,10 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
         // phrase); the kick rests in the phrase before the final cadence
         phrases[16 + p].maskTrama = (p < 4);
         phrases[16 + p].maskPulso = (p == 6);
+        // fixture-lineage-v1 (D-M2-45): A' recalls the opening of A, then the chain, return at the final cadence
+        phrases[16 + p].motifSource = (p == 0) ? MotifSource::RecallSectionOpening
+                                    : (p == 7) ? MotifSource::SectionBase : MotifSource::PreviousWinner;
+        phrases[16 + p].recallSection = 0;
     }
 
     return phrases;
@@ -1465,6 +1485,34 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
         formPlan_.sections[phrase.sectionIndex].sectionMotif.noteCount > 0) {
         baseMotif = formPlan_.sections[phrase.sectionIndex].sectionMotif;
     }
+    // Contract point 5 (D-M2-45): declared origin of the base motif, bounded by the drift from the section motif
+    {
+        const auto centroidMilli = [](const Motif& mo) noexcept -> std::int64_t {
+            if (mo.noteCount == 0) return 0;
+            std::int64_t sum = 0;
+            for (std::size_t i = 0; i < mo.noteCount; ++i) sum += mo.notes[i].scaleDegree + 7 * mo.registerOctaveOffset;
+            return (sum * 1000) / static_cast<std::int64_t>(mo.noteCount);
+        };
+        const Motif* requested = nullptr;
+        std::int32_t source = -1;
+        if (phrase.motifSource == MotifSource::PreviousWinner && lastWinnerMotif_.has_value()) {
+            requested = &*lastWinnerMotif_;
+            source = lastWinnerTrace_;
+        } else if (phrase.motifSource == MotifSource::RecallSectionOpening && phrase.recallSection < kMaxSections &&
+                   sectionOpeningMotif_[phrase.recallSection].has_value()) {
+            requested = &*sectionOpeningMotif_[phrase.recallSection];
+            source = sectionOpeningTrace_[phrase.recallSection];
+        }
+        if (requested != nullptr) {
+            const std::int64_t drift = centroidMilli(*requested) - centroidMilli(baseMotif);
+            if (drift > kLineageDriftBoundMilliDegrees || drift < -kLineageDriftBoundMilliDegrees) {
+                trace.lineageReset = true;
+            } else {
+                baseMotif = *requested;
+                trace.baseSourcePhrase = source;
+            }
+        }
+    }
     trace.baseMotifId = baseMotif.motifId;
     trace.baseMotif = baseMotif;
 
@@ -1673,6 +1721,16 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
     voiceTracker_ = winnerTracker;
     if (winner.lastCorpoVoicing.has_value()) {
         lastCorpoVoicing_ = winner.lastCorpoVoicing;
+    }
+    // Contract point 5 (D-M2-45): the committed winning motif enters the fixed-capacity motif memory
+    if (!trace.fallbackTriggered && winner.transformedMotif.noteCount > 0) {
+        const auto traceIndex = static_cast<std::int32_t>(traces_.size());
+        lastWinnerMotif_ = winner.transformedMotif;
+        lastWinnerTrace_ = traceIndex;
+        if (phrase.phraseIndex == 0 && phrase.sectionIndex < kMaxSections && !sectionOpeningMotif_[phrase.sectionIndex].has_value()) {
+            sectionOpeningMotif_[phrase.sectionIndex] = winner.transformedMotif;
+            sectionOpeningTrace_[phrase.sectionIndex] = traceIndex;
+        }
     }
     // Contract point 3 (D-M2-43): a Corpo open pad of the winner keeps sounding into the next phrase
     for (std::size_t i = 0; i < winner.eventCount; ++i) {

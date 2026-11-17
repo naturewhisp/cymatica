@@ -30,6 +30,7 @@ struct FixturePlan {
     std::vector<std::vector<audio::MusicIntentEvent>> intentsPerPhrase{};
     std::vector<audio::PlannedNoteOff> noteOffs{};
     std::vector<PackPhrase> phrases{};
+    std::vector<audio::PhraseDecisionTrace> traces{};   // decision traces of the planned phrases (D-M2-45 lineage)
 };
 // Plans fixture-m2-4-v1 offline with the given seed (same planner configuration as fixture_probe_v1)
 [[nodiscard]] FixturePlan planFixtureM24V1(std::uint64_t seed);

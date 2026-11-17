@@ -182,7 +182,7 @@ TEST_CASE("Content fingerprint: special values, role filter and real planner det
     const auto b = planOnce();
     REQUIRE(a.valid);
     CHECK(a.sameContent(b));
-    CHECK(a.noteCount == 1308); // 1392 before M2.5.3-4 contract point 4 (role masks, D-M2-44)
+    CHECK(a.noteCount == 1300); // 1392 before M2.5.3-4 contract point 4 (role masks, D-M2-44), 1308 before point 5
 }
 
 TEST_CASE("O3 reconciliation: nominal chain and cardinalities (D-M2-12, DIF-5.0-01)", "[event_chain][o3_reconcile]") {

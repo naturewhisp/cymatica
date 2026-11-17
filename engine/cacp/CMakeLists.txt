@@ -38,6 +38,8 @@ add_library(cymatica_cacp STATIC
     onset_parity.h
     plan_export.cpp
     plan_export.h
+    lineage_measures.cpp
+    lineage_measures.h
     png_writer.cpp
     png_writer.h
     presence_stats.cpp

@@ -63,6 +63,8 @@ std::uint64_t canonicalPlanHash(const std::vector<std::vector<MusicIntentEvent>>
         }
         // Format 4 (contract point 3, D-M2-43): octave shift of the dominant Vettore
         f.byte(static_cast<std::uint8_t>(t.vettoreRegisterShift)); f.byte(t.vettoreRegisterUnmet ? 1 : 0);
+        // Format 5 (contract point 5, D-M2-45): origin of the base motif and lineage reset
+        f.i32(t.baseSourcePhrase); f.byte(t.lineageReset ? 1 : 0);
     }
     return f.h;
 }

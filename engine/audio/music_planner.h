@@ -189,6 +189,17 @@ enum class MetricState : std::uint8_t {
     Ritorno  = 2  // as Ancorato; first phrase after a displacement
 };
 
+// Origin of the base motif of a phrase (contract point 5, D-M2-45), declared by the phrase expander
+enum class MotifSource : std::uint8_t {
+    SectionBase          = 0, // the section motif (M2.4 behaviour)
+    PreviousWinner       = 1, // the winning motif of the previous planned phrase (derivation chain)
+    RecallSectionOpening = 2  // the winning motif of the first phrase of section `recallSection` (reprise)
+};
+
+// Bound of the derivation chain: a requested base motif whose degree centroid departs from the section motif by more
+// than this many milli-degrees (7 degrees per octave) restarts from the section motif (lineage reset, D-M2-45)
+inline constexpr std::int32_t kLineageDriftBoundMilliDegrees = 3000;
+
 struct PhrasePlan {
     std::uint32_t sectionIndex{0};
     std::uint32_t phraseIndex{0};
@@ -210,6 +221,9 @@ struct PhrasePlan {
     // Contract point 4 (D-M2-44): Pulso silent in this phrase. Forbidden in Spostato and when Corpo is delayed in bar 0
     // (beat 1 would have no anchor, R-MET-2)
     bool maskPulso{false};
+    // Contract point 5 (D-M2-45): origin of the base motif
+    MotifSource motifSource{MotifSource::SectionBase};
+    std::uint32_t recallSection{0};
     CandidateRecipeSet recipeSet{CandidateRecipeSet::Standard};
     // Declared metric state and Pulso displacement in grid steps (R-MET-1); default anchored
     MetricState metricState{MetricState::Ancorato};
@@ -391,6 +405,10 @@ struct PhraseDecisionTrace {
     // +24 left less than half of its notes above the sounding Corpo upper voice
     std::int8_t vettoreRegisterShift{0};
     bool vettoreRegisterUnmet{false};
+    // Contract point 5 (D-M2-45): trace index whose winning motif is this phrase's base (-1: the section motif), and
+    // whether the requested source was refused by the drift bound (restart from the section motif)
+    std::int32_t baseSourcePhrase{-1};
+    bool lineageReset{false};
 
     [[nodiscard]] constexpr bool operator==(const PhraseDecisionTrace& other) const noexcept = default;
 };
@@ -574,6 +592,10 @@ public:
         std::optional<std::array<std::int32_t, 4>> lastPatterns{};
         std::int32_t heldCorpoUpperMidi{-1};
         std::uint64_t heldCorpoUntilFrame{0};
+        std::optional<Motif> lastWinnerMotif{};
+        std::int32_t lastWinnerTrace{-1};
+        std::array<std::optional<Motif>, kMaxSections> sectionOpeningMotif{};
+        std::array<std::int32_t, kMaxSections> sectionOpeningTrace{};
         std::uint64_t nextEventId{1};
         std::uint32_t totalFallbacks{0};
         std::size_t traceCount{0};
@@ -614,6 +636,11 @@ private:
     // Contract point 3 (D-M2-43): upper voice of a Corpo open pad still sounding into the next phrase, and its end
     std::int32_t heldCorpoUpperMidi_{-1};
     std::uint64_t heldCorpoUntilFrame_{0};
+    // Contract point 5 (D-M2-45): fixed-capacity motif memory, the previous winner and the opening winner per section
+    std::optional<Motif> lastWinnerMotif_{};
+    std::int32_t lastWinnerTrace_{-1};
+    std::array<std::optional<Motif>, kMaxSections> sectionOpeningMotif_{};
+    std::array<std::int32_t, kMaxSections> sectionOpeningTrace_{};
     std::uint64_t nextEventId_{1};
     std::uint32_t totalFallbacks_{0};
     std::vector<PhraseDecisionTrace> traces_{};

@@ -291,8 +291,9 @@ struct PlannerProbeResult {
 // D-M2-41) -> 7802016689135067568 (M2.5.3-4 contract point 2: Vettore reads the chord after selection, adaptations
 // in the trace; D-M2-42) -> 7620653259624784472 (M2.5.3-4 contract point 3: the dominant Vettore sits above the
 // Corpo upper voice, +12 in A and +24 in A'; D-M2-43) -> 3614853450997319296 (M2.5.3-4 contract point 4: declared
-// role masks fixture-orchestration-v1, new winners in phrases 10-11, 17-19 and 22; D-M2-44).
-inline constexpr std::uint64_t kFixtureProbeV1GoldenTraceHash = 3614853450997319296ULL;
+// role masks fixture-orchestration-v1, new winners in phrases 10-11, 17-19 and 22; D-M2-44) -> 5749962721823883068
+// (M2.5.3-4 contract point 5: derivation chain fixture-lineage-v1, origin and reset in the trace; D-M2-45).
+inline constexpr std::uint64_t kFixtureProbeV1GoldenTraceHash = 5749962721823883068ULL;
 // Regression golden of the full canonical plan of fixture_probe_v1 (events + planner NoteOffs + decision traces,
 // canonicalPlanHash format version 1, DIF-INC4-R3-03). Same value as the [fixture_golden] test, which uses the
 // same shared serialization.
@@ -300,8 +301,8 @@ inline constexpr std::uint64_t kFixtureProbeV1GoldenTraceHash = 3614853450997319
 // (M2.5.3-4 F1, same reason as the trace) -> 0xc5fc6a007f0a0a34 (M2.5.3-4 C1c, canonical format 2; D-M2-41)
 // -> 0x18cc6d32dc2fa60c (M2.5.3-4 contract point 2, canonical format 3; D-M2-42) -> 0x17aade206b9ac268
 // (M2.5.3-4 contract point 3, canonical format 4; D-M2-43) -> 0xeb6a2fd17e8f0722 (M2.5.3-4 contract point 4, role
-// masks; D-M2-44).
-inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0xeb6a2fd17e8f0722ULL;
+// masks; D-M2-44) -> 0xf2ce734ee88095a7 (M2.5.3-4 contract point 5, canonical format 5; D-M2-45).
+inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0xf2ce734ee88095a7ULL;
 // Regression golden of the fixture_probe_v1 PCM (seed 1337, nominal path; FNV-1a of the recorded float samples,
 // pcmContentHash). Verified separately from the plan (DIF-5e.1-01): a synthesis change that alters the audio
 // without changing events or decisions must fail. Recorded identically on the development machine and on the
@@ -318,8 +319,9 @@ inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0xeb6a2fd17e8f072
 // -> 795499972965883485 (M2.5.3-4 C1c: Corpo plays G + D instead of G + B in the 16 G bars of A and A'; D-M2-41)
 // -> 9396686444379387342 (M2.5.3-4 contract point 2: 40 Vettore notes moved to chord tones; D-M2-42)
 // -> 11240606778404684750 (M2.5.3-4 contract point 3: Vettore +12 in A, +24 in A'; D-M2-43)
-// -> 871685324087719297 (M2.5.3-4 contract point 4: Trama out in 10-11 and 16-19, Pulso out in 22; D-M2-44).
-inline constexpr std::uint64_t kFixtureProbeV1GoldenPcmHash = 871685324087719297ULL;
+// -> 871685324087719297 (M2.5.3-4 contract point 4: Trama out in 10-11 and 16-19, Pulso out in 22; D-M2-44)
+// -> 682170244392377824 (M2.5.3-4 contract point 5: derived variation chain and reprise; D-M2-45).
+inline constexpr std::uint64_t kFixtureProbeV1GoldenPcmHash = 682170244392377824ULL;
 // Minimum post-bus telemetry energy for a role to count as active in a section (D-M2-11)
 inline constexpr float kFixtureRoleActivityFloor = 1.0e-4f;
 

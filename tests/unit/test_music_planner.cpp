@@ -712,8 +712,9 @@ TEST_CASE("Golden regression: canonical event list + decision traces of the A->B
     // -> 0x6d73bd838ab32526 (M2.5.3-4 F1: undeclared phrases are anchored, Pulso rotation 0; D-M2-40)
     // -> 0xa3ca0dbd6a6f9d0e (M2.5.3-4 C1c: canonical format 2, Corpo dyad repair of the winner; D-M2-41)
     // -> 0x078e7ac77d936659 (M2.5.3-4 contract point 2: canonical format 3, Vettore reads the chord; D-M2-42)
-    // -> 0xb13b4a4e01a8fa6d (M2.5.3-4 contract point 3: canonical format 4, dominant register; D-M2-43).
-    constexpr std::uint64_t kGoldenHash = 0xb13b4a4e01a8fa6dULL;
+    // -> 0xb13b4a4e01a8fa6d (M2.5.3-4 contract point 3: canonical format 4, dominant register; D-M2-43)
+    // -> 0x62600d91a28e15e3 (M2.5.3-4 contract point 5: canonical format 5, same events; D-M2-45).
+    constexpr std::uint64_t kGoldenHash = 0x62600d91a28e15e3ULL;
     const PlannedRun run = planProbeForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical hash = 0x" << std::hex << h);
@@ -1115,7 +1116,8 @@ TEST_CASE("Golden regression: canonical plan of fixture-m2-4-v1", "[music_planne
     // M2.5.3-4 contract point 2: -> 0x18cc6d32dc2fa60c (canonical format 3, Vettore reads the chord; D-M2-42)
     // M2.5.3-4 contract point 3: -> 0x17aade206b9ac268 (canonical format 4, dominant register; D-M2-43)
     // M2.5.3-4 contract point 4: -> 0xeb6a2fd17e8f0722 (role masks fixture-orchestration-v1; D-M2-44)
-    constexpr std::uint64_t kGoldenFixtureHash = 0xeb6a2fd17e8f0722ULL;
+    // M2.5.3-4 contract point 5: -> 0xf2ce734ee88095a7 (canonical format 5, derivation chain; D-M2-45)
+    constexpr std::uint64_t kGoldenFixtureHash = 0xf2ce734ee88095a7ULL;
     const PlannedRun run = planFixtureForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical fixture hash = 0x" << std::hex << h);
@@ -1158,7 +1160,7 @@ TEST_CASE("fixture_probe_v1 scheduling accounting rejects missing or extra engin
 }
 
 TEST_CASE("Canonical plan hash: shared serialization is versioned and sensitive to every section (DIF-INC4-R3-03)", "[music_planner][canonical_plan_hash]") {
-    STATIC_REQUIRE(kCanonicalPlanHashFormatVersion == 4);
+    STATIC_REQUIRE(kCanonicalPlanHashFormatVersion == 5);
     PlannedRun run = planFixtureForm(1337ULL);
     const std::uint64_t h = canonicalPlanHash(run.intents, run.noteOffs, run.traces);
     CHECK(h == kFixtureProbeV1GoldenPlanHash);
@@ -1193,6 +1195,12 @@ TEST_CASE("Canonical plan hash: shared serialization is versioned and sensitive 
     CHECK(canonicalPlanHash(repair.intents, repair.noteOffs, repair.traces) != h);
     repair = run;
     repair.traces[3].vettoreRegisterUnmet = !repair.traces[3].vettoreRegisterUnmet;
+    CHECK(canonicalPlanHash(repair.intents, repair.noteOffs, repair.traces) != h);
+    repair = run;                                   // format 5: origin of the base motif and lineage reset (D-M2-45)
+    repair.traces[3].baseSourcePhrase += 1;
+    CHECK(canonicalPlanHash(repair.intents, repair.noteOffs, repair.traces) != h);
+    repair = run;
+    repair.traces[3].lineageReset = !repair.traces[3].lineageReset;
     CHECK(canonicalPlanHash(repair.intents, repair.noteOffs, repair.traces) != h);
 }
 
@@ -1304,8 +1312,9 @@ TEST_CASE("F1: declared metric anchor of fixture-m2-4-v1 (R-MET-1/2, D-M2-40)", 
 
     // P3: winners as before F1 (commit 7287aed) and no score tie among valid candidates at the top
     // M2.5.3-4 contract point 4 (D-M2-44): the declared role masks of fixture-orchestration-v1 change the winner of
-    // phrases 10-11, 17-19 and 22 (accepted by the pre-registered rule E6); before: 6 in every phrase from 8 on
-    const std::array<std::uint64_t, 24> winnersBefore{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 5, 5, 6, 6, 6, 6, 6, 5, 5, 5, 6, 6, 1, 6};
+    // phrases 10-11, 17-19 and 22 (accepted by the pre-registered rule E6); before: 6 in every phrase from 8 on.
+    // M2.5.3-4 contract point 5 (D-M2-45): the derivation chain brings phrase 10 back to 6
+    const std::array<std::uint64_t, 24> winnersBefore{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 6, 5, 6, 6, 6, 6, 6, 5, 5, 5, 6, 6, 1, 6};
     for (std::size_t i = 0; i < 24; ++i) {
         const auto& t = run.traces[i];
         INFO("phrase " << i);
@@ -1348,8 +1357,9 @@ TEST_CASE("Contract point 1, C1c: Corpo dyad repaired after selection (R-HAR-5, 
 
     // R1: selection of F1 (commit 97d07e7): same winners, no tie at the top
     // M2.5.3-4 contract point 4 (D-M2-44): the declared role masks of fixture-orchestration-v1 change the winner of
-    // phrases 10-11, 17-19 and 22 (accepted by the pre-registered rule E6); before: 6 in every phrase from 8 on
-    const std::array<std::uint64_t, 24> winnersF1{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 5, 5, 6, 6, 6, 6, 6, 5, 5, 5, 6, 6, 1, 6};
+    // phrases 10-11, 17-19 and 22 (accepted by the pre-registered rule E6); before: 6 in every phrase from 8 on.
+    // M2.5.3-4 contract point 5 (D-M2-45): the derivation chain brings phrase 10 back to 6
+    const std::array<std::uint64_t, 24> winnersF1{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 6, 5, 6, 6, 6, 6, 6, 5, 5, 5, 6, 6, 1, 6};
     for (std::size_t i = 0; i < 24; ++i) {
         const auto& t = run.traces[i];
         INFO("phrase " << i);
@@ -1358,7 +1368,8 @@ TEST_CASE("Contract point 1, C1c: Corpo dyad repaired after selection (R-HAR-5, 
         CHECK_FALSE(t.corpoDyadRepairRejected);
         // R4: two swaps (G, then the A minor bar that voice leading brings to E) in A and A', none in B
         // Point 4 (D-M2-44): with the winners of 17-19 and 22 the A minor bar needs no second swap
-        constexpr std::array<std::uint32_t, 24> kDyadRepairs{2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 1, 1, 1, 2, 2, 1, 2};
+        // Point 5 (D-M2-45): the chained B figure of phrases 9, 11 and 13 needs the dyad repair too
+        constexpr std::array<std::uint32_t, 24> kDyadRepairs{2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 0, 1, 0, 2, 0, 0, 2, 1, 1, 1, 2, 2, 1, 2};
         CHECK(t.corpoDyadRepairedBars == kDyadRepairs[i]);
     }
 
@@ -1407,9 +1418,9 @@ TEST_CASE("Contract point 2: Vettore reads the chord after selection, with ablat
     }
     // V4: 8 in A, 24 in B, 8 in A'
     CHECK(perSection[0] == 8);
-    CHECK(perSection[1] == 22); // 24 before point 4 (D-M2-44): the winner of phrases 10-11 changes
+    CHECK(perSection[1] == 24); // 24 before point 4 (D-M2-44), 22 with point 4, 24 again with point 5 (D-M2-45)
     CHECK(perSection[2] == 8);
-    CHECK(adapted == 38);       // 40 before point 4
+    CHECK(adapted == 40);       // 40 before point 4, 38 with point 4, 40 with point 5
 
     // V5: only Vettore pitches differ; onsets, durations, roles and the other roles are identical
     std::uint32_t changedPitches = 0;
@@ -1435,14 +1446,16 @@ TEST_CASE("Contract point 3: the dominant Vettore sits above the Corpo upper voi
     const PlannedRun run = planFixtureForm(1337ULL);
     REQUIRE(run.traces.size() == 24);
     // M2.5.3-4 contract point 4 (D-M2-44): the declared role masks of fixture-orchestration-v1 change the winner of
-    // phrases 10-11, 17-19 and 22 (accepted by the pre-registered rule E6); before: 6 in every phrase from 8 on
-    const std::array<std::uint64_t, 24> winnersF1{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 5, 5, 6, 6, 6, 6, 6, 5, 5, 5, 6, 6, 1, 6};
+    // phrases 10-11, 17-19 and 22 (accepted by the pre-registered rule E6); before: 6 in every phrase from 8 on.
+    // M2.5.3-4 contract point 5 (D-M2-45): the derivation chain brings phrase 10 back to 6
+    const std::array<std::uint64_t, 24> winnersF1{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 6, 5, 6, 6, 6, 6, 6, 5, 5, 5, 6, 6, 1, 6};
     for (std::size_t i = 0; i < 24; ++i) {
         const auto& t = run.traces[i];
         INFO("phrase " << i);
         // D1: +12 in A, 0 in B, +24 in A'; the selection is unchanged
         // D1, updated by point 4 (D-M2-44): the new winners of 10-11, 17-19 and 22 need +12
-        constexpr std::array<int, 24> kShift{12, 12, 12, 12, 12, 12, 12, 12, 0, 0, 12, 12, 0, 0, 0, 0, 24, 12, 12, 12, 24, 24, 12, 24};
+        // Point 5 (D-M2-45): phrase 10 is back to the winner 6, which needs no shift
+        constexpr std::array<int, 24> kShift{12, 12, 12, 12, 12, 12, 12, 12, 0, 0, 0, 12, 0, 0, 0, 0, 24, 12, 12, 12, 24, 24, 12, 24};
         CHECK(t.vettoreRegisterShift == kShift[i]);
         CHECK_FALSE(t.vettoreRegisterUnmet);
         CHECK((t.winningCandidateId & 0xFFULL) == winnersF1[i]);
@@ -1485,4 +1498,33 @@ TEST_CASE("Contract point 4: Pulso may rest only with an anchored beat 1 (R-MET-
             }));
         }
     }
+}
+
+TEST_CASE("Contract point 5: derivation chain with bounds and reprise, fixture-lineage-v1 (D-M2-45)", "[music_planner][motif_lineage]") {
+    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+    REQUIRE(optClock.has_value());
+    const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(*optClock);
+    const PlannedRun run = planFixtureForm(1337ULL);
+    REQUIRE(run.traces.size() == 24);
+    const Motif sectionA = MusicPlanner::makeFixtureM24V1Form().sections[0].sectionMotif;
+    for (std::size_t i = 0; i < 24; ++i) {
+        const auto& t = run.traces[i];
+        INFO("phrase " << i);
+        const MotifSource src = phrases[i].motifSource;
+        // K1: declared origin, unless the drift bound restarted the phrase from the section motif
+        if (src == MotifSource::SectionBase || t.lineageReset) {
+            CHECK(t.baseSourcePhrase == -1);
+        } else if (src == MotifSource::PreviousWinner) {
+            CHECK(t.baseSourcePhrase == static_cast<std::int32_t>(i) - 1);
+        } else {
+            CHECK(t.baseSourcePhrase == 0); // A' recalls the opening of A
+        }
+        if (t.baseSourcePhrase >= 0) {
+            CHECK(t.baseMotif == run.traces[static_cast<std::size_t>(t.baseSourcePhrase)].winningMotif);
+        }
+        CHECK(t.lineageReset == (i == 12 || i == 17 || i == 21 || i == 22));
+    }
+    // The section motif of A opens the piece; phrase 16 starts from the winner of phrase 0
+    CHECK(run.traces[0].baseMotif == sectionA);
+    CHECK(run.traces[16].baseMotif == run.traces[0].winningMotif);
 }
