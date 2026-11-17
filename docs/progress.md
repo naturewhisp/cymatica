@@ -3460,3 +3460,34 @@ Lo scenario è una voce vincolante di `full_m2_suite` e ha un test `[meter_chang
 - **Registro:** voce 10.
 - **Build e suite:** Release e Debug `/WX` 300/300; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
 - **Prossimo:** punto 3, `dominantRole` e registro di Vettore in A′.
+
+**M2.5.3–4, punto 3, diagnosi (2026-11-17, piano `fc07a98`):** `dominantRole` vale Vettore in ogni frase ma non è mai letto dal planner. Note di Vettore rispetto alla voce alta di Corpo, attacco per attacco, e vicinanza alla Trama (entro 2 semitoni da una nota di Trama che suona insieme):
+
+| Sezione | Registro attuale | Sopra / uguale / sotto Corpo | Con +1 ottava | Con +2 ottave |
+|---|---|---|---|---|
+| A | 60–69 | 24 / 24 / 80; Trama 0 | 72–81: 124 / 4 / 0; Trama 16 | — |
+| B | 60–67 | 71 / 40 / 16; Trama 3 | 72–79: 127 / 0 / 0; Trama 38 | — |
+| A′ | 48–57 | 0 / 0 / 128; Trama 0 | 60–69, come A: 24 / 25 / 79; Trama 0 | 72–81: 120 / 8 / 0; Trama 32 |
+
+Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine dello 0,4%. In A, come in A′, il ruolo dominante sta sotto la voce alta di Corpo nella maggior parte degli attacchi. Scelta di disegno chiesta al titolare prima della pre-registrazione.
+
+**M2.5.3–4, punto 3, registro del ruolo dominante: pre-registrazione** [M2_5_3_C3_Dominant_Register_Preregistration.md](research/M2_5_3_C3_Dominant_Register_Preregistration.md), SHA-256 (LF) `a146be539ef786ffa13b89b8e9585e022d9b7e6ce6aa6078daf234a6073019a0`.
+- **Scelta del titolare:** «Melodia sopra Corpo».
+- **Regola:** nel vincitore, con Vettore dominante, si sposta la melodia di 0, +12 o +24 semitoni; vale il primo spostamento con almeno metà delle note sopra la voce alta di Corpo.
+- **Predizioni:** D1–D7.
+
+**M2.5.3–4, punto 3, registro del ruolo dominante, risultati (2026-11-17):** [M2_5_3_C3_Dominant_Register_Results.md](research/M2_5_3_C3_Dominant_Register_Results.md), ADR-0007 D-M2-43.
+- **D1–D7 confermate:**
+  - spostamenti +12 in A, 0 in B, +24 in A′;
+  - Vettore sopra Corpo in 124, 71 e 120 attacchi su 128 (prima 24, 71 e 0);
+  - registro 72–81 in A e A′;
+  - solo le ottave di Vettore cambiano, con M5 e M5r identici;
+  - picchi di Corpo a 9 e 17.
+- **Prezzo, da sentire:**
+  - vicinanza alla Trama 16 e 32 note su 128;
+  - salto d'ottava ai confini.
+
+  Voce 11 del registro.
+- **Non estratti:** gli spostamenti di `meter_change_v1` e della forma di prova.
+- **Build e suite:** Release e Debug `/WX` 301/301; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
+- **Prossimo:** punto 4, entrate e uscite dei ruoli.

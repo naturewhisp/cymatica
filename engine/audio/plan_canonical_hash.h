@@ -15,7 +15,8 @@ namespace cymatica::audio {
 // requires a new format version and reviewed golden updates.
 // Format 1: M2.4 to M2.5.3-4 F1. Format 2: adds the Corpo dyad repair fields of each trace (D-M2-41).
 // Format 3: adds the Vettore chord-reading count and adaptations (bar, note, semitones) of each trace (D-M2-42).
-inline constexpr std::uint32_t kCanonicalPlanHashFormatVersion = 3;
+// Format 4: adds the register shift of the dominant Vettore and its unmet flag (D-M2-43).
+inline constexpr std::uint32_t kCanonicalPlanHashFormatVersion = 4;
 
 [[nodiscard]] std::uint64_t canonicalPlanHash(const std::vector<std::vector<MusicIntentEvent>>& intentsPerPhrase,
                                               const std::vector<PlannedNoteOff>& noteOffs,

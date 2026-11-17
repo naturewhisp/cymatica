@@ -15,8 +15,9 @@ namespace cymatica::cacp {
 // History: 4922831055463163399 -> 58770584194502935 (M2.5.3-4 F3: the 3/4 section's first phrase keeps the
 // Pulso/Trama patterns of the previous phrase; every binding check M1-M6 still passes) -> 9026598872691749635
 // (M2.5.3-4 contract point 1, C1c: Corpo dyad repaired after selection; D-M2-41) -> 16485786595596680340
-// (M2.5.3-4 contract point 2: Vettore reads the chord; D-M2-42).
-inline constexpr std::uint64_t kMeterChangeGoldenPcmHash = 16485786595596680340ULL;
+// (M2.5.3-4 contract point 2: Vettore reads the chord; D-M2-42) -> 16313085494776772472 (M2.5.3-4 contract point 3:
+// dominant register; D-M2-43).
+inline constexpr std::uint64_t kMeterChangeGoldenPcmHash = 16313085494776772472ULL;
 
 struct MeterChangeResult {
     std::string verdict{"NOT_RUN"};             // PASS or FAIL

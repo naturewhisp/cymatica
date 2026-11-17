@@ -61,6 +61,8 @@ std::uint64_t canonicalPlanHash(const std::vector<std::vector<MusicIntentEvent>>
             const auto& v = t.vettoreAdaptations[a];
             f.byte(v.bar); f.byte(v.noteIndex); f.byte(static_cast<std::uint8_t>(v.semitones));
         }
+        // Format 4 (contract point 3, D-M2-43): octave shift of the dominant Vettore
+        f.byte(static_cast<std::uint8_t>(t.vettoreRegisterShift)); f.byte(t.vettoreRegisterUnmet ? 1 : 0);
     }
     return f.h;
 }

@@ -1588,10 +1588,10 @@ PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool w
                     const auto& n = t.winningMotif.notes[m];
                     const std::uint64_t frame = clock.frameAtBeatStep(barBeat, n.stepOffset, tm.subdivisionsPerBeat);
                     // Contract point 2 (D-M2-42): a chord-reading adaptation recorded in the trace offsets the pitch
-                    std::int32_t offset = 0;
+                    std::int32_t offset = t.vettoreRegisterShift; // contract point 3 (D-M2-43)
                     for (std::uint32_t a = 0; a < t.vettoreAdaptedNotes && a < kMaxVettoreAdaptations; ++a) {
                         if (t.vettoreAdaptations[a].bar == b && t.vettoreAdaptations[a].noteIndex == m) {
-                            offset = t.vettoreAdaptations[a].semitones;
+                            offset = t.vettoreRegisterShift + t.vettoreAdaptations[a].semitones;
                         }
                     }
                     const float hz = midiNoteToPitchHz(degreeToMidiNote(phrase.scale,
@@ -1965,6 +1965,8 @@ std::uint64_t fixtureTraceHash(const std::vector<PhraseDecisionTrace>& traces) n
             fnvMix(h, (static_cast<std::uint64_t>(v.bar) << 16) | (static_cast<std::uint64_t>(v.noteIndex) << 8) |
                           static_cast<std::uint8_t>(v.semitones));
         }
+        fnvMix(h, static_cast<std::uint8_t>(t.vettoreRegisterShift));            // D-M2-43
+        fnvMix(h, static_cast<std::uint64_t>(t.vettoreRegisterUnmet ? 1 : 0));
         for (std::size_t c = 0; c < t.candidatesGenerated; ++c) {
             fnvMix(h, t.candidates[c].candidateId);
             fnvMix(h, static_cast<std::uint64_t>(t.candidates[c].score));

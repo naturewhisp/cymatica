@@ -384,6 +384,10 @@ struct PhraseDecisionTrace {
     // Contract point 2 (D-M2-42): Vettore notes of the winner moved to a chord tone after the dyad repair
     std::uint32_t vettoreAdaptedNotes{0};
     std::array<VettoreAdaptation, kMaxVettoreAdaptations> vettoreAdaptations{}; // first vettoreAdaptedNotes entries
+    // Contract point 3 (D-M2-43): octave shift of the winner's Vettore when it is the dominant role, and whether even
+    // +24 left less than half of its notes above the sounding Corpo upper voice
+    std::int8_t vettoreRegisterShift{0};
+    bool vettoreRegisterUnmet{false};
 
     [[nodiscard]] constexpr bool operator==(const PhraseDecisionTrace& other) const noexcept = default;
 };
@@ -565,6 +569,8 @@ public:
         SimulatedVoiceTracker voiceTracker{};
         std::optional<TriadVoicing> lastCorpoVoicing{};
         std::optional<std::array<std::int32_t, 4>> lastPatterns{};
+        std::int32_t heldCorpoUpperMidi{-1};
+        std::uint64_t heldCorpoUntilFrame{0};
         std::uint64_t nextEventId{1};
         std::uint32_t totalFallbacks{0};
         std::size_t traceCount{0};
@@ -602,6 +608,9 @@ private:
     // F3 (policy 1.0.2.0): Euclidean parameters of the last committed phrase {pulso pulses, pulso rotation, trama
     // pulses, trama rotation}, carried into the first phrase of the next section
     std::optional<std::array<std::int32_t, 4>> lastPatterns_{};
+    // Contract point 3 (D-M2-43): upper voice of a Corpo open pad still sounding into the next phrase, and its end
+    std::int32_t heldCorpoUpperMidi_{-1};
+    std::uint64_t heldCorpoUntilFrame_{0};
     std::uint64_t nextEventId_{1};
     std::uint32_t totalFallbacks_{0};
     std::vector<PhraseDecisionTrace> traces_{};

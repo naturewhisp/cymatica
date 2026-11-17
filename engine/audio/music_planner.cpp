@@ -515,6 +515,8 @@ void MusicPlanner::reset(std::uint64_t newSeed) noexcept {
     voiceTracker_.reset();
     lastCorpoVoicing_.reset();
     lastPatterns_.reset();
+    heldCorpoUpperMidi_ = -1;
+    heldCorpoUntilFrame_ = 0;
 }
 
 MusicPlanner::PlannerCheckpoint MusicPlanner::createCheckpoint() const noexcept {
@@ -522,6 +524,8 @@ MusicPlanner::PlannerCheckpoint MusicPlanner::createCheckpoint() const noexcept 
         .voiceTracker = voiceTracker_,
         .lastCorpoVoicing = lastCorpoVoicing_,
         .lastPatterns = lastPatterns_,
+        .heldCorpoUpperMidi = heldCorpoUpperMidi_,
+        .heldCorpoUntilFrame = heldCorpoUntilFrame_,
         .nextEventId = nextEventId_,
         .totalFallbacks = totalFallbacks_,
         .traceCount = traces_.size(),
@@ -533,6 +537,8 @@ void MusicPlanner::restoreCheckpoint(const PlannerCheckpoint& cp) noexcept {
     voiceTracker_ = cp.voiceTracker;
     lastCorpoVoicing_ = cp.lastCorpoVoicing;
     lastPatterns_ = cp.lastPatterns;
+    heldCorpoUpperMidi_ = cp.heldCorpoUpperMidi;
+    heldCorpoUntilFrame_ = cp.heldCorpoUntilFrame;
     nextEventId_ = cp.nextEventId;
     totalFallbacks_ = cp.totalFallbacks;
     if (cp.traceCount < traces_.size()) {
@@ -1491,7 +1497,51 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
         // selection, the scores and the trace candidates stay those of the unrepaired generation.
         std::vector<PhraseCandidate> repaired;
         generateCandidates(phrase, grid, baseMotif, repaired, static_cast<std::int32_t>(winner.candidateIndex));
-        if (repaired.size() == 1 && (repaired[0].corpoDyadRepairedBars > 0 || repaired[0].vettoreAdaptedNotes > 0)) {
+        // Contract point 3 (R-ROL-1, R-REG-3, D-M2-43): when Vettore is the dominant role, shift its whole phrase by
+        // 0, +12 or +24 semitones, keeping the first shift that puts at least half of its notes strictly above the
+        // Corpo upper voice sounding at their onset (this phrase's Corpo, or a pad held from the previous phrase)
+        std::int32_t registerShift = 0;
+        bool registerUnmet = false;
+        if (repaired.size() == 1 && phrase.dominantRole == MusicRole::Vettore) {
+            PhraseCandidate& r = repaired[0];
+            const auto corpoUpperAt = [&](std::uint64_t f) noexcept {
+                std::int32_t up = (f < heldCorpoUntilFrame_) ? heldCorpoUpperMidi_ : -1;
+                for (std::size_t i = 0; i < r.eventCount; ++i) {
+                    const auto& e = r.events[i];
+                    if (e.role != MusicRole::Corpo) continue;
+                    const std::uint64_t off = (e.durationFrames > 0) ? e.sampleFrame + e.durationFrames
+                                              : (phrase.isCrossSectionPadPhrase ? phrase.crossSectionNoteOffFrame : phrase.endFrame);
+                    if (e.sampleFrame <= f && f < off) up = std::max<std::int32_t>(up, e.midiNote);
+                }
+                return up;
+            };
+            bool met = false;
+            for (const std::int32_t shift : {0, 12, 24}) {
+                std::size_t total = 0;
+                std::size_t above = 0;
+                for (std::size_t i = 0; i < r.eventCount; ++i) {
+                    const auto& e = r.events[i];
+                    if (e.role != MusicRole::Vettore) continue;
+                    ++total;
+                    const std::int32_t up = corpoUpperAt(e.sampleFrame);
+                    if (up >= 0 && e.midiNote + shift > up) ++above;
+                }
+                registerShift = shift;
+                if (total == 0 || 2 * above >= total) { met = true; break; }
+            }
+            registerUnmet = !met;
+            if (registerShift != 0) {
+                for (std::size_t i = 0; i < r.eventCount; ++i) {
+                    auto& e = r.events[i];
+                    if (e.role != MusicRole::Vettore) continue;
+                    e.midiNote = static_cast<std::int16_t>(e.midiNote + registerShift);
+                    e.pitchHz = midiNoteToPitchHz(e.midiNote);
+                }
+                canonicalizeEvents(r);
+            }
+        }
+        if (repaired.size() == 1 &&
+            (repaired[0].corpoDyadRepairedBars > 0 || repaired[0].vettoreAdaptedNotes > 0 || registerShift != 0)) {
             PhraseCandidate& r = repaired[0];
             r.violation = validateHardConstraints(r, phrase, committedHorizonFrame, false);
             if (r.violation == HardConstraintViolation::None) {
@@ -1503,6 +1553,8 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
                 trace.corpoDyadRepairedBars = r.corpoDyadRepairedBars;
                 trace.vettoreAdaptedNotes = r.vettoreAdaptedNotes;
                 trace.vettoreAdaptations = r.vettoreAdaptations;
+                trace.vettoreRegisterShift = static_cast<std::int8_t>(registerShift);
+                trace.vettoreRegisterUnmet = registerUnmet;
                 winner = r;
                 winnerTracker = trackerCopy;
             } else {
@@ -1611,6 +1663,17 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
     voiceTracker_ = winnerTracker;
     if (winner.lastCorpoVoicing.has_value()) {
         lastCorpoVoicing_ = winner.lastCorpoVoicing;
+    }
+    // Contract point 3 (D-M2-43): a Corpo open pad of the winner keeps sounding into the next phrase
+    for (std::size_t i = 0; i < winner.eventCount; ++i) {
+        const auto& e = winner.events[i];
+        if (e.role != MusicRole::Corpo || !e.isOpenPad) continue;
+        const std::uint64_t off = phrase.isCrossSectionPadPhrase ? phrase.crossSectionNoteOffFrame : phrase.endFrame;
+        if (off > phrase.endFrame) {
+            if (heldCorpoUntilFrame_ != off) heldCorpoUpperMidi_ = -1;
+            heldCorpoUpperMidi_ = std::max<std::int32_t>(heldCorpoUpperMidi_, e.midiNote);
+            heldCorpoUntilFrame_ = off;
+        }
     }
     lastPatterns_ = std::array<std::int32_t, 4>{static_cast<std::int32_t>(winner.pulsoPulses), winner.pulsoRotation,
                                                 static_cast<std::int32_t>(winner.tramaPulses), winner.tramaRotation};

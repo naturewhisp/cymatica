@@ -570,7 +570,10 @@ TEST_CASE("Onset grid is derived from MusicClock (zero drift at 140 BPM) with or
         const int degree = n.scaleDegree + 7 * t0.winningMotif.registerOctaveOffset;
         const int oct = (degree >= 0) ? degree / 7 : -((-degree + 6) / 7);
         const int deg = degree - oct * 7;
-        expectedVettore.insert(oracleMidiHz(62 + oct * 12 + kDorian[static_cast<std::size_t>(deg)] + n.chromaticOffset));
+        // Contract point 3 (D-M2-43): octave shift of the dominant Vettore, a multiple of 12 in [0, 24]
+        const int shift = t0.vettoreRegisterShift;
+        CHECK((shift == 0 || shift == 12 || shift == 24));
+        expectedVettore.insert(oracleMidiHz(62 + oct * 12 + kDorian[static_cast<std::size_t>(deg)] + n.chromaticOffset + shift));
         // Contract point 2 (D-M2-42): chord-reading adaptations recorded in the trace; the nearest chord tone of a
         // diatonic triad is never more than 2 semitones away
         for (std::uint32_t a = 0; a < t0.vettoreAdaptedNotes; ++a) {
@@ -578,7 +581,7 @@ TEST_CASE("Onset grid is derived from MusicClock (zero drift at 140 BPM) with or
             CHECK(std::abs(t0.vettoreAdaptations[a].semitones) <= 2);
             CHECK(t0.vettoreAdaptations[a].semitones != 0);
             expectedVettore.insert(oracleMidiHz(62 + oct * 12 + kDorian[static_cast<std::size_t>(deg)] + n.chromaticOffset +
-                                                t0.vettoreAdaptations[a].semitones));
+                                                t0.vettoreAdaptations[a].semitones + shift));
         }
     }
     for (const auto& e : run.intents[0]) {
@@ -708,8 +711,9 @@ TEST_CASE("Golden regression: canonical event list + decision traces of the A->B
     // (M2.5.3-4 F3: planner policy 1.0.2.0 and Pulso/Trama pattern continuity at the section boundary)
     // -> 0x6d73bd838ab32526 (M2.5.3-4 F1: undeclared phrases are anchored, Pulso rotation 0; D-M2-40)
     // -> 0xa3ca0dbd6a6f9d0e (M2.5.3-4 C1c: canonical format 2, Corpo dyad repair of the winner; D-M2-41)
-    // -> 0x078e7ac77d936659 (M2.5.3-4 contract point 2: canonical format 3, Vettore reads the chord; D-M2-42).
-    constexpr std::uint64_t kGoldenHash = 0x078e7ac77d936659ULL;
+    // -> 0x078e7ac77d936659 (M2.5.3-4 contract point 2: canonical format 3, Vettore reads the chord; D-M2-42)
+    // -> 0xb13b4a4e01a8fa6d (M2.5.3-4 contract point 3: canonical format 4, dominant register; D-M2-43).
+    constexpr std::uint64_t kGoldenHash = 0xb13b4a4e01a8fa6dULL;
     const PlannedRun run = planProbeForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical hash = 0x" << std::hex << h);
@@ -1097,7 +1101,8 @@ TEST_CASE("Golden regression: canonical plan of fixture-m2-4-v1", "[music_planne
     // M2.5.3-4 F1: -> 0x7aa477a5519f9cf8 (declared metric anchor, fixture-metric-v1; D-M2-40)
     // M2.5.3-4 C1c: -> 0xc5fc6a007f0a0a34 (canonical format 2, Corpo dyad repaired after selection; D-M2-41)
     // M2.5.3-4 contract point 2: -> 0x18cc6d32dc2fa60c (canonical format 3, Vettore reads the chord; D-M2-42)
-    constexpr std::uint64_t kGoldenFixtureHash = 0x18cc6d32dc2fa60cULL;
+    // M2.5.3-4 contract point 3: -> 0x17aade206b9ac268 (canonical format 4, dominant register; D-M2-43)
+    constexpr std::uint64_t kGoldenFixtureHash = 0x17aade206b9ac268ULL;
     const PlannedRun run = planFixtureForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical fixture hash = 0x" << std::hex << h);
@@ -1140,7 +1145,7 @@ TEST_CASE("fixture_probe_v1 scheduling accounting rejects missing or extra engin
 }
 
 TEST_CASE("Canonical plan hash: shared serialization is versioned and sensitive to every section (DIF-INC4-R3-03)", "[music_planner][canonical_plan_hash]") {
-    STATIC_REQUIRE(kCanonicalPlanHashFormatVersion == 3);
+    STATIC_REQUIRE(kCanonicalPlanHashFormatVersion == 4);
     PlannedRun run = planFixtureForm(1337ULL);
     const std::uint64_t h = canonicalPlanHash(run.intents, run.noteOffs, run.traces);
     CHECK(h == kFixtureProbeV1GoldenPlanHash);
@@ -1169,6 +1174,12 @@ TEST_CASE("Canonical plan hash: shared serialization is versioned and sensitive 
     repair = run;
     REQUIRE(repair.traces[3].vettoreAdaptedNotes > 0);
     repair.traces[3].vettoreAdaptations[0].semitones += 1;
+    CHECK(canonicalPlanHash(repair.intents, repair.noteOffs, repair.traces) != h);
+    repair = run;                                   // format 4: the dominant register shift (D-M2-43)
+    repair.traces[3].vettoreRegisterShift = static_cast<std::int8_t>(repair.traces[3].vettoreRegisterShift + 12);
+    CHECK(canonicalPlanHash(repair.intents, repair.noteOffs, repair.traces) != h);
+    repair = run;
+    repair.traces[3].vettoreRegisterUnmet = !repair.traces[3].vettoreRegisterUnmet;
     CHECK(canonicalPlanHash(repair.intents, repair.noteOffs, repair.traces) != h);
 }
 
@@ -1398,4 +1409,18 @@ TEST_CASE("Contract point 2: Vettore reads the chord after selection, with ablat
         }
     }
     CHECK(changedPitches == adapted);
+}
+
+TEST_CASE("Contract point 3: the dominant Vettore sits above the Corpo upper voice (R-ROL-1, R-REG-3, D-M2-43)", "[music_planner][dominant_register]") {
+    const PlannedRun run = planFixtureForm(1337ULL);
+    REQUIRE(run.traces.size() == 24);
+    const std::array<std::uint64_t, 24> winnersF1{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6};
+    for (std::size_t i = 0; i < 24; ++i) {
+        const auto& t = run.traces[i];
+        INFO("phrase " << i);
+        // D1: +12 in A, 0 in B, +24 in A'; the selection is unchanged
+        CHECK(t.vettoreRegisterShift == ((i < 8) ? 12 : (i < 16) ? 0 : 24));
+        CHECK_FALSE(t.vettoreRegisterUnmet);
+        CHECK((t.winningCandidateId & 0xFFULL) == winnersF1[i]);
+    }
 }
