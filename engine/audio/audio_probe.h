@@ -298,8 +298,9 @@ inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0x4f021cb9e863759
 // +2 dB, ADR-0007 D-M2-31; plan, trace and events unchanged) -> 7790666370008029299 (M2.5.2, Trama FM ratio
 // 1:1 with Trama bus -9 dB for loudness alignment; plan, trace and events unchanged) -> 18256941985354732249
 // (M2.5.2 F2, Trama voice centred at constant power; plan, trace and events unchanged) -> 8159713709400020277
-// (M2.5.2 F4b, Pulso one-shot: the kick follows its designed envelope; plan, trace and events unchanged).
-inline constexpr std::uint64_t kFixtureProbeV1GoldenPcmHash = 8159713709400020277ULL;
+// (M2.5.2 F4b, Pulso one-shot: the kick follows its designed envelope; plan, trace and events unchanged)
+// -> 15689200359660949538 (M2.5.2 F4c, Pulso decay x1.5; plan, trace and events unchanged).
+inline constexpr std::uint64_t kFixtureProbeV1GoldenPcmHash = 15689200359660949538ULL;
 // Minimum post-bus telemetry energy for a role to count as active in a section (D-M2-11)
 inline constexpr float kFixtureRoleActivityFloor = 1.0e-4f;
 
@@ -358,6 +359,7 @@ struct FixtureProbeResult {
     std::uint32_t noteReleaseOverride{0};     // 5e-08 offline release experiment (0 = production release)
     float pulsoBusGainScaleOverride{1.0f};    // M2.5.2 F4a offline kick-level experiment (1 = production)
     float tramaBusGainScaleOverride{1.0f};    // measurement package 4b offline Trama-level experiment (1 = production)
+    float pulsoDecayScaleOverride{1.0f};      // M2.5.2 F4c offline kick-decay experiment (1 = production)
     std::uint64_t expectedEngineEvents{0}; // 2 x generatedEvents: one NoteOn and one NoteOff per intent
     // O3 chain and plan identities (ADR-0006 D-M2-12, Inc-5 phase 5a)
     std::uint64_t jitPlanHash{0};             // canonicalPlanHash of the intents the Coordinator planned just in time
@@ -508,6 +510,7 @@ struct ProbeAnalysisCapture {
     // Offline kick-level experiment (M2.5.2 F4a): linear scale of the Pulso bus gain, 1 = production
     float pulsoBusGainScale{1.0f};
     float tramaBusGainScale{1.0f};                         // measurement package 4b, offline Trama-level experiment
+    float pulsoDecayScale{1.0f};                           // M2.5.2 F4c, offline kick-decay experiment
     FadeEventLog* fadeLog{nullptr};                        // measurement package 2b, fixture scenario only
     VoiceConfounders* confounders{nullptr};                // voice drops, release cuts and overlaps of the run
 };

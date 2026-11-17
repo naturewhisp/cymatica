@@ -23,6 +23,7 @@ Il presente ADR **ratifica AUD-D-01, AUD-D-04, AUD-D-02 (inclusa la specifica te
 **Qualifica tecnica DSP per Inc-2 (CHIUSO — 2026-10-19):** Per **Inc-2 ("Sintesi 4 Ruoli & 4 Bus")** è deliberata l'**implementazione C++20 nativa pura autocontenuta** in `engine/audio/` con **zero dipendenze esterne** (`docs/dependencies.md` invariato). Nessun file sorgente esterno da DaisySP o Airwindows viene importato in Inc-2, garantendo determinismo floating-point bit-exact su MSVC `/W4 /fp:precise`, zero overhead di licenza e controllo diretto delle guardie numeriche:
 
 1. **Pulso (Sub-kick percussivo + click transiente):**
+   - **Emendamento M2.5.2 (ADR-0007 D-M2-35, D-M2-37):** voce one-shot (il NoteOff non la interrompe) e decadimento 75 + 105 · `timbreParam` ms (prima 50 + 70 · `timbreParam`).
    - Oscillatore sinusoidale con sweep esponenziale di frequenza $f_{\text{inst}}[k] = f_{\text{base}} + (f_{\text{start}} - f_{\text{base}}) e^{-k / (\tau_p f_s)}$ ($f_{\text{start}} = \min(3.0 f_{\text{base}}, 180\text{ Hz})$, $\tau_p = 8\text{ ms}$).
    - Click transiente deterministico ($15\text{ ms}$) generato tramite hash puro stateless `core::staffordMix13(eventId ^ (k * 0x9E3779B97F4A7C15ULL) ^ slotIndex)` filtrato con TPT SVF passa-banda/passa-alto ($f_c \in [1200, 3500]\text{ Hz}$). Nessun accesso a `SeedBank` o stato RNG globale.
 2. **Corpo (Pad / Basso armonico sottrattivo):**

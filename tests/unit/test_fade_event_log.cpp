@@ -113,8 +113,8 @@ TEST_CASE("F4b: a Pulso note is one-shot: its NoteOff is acknowledged but the en
     FadeEventLog log(16);
     a.setFadeEventLog(&log);
     ScheduledAudioEvent n = on(1, 0, MusicRole::Pulso, 55.0f);
-    n.durationFrames = 2400;                       // 50 ms planned, shorter than the 71 ms designed decay
-    n.timbreParam = 0.30f;                         // decay 50 + 70 * 0.30 = 71 ms
+    n.durationFrames = 2400;                       // 50 ms planned, shorter than the designed decay
+    n.timbreParam = 0.30f;                         // decay 75 + 105 * 0.30 = 106.5 ms (F4c, D-M2-37)
     const int slot = a.onNoteOn(n);
     REQUIRE(slot >= 0);
     render(a, 0, 2400);
@@ -123,6 +123,8 @@ TEST_CASE("F4b: a Pulso note is one-shot: its NoteOff is acknowledged but the en
     REQUIRE(a.slot(static_cast<std::size_t>(slot)).state != VoiceState::Release);
     REQUIRE(a.slot(static_cast<std::size_t>(slot)).state != VoiceState::Idle);
     REQUIRE(log.records().empty());                // no release fade logged
-    render(a, 2400, 2400);                          // past 1 ms + 71 ms
+    render(a, 2400, 2400);                          // 100 ms: still sounding (1 ms + 106.5 ms)
+    REQUIRE(a.slot(static_cast<std::size_t>(slot)).state != VoiceState::Idle);
+    render(a, 4800, 2400);                          // 150 ms: past the end of the envelope
     REQUIRE(a.slot(static_cast<std::size_t>(slot)).state == VoiceState::Idle);
 }

@@ -951,6 +951,16 @@ bool AudioEngine::setTramaBusGainScale(float scale) noexcept {
     return true;
 }
 
+bool AudioEngine::setPulsoDecayScale(float scale) noexcept {
+    if (!pImpl_) return false;
+    if (!noteReleaseOverrideAllowed(!pImpl_->deviceInitialized, pImpl_->deviceStarted.load(std::memory_order_acquire))) {
+        return false; // offline engines only
+    }
+    if (!std::isfinite(scale) || scale < 0.25f || scale > 4.0f) return false;
+    pImpl_->voiceAllocator.setPulsoDecayScale(scale);
+    return true;
+}
+
 bool AudioEngine::scheduledEventQueueEmpty() const noexcept {
     if (!pImpl_) return true;
     ScheduledAudioEvent e{};

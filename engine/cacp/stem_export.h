@@ -47,4 +47,10 @@ struct StemExportV2Result {
 // every offset (V1).
 [[nodiscard]] StemExportV2Result runStemExportV3(const std::string& outputDir = "artifacts/cacp");
 
+// Scenario kick_decay_ab_v1 (M2.5.2 F4c, docs/research/M2_5_2_F4c_Kick_Decay_Preregistration.md): Pulso decay scale
+// k in {1, 1.25, 1.5, 1.75, 2}; per k the whole Pulso stem, the excerpts (as v2/v3) of the mix, of Corpo and of the mix
+// without Corpo; manifest with limiter reduction, whole-mix and Pulso BS.1770 loudness, Pulso steals, and identity of
+// the events and of the Trama and Vettore stems with k = 1.
+[[nodiscard]] StemExportV2Result runKickDecayAbV1(const std::string& outputDir = "artifacts/cacp");
+
 } // namespace cymatica::cacp

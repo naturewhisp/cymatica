@@ -3304,3 +3304,17 @@ Pacchetto CP-2 archiviato senza invio. ADR-0003 D-M2-06 annotato con la ricalibr
 - **Esito:** nessun offset soddisfa il criterio pre-registrato in tutte le sezioni. In B la presenza richiede +6 dB, che supera il limite di sicurezza (+0,54 contro +0,5 LU). Per regola la Trama **resta −9 dB** e la scelta va all'ascolto cumulativo, con la scala −9 / −5 / −3 dB già misurata. Produzione invariata.
 - **Predizioni:** T1 confermata; T2 mancata (nessuna scelta); V1 confermata; V2 mancata in parte (mix spostato dal cambio F4b fra le due misure).
 - **M2.5.2 contenutisticamente completa:** F4a, F4b, F2, rapporto FM e livello della Trama, quest'ultimo rinviato per regola. Resta facoltativo F4c. Non committato.
+
+**M2.5.2, F4c decadimento del kick: pre-registrazione** [M2_5_2_F4c_Kick_Decay_Preregistration.md](research/M2_5_2_F4c_Kick_Decay_Preregistration.md), SHA-256 (LF) `badc6fd6f4fde8a9d8e5d6775e54963e644efd521270bc8e1336189840ff5feb`. Richiesto dal titolare il 2026-11-17. Scala k = 1–2 del decadimento; criterio: nessuna sovrapposizione, Corpo non coperto (+0,02 al massimo), sicurezza. Predizioni D1–D4 (k = 1,5 previsto).
+
+**M2.5.2, F4c decadimento del kick, risultati (2026-11-17):** [M2_5_2_F4c_Kick_Decay_Results.md](research/M2_5_2_F4c_Kick_Decay_Results.md), ADR-0007 D-M2-37.
+- **Criterio:** sceglie **k = 1,5**, con D1–D4 confermate.
+  - Durata mediana del kick da 76 a **116 ms**; Pulso +1,47 LU; quota sotto 100 Hz da 0,74 a 0,82.
+  - Nessuna sovrapposizione; Corpo +0,007 di perdita al massimo; mix +0,35 LU.
+  - k ≥ 1,75 è escluso da sovrapposizione e sicurezza.
+- **Adozione:** la produzione coincide con la misura a k = 1,5 a tutte le cifre. Golden PCM `8159713709400020277` → **`15689200359660949538`**. ADR-0004 §2.1 emendato (one-shot, decadimento 75–180 ms).
+- **Build e suite:** Release e Debug `/WX` 293/293; `full_m2_suite` verde salvo `acao02_v1`.
+
+**Indicazione del titolare (2026-11-17):** quanto è stato rinviato o deciso per regola andrà valutato nell'ascolto cumulativo, se possibile con domande. Aperto il [registro delle domande per l'ascolto cumulativo](m2_5_cumulative_listening_questions.md), con 7 voci: livello e timbro della Trama, stereo, acuti, kick, dissolvenze di 2 ms, Q3 e F1.
+
+**M2.5.2 completa nei contenuti:** F4a, F4b, F4c, F2, rapporto FM e livello della Trama (rinviato per regola). La chiusura formale attende la CI verde sull'ultimo commit. Non committato.

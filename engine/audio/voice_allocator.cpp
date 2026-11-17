@@ -15,6 +15,8 @@ constexpr float kPulsoClickMinHz = 1200.0f;       // click band-pass centre, sca
 constexpr float kPulsoClickMaxHz = 3500.0f;
 constexpr float kPulsoClickQ = 0.9f;
 constexpr float kVettoreGlideTauMs = 15.0f;       // one-pole portamento
+constexpr float kPulsoDecayBaseSec = 0.075f;     // 1.5 x 50 ms (F4c)
+constexpr float kPulsoDecayTimbreSec = 0.105f;   // 1.5 x 70 ms (F4c)
 constexpr float kTramaCentrePan = 0.790569415f;   // sqrt((1^2 + 0.5^2) / 2): same power as the old L 1.0 / R 0.5 pan
 constexpr float kTramaFmRatio = 1.0f;             // FM modulator:carrier of Trama (M2.5.2, was 1 + 1.76 t)
 constexpr float kVettoreVibratoHz = 5.5f;
@@ -272,9 +274,11 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
     } else {
         switch (slot.role) {
             case MusicRole::Pulso: {
-                // Percussive kick envelope: 1 ms attack, 50..120 ms decay, 0 sustain
+                // Percussive kick envelope: 1 ms attack, 75..180 ms decay (F4c), 0 sustain
                 slot.attackSamples = std::max<std::uint32_t>(1u, sampleRate_ / 1000u);
-                const float decaySec = 0.050f + 0.070f * slot.timbreParam;
+                // M2.5.2 F4c (D-M2-37): decay x1.5 of the ADR-0004 range, i.e. 75..180 ms (107-122 ms at the planner's
+                // timbre 0.30-0.45), chosen by the pre-registered criterion; pulsoDecayScale_ is the offline experiment
+                const float decaySec = (kPulsoDecayBaseSec + kPulsoDecayTimbreSec * slot.timbreParam) * pulsoDecayScale_;
                 slot.decaySamples = std::max<std::uint32_t>(1u, static_cast<std::uint32_t>(decaySec * fs));
                 slot.sustainLevel = 0.0f;
                 slot.filter.reset(); // click band-pass state

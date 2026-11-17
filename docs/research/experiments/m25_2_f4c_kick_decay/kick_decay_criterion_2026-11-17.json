@@ -1,0 +1,88 @@
+{
+  "k100": {
+    "overlaps": 0,
+    "length_ms_median": 76.125,
+    "low_share_below_100hz": 0.7411935400409607,
+    "corpo_loss": {
+      "A": 0.778022942334448,
+      "B": 0.8215070903167815,
+      "Aprime": 0.7580369902534636
+    },
+    "mix_lufs_rise": 0.0,
+    "pulso_lufs_rise": 0.0,
+    "limiter_db": 0.0,
+    "pulso_steals": 0,
+    "N": true,
+    "C": true,
+    "S": true
+  },
+  "k125": {
+    "overlaps": 0,
+    "length_ms_median": 96.10416666666667,
+    "low_share_below_100hz": 0.786839142135111,
+    "corpo_loss": {
+      "A": 0.7814305721542472,
+      "B": 0.8245343326958251,
+      "Aprime": 0.7594449074807716
+    },
+    "mix_lufs_rise": 0.17730674591453166,
+    "pulso_lufs_rise": 0.804577360609688,
+    "limiter_db": 0.0,
+    "pulso_steals": 0,
+    "N": true,
+    "C": true,
+    "S": true
+  },
+  "k150": {
+    "overlaps": 0,
+    "length_ms_median": 115.92708333333334,
+    "low_share_below_100hz": 0.8189093408719842,
+    "corpo_loss": {
+      "A": 0.7848507002109002,
+      "B": 0.8275383080899164,
+      "Aprime": 0.7608050578140263
+    },
+    "mix_lufs_rise": 0.3457310341305657,
+    "pulso_lufs_rise": 1.4683391133988692,
+    "limiter_db": 0.0,
+    "pulso_steals": 0,
+    "N": true,
+    "C": true,
+    "S": true
+  },
+  "k175": {
+    "overlaps": 1,
+    "length_ms_median": 135.5625,
+    "low_share_below_100hz": 0.8426135586215241,
+    "corpo_loss": {
+      "A": 0.7882967189452601,
+      "B": 0.8303654738739255,
+      "Aprime": 0.7621011256835754
+    },
+    "mix_lufs_rise": 0.5068766258616044,
+    "pulso_lufs_rise": 2.0337863579033097,
+    "limiter_db": 0.0,
+    "pulso_steals": 0,
+    "N": false,
+    "C": true,
+    "S": false
+  },
+  "k200": {
+    "overlaps": 1,
+    "length_ms_median": 154.875,
+    "low_share_below_100hz": 0.8608410156284414,
+    "corpo_loss": {
+      "A": 0.7915859545436332,
+      "B": 0.8330579737686539,
+      "Aprime": 0.763329954751395
+    },
+    "mix_lufs_rise": 0.6616493129891516,
+    "pulso_lufs_rise": 2.523391303496144,
+    "limiter_db": 0.0,
+    "pulso_steals": 0,
+    "N": false,
+    "C": true,
+    "S": false
+  },
+  "choice": "k150"
+}

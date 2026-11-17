@@ -220,6 +220,9 @@ public:
     bool setPulsoBusGainScale(float scale) noexcept;
     // Offline Trama-level experiment (measurement package 4b): same rule and range as setPulsoBusGainScale.
     bool setTramaBusGainScale(float scale) noexcept;
+    // Offline kick-decay experiment (M2.5.2 F4c): multiplier of the Pulso decay length; offline engine only,
+    // refused unless finite and 0.25 <= scale <= 4.
+    bool setPulsoDecayScale(float scale) noexcept;
     // Rule of setNoteReleaseFrames, testable without hardware: offline engine and no device running
     [[nodiscard]] static constexpr bool noteReleaseOverrideAllowed(bool offlineEngine, bool deviceStarted) noexcept {
         return offlineEngine && !deviceStarted;

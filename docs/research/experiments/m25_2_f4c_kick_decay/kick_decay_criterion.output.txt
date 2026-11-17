@@ -1,0 +1,6 @@
+k100 overlaps 0 len 76.1 low 0.7412 corpo loss {'A': 0.778, 'B': 0.822, 'Aprime': 0.758} mix +0.000 pulso +0.000 N True C True S True
+k125 overlaps 0 len 96.1 low 0.7868 corpo loss {'A': 0.781, 'B': 0.825, 'Aprime': 0.759} mix +0.177 pulso +0.805 N True C True S True
+k150 overlaps 0 len 115.9 low 0.8189 corpo loss {'A': 0.785, 'B': 0.828, 'Aprime': 0.761} mix +0.346 pulso +1.468 N True C True S True
+k175 overlaps 1 len 135.6 low 0.8426 corpo loss {'A': 0.788, 'B': 0.83, 'Aprime': 0.762} mix +0.507 pulso +2.034 N False C True S False
+k200 overlaps 1 len 154.9 low 0.8608 corpo loss {'A': 0.792, 'B': 0.833, 'Aprime': 0.763} mix +0.662 pulso +2.523 N False C True S False
+choice: k150

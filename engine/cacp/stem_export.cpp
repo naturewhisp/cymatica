@@ -3,6 +3,7 @@
 #include "acao02_calibration.h"
 #include "audio_probe.h"
 #include "loudness.h"
+#include "fade_event_log.h"
 #include "music_planner.h"
 #include "stem_analysis.h"
 
@@ -348,6 +349,136 @@ StemExportV2Result runStemExportV3(const std::string& outputDir) {
         j["files"] = r.files;
         j["V1_corpo_vettore_alone_identical"] = v1;
         j["mix_excerpt_integrated_lufs"] = mixLufs;
+        mf << j.dump(2) << "\n";
+        r.manifestWriteSuccess = mf.good();
+    }
+    return r;
+}
+
+StemExportV2Result runKickDecayAbV1(const std::string& outputDir) {
+    namespace fs = std::filesystem;
+    StemExportV2Result r;
+    std::error_code ec;
+    const fs::path dir = fs::path(outputDir) / "kick_decay_ab_v1";
+    fs::create_directories(dir, ec);
+    const auto write = [&](const std::string& name, const std::vector<float>& pcm) {
+        const auto bytes = encodeWavStereoFloat32(pcm, kFs);
+        std::ofstream o(dir / name, std::ios::binary);
+        o.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+        if (o.good()) r.files.push_back(name);
+        else r.reasons.push_back("cannot write " + name);
+    };
+    const auto fnv = [](std::span<const float> v) {
+        std::uint64_t h = 1469598103934665603ULL;
+        for (const float x : v) {
+            std::uint32_t bits = 0;
+            std::memcpy(&bits, &x, 4);
+            for (int k = 0; k < 4; ++k) {
+                h ^= (bits >> (8 * k)) & 0xFFU;
+                h *= 1099511628211ULL;
+            }
+        }
+        return h;
+    };
+    const auto clock = audio::MusicPlanner::makeFixtureM24V1Clock();
+    if (!clock) {
+        r.status = "INCONCLUSIVE";
+        r.reasons.emplace_back("fixture clock unavailable");
+        return r;
+    }
+    std::map<std::uint32_t, std::vector<const audio::PhrasePlan*>> bySection;
+    const auto phrases = audio::MusicPlanner::makeFixtureM24V1Phrases(*clock);
+    for (const auto& p : phrases) bySection[p.sectionIndex].push_back(&p);
+    std::array<std::pair<std::size_t, std::size_t>, 3> ranges{};
+    for (auto& [section, list] : bySection) {
+        std::sort(list.begin(), list.end(), [](const auto* a, const auto* b) { return a->startFrame < b->startFrame; });
+        if (section > 2 || list.size() < 6) continue;
+        const std::size_t first = section == 0 ? 4 : 2;
+        ranges[section] = {static_cast<std::size_t>(list[first]->startFrame), static_cast<std::size_t>(list[first + 1]->endFrame)};
+    }
+    json perK = json::object();
+    std::uint64_t events0 = 0, trama0 = 0, vettore0 = 0;
+    bool sameEvents = true, sameTramaVettore = true;
+    for (const double k : {1.0, 1.25, 1.5, 1.75, 2.0}) {
+        StemCapture cap(kFixtureCaptureFrames);
+        std::vector<AppliedEventRecord> applied;
+        std::uint64_t overflow = 0;
+        std::vector<float> stereo;
+        audio::FadeEventLog log(20000);
+        audio::ProbeAnalysisCapture pc{};
+        pc.stems = cap.sink();
+        pc.applied = &applied;
+        pc.appliedOverflow = &overflow;
+        pc.stereo = &stereo;
+        pc.fadeLog = &log;
+        pc.pulsoDecayScale = static_cast<float>(k);
+        const auto probe = audio::runFixtureProbeV1Offline(outputDir, false, audio::FixtureInjectedFault::None, &pc);
+        const CaptureCheck c{true, probe.passed, probe.failureReason, static_cast<std::size_t>(probe.requestedSampleFrames),
+                             cap.frames(), cap.overflowFrames(), overflow};
+        const std::string tag = "k" + std::to_string(static_cast<int>(std::lround(k * 100)));
+        if (!captureInvalidReason(c).empty()) {
+            r.reasons.push_back(tag + ": invalid capture: " + captureInvalidReason(c));
+            continue;
+        }
+        std::uint64_t ev = 1469598103934665603ULL;
+        for (const auto& rec : applied) {
+            for (const std::uint64_t v : {rec.id.eventId, rec.id.sampleFrame, rec.consumedFrame, static_cast<std::uint64_t>(rec.disposition)}) {
+                ev ^= v;
+                ev *= 1099511628211ULL;
+            }
+        }
+        const std::uint64_t th = fnv(cap.stem(2)), vh = fnv(cap.stem(3));
+        if (k == 1.0) {
+            events0 = ev;
+            trama0 = th;
+            vettore0 = vh;
+            if (probe.goldenPcmStatus != "PASS") r.reasons.push_back("k100: golden PCM " + probe.goldenPcmStatus);
+        } else {
+            sameEvents = sameEvents && ev == events0;
+            sameTramaVettore = sameTramaVettore && th == trama0 && vh == vettore0;
+        }
+        std::size_t pulsoSteals = 0;
+        for (const auto& rec : log.records()) {
+            if (rec.role == 0 && (rec.cause == audio::FadeCause::Steal || rec.cause == audio::FadeCause::ReleaseCut)) ++pulsoSteals;
+        }
+        const LoudnessResult mixL = measureLoudnessStereo(stereo, kFs);
+        const LoudnessResult pulsoL = measureLoudnessStereo(cap.stem(0), kFs);
+        perK[tag] = {{"scale", k},
+                     {"max_gain_reduction_db", probe.maxGainReductionDb},
+                     {"true_peak_dbtp", probe.truePeakDbtp},
+                     {"mix_integrated_lufs", mixL.integratedLufs ? json(*mixL.integratedLufs) : json(nullptr)},
+                     {"pulso_integrated_lufs", pulsoL.integratedLufs ? json(*pulsoL.integratedLufs) : json(nullptr)},
+                     {"pulso_steals_or_cuts", pulsoSteals}};
+        write("whole_pulso_" + tag + ".wav", std::vector<float>(cap.stem(0).begin(), cap.stem(0).end()));
+        for (std::size_t sec = 0; sec < 3; ++sec) {
+            const auto [s0, s1] = ranges[sec];
+            if (s1 <= s0) continue;
+            const auto slice = [&](std::span<const float> pcm) { return std::vector<float>(pcm.begin() + 2 * s0, pcm.begin() + 2 * s1); };
+            const std::string base = std::string(kSectionNames[sec]) + "_" + tag + "_";
+            write(base + "mix.wav", slice(cap.busMix()));
+            const auto p = slice(cap.stem(0)), cc = slice(cap.stem(1)), t = slice(cap.stem(2)), v = slice(cap.stem(3));
+            write(base + "corpo.wav", cc);
+            std::vector<float> w(p.size());
+            for (std::size_t i = 0; i < w.size(); ++i) w[i] = p[i] + t[i] + v[i];
+            write(base + "mix_without_corpo.wav", w);
+        }
+    }
+    r.k1WithoutTramaIdentical = sameEvents && sameTramaVettore;
+    r.status = r.reasons.empty() ? "MEASURED" : "INCONCLUSIVE";
+    r.manifestFilePath = (fs::path(outputDir) / "kick_decay_ab_v1_manifest.json").lexically_normal().string();
+    std::ofstream mf(r.manifestFilePath);
+    r.manifestWriteSuccess = mf.is_open();
+    if (r.manifestWriteSuccess) {
+        json j;
+        j["scenario"] = "kick_decay_ab_v1";
+        j["status"] = r.status;
+        j["reasons"] = r.reasons;
+        j["preregistration"] = "docs/research/M2_5_2_F4c_Kick_Decay_Preregistration.md";
+        j["dir"] = "kick_decay_ab_v1";
+        j["per_k"] = perK;
+        j["D4_same_events"] = sameEvents;
+        j["D4_trama_vettore_identical"] = sameTramaVettore;
+        j["files"] = r.files;
         mf << j.dump(2) << "\n";
         r.manifestWriteSuccess = mf.good();
     }

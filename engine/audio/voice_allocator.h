@@ -229,6 +229,8 @@ private:
     void logFade(std::size_t slotIndex, FadeCause cause, std::uint64_t frame, std::uint32_t fadeFrames) noexcept;
     friend class AudioEngine; // the only writer of the release override (DIF-5e.3-01)
     void setNoteReleaseFrames(std::uint32_t frames) noexcept { noteReleaseOverride_ = frames; }
+    // Offline kick-decay experiment (M2.5.2 F4c): multiplier of the Pulso decay length, 1 = production
+    void setPulsoDecayScale(float scale) noexcept { pulsoDecayScale_ = scale; }
     [[nodiscard]] static std::uint32_t perRole(const std::array<std::uint32_t, kRoleCount>& a, MusicRole role) noexcept {
         const auto r = static_cast<std::size_t>(role);
         return r < kRoleCount ? a[r] : 0U;
@@ -247,6 +249,7 @@ private:
     std::array<std::uint32_t, kRoleCount> roleReleaseCuts_{};
     std::array<std::uint32_t, kRoleCount> roleReleaseOverlaps_{};
     FadeEventLog* fadeLog_{nullptr};
+    float pulsoDecayScale_{1.0f};
     std::uint64_t lastLogicalFrame_{0};   // logical frame of the latest rendered slice (fade log of Stop/Pause)
 
     // Inc-2 Role buses and Telemetry
