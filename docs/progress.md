@@ -3370,3 +3370,14 @@ Lo scenario è una voce vincolante di `full_m2_suite` e ha un test `[meter_chang
 - **Golden:** aggiornati, con la storia nel codice. Il PCM della fixture passa a `15914153099858413724`.
 - **Nuovo scenario `plan_export_v1`.** Voce 8 aggiunta al registro delle domande, sulla transizione A→B.
 - **Build e suite:** Release e Debug `/WX` 296/296; `full_m2_suite` verde salvo `acao02_v1`. Non committato. **Prossimo pacchetto:** F1, àncora metrica dichiarata.
+
+**M2.5.3–4, F1 àncora metrica dichiarata: pre-registrazione** [M2_5_3_F1_Metric_Anchor_Preregistration.md](research/M2_5_3_F1_Metric_Anchor_Preregistration.md), SHA-256 (LF) `38ee0e1cee6c90f01e8fe0edf68220bcf3a2adca9c9448581661dfd22abe1125`. Stato metrico per frase (R-MET-1) dichiarato dall'espansore; rotazione di Pulso ≠ 0 solo in `Spostato`. Profilo iniziale `fixture-metric-v1`: spostamento di un ottavo solo nelle frasi 12–13 di B, ritorno alla 14. Predizioni P1–P6.
+
+**M2.5.3–4, F1 àncora metrica dichiarata, risultati (2026-11-17):** [M2_5_3_F1_Metric_Anchor_Results.md](research/M2_5_3_F1_Metric_Anchor_Results.md), ADR-0007 D-M2-40.
+- **Cosa cambia:** stato metrico per frase; la rotazione di Pulso c'è solo dove dichiarata. Il kick evitava il tempo 1 in 19 frasi su 24, ora solo nelle 2 dichiarate (frasi 12–13 di B).
+- **Confermate P1, P2, P4 e P5:** vincitori invariati e 0 pareggi.
+- **P3 mancata in parte:** Trama cambia nelle frasi 9–11 e 14–23, perché per regola salta i passi di Pulso (sincope complementare); è il legame che mi era sfuggito. Corpo e Vettore restano identici.
+- **P6 mancata in parte:** il PCM di `meter_change_v1` resta invariato.
+- **Golden:** aggiornati con la storia. Il PCM della fixture passa a `8239929959925757461`; i gruppi simbolici vanno da 8 a 9.
+- **Registro:** voce 7 riformulata.
+- **Build e suite:** Release e Debug `/WX` 298/298; `full_m2_suite` verde salvo `acao02_v1`. Non committato. **Prossimo pacchetto:** contratto minimo, punto 1 (diade di Corpo).

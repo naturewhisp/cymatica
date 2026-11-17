@@ -655,6 +655,14 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
         phrases[8 + p].crossSectionNoteOffFrame = crossOff;
         phrases[8 + p].delayCorpoOnsetByOneBeat = (p == 0); // Phrase 8 delays Corpo in bar 0 by 1 beat
         phrases[8 + p].recipeSet = CandidateRecipeSet::ContrastB;
+        // fixture-metric-v1 (R-MET-1/6, D-M2-40): reference exposed in 8..11, Pulso displaced by an eighth in 12..13,
+        // return in 14, anchored again in 15
+        if (p == 4 || p == 5) {
+            phrases[8 + p].metricState = MetricState::Spostato;
+            phrases[8 + p].pulsoDisplacementSteps = 2;
+        } else if (p == 6) {
+            phrases[8 + p].metricState = MetricState::Ritorno;
+        }
     }
 
     // 3. Section A': phrases 16..23 (bars 64..95)
@@ -935,7 +943,8 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
         cand.transformedMotif.motifId = deriveTransformedMotifId(baseMotif.motifId, recipe.kind, k);
         cand.voicingPolicy = (k % 2 == 0) ? CorpoVoicingPolicy::VoiceLed : CorpoVoicingPolicy::RootFifth;
         cand.pulsoPulses = 4 + (k % 3);                 // 4, 5 or 6 pulses per bar
-        cand.pulsoRotation = static_cast<std::int32_t>(k % 4);
+        // R-MET-1 (D-M2-40): the Pulso rotation is the declared displacement, never the candidate index
+        cand.pulsoRotation = (phrase.metricState == MetricState::Spostato) ? phrase.pulsoDisplacementSteps : 0;
         cand.tramaPulses = 6 + ((k + 1) % 3);           // 6, 7 or 8 pulses per bar
         cand.tramaRotation = static_cast<std::int32_t>((k + 2) % 4);
         cand.tramaSustainSteps = kTramaSustainSteps[(k / 2) % kTramaSustainSteps.size()];
@@ -944,7 +953,6 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
         // and motif; they change from the second phrase on
         if (phrase.sectionIndex > 0 && phrase.phraseIndex == 0 && lastPatterns_.has_value()) {
             cand.pulsoPulses = static_cast<std::uint32_t>((*lastPatterns_)[0]);
-            cand.pulsoRotation = (*lastPatterns_)[1];
             cand.tramaPulses = static_cast<std::uint32_t>((*lastPatterns_)[2]);
             cand.tramaRotation = (*lastPatterns_)[3];
         }
@@ -1347,7 +1355,15 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
         buildGrid(phrase, clock, config_.sampleRate, startCheck, endCheck, ok,
                   grid.barBeat, grid.stepsPerBeat, grid.stepsPerBar, grid.barFrame);
         const auto tensionMilli = quantizeTensionMilli(phrase.targetTension);
-        if (ok && tensionMilli.has_value()) {
+        // R-MET-1 (D-M2-40): a displacement only in Spostato, strictly inside every bar of the phrase
+        bool metricOk = (phrase.metricState == MetricState::Spostato) ? (phrase.pulsoDisplacementSteps > 0)
+                                                                        : (phrase.pulsoDisplacementSteps == 0);
+        if (ok && phrase.metricState == MetricState::Spostato) {
+            for (std::uint32_t b = 0; b < phrase.barCount; ++b) {
+                if (static_cast<std::uint32_t>(phrase.pulsoDisplacementSteps) >= grid.stepsPerBar[b]) metricOk = false;
+            }
+        }
+        if (ok && metricOk && tensionMilli.has_value()) {
             grid.violation = HardConstraintViolation::None;
             grid.barCount = phrase.barCount;
             trace.targetTensionMilli = *tensionMilli;

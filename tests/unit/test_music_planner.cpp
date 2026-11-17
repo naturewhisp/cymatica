@@ -695,8 +695,9 @@ TEST_CASE("Golden regression: canonical event list + decision traces of the A->B
     // Correctness is established by the independent structural oracles in the other test cases.
     // Revision history: 0x8621158d2d35ecf8 (Inc-3 remediation) -> 0x2983fc5a5463d4cb (DIF-M2-R6-01: tick now
     // uses the normative M1 ceil mapping; sampleFrame, pitch and all decisions unchanged) -> 0x44c54bd1ac626c3d
-    // (M2.5.3-4 F3: planner policy 1.0.2.0 and Pulso/Trama pattern continuity at the section boundary).
-    constexpr std::uint64_t kGoldenHash = 0x44c54bd1ac626c3dULL;
+    // (M2.5.3-4 F3: planner policy 1.0.2.0 and Pulso/Trama pattern continuity at the section boundary)
+    // -> 0x6d73bd838ab32526 (M2.5.3-4 F1: undeclared phrases are anchored, Pulso rotation 0; D-M2-40).
+    constexpr std::uint64_t kGoldenHash = 0x6d73bd838ab32526ULL;
     const PlannedRun run = planProbeForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical hash = 0x" << std::hex << h);
@@ -1081,7 +1082,8 @@ TEST_CASE("Golden regression: canonical plan of fixture-m2-4-v1", "[music_planne
     // Produced by the Inc-4 remediation with behaviour identical to commit 9c61f88 (the fixture_probe_v1
     // decision-trace hash kFixtureProbeV1GoldenTraceHash is unchanged).
     // M2.5.3-4 F3: 0x4f021cb9e8637598 -> 0xb91ce72feeb37bc7 (planner policy 1.0.2.0, boundary pattern continuity)
-    constexpr std::uint64_t kGoldenFixtureHash = 0xb91ce72feeb37bc7ULL;
+    // M2.5.3-4 F1: -> 0x7aa477a5519f9cf8 (declared metric anchor, fixture-metric-v1; D-M2-40)
+    constexpr std::uint64_t kGoldenFixtureHash = 0x7aa477a5519f9cf8ULL;
     const PlannedRun run = planFixtureForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical fixture hash = 0x" << std::hex << h);
@@ -1200,4 +1202,84 @@ TEST_CASE("fixture_probe_v1: rejected SetTempoMap leads to a terminal fail-close
     // Rejection on receipt: detected about one bar before the boundary
     const auto early = runFixtureProbeV1Offline("artifacts/cacp", false, FixtureInjectedFault::InvalidTempoMap);
     CHECK(early.failureDetectedAtFrame < 3072000ULL);
+}
+
+TEST_CASE("F1: declared metric anchor of fixture-m2-4-v1 (R-MET-1/2, D-M2-40)", "[music_planner][metric_anchor]") {
+    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+    REQUIRE(optClock.has_value());
+    const MusicClock& clock = *optClock;
+    const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(clock);
+    const PlannedRun run = planFixtureForm(1337ULL);
+    REQUIRE(run.intents.size() == 24);
+
+    // Declared profile fixture-metric-v1: displacement only in B phrases 12-13, return in 14
+    for (std::size_t i = 0; i < 24; ++i) {
+        INFO("phrase " << i);
+        const MetricState expected = (i == 12 || i == 13) ? MetricState::Spostato
+                                   : (i == 14)            ? MetricState::Ritorno
+                                                          : MetricState::Ancorato;
+        CHECK(phrases[i].metricState == expected);
+        CHECK(phrases[i].pulsoDisplacementSteps == ((expected == MetricState::Spostato) ? 2 : 0));
+    }
+
+    // Pulso onsets of every bar on the 16-step grid of the fixture clock (4/4, 4 steps per beat)
+    for (std::size_t i = 0; i < 24; ++i) {
+        const PhrasePlan& ph = phrases[i];
+        for (std::uint32_t b = 0; b < ph.barCount; ++b) {
+            const std::uint64_t beat = (static_cast<std::uint64_t>(ph.startBar) + b) * 4ULL;
+            std::array<bool, 16> on{};
+            for (const auto& e : run.intents[i]) {
+                if (e.role != MusicRole::Pulso) continue;
+                for (std::uint32_t st = 0; st < 16; ++st) {
+                    if (clock.frameAtBeatStep(beat, st, 4) == e.sampleFrame) on[st] = true;
+                }
+            }
+            INFO("phrase " << i << " bar " << b);
+            if (ph.metricState == MetricState::Spostato) {
+                // P1: the declared eighth displacement of the 4-pulse pattern
+                CHECK(on[2]); CHECK(on[6]); CHECK(on[10]); CHECK(on[14]);
+                CHECK_FALSE(on[0]);
+            } else {
+                // P2: beat 1 articulated; phase 0 of the quarter has the most Pulso onsets (ties allowed)
+                CHECK(on[0]);
+                std::array<int, 4> phase{};
+                for (std::uint32_t st = 0; st < 16; ++st) phase[st % 4] += on[st] ? 1 : 0;
+                CHECK(phase[0] >= (std::max)({phase[1], phase[2], phase[3]}));
+            }
+        }
+    }
+
+    // P3: winners as before F1 (commit 7287aed) and no score tie among valid candidates at the top
+    const std::array<std::uint64_t, 24> winnersBefore{2, 2, 2, 2, 0, 0, 0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6};
+    for (std::size_t i = 0; i < 24; ++i) {
+        const auto& t = run.traces[i];
+        INFO("phrase " << i);
+        CHECK((t.winningCandidateId & 0xFFULL) == winnersBefore[i]);
+        std::size_t top = 0;
+        for (std::size_t c = 0; c < t.candidatesGenerated; ++c) {
+            if (t.candidates[c].violation == HardConstraintViolation::None && t.candidates[c].score == t.winningScore) ++top;
+        }
+        CHECK(top == 1);
+    }
+}
+
+TEST_CASE("F1: incoherent metric declarations are structural violations (R-MET-1, D-M2-40)", "[music_planner][metric_anchor]") {
+    const MusicClock clock = probeClock();
+    const auto phrases = MusicPlanner::makePlannerProbeV1Phrases(clock);
+    struct Case { MetricState state; std::int32_t steps; bool valid; };
+    for (const Case c : {Case{MetricState::Ancorato, 0, true}, Case{MetricState::Ritorno, 0, true},
+                         Case{MetricState::Spostato, 2, true}, Case{MetricState::Spostato, 15, true},
+                         Case{MetricState::Ancorato, 2, false}, Case{MetricState::Ritorno, 1, false},
+                         Case{MetricState::Spostato, 0, false}, Case{MetricState::Spostato, -2, false},
+                         Case{MetricState::Spostato, 16, false}}) {
+        PhrasePlan p = phrases[0];
+        p.metricState = c.state;
+        p.pulsoDisplacementSteps = c.steps;
+        MusicPlanner planner({.runSeed = 1337ULL});
+        std::vector<MusicIntentEvent> out;
+        planner.planPhrase(p, clock, p.startFrame, 1, out, nullptr);
+        INFO("state " << static_cast<int>(c.state) << " steps " << c.steps);
+        const auto& t = planner.decisionTraces().back();
+        CHECK((t.planViolation == HardConstraintViolation::None) == c.valid);
+    }
 }

@@ -180,6 +180,15 @@ enum class CandidateRecipeSet : std::uint8_t {
 // fixture-m2-4-v1 final phrase: planner notes end one 120 Hz simulation tick before Stop (ADR-0005 D-M2-08)
 inline constexpr std::uint64_t kFixtureM24V1ReleaseLeadFrames = 400;
 
+// Declared metric state of a phrase (R-MET-1, ADR-0007 D-M2-40): only the phrase expander (the director) may displace
+// the metre; the displacement is never derived from the candidate index. Ritorno behaves as Ancorato for the planner
+// and marks the return of the displacement cycle (R-MET-6).
+enum class MetricState : std::uint8_t {
+    Ancorato = 0, // Pulso rotation 0: the anchor role articulates beat 1 of every bar (R-MET-2)
+    Spostato = 1, // Pulso rotation = pulsoDisplacementSteps, in (0, steps per bar)
+    Ritorno  = 2  // as Ancorato; first phrase after a displacement
+};
+
 struct PhrasePlan {
     std::uint32_t sectionIndex{0};
     std::uint32_t phraseIndex{0};
@@ -199,6 +208,9 @@ struct PhrasePlan {
     // Per-phrase role mask and recipe table, declared by the phrase expander (ADR-0005 D-M2-08)
     bool maskTrama{false};
     CandidateRecipeSet recipeSet{CandidateRecipeSet::Standard};
+    // Declared metric state and Pulso displacement in grid steps (R-MET-1); default anchored
+    MetricState metricState{MetricState::Ancorato};
+    std::int32_t pulsoDisplacementSteps{0};
     // Explicit planner release this many frames before endFrame (final phrase before Stop); 0 = none
     std::uint64_t releaseLeadFrames{0};
 };
