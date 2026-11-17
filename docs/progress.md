@@ -3597,3 +3597,27 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
   - alternative armoniche;
   - ascolto cumulativo con le voci 1–14;
   - CP-3.
+
+**M2.5.3–4, pacchetto 6b, melodia lunga una frase: pre-registrazione** [M2_5_3_C6b_Phrase_Melody_Preregistration.md](research/M2_5_3_C6b_Phrase_Melody_Preregistration.md), SHA-256 (LF) `37535ff8a836c42a6313eca457f34a4d09e2f8f7da70370c73818b5c6dab449d`.
+- **Regola:** progressione melodica sugli accordi, presa da AURA (voci A2 e A3). In ogni battuta la melodia si sposta sulla fondamentale dell'accordo, con lo spostamento ridotto all'intervallo più vicino.
+- **Formato:** hash canonico del piano al formato 6.
+- **Criteri:** T1–T7.
+
+**Decisione del titolare sulla palette timbrica (2026-11-17):** «Sì, chiptune prima dell'ascolto cumulativo».
+- **Cosa entra:** un esperimento con un sound 8-bit chiptune, come primo spike limitato di R-M25-9 (ADR-0007), anticipato da CP-3 a prima dell'ascolto cumulativo.
+- **Forma:** palette alternativa solo offline, sullo stesso piano della fixture: stessa musica, timbri diversi. Il motore in tempo reale e il suono attuale restano invariati fino a una decisione.
+- **Domanda per l'ascolto:** l'esperimento entra nel registro come domanda di confronto fra le due palette.
+- **Riferimenti:**
+  - DESIGN §12.1, archetipo Sintetico/Matriziale: «timbri digitali con dettaglio analogico», evitando il generico;
+  - [note su AURA](research/AURA_Music_Source_Notes.md), timbri e campana.
+- **Richiesta collegata, per dopo:** strumenti adatti a ciascun archetipo (DESIGN §12), cioè una palette per archetipo dalla vertical slice (M7). Il metodo lo fissa CP-3.
+
+**M2.5.3–4, pacchetto 6b, melodia lunga una frase, risultati (2026-11-17):** [M2_5_3_C6b_Phrase_Melody_Results.md](research/M2_5_3_C6b_Phrase_Melody_Results.md), ADR-0007 D-M2-48. **Adottato: T1–T7 superati.**
+- **Melodia:** 24 frasi su 24 con almeno 3 battute diverse (prima 8). La melodia segue gli accordi e torna alla figura d'apertura.
+- **Effetti collaterali:** adattamenti della lettura dell'accordo da 47 a 8; frasi di Corpo identiche fra seed dall'83% al 70%.
+- **Rischi da sentire:** registro fino al Re6, note ribattute in B (voce 15).
+- **Test:** il test di diversità aggiunto con il punto 6 duplicava la scansione dei 64 seed ed è stato unito a quello esistente.
+- **Build e suite:** Release e Debug `/WX` 307/307; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
+- **Durata della suite** (segnalata dal titolare): Debug 22–23 min, prima del punto 6 sotto i 10.
+  - Il collo di bottiglia è il test della loudness per stem (1393 s in Debug): esegue lo scenario procedurale, che contiene la scansione di diversità. Dal punto 6 la scansione calcola M4 su 2009 coppie diverse.
+  - Correzioni proposte, senza cambiare i risultati: M4 bit-parallela di Myers, verificata contro l'attuale, e scansione saltata nel test della loudness.

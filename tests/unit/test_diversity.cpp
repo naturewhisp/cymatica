@@ -83,7 +83,7 @@ TEST_CASE("Diversity metrics M2-M4 on known token sets (5e-04)", "[diversity][me
     CHECK(m2Features(a).size() == 33);
 }
 
-TEST_CASE("Seed diversity of the fixture is measured over the declared scan (5e-04)", "[diversity][fixture]") {
+TEST_CASE("Seed diversity of the fixture is measured over the declared scan (5e-04)", "[diversity][fixture][seed_variants]") {
     const DiversityResult d = measureSeedDiversity();
     INFO(d.error);
     REQUIRE(d.status == "MEASURED");
@@ -99,6 +99,17 @@ TEST_CASE("Seed diversity of the fixture is measured over the declared scan (5e-
         CHECK(d.distinctPairs == 0);
         CHECK(d.m2Distances.empty());
     }
+    // Contract point 6 (D-M2-47), in this test so that the 64-seed scan runs once: distributions over at least 8
+    // distinct contents (S4), at least 40 distinct paths (expected about 57), both opening motifs for A and B (S5)
+    REQUIRE(d.variants.size() == 64);
+    CHECK(d.outcome == "DISTRIBUTIONS");
+    CHECK(d.distinctFingerprints >= kDiversityMinDistinct);
+    CHECK(d.distinctVariants >= 40);
+    std::size_t auraA = 0, auraB = 0;
+    for (const auto& v : d.variants) { auraA += v.auraMotifA ? 1 : 0; auraB += v.auraMotifB ? 1 : 0; }
+    CHECK(auraA > 0); CHECK(auraA < 64); CHECK(auraB > 0); CHECK(auraB < 64);
+    // The reference fixture (seed 1337) is not drawn: it keeps the authored profile
+    CHECK(planFixtureM24V1(1337).variant == cymatica::audio::kFixtureReferenceVariant);
     // Planning is deterministic: same seed, same plan
     const auto p1 = planFixtureM24V1(7), p2 = planFixtureM24V1(7);
     CHECK(phraseGroupIds(p1) == phraseGroupIds(p2));
@@ -188,20 +199,4 @@ TEST_CASE("Symbolic groups of fixture-m2-4-v1 follow the prediction registered i
     // The frame rule of v2 stays readable (14 groups before point 4, 16 after)
     const auto frameIds = phraseGroupIds(p);
     CHECK(std::set<std::string>(frameIds.begin(), frameIds.end()).size() == 20); // 14 before point 4 (D-M2-44), 16 before point 5, 19 before 5b
-}
-
-TEST_CASE("Contract point 6: the 64 seeds draw distinct authored paths and contents (D-M2-47)", "[diversity][seed_variants][slow]") {
-    const DiversityResult d = measureSeedDiversity();
-    REQUIRE(d.status == "MEASURED");
-    REQUIRE(d.variants.size() == 64);
-    // S4: distributions over at least 8 distinct contents, at least 40 distinct paths (expected about 57)
-    CHECK(d.outcome == "DISTRIBUTIONS");
-    CHECK(d.distinctFingerprints >= kDiversityMinDistinct);
-    CHECK(d.distinctVariants >= 40);
-    // S5: both opening motifs appear for A and for B
-    std::size_t auraA = 0, auraB = 0;
-    for (const auto& v : d.variants) { auraA += v.auraMotifA ? 1 : 0; auraB += v.auraMotifB ? 1 : 0; }
-    CHECK(auraA > 0); CHECK(auraA < 64); CHECK(auraB > 0); CHECK(auraB < 64);
-    // The reference fixture (seed 1337) is not drawn: it keeps the authored profile
-    CHECK(planFixtureM24V1(1337).variant == cymatica::audio::kFixtureReferenceVariant);
 }

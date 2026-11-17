@@ -293,8 +293,9 @@ struct PlannerProbeResult {
 // Corpo upper voice, +12 in A and +24 in A'; D-M2-43) -> 3614853450997319296 (M2.5.3-4 contract point 4: declared
 // role masks fixture-orchestration-v1, new winners in phrases 10-11, 17-19 and 22; D-M2-44) -> 5749962721823883068
 // (M2.5.3-4 contract point 5: derivation chain fixture-lineage-v1, origin and reset in the trace; D-M2-45)
-// -> 92717741569625359 (M2.5.3-4 contract point 5b: chain operations, scoring profile version 2; D-M2-46).
-inline constexpr std::uint64_t kFixtureProbeV1GoldenTraceHash = 92717741569625359ULL;
+// -> 92717741569625359 (M2.5.3-4 contract point 5b: chain operations, scoring profile version 2; D-M2-46)
+// -> 462136604501102608 (M2.5.3-4 pacchetto 6b: the phrase melody follows the chord roots; D-M2-48).
+inline constexpr std::uint64_t kFixtureProbeV1GoldenTraceHash = 462136604501102608ULL;
 // Regression golden of the full canonical plan of fixture_probe_v1 (events + planner NoteOffs + decision traces,
 // canonicalPlanHash format version 1, DIF-INC4-R3-03). Same value as the [fixture_golden] test, which uses the
 // same shared serialization.
@@ -303,8 +304,9 @@ inline constexpr std::uint64_t kFixtureProbeV1GoldenTraceHash = 9271774156962535
 // -> 0x18cc6d32dc2fa60c (M2.5.3-4 contract point 2, canonical format 3; D-M2-42) -> 0x17aade206b9ac268
 // (M2.5.3-4 contract point 3, canonical format 4; D-M2-43) -> 0xeb6a2fd17e8f0722 (M2.5.3-4 contract point 4, role
 // masks; D-M2-44) -> 0xf2ce734ee88095a7 (M2.5.3-4 contract point 5, canonical format 5; D-M2-45)
-// -> 0x39017615657f1fbd (M2.5.3-4 contract point 5b, chain operations; D-M2-46).
-inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0x39017615657f1fbdULL;
+// -> 0x39017615657f1fbd (M2.5.3-4 contract point 5b, chain operations; D-M2-46) -> 0x416d343bb5dc66b9
+// (M2.5.3-4 pacchetto 6b, canonical format 6; D-M2-48).
+inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0x416d343bb5dc66b9ULL;
 // Regression golden of the fixture_probe_v1 PCM (seed 1337, nominal path; FNV-1a of the recorded float samples,
 // pcmContentHash). Verified separately from the plan (DIF-5e.1-01): a synthesis change that alters the audio
 // without changing events or decisions must fail. Recorded identically on the development machine and on the
@@ -323,8 +325,9 @@ inline constexpr std::uint64_t kFixtureProbeV1GoldenPlanHash = 0x39017615657f1fb
 // -> 11240606778404684750 (M2.5.3-4 contract point 3: Vettore +12 in A, +24 in A'; D-M2-43)
 // -> 871685324087719297 (M2.5.3-4 contract point 4: Trama out in 10-11 and 16-19, Pulso out in 22; D-M2-44)
 // -> 682170244392377824 (M2.5.3-4 contract point 5: derived variation chain and reprise; D-M2-45)
-// -> 16057152926442900680 (M2.5.3-4 contract point 5b: passing ornaments and liquidation in the chain; D-M2-46).
-inline constexpr std::uint64_t kFixtureProbeV1GoldenPcmHash = 16057152926442900680ULL;
+// -> 16057152926442900680 (M2.5.3-4 contract point 5b: passing ornaments and liquidation in the chain; D-M2-46)
+// -> 13522047511299799422 (M2.5.3-4 pacchetto 6b: melodic sequence on the chord roots; D-M2-48).
+inline constexpr std::uint64_t kFixtureProbeV1GoldenPcmHash = 13522047511299799422ULL;
 // Minimum post-bus telemetry energy for a role to count as active in a section (D-M2-11)
 inline constexpr float kFixtureRoleActivityFloor = 1.0e-4f;
 

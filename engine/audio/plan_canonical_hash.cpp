@@ -65,6 +65,8 @@ std::uint64_t canonicalPlanHash(const std::vector<std::vector<MusicIntentEvent>>
         f.byte(static_cast<std::uint8_t>(t.vettoreRegisterShift)); f.byte(t.vettoreRegisterUnmet ? 1 : 0);
         // Format 5 (contract point 5, D-M2-45): origin of the base motif and lineage reset
         f.i32(t.baseSourcePhrase); f.byte(t.lineageReset ? 1 : 0);
+        // Format 6 (pacchetto 6b, D-M2-48): the phrase melody follows the chord roots
+        f.byte(t.melodyFollowsChords ? 1 : 0);
     }
     return f.h;
 }

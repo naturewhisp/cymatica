@@ -814,6 +814,8 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
         phrases[16 + p].recallSection = 0;
     }
 
+    // Pacchetto 6b (D-M2-48): the melody of every fixture phrase follows the chord roots (melodic sequence)
+    for (auto& ph : phrases) ph.melodyFollowsChords = true;
     return phrases;
 }
 
@@ -930,6 +932,12 @@ Motif makeAuraCell(std::uint32_t id) noexcept {
     return m;
 }
 } // namespace
+
+std::int32_t melodySequenceOffset(const PhrasePlan& phrase, std::uint32_t bar) noexcept {
+    if (!phrase.melodyFollowsChords) return 0;
+    const std::int32_t d = ((phrase.chords[bar % 4].rootDegree - phrase.chords[0].rootDegree) % 7 + 7) % 7;
+    return (d > 3) ? d - 7 : d;
+}
 
 Motif MusicPlanner::makeDorianAuraMotif() noexcept { return makeAuraCell(102); }  // D . D F A . G F
 Motif MusicPlanner::makeAeolianAuraMotif() noexcept { return makeAuraCell(202); } // G . G Bb D . C Bb
@@ -1198,7 +1206,8 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
                     for (std::size_t m = 0; m < vm.noteCount; ++m) {
                         const auto& note = vm.notes[m];
                         if (note.stepOffset >= steps || note.durationSteps == 0) continue;
-                        const std::int32_t v = degreeToMidiNote(phrase.scale, note.scaleDegree + 7 * vm.registerOctaveOffset,
+                        const std::int32_t v = degreeToMidiNote(phrase.scale, note.scaleDegree + 7 * vm.registerOctaveOffset +
+                                                                melodySequenceOffset(phrase, b),
                                                                 note.chromaticOffset);
                         const std::int32_t d = ((v - h) % 12 + 12) % 12;
                         const std::int32_t ic = (d > 6) ? 12 - d : d;
@@ -1318,7 +1327,7 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
                     continue;
                 }
                 const std::uint32_t offStep = std::min<std::uint32_t>(note.stepOffset + note.durationSteps, steps);
-                const std::int32_t degree = note.scaleDegree + 7 * motif.registerOctaveOffset;
+                const std::int32_t degree = note.scaleDegree + 7 * motif.registerOctaveOffset + melodySequenceOffset(phrase, b);
                 const std::uint64_t vOffFrame = std::min(grid.stepFrame(b, offStep), maxPhraseOffFrame);
                 std::int32_t vMidi = degreeToMidiNote(phrase.scale, degree, note.chromaticOffset);
                 if (readChord) {
@@ -1696,6 +1705,7 @@ void MusicPlanner::planPhrase(const PhrasePlan& phrase,
     }
     trace.baseMotifId = baseMotif.motifId;
     trace.baseMotif = baseMotif;
+    trace.melodyFollowsChords = phrase.melodyFollowsChords;
     // Contract point 5b (D-M2-46): chain recipes when the base is the previous winner (not after a lineage reset)
     const bool chainRecipes = (phrase.motifSource == MotifSource::PreviousWinner) && (trace.baseSourcePhrase >= 0);
 

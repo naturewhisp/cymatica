@@ -230,6 +230,9 @@ struct PhrasePlan {
     // Contract point 5 (D-M2-45): origin of the base motif
     MotifSource motifSource{MotifSource::SectionBase};
     std::uint32_t recallSection{0};
+    // Pacchetto 6b (D-M2-48): in bar b the Vettore motif moves by melodySequenceOffset(phrase, b) scale degrees
+    // (melodic sequence on the chord roots, AURA source notes A2/A3)
+    bool melodyFollowsChords{false};
     CandidateRecipeSet recipeSet{CandidateRecipeSet::Standard};
     // Declared metric state and Pulso displacement in grid steps (R-MET-1); default anchored
     MetricState metricState{MetricState::Ancorato};
@@ -237,6 +240,10 @@ struct PhrasePlan {
     // Explicit planner release this many frames before endFrame (final phrase before Stop); 0 = none
     std::uint64_t releaseLeadFrames{0};
 };
+
+// Pacchetto 6b (D-M2-48): scale-degree offset of bar `bar` when the melody follows the chords: the chord root of the
+// bar minus the root of bar 0, folded to the nearest value in [-3, +3]; 0 when the phrase does not declare it
+[[nodiscard]] std::int32_t melodySequenceOffset(const PhrasePlan& phrase, std::uint32_t bar) noexcept;
 
 struct SectionPlan {
     std::uint32_t sectionIndex{0};
@@ -432,6 +439,8 @@ struct PhraseDecisionTrace {
     // whether the requested source was refused by the drift bound (restart from the section motif)
     std::int32_t baseSourcePhrase{-1};
     bool lineageReset{false};
+    // Pacchetto 6b (D-M2-48): the phrase melody follows the chord roots bar by bar
+    bool melodyFollowsChords{false};
 
     [[nodiscard]] constexpr bool operator==(const PhraseDecisionTrace& other) const noexcept = default;
 };

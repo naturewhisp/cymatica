@@ -1,0 +1,4 @@
+phrase 0 A F D E | D B G A | E C A B | A F D E
+phrase 8 G D C D | Eb Bb Bb Bb | F C Bb C | G D C D
+phrase 16 A F D E | D B G A | E C A B | A F D E
+phrases with >= 3 distinct bars: 24 of 24

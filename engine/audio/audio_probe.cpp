@@ -1600,7 +1600,8 @@ PlannerProbeResult runPlannerProbeV1Offline(const std::string& outputDir, bool w
                         }
                     }
                     const float hz = midiNoteToPitchHz(degreeToMidiNote(phrase.scale,
-                        n.scaleDegree + 7 * t.winningMotif.registerOctaveOffset, n.chromaticOffset) + offset);
+                        n.scaleDegree + 7 * t.winningMotif.registerOctaveOffset +
+                            (t.melodyFollowsChords ? melodySequenceOffset(phrase, b) : 0), n.chromaticOffset) + offset);
                     const bool found = std::any_of(mainRun.intents[p].begin(), mainRun.intents[p].end(),
                         [&](const MusicIntentEvent& e) {
                             return e.role == MusicRole::Vettore && e.sampleFrame == frame && e.pitchHz == hz;
@@ -1974,6 +1975,7 @@ std::uint64_t fixtureTraceHash(const std::vector<PhraseDecisionTrace>& traces) n
         fnvMix(h, static_cast<std::uint64_t>(t.vettoreRegisterUnmet ? 1 : 0));
         fnvMix(h, static_cast<std::uint64_t>(static_cast<std::uint32_t>(t.baseSourcePhrase)));  // D-M2-45
         fnvMix(h, static_cast<std::uint64_t>(t.lineageReset ? 1 : 0));
+        fnvMix(h, static_cast<std::uint64_t>(t.melodyFollowsChords ? 1 : 0));  // D-M2-48
         for (std::size_t c = 0; c < t.candidatesGenerated; ++c) {
             fnvMix(h, t.candidates[c].candidateId);
             fnvMix(h, static_cast<std::uint64_t>(t.candidates[c].score));

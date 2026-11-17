@@ -714,8 +714,9 @@ TEST_CASE("Golden regression: canonical event list + decision traces of the A->B
     // -> 0x078e7ac77d936659 (M2.5.3-4 contract point 2: canonical format 3, Vettore reads the chord; D-M2-42)
     // -> 0xb13b4a4e01a8fa6d (M2.5.3-4 contract point 3: canonical format 4, dominant register; D-M2-43)
     // -> 0x62600d91a28e15e3 (M2.5.3-4 contract point 5: canonical format 5, same events; D-M2-45)
-    // -> 0x6497ef98eda7ac5f (M2.5.3-4 contract point 5b: scoring profile version 2 in the trace, same events; D-M2-46).
-    constexpr std::uint64_t kGoldenHash = 0x6497ef98eda7ac5fULL;
+    // -> 0x6497ef98eda7ac5f (M2.5.3-4 contract point 5b: scoring profile version 2 in the trace, same events; D-M2-46)
+    // -> 0x2edb6f713b792cdb (M2.5.3-4 pacchetto 6b: canonical format 6, same events; D-M2-48).
+    constexpr std::uint64_t kGoldenHash = 0x2edb6f713b792cdbULL;
     const PlannedRun run = planProbeForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical hash = 0x" << std::hex << h);
@@ -1122,7 +1123,8 @@ TEST_CASE("Golden regression: canonical plan of fixture-m2-4-v1", "[music_planne
     // M2.5.3-4 contract point 4: -> 0xeb6a2fd17e8f0722 (role masks fixture-orchestration-v1; D-M2-44)
     // M2.5.3-4 contract point 5: -> 0xf2ce734ee88095a7 (canonical format 5, derivation chain; D-M2-45)
     // M2.5.3-4 contract point 5b: -> 0x39017615657f1fbd (chain operations; D-M2-46)
-    constexpr std::uint64_t kGoldenFixtureHash = 0x39017615657f1fbdULL;
+    // M2.5.3-4 pacchetto 6b: -> 0x416d343bb5dc66b9 (canonical format 6, melodic sequence; D-M2-48)
+    constexpr std::uint64_t kGoldenFixtureHash = 0x416d343bb5dc66b9ULL;
     const PlannedRun run = planFixtureForm(1337ULL);
     const std::uint64_t h = canonicalHash(run);
     INFO("canonical fixture hash = 0x" << std::hex << h);
@@ -1165,7 +1167,7 @@ TEST_CASE("fixture_probe_v1 scheduling accounting rejects missing or extra engin
 }
 
 TEST_CASE("Canonical plan hash: shared serialization is versioned and sensitive to every section (DIF-INC4-R3-03)", "[music_planner][canonical_plan_hash]") {
-    STATIC_REQUIRE(kCanonicalPlanHashFormatVersion == 5);
+    STATIC_REQUIRE(kCanonicalPlanHashFormatVersion == 6);
     PlannedRun run = planFixtureForm(1337ULL);
     const std::uint64_t h = canonicalPlanHash(run.intents, run.noteOffs, run.traces);
     CHECK(h == kFixtureProbeV1GoldenPlanHash);
@@ -1192,8 +1194,9 @@ TEST_CASE("Canonical plan hash: shared serialization is versioned and sensitive 
     repair.traces[3].vettoreAdaptedNotes += 1;
     CHECK(canonicalPlanHash(repair.intents, repair.noteOffs, repair.traces) != h);
     repair = run;
-    REQUIRE(repair.traces[3].vettoreAdaptedNotes > 0);
-    repair.traces[3].vettoreAdaptations[0].semitones += 1;
+    // Phrase 8 keeps a chord-reading adaptation after pacchetto 6b (phrase 3 has none any more, D-M2-48)
+    REQUIRE(repair.traces[8].vettoreAdaptedNotes > 0);
+    repair.traces[8].vettoreAdaptations[0].semitones += 1;
     CHECK(canonicalPlanHash(repair.intents, repair.noteOffs, repair.traces) != h);
     repair = run;                                   // format 4: the dominant register shift (D-M2-43)
     repair.traces[3].vettoreRegisterShift = static_cast<std::int8_t>(repair.traces[3].vettoreRegisterShift + 12);
@@ -1206,6 +1209,9 @@ TEST_CASE("Canonical plan hash: shared serialization is versioned and sensitive 
     CHECK(canonicalPlanHash(repair.intents, repair.noteOffs, repair.traces) != h);
     repair = run;
     repair.traces[3].lineageReset = !repair.traces[3].lineageReset;
+    CHECK(canonicalPlanHash(repair.intents, repair.noteOffs, repair.traces) != h);
+    repair = run;                                   // format 6: the melodic-sequence flag (D-M2-48)
+    repair.traces[3].melodyFollowsChords = !repair.traces[3].melodyFollowsChords;
     CHECK(canonicalPlanHash(repair.intents, repair.noteOffs, repair.traces) != h);
 }
 
@@ -1377,7 +1383,8 @@ TEST_CASE("Contract point 1, C1c: Corpo dyad repaired after selection (R-HAR-5, 
         // Point 4 (D-M2-44): with the winners of 17-19 and 22 the A minor bar needs no second swap
         // Point 5 (D-M2-45): the chained B figure of phrases 9, 11 and 13 needs the dyad repair too
         // Point 5b (D-M2-46): the chained motifs of B and A' change the repairs
-        constexpr std::array<std::uint32_t, 24> kDyadRepairs{2, 2, 2, 2, 2, 2, 2, 2, 0, 2, 1, 1, 0, 0, 2, 0, 2, 1, 2, 2, 1, 2, 1, 2};
+        // Pacchetto 6b (D-M2-48): the melodic sequence changes which bars contradict the Corpo upper voice
+        constexpr std::array<std::uint32_t, 24> kDyadRepairs{2, 2, 2, 2, 2, 2, 2, 1, 2, 3, 3, 3, 2, 2, 3, 2, 2, 0, 2, 2, 0, 2, 0, 1};
         CHECK(t.corpoDyadRepairedBars == kDyadRepairs[i]);
     }
 
@@ -1425,10 +1432,10 @@ TEST_CASE("Contract point 2: Vettore reads the chord after selection, with ablat
         perSection[i / 8] += on.traces[i].vettoreAdaptedNotes;
     }
     // V4: 8 in A, 24 in B, 8 in A'
-    CHECK(perSection[0] == 8);
-    CHECK(perSection[1] == 31); // 24 before point 4 (D-M2-44), 22 with point 4, 24 with point 5, 31 with 5b (D-M2-46)
-    CHECK(perSection[2] == 8);
-    CHECK(adapted == 47);       // 40 before point 4, 38 with point 4, 40 with point 5, 47 with 5b
+    CHECK(perSection[0] == 0);  // 8 before pacchetto 6b (D-M2-48): the sequenced melody starts on every chord root
+    CHECK(perSection[1] == 8);  // 24 before point 4 (D-M2-44), 22 with point 4, 24 with point 5, 31 with 5b, 8 with 6b
+    CHECK(perSection[2] == 0);  // 8 before pacchetto 6b
+    CHECK(adapted == 8);        // 40 before point 4, 38 with point 4, 40 with point 5, 47 with 5b, 8 with 6b
 
     // V5: only Vettore pitches differ; onsets, durations, roles and the other roles are identical
     std::uint32_t changedPitches = 0;
@@ -1465,7 +1472,8 @@ TEST_CASE("Contract point 3: the dominant Vettore sits above the Corpo upper voi
         // D1, updated by point 4 (D-M2-44): the new winners of 10-11, 17-19 and 22 need +12
         // Point 5 (D-M2-45): phrase 10 is back to the winner 6, which needs no shift
         // Point 5b (D-M2-46): the chained motifs keep the register of their parents
-        constexpr std::array<int, 24> kShift{12, 12, 12, 12, 12, 12, 12, 12, 0, 0, 0, 0, 0, 0, 0, 0, 24, 12, 12, 12, 12, 12, 12, 24};
+        // Pacchetto 6b (D-M2-48): the sequenced melody of phrase 13 needs +12
+        constexpr std::array<int, 24> kShift{12, 12, 12, 12, 12, 12, 12, 12, 0, 0, 0, 0, 0, 12, 0, 0, 24, 12, 12, 12, 12, 12, 12, 24};
         CHECK(t.vettoreRegisterShift == kShift[i]);
         CHECK_FALSE(t.vettoreRegisterUnmet);
         CHECK((t.winningCandidateId & 0xFFULL) == winnersF1[i]);
@@ -1648,4 +1656,42 @@ TEST_CASE("Contract point 6: all 256 paths of fixture-variants-v1 plan safely (D
         ++planned;
     }
     CHECK(planned == 256);
+}
+
+TEST_CASE("Pacchetto 6b: the phrase melody follows the chord roots (D-M2-48)", "[music_planner][phrase_melody]") {
+    const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
+    REQUIRE(optClock.has_value());
+    const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(*optClock);
+    // Offsets: A and A' 0, +3, -3, 0 (Dm G Am Dm); B 0, -2, -1, 0 (Gm Eb F Gm)
+    for (std::size_t i = 0; i < 24; ++i) {
+        INFO("phrase " << i);
+        CHECK(phrases[i].melodyFollowsChords);
+        const bool b = i >= 8 && i < 16;
+        CHECK(melodySequenceOffset(phrases[i], 0) == 0);
+        CHECK(melodySequenceOffset(phrases[i], 1) == (b ? -2 : 3));
+        CHECK(melodySequenceOffset(phrases[i], 2) == (b ? -1 : -3));
+        CHECK(melodySequenceOffset(phrases[i], 3) == 0);
+    }
+    PhrasePlan off = phrases[0];
+    off.melodyFollowsChords = false;
+    CHECK(melodySequenceOffset(off, 1) == 0);
+
+    // T2: in at least 22 of 24 phrases at least 3 of the 4 bars have different Vettore pitch sequences
+    const PlannedRun run = planFixtureForm(1337ULL);
+    std::size_t phrasesWithMelody = 0;
+    for (std::size_t i = 0; i < 24; ++i) {
+        std::set<std::vector<float>> bars;
+        for (std::uint32_t bar = 0; bar < phrases[i].barCount; ++bar) {
+            const std::uint64_t a = optClock->frameAtBar(phrases[i].startBar + bar);
+            const std::uint64_t z = optClock->frameAtBar(phrases[i].startBar + bar + 1);
+            std::vector<float> pitches;
+            for (const auto& e : run.intents[i]) {
+                if (e.role == MusicRole::Vettore && e.sampleFrame >= a && e.sampleFrame < z) pitches.push_back(e.pitchHz);
+            }
+            bars.insert(pitches);
+        }
+        if (bars.size() >= 3) ++phrasesWithMelody;
+        CHECK(run.traces[i].melodyFollowsChords);
+    }
+    CHECK(phrasesWithMelody >= 22);
 }

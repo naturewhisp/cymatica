@@ -17,7 +17,8 @@ namespace cymatica::audio {
 // Format 3: adds the Vettore chord-reading count and adaptations (bar, note, semitones) of each trace (D-M2-42).
 // Format 4: adds the register shift of the dominant Vettore and its unmet flag (D-M2-43).
 // Format 5: adds the origin of the base motif and the lineage reset flag (D-M2-45).
-inline constexpr std::uint32_t kCanonicalPlanHashFormatVersion = 5;
+// Format 6: adds the melodic-sequence flag of the phrase (D-M2-48).
+inline constexpr std::uint32_t kCanonicalPlanHashFormatVersion = 6;
 
 [[nodiscard]] std::uint64_t canonicalPlanHash(const std::vector<std::vector<MusicIntentEvent>>& intentsPerPhrase,
                                               const std::vector<PlannedNoteOff>& noteOffs,
