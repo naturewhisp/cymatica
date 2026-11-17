@@ -106,3 +106,23 @@ TEST_CASE("package 2b: a full log counts overflow instead of growing", "[fade_ev
     REQUIRE(log.records().size() == 1);
     REQUIRE(log.overflow() == 1);
 }
+
+TEST_CASE("F4b: a Pulso note is one-shot: its NoteOff is acknowledged but the envelope runs to its end", "[fade_event_log][pulso_one_shot]") {
+    VoiceAllocator a;
+    a.init(48000);
+    FadeEventLog log(16);
+    a.setFadeEventLog(&log);
+    ScheduledAudioEvent n = on(1, 0, MusicRole::Pulso, 55.0f);
+    n.durationFrames = 2400;                       // 50 ms planned, shorter than the 71 ms designed decay
+    n.timbreParam = 0.30f;                         // decay 50 + 70 * 0.30 = 71 ms
+    const int slot = a.onNoteOn(n);
+    REQUIRE(slot >= 0);
+    render(a, 0, 2400);
+    a.checkLifetimes(2400);                         // the duration expiry must not truncate it
+    REQUIRE(a.onNoteOff(off(1, 2400, MusicRole::Pulso)) == slot);   // acknowledged (Applied), not ignored
+    REQUIRE(a.slot(static_cast<std::size_t>(slot)).state != VoiceState::Release);
+    REQUIRE(a.slot(static_cast<std::size_t>(slot)).state != VoiceState::Idle);
+    REQUIRE(log.records().empty());                // no release fade logged
+    render(a, 2400, 2400);                          // past 1 ms + 71 ms
+    REQUIRE(a.slot(static_cast<std::size_t>(slot)).state == VoiceState::Idle);
+}

@@ -1,0 +1,68 @@
+{
+  "E4_counter_release_cuts": [
+    0,
+    190,
+    0,
+    0
+  ],
+  "E4_counter_steals": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "E4_counts_match": true,
+  "E5_repeat_identical": true,
+  "E6_golden_pcm_status": "PASS",
+  "notes": [
+    "output amplitude = envelope amplitude x current bus gain; Corpo ducking and the Trama delay are not included",
+    "fade_frames 0 = oscillation cut with a linear tail of the last sample (steal, release_cut, stop)"
+  ],
+  "overflow": 0,
+  "preregistration": "docs/research/M2_5_Pkg2b_Fade_Event_Log_Preregistration.md",
+  "reasons": [],
+  "records": 1166,
+  "scenario": "fade_events_v1",
+  "status": "MEASURED",
+  "table": {
+    "corpo": {
+      "release": {
+        "count": 192,
+        "fade_frames_max": 96,
+        "fade_frames_min": 96,
+        "fast_fades_above_minus40_dbfs": 192,
+        "max_out_dbfs": -23.951595383730858,
+        "median_out_dbfs": -24.495172331800298
+      },
+      "release_cut": {
+        "count": 190,
+        "fade_frames_max": 0,
+        "fade_frames_min": 0,
+        "fast_fades_above_minus40_dbfs": 190,
+        "max_out_dbfs": -23.951595383730858,
+        "median_out_dbfs": -24.495172331800298
+      }
+    },
+    "pulso": {},
+    "trama": {
+      "release": {
+        "count": 400,
+        "fade_frames_max": 96,
+        "fade_frames_min": 96,
+        "fast_fades_above_minus40_dbfs": 400,
+        "max_out_dbfs": -26.68579703538198,
+        "median_out_dbfs": -27.315179469598917
+      }
+    },
+    "vettore": {
+      "release": {
+        "count": 384,
+        "fade_frames_max": 96,
+        "fade_frames_min": 96,
+        "fast_fades_above_minus40_dbfs": 384,
+        "max_out_dbfs": -20.864442973374025,
+        "median_out_dbfs": -21.67130892858811
+      }
+    }
+  }
+}

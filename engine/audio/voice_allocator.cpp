@@ -323,6 +323,15 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
     return idx;
 }
 
+namespace {
+// M2.5.2 F4b: a percussive Pulso voice (sustain 0, synthesis timbre) is one-shot: it follows its designed envelope
+// (1 ms attack, 50-120 ms decay to zero, ADR-0004 §2.1) and ends by itself. Its NoteOff is acknowledged (Applied,
+// the event chain is unchanged) but does not cut it, and the duration expiry of checkLifetimes does not truncate it.
+bool isOneShotVoice(const VoiceSlot& s) noexcept {
+    return s.role == MusicRole::Pulso && s.timbreParam > 0.0f && s.sustainLevel == 0.0f;
+}
+} // namespace
+
 int VoiceAllocator::onNoteOff(const ScheduledAudioEvent& event) noexcept {
     if (static_cast<std::size_t>(event.role) >= kRoleCount) {
         return -1;
@@ -341,6 +350,7 @@ int VoiceAllocator::onNoteOff(const ScheduledAudioEvent& event) noexcept {
 
     if (matched >= 0) {
         auto& slot = slots_[static_cast<std::size_t>(matched)];
+        if (isOneShotVoice(slot)) return matched; // acknowledged, the envelope runs to its end (F4b)
         slot.state = VoiceState::Release;
         slot.stageFrame = 0;
         slot.releaseStartLevel = slot.envelopeLevel;
@@ -359,6 +369,8 @@ void VoiceAllocator::checkLifetimes(std::uint64_t currentLogicalFrame) noexcept 
         }
 
         if (slot.durationFrames > 0) {
+            // A one-shot Pulso voice ends with its own envelope (F4b): the duration does not truncate it
+            if (isOneShotVoice(slot)) continue;
             // Note with explicit duration: failsafe timeout triggers release (saturating against overflow)
             const std::uint64_t expireFrame =
                 core::saturatingAdd(slot.startFrame, static_cast<std::uint64_t>(slot.durationFrames));

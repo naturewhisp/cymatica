@@ -1,0 +1,7 @@
+{
+  "kicks": 416,
+  "length_ms_median": 76.125,
+  "length_ms_p05": 69.375,
+  "length_ms_p95": 76.20833333333333,
+  "low_share_below_100hz": 0.7411935400409607
+}

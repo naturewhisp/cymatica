@@ -3283,3 +3283,17 @@ Pacchetto CP-2 archiviato senza invio. ADR-0003 D-M2-06 annotato con la ricalibr
 **Decisione del titolare, D-M2-32 (2026-11-17): approvata** nella variante «prima si chiude M2.5.2» (ADR-0007 §11).
 - M2.5.3 e M2.5.4 diventano la fase unica **M2.5.3–4, Struttura e sviluppo**, non più condizionale, con un solo ascolto umano cumulativo a fine fase. CP-3 riformulato in ADR-0007 §4; specifica §32 invariata.
 - **Prima si chiude M2.5.2:** F4b (durata del kick) e livello della Trama, verificati in autonomia.
+
+**M2.5.2, F4b kick one-shot: pre-registrazione** [M2_5_2_F4b_Kick_OneShot_Preregistration.md](research/M2_5_2_F4b_Kick_OneShot_Preregistration.md), SHA-256 (LF) `c57ad2173ca412ad88cb6503a43ce0f0a8f960bad76e2c4e626927e87263c853`. Pulso segue il proprio inviluppo progettato (71–82 ms) invece di essere troncato dal NoteOff a 53,6 e 62,5 ms; piano e trace invariati. Predizioni B1–B6.
+
+**M2.5.2, F4b kick one-shot, risultati (2026-11-17):** [M2_5_2_F4b_Kick_OneShot_Results.md](research/M2_5_2_F4b_Kick_OneShot_Results.md), ADR-0007 D-M2-35.
+- **Cambio:** il kick segue l'inviluppo progettato; il NoteOff resta `Applied` ma non lo interrompe.
+- **Confermate** B1–B4 e B6:
+  - durata mediana da 64,2 a **76,1 ms**;
+  - nessun rilascio di Pulso nel registro delle dissolvenze;
+  - piano, trace ed eventi invariati; Trama e Vettore identici, Corpo cambia per il ducking;
+  - limiter 0 dB.
+- **B5 mancata:** Pulso solo +0,05 LU, perché la coda aggiunta è debole; l'energia sotto 100 Hz cresce di poco.
+- **Golden PCM:** `18256941985354732249` → **`8159713709400020277`**.
+- **Build e suite:** Release e Debug `/WX` 293/293; `full_m2_suite` verde salvo `acao02_v1`.
+- **Prossimo passo:** livello della Trama (criterio da pre-registrare), poi chiusura di M2.5.2. Eventuale F4c. Non committato.
