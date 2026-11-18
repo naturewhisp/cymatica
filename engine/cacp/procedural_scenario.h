@@ -123,6 +123,8 @@ struct ProceduralMeasureStatuses {
                                                   const std::optional<double>& maxMomentary = std::nullopt,
                                                   const std::optional<double>& maxShortTerm = std::nullopt);
 
-[[nodiscard]] ProceduralResult runProceduralV1(const std::string& outputDir = "artifacts/cacp", bool writeFiles = true);
+// measureDiversity = false skips the 64-seed scan (diversity NOT_RUN): for tests that check other measures only
+[[nodiscard]] ProceduralResult runProceduralV1(const std::string& outputDir = "artifacts/cacp", bool writeFiles = true,
+                                               bool measureDiversity = true);
 
 } // namespace cymatica::cacp

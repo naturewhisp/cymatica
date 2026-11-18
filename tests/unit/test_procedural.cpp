@@ -533,7 +533,8 @@ TEST_CASE("Loudness per stem: values and relative levels only when measured (M2.
 // No LUFS value is binding.
 TEST_CASE("Loudness per stem on the fixture render is complete and aligned (M2.5.1c)", "[procedural][stem_loudness][slow]") {
     using nlohmann::json;
-    const ProceduralResult r = runProceduralV1("artifacts/cacp_test", false);
+    // The 64-seed diversity scan is not needed here (it has its own test): skipped to keep the test short
+    const ProceduralResult r = runProceduralV1("artifacts/cacp_test", false, false);
     REQUIRE(r.status == "PASS");
     const json m = json::parse(r.toJson())["measures"];
     const json s = m["loudness_per_stem"];

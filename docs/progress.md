@@ -3621,3 +3621,14 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
 - **Durata della suite** (segnalata dal titolare): Debug 22–23 min, prima del punto 6 sotto i 10.
   - Il collo di bottiglia è il test della loudness per stem (1393 s in Debug): esegue lo scenario procedurale, che contiene la scansione di diversità. Dal punto 6 la scansione calcola M4 su 2009 coppie diverse.
   - Correzioni proposte, senza cambiare i risultati: M4 bit-parallela di Myers, verificata contro l'attuale, e scansione saltata nel test della loudness.
+
+**Durata della suite di test, correzione (2026-11-18), su richiesta del titolare («Commit e tempi»).** I risultati restano identici; cambia solo il calcolo.
+- **M4:** la distanza di edit è calcolata con l'algoritmo bit-parallelo di Myers (J. ACM 46(3), 1999). Test di equivalenza con la programmazione dinamica: 2016 coppie di sequenze casuali, in entrambi i versi, con lunghezze attorno ai blocchi da 64.
+- **M3, il costo vero (53 dei 54 s della scansione, misurato con un'istrumentazione temporanea poi rimossa):** le traslazioni si sommano in una tabella densa, invece che in una `std::map`. Test di equivalenza con l'implementazione precedente: 192 casi, in entrambi i versi, con punti ripetuti. Oltre una tabella di 64 M celle si torna alla `std::map`.
+- **M2:** le caratteristiche si calcolano una volta per seed, non per coppia.
+- **Verifica d'insieme:** lo scenario procedurale, compilato una volta con gli algoritmi di riferimento e una con quelli nuovi, dà un blocco di diversità identico in ogni numero (1 min 46 s contro 17 s).
+- **Loudness per stem:** il test non esegue più la scansione dei 64 seed, che ha il suo test: nuovo parametro `measureDiversity` di `runProceduralV1`.
+- **Tempi:**
+  - test Release: da 2 min a 1 min reale (CPU da 432 a 97 s); la scansione di diversità da 110 a 3 s;
+  - test Debug: da 22 a **5 min** reali (CPU da 4706 a 1301 s).
+- **Build:** Release e Debug `/WX` 309/309, con 2 test d'equivalenza nuovi. Non committato.

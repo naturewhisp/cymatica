@@ -80,8 +80,15 @@ struct NoteToken {
 // M3 per role: 1 - max over translations of |Q ∩ (R + t)| / max(|Q|, |R|) on points (onset, midi), multiset
 // intersection (simultaneous notes at the same pitch counted with their multiplicity, DIF-5e.2-02); in [0, 1]
 [[nodiscard]] double m3CardinalityDistance(const std::vector<NoteToken>& a, const std::vector<NoteToken>& b, std::size_t role);
+// The std::map implementation m3CardinalityDistance replaced, kept as the oracle of the equivalence test
+[[nodiscard]] double m3CardinalityDistanceReference(const std::vector<NoteToken>& a, const std::vector<NoteToken>& b, std::size_t role);
 // M4 per role: Levenshtein distance (unit costs) on tokens (Δonset, interval, duration class) / max length
 [[nodiscard]] double m4EditDistance(const std::vector<NoteToken>& a, const std::vector<NoteToken>& b, std::size_t role);
+// Unit-cost Levenshtein distance between two symbol sequences. levenshteinBitParallel is Myers' block algorithm
+// (J. ACM 46(3), 1999), exact; levenshteinReference is the O(n*m) dynamic programme it replaced in m4EditDistance
+// and is kept as the oracle of the equivalence test.
+[[nodiscard]] std::size_t levenshteinBitParallel(const std::vector<std::uint32_t>& x, const std::vector<std::uint32_t>& y);
+[[nodiscard]] std::size_t levenshteinReference(const std::vector<std::uint32_t>& x, const std::vector<std::uint32_t>& y);
 
 struct DiversityResult {
     std::string status{"NOT_RUN"};            // MEASURED or INCONCLUSIVE (planning failure)

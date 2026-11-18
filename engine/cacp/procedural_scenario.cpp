@@ -88,7 +88,7 @@ SectionMeasures measureRange(std::span<const float> pcm, std::uint32_t section, 
 
 } // namespace
 
-ProceduralResult runProceduralV1(const std::string& outputDir, bool writeFiles) {
+ProceduralResult runProceduralV1(const std::string& outputDir, bool writeFiles, bool measureDiversity) {
     ProceduralResult r;
     StemCapture cap(kCaptureFrames);
     std::vector<float> stereo;
@@ -234,7 +234,7 @@ ProceduralResult runProceduralV1(const std::string& outputDir, bool writeFiles) 
 
     // ---- measures: musical groups of the phrases and seed diversity (5e-04; offline planning only) ----
     if (const FixturePlan plan = planFixtureM24V1(1337); plan.ok) r.phraseGroups = phraseGroupIds(plan);
-    r.diversityJson = diversityJson(measureSeedDiversity());
+    if (measureDiversity) r.diversityJson = diversityJson(measureSeedDiversity());
 
     r.status = r.failures.empty() ? "PASS" : "FAIL";
     if (!writeFiles) return r;

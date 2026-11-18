@@ -200,3 +200,61 @@ TEST_CASE("Symbolic groups of fixture-m2-4-v1 follow the prediction registered i
     const auto frameIds = phraseGroupIds(p);
     CHECK(std::set<std::string>(frameIds.begin(), frameIds.end()).size() == 20); // 14 before point 4 (D-M2-44), 16 before point 5, 19 before 5b
 }
+
+TEST_CASE("M4 bit-parallel Levenshtein equals the dynamic programme (Myers 1999)", "[diversity][metrics][m4_bitparallel]") {
+    // Deterministic pseudo-random sequences: lengths across the 64-bit block boundaries, small and large alphabets
+    std::uint64_t state = 0x9E3779B97F4A7C15ULL;
+    const auto next = [&state]() { state ^= state << 13; state ^= state >> 7; state ^= state << 17; return state; };
+    std::size_t cases = 0;
+    for (const std::size_t lenA : {0U, 1U, 2U, 5U, 63U, 64U, 65U, 127U, 128U, 129U, 200U, 300U}) {
+        for (const std::size_t lenB : {0U, 1U, 3U, 64U, 65U, 130U, 257U}) {
+            for (const std::uint32_t alphabet : {1U, 2U, 4U, 40U}) {
+                for (int rep = 0; rep < 6; ++rep) {
+                    std::vector<std::uint32_t> a(lenA), b(lenB);
+                    for (auto& v : a) v = static_cast<std::uint32_t>(next() % alphabet);
+                    for (auto& v : b) v = static_cast<std::uint32_t>(next() % alphabet);
+                    // Half the cases: b is an edited copy of a, the regime of the seed scan
+                    if (rep % 2 == 1 && !a.empty()) {
+                        b = a;
+                        for (int e = 0; e < 5 && !b.empty(); ++e) {
+                            const std::size_t p = next() % b.size();
+                            switch (next() % 3) {
+                                case 0: b[p] = static_cast<std::uint32_t>(next() % alphabet); break;
+                                case 1: b.erase(b.begin() + static_cast<std::ptrdiff_t>(p)); break;
+                                default: b.insert(b.begin() + static_cast<std::ptrdiff_t>(p), static_cast<std::uint32_t>(next() % alphabet));
+                            }
+                        }
+                    }
+                    INFO("lenA " << a.size() << " lenB " << b.size() << " alphabet " << alphabet);
+                    REQUIRE(levenshteinBitParallel(a, b) == levenshteinReference(a, b));
+                    REQUIRE(levenshteinBitParallel(b, a) == levenshteinReference(b, a));
+                    ++cases;
+                }
+            }
+        }
+    }
+    CHECK(cases == 12 * 7 * 4 * 6);
+}
+
+TEST_CASE("M3 with a dense translation table equals the std::map implementation", "[diversity][metrics][m3_fast]") {
+    std::uint64_t state = 0xD1B54A32D192ED03ULL;
+    const auto next = [&state]() { state ^= state << 13; state ^= state >> 7; state ^= state << 17; return state; };
+    std::size_t cases = 0;
+    for (const std::size_t n : {0U, 1U, 3U, 17U, 64U, 150U}) {
+        for (const std::size_t m : {0U, 2U, 40U, 151U}) {
+            for (int rep = 0; rep < 8; ++rep) {
+                std::vector<NoteToken> a, b;
+                for (std::size_t i = 0; i < n; ++i) a.push_back({static_cast<std::size_t>(next() % 2), static_cast<std::int64_t>(next() % 48), 60 + static_cast<int>(next() % 7), 4});
+                for (std::size_t i = 0; i < m; ++i) b.push_back({static_cast<std::size_t>(next() % 2), static_cast<std::int64_t>(next() % 48), 60 + static_cast<int>(next() % 7), 4});
+                if (rep % 2 == 1) b.insert(b.end(), a.begin(), a.end()); // shared material, repeated points
+                for (std::size_t role = 0; role < 2; ++role) {
+                    INFO("n " << n << " m " << m << " rep " << rep << " role " << role);
+                    REQUIRE(m3CardinalityDistance(a, b, role) == m3CardinalityDistanceReference(a, b, role));
+                    REQUIRE(m3CardinalityDistance(b, a, role) == m3CardinalityDistanceReference(b, a, role));
+                }
+                ++cases;
+            }
+        }
+    }
+    CHECK(cases == 6 * 4 * 8);
+}

@@ -228,6 +228,64 @@ double m3CardinalityDistance(const std::vector<NoteToken>& a, const std::vector<
     for (const auto& t : b) if (t.role == role) r.emplace_back(t.onset, t.midi);
     if (q.empty() && r.empty()) return 0.0;
     if (q.empty() || r.empty()) return 1.0;
+    // Same multiset intersection as m3CardinalityDistanceReference (DIF-5e.2-02), with the counts of the distinct points
+    // in sorted vectors and the translations summed in a dense table: identical sums, hence an identical maximum
+    const auto counted = [](std::vector<std::pair<std::int64_t, int>> v) {
+        std::sort(v.begin(), v.end());
+        std::vector<std::pair<std::pair<std::int64_t, int>, std::size_t>> out;
+        for (const auto& p : v) {
+            if (!out.empty() && out.back().first == p) ++out.back().second;
+            else out.push_back({p, 1});
+        }
+        return out;
+    };
+    const auto cq = counted(q);
+    const auto cr = counted(r);
+    // Translations lie in a small known box: count them in a dense table, resetting only the touched cells
+    std::int64_t qMinT = cq.front().first.first, qMaxT = qMinT, rMinT = cr.front().first.first, rMaxT = rMinT;
+    int qMinP = cq.front().first.second, qMaxP = qMinP, rMinP = cr.front().first.second, rMaxP = rMinP;
+    for (const auto& [x, c] : cq) { qMinT = (std::min)(qMinT, x.first); qMaxT = (std::max)(qMaxT, x.first);
+                                    qMinP = (std::min)(qMinP, x.second); qMaxP = (std::max)(qMaxP, x.second); }
+    for (const auto& [y, c] : cr) { rMinT = (std::min)(rMinT, y.first); rMaxT = (std::max)(rMaxT, y.first);
+                                    rMinP = (std::min)(rMinP, y.second); rMaxP = (std::max)(rMaxP, y.second); }
+    const std::int64_t tLo = qMinT - rMaxT, tSpan = qMaxT - rMinT - tLo + 1;
+    const std::int64_t pLo = static_cast<std::int64_t>(qMinP) - rMaxP;
+    const std::int64_t pSpan = static_cast<std::int64_t>(qMaxP) - rMinP - pLo + 1;
+    std::size_t best = 0;
+    if (tSpan > 0 && pSpan > 0 && tSpan * pSpan <= 64LL * 1024 * 1024) {
+        thread_local std::vector<std::uint32_t> table;
+        thread_local std::vector<std::uint32_t> touched;
+        const auto cells = static_cast<std::size_t>(tSpan * pSpan);
+        if (table.size() < cells) table.assign(cells, 0U);
+        touched.clear();
+        for (const auto& [x, aCount] : cq) {
+            for (const auto& [y, bCount] : cr) {
+                const auto cell = static_cast<std::size_t>((x.first - y.first - tLo) * pSpan +
+                                                           (static_cast<std::int64_t>(x.second) - y.second - pLo));
+                if (table[cell] == 0U) touched.push_back(static_cast<std::uint32_t>(cell));
+                table[cell] += static_cast<std::uint32_t>((std::min)(aCount, bCount));
+                best = (std::max)(best, static_cast<std::size_t>(table[cell]));
+            }
+        }
+        for (const auto cell : touched) table[cell] = 0U;
+    } else {
+        std::map<std::pair<std::int64_t, int>, std::size_t> score;
+        for (const auto& [x, aCount] : cq) {
+            for (const auto& [y, bCount] : cr) {
+                const std::pair<std::int64_t, int> t{x.first - y.first, x.second - y.second};
+                best = (std::max)(best, score[t] += (std::min)(aCount, bCount));
+            }
+        }
+    }
+    return 1.0 - static_cast<double>(best) / static_cast<double>((std::max)(q.size(), r.size()));
+}
+
+double m3CardinalityDistanceReference(const std::vector<NoteToken>& a, const std::vector<NoteToken>& b, std::size_t role) {
+    std::vector<std::pair<std::int64_t, int>> q, r;
+    for (const auto& t : a) if (t.role == role) q.emplace_back(t.onset, t.midi);
+    for (const auto& t : b) if (t.role == role) r.emplace_back(t.onset, t.midi);
+    if (q.empty() && r.empty()) return 0.0;
+    if (q.empty() || r.empty()) return 1.0;
     // Multiset intersection (DIF-5e.2-02): for a translation t, |Q ∩ (R + t)| = sum over distinct points p of Q of
     // min(count_Q(p), count_R(p - t)). Each distinct q pairs with exactly one distinct r for a given t, so the sum
     // accumulates min(a, b) over the pairs of distinct points; the result stays in [0, 1].
@@ -262,6 +320,24 @@ double m4EditDistance(const std::vector<NoteToken>& a, const std::vector<NoteTok
     };
     const auto x = seq(a), y = seq(b);
     if (x.empty() && y.empty()) return 0.0;
+    // Symbols: the distinct (IOI, interval, duration class) tuples of the two sequences, numbered in sorted order
+    std::vector<std::tuple<std::int64_t, int, std::uint32_t>> alphabet(x);
+    alphabet.insert(alphabet.end(), y.begin(), y.end());
+    std::sort(alphabet.begin(), alphabet.end());
+    alphabet.erase(std::unique(alphabet.begin(), alphabet.end()), alphabet.end());
+    const auto encode = [&](const std::vector<std::tuple<std::int64_t, int, std::uint32_t>>& v) {
+        std::vector<std::uint32_t> out;
+        out.reserve(v.size());
+        for (const auto& t : v) {
+            out.push_back(static_cast<std::uint32_t>(std::lower_bound(alphabet.begin(), alphabet.end(), t) - alphabet.begin()));
+        }
+        return out;
+    };
+    const std::size_t dist = levenshteinBitParallel(encode(x), encode(y));
+    return static_cast<double>(dist) / static_cast<double>((std::max)(x.size(), y.size()));
+}
+
+std::size_t levenshteinReference(const std::vector<std::uint32_t>& x, const std::vector<std::uint32_t>& y) {
     std::vector<std::size_t> prev(y.size() + 1), cur(y.size() + 1);
     for (std::size_t j = 0; j <= y.size(); ++j) prev[j] = j;
     for (std::size_t i = 1; i <= x.size(); ++i) {
@@ -271,7 +347,51 @@ double m4EditDistance(const std::vector<NoteToken>& a, const std::vector<NoteTok
         }
         std::swap(prev, cur);
     }
-    return static_cast<double>(prev[y.size()]) / static_cast<double>((std::max)(x.size(), y.size()));
+    return prev[y.size()];
+}
+
+// Myers' bit-vector algorithm, block version (advanceBlock of Myers 1999, as in edlib), for the global distance:
+// the pattern x runs down the columns in 64-bit blocks; the first row D[0][j] = j enters as a +1 horizontal delta
+// at the top of block 0 for every text symbol. Unused bits of the last block never reach its last-row bit.
+std::size_t levenshteinBitParallel(const std::vector<std::uint32_t>& x, const std::vector<std::uint32_t>& y) {
+    const std::size_t m = x.size();
+    if (m == 0) return y.size();
+    if (y.empty()) return m;
+    const std::size_t blocks = (m + 63) / 64;
+    std::uint32_t symbols = 0;
+    for (const auto s : x) symbols = (std::max)(symbols, s + 1);
+    for (const auto s : y) symbols = (std::max)(symbols, s + 1);
+    std::vector<std::uint64_t> peq(static_cast<std::size_t>(symbols) * blocks, 0);
+    for (std::size_t i = 0; i < m; ++i) peq[static_cast<std::size_t>(x[i]) * blocks + i / 64] |= (1ULL << (i % 64));
+    std::vector<std::uint64_t> pv(blocks, ~0ULL), mv(blocks, 0ULL);
+    const std::uint64_t lastHigh = 1ULL << ((m - 1) % 64);
+    std::size_t score = m;
+    for (const auto c : y) {
+        int hin = 1;
+        for (std::size_t b = 0; b < blocks; ++b) {
+            const std::uint64_t high = (b + 1 == blocks) ? lastHigh : (1ULL << 63);
+            std::uint64_t eq = peq[static_cast<std::size_t>(c) * blocks + b];
+            const std::uint64_t pvb = pv[b];
+            const std::uint64_t mvb = mv[b];
+            const std::uint64_t xv = eq | mvb;
+            if (hin < 0) eq |= 1ULL;
+            const std::uint64_t xh = (((eq & pvb) + pvb) ^ pvb) | eq;
+            std::uint64_t ph = mvb | ~(xh | pvb);
+            std::uint64_t mh = pvb & xh;
+            int hout = 0;
+            if (ph & high) hout = 1;
+            if (mh & high) hout = -1;
+            ph <<= 1;
+            mh <<= 1;
+            if (hin < 0) mh |= 1ULL;
+            else if (hin > 0) ph |= 1ULL;
+            pv[b] = mh | ~(xv | ph);
+            mv[b] = ph & xv;
+            hin = hout;
+        }
+        score = static_cast<std::size_t>(static_cast<std::int64_t>(score) + hin);
+    }
+    return score;
 }
 
 DiversityResult measureSeedDiversity() {
@@ -324,6 +444,13 @@ DiversityResult measureSeedDiversity() {
         d.distinctVariants = keys.size();
     }
 
+    // M2 features once per seed (they depend on one plan only), not once per pair
+    std::vector<std::vector<double>> features;
+    features.reserve(data.size());
+    for (const auto& sd : data) {
+        const auto f = m2Features(sd.tokens);
+        features.emplace_back(f.begin(), f.end());
+    }
     std::size_t identicalPairs = 0;
     std::array<double, kRoleCount> phraseShareSum{};
     for (std::size_t a = 0; a < data.size(); ++a) {
@@ -340,7 +467,8 @@ DiversityResult measureSeedDiversity() {
                 continue;
             }
             ++d.distinctPairs;
-            const auto fa = m2Features(data[a].tokens), fb = m2Features(data[b].tokens);
+            const auto& fa = features[a];
+            const auto& fb = features[b];
             double sq = 0.0;
             for (std::size_t i = 0; i < fa.size(); ++i) sq += (fa[i] - fb[i]) * (fa[i] - fb[i]);
             d.m2Distances.push_back(std::sqrt(sq));
