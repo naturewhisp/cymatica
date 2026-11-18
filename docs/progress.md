@@ -3632,3 +3632,17 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
   - test Release: da 2 min a 1 min reale (CPU da 432 a 97 s); la scansione di diversità da 110 a 3 s;
   - test Debug: da 22 a **5 min** reali (CPU da 4706 a 1301 s).
 - **Build:** Release e Debug `/WX` 309/309, con 2 test d'equivalenza nuovi. Non committato.
+
+**Guida musicale per l'esperto (2026-11-18), su richiesta del titolare.** L'esperto non ha ancora prodotto F7: dice di non avere l'ispirazione e chiede di sapere di più sul mood di CYMATICA.
+- **Documento Google del titolare** «Cymatica Audio Design», corretto sul posto contro DESIGN.md:
+  - tolti 36 numeri di citazione residui;
+  - Corpo = accordi, pad e basso; Trama = arpeggi e figure;
+  - gli archetipi non sono generi;
+  - le specifiche di export valgono per brani audio completi.
+- **Sezioni aggiunte al documento:**
+  - 3, il mood con le parole del progetto (Seme, purezza e dissonanza, ritmo che aiuta a prevedere, silenzio, riferimenti visivi);
+  - 4, il brano di oggi;
+  - 5, cosa chiediamo: F7 invariata, più motivi d'apertura, giri, arpeggi e basso per le tabelle d'autore;
+  - 6, gli archetipi con la loro direzione sonora (DESIGN §12).
+- **PDF di 6 pagine,** nello stile del PDF di F7 e con le istruzioni F7 complete: generatore in [expert_music_guide](research/experiments/expert_music_guide/README.md); il file `artifacts/expert/CYMATICA_guida_musicale.pdf` non è versionato.
+- **Verifica:** pagine controllate a vista; nessun testo tagliato; nessun nome dell'esperto.
