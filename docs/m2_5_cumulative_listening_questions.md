@@ -6,6 +6,12 @@
   - ogni voce entra qui quando una decisione la rinvia all'ascolto, con la misura che la motiva e la domanda da porre;
   - le domande si scrivono in linguaggio semplice e non rivelano quale versione sia quella nuova;
   - prima della sessione le ipotesi si registrano con hash, come per ogni ascolto.
+- **Sessione del 2026-11 (D-M2-50):** le voci sono state condensate in una sessione di circa 30 minuti, secondo le [ipotesi](research/M2_5_Cumulative_Listening_Hypotheses.md):
+  - la voce 16 è l'unica coppia A/B;
+  - le voci 1, 2, 5, 7, 8, 11–15 e 17 sono domande sul brano completo; le voci 14 e 17 si rispondono sul secondo brano (seed 34);
+  - le voci 4 e 6 sono una riga di controllo;
+  - le voci 3, 9 e 10 restano alle misure; la 10 torna come A/B solo se la melodia risulta prevedibile.
+  Le domande proposte qui sotto restano il riferimento; nella pagina sono riformulate in forma breve.
 
 | # | Voce | Misura che la motiva | Domanda proposta | Origine |
 |---|---|---|---|---|

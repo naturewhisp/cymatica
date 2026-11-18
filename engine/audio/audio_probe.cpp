@@ -2327,6 +2327,7 @@ std::string FixtureProbeResult::toJson() const {
     ss << "  \"verdict\": \"" << (passed ? "PASS" : "FAIL") << "\",\n";
     ss << "  \"run_seed\": " << runSeed << ",\n";
     ss << "  \"golden_applicable\": " << (goldenApplicable ? "true" : "false") << ",\n";
+    ss << "  \"fixture_variant_override\": " << (fixtureVariantOverride ? "true" : "false") << ",\n";
     ss << "  \"sample_rate\": " << kInc4SampleRate << ",\n";
     ss << "  \"lookahead_frames\": " << lookaheadFrames << ",\n";
     ss << "  \"content_end_frame\": " << contentEndFrame << ",\n";
@@ -2505,7 +2506,7 @@ std::string ProfileProbeResult::toJson() const {
 std::string fixturePcmGoldenStatus(const FixtureProbeResult& r, std::uint64_t expected) {
     if (!r.goldenApplicable || r.injectedFault != FixtureInjectedFault::None || r.noteReleaseOverride != 0 ||
         r.pulsoBusGainScaleOverride != 1.0f || r.tramaBusGainScaleOverride != 1.0f || r.pulsoDecayScaleOverride != 1.0f ||
-        r.timbrePaletteOverride != TimbrePalette::Production) {
+        r.timbrePaletteOverride != TimbrePalette::Production || r.fixtureVariantOverride) {
         return "NOT_APPLICABLE";
     }
     return r.pcmContentHash == expected ? "PASS" : "FAIL";
@@ -2525,7 +2526,12 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     result.injectedFault = fault;
     result.buildId = CYMATICA_BUILD_ID;
     result.runSeed = seed;
-    result.goldenApplicable = (seed == kFixtureSeed);
+    // Cumulative listening (D-M2-50): a path of fixture-variants-v1 other than the reference, offline only
+    const bool variantOverride = capture != nullptr && capture->fixtureVariant.has_value() &&
+                                 !(*capture->fixtureVariant == kFixtureReferenceVariant);
+    const FixtureVariant variant = variantOverride ? *capture->fixtureVariant : kFixtureReferenceVariant;
+    result.fixtureVariantOverride = variantOverride;
+    result.goldenApplicable = (seed == kFixtureSeed) && !variantOverride;
 
     const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
     if (!optClock.has_value()) {
@@ -2534,8 +2540,8 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
         return result;
     }
     const MusicClock& clock = *optClock;
-    const FormPlan form = MusicPlanner::makeFixtureM24V1Form();
-    const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(clock);
+    const FormPlan form = MusicPlanner::makeFixtureM24V1Form(variant);
+    const auto phrases = MusicPlanner::makeFixtureM24V1Phrases(clock, variant);
 
     constexpr std::uint32_t kFramesPerTick = kInc4SampleRate / core::FixedStepConfig{}.simulationHz; // 400
 

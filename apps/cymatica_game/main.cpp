@@ -20,6 +20,7 @@
 #include "lineage_measures.h"
 #include "chiptune_ab.h"
 #include "harmony_alternatives.h"
+#include "cumulative_listening.h"
 #include "stem_export.h"
 #include "timbre_descriptors.h"
 #include "release_ab.h"
@@ -312,6 +313,11 @@ int main(int argc, char** argv) {
                 const auto res = cymatica::cacp::runChiptuneAbV1("artifacts/cacp", true);
                 std::printf("%s\n", res.toJson().c_str());
                 return (res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
+            } else if (std::strcmp(scenario, "cumulative_listening") == 0 || std::strcmp(scenario, "cumulative_listening_v1") == 0) {
+                std::printf("[cacp] Running scenario '%s' (D-M2-50: full pieces of the cumulative listening, MEASURED, not a gate)...\n", scenario);
+                const auto res = cymatica::cacp::runCumulativeListeningV1("artifacts/cacp", true);
+                std::printf("%s\n", res.toJson().c_str());
+                return (res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
             } else if (std::strcmp(scenario, "harmony_alternatives") == 0 || std::strcmp(scenario, "harmony_alternatives_v1") == 0) {
                 std::printf("[cacp] Running scenario '%s' (pacchetto 6c: harmony alternatives of B, MEASURED, not a gate)...\n", scenario);
                 const auto res = cymatica::cacp::runHarmonyAlternativesV1("artifacts/cacp", true);
@@ -352,7 +358,7 @@ int main(int argc, char** argv) {
                 return (res.completed && res.inputValid) ? 0 : 1;
             } else {
                 std::fprintf(stderr, "[cacp] ERROR: unknown scenario '%s' (known: tone_test, voice_test, "
-                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, device_probe, onset_parity, acao02, evaluation_pack, procedural, release_ab, kick_level_ab, trama_stereo, discontinuity, fade_events, binaural, stem_export, stem_export_v2, stem_export_v3, kick_decay_ab, meter_change, development_measures, plan_export, lineage_measures, chiptune_ab, harmony_alternatives, timbre_descriptors, trama_miss_diagnosis, full_m2_suite "
+                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, device_probe, onset_parity, acao02, evaluation_pack, procedural, release_ab, kick_level_ab, trama_stereo, discontinuity, fade_events, binaural, stem_export, stem_export_v2, stem_export_v3, kick_decay_ab, meter_change, development_measures, plan_export, lineage_measures, chiptune_ab, harmony_alternatives, cumulative_listening, timbre_descriptors, trama_miss_diagnosis, full_m2_suite "
                                      "and their *_v* aliases)\n",
                              scenario);
                 return 2;

@@ -3698,3 +3698,19 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
 - **Da sentire:** gli adattamenti della melodia salgono da 340 a 1863 con la sensibile (voce 17 del registro).
 - **Seguito possibile,** con nuova pre-registrazione e dopo l'ascolto: Fa♯ nel Corpo.
 - **Build e suite:** Release e Debug `/WX` 313/313; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
+
+**Ascolto cumulativo di M2.5.3–4: disegno e ipotesi (2026-11-18).**
+- **Decisione del titolare:** una sessione condensata, solo con ciò che richiede davvero un giudizio umano, e una pagina interattiva nello stile grafico di CYMATICA (D-M2-50).
+- **Ipotesi:** [M2_5_Cumulative_Listening_Hypotheses.md](research/M2_5_Cumulative_Listening_Hypotheses.md), SHA-256 (LF) `74e57f7980bdfcec780d158eaaa371f45f6b4b7ed6e8164c6f0bb6b402a4542b`.
+- **Sessione:** circa 30 minuti. Brano di riferimento, poi un secondo percorso della tabella al posto del secondo ascolto dello stesso brano, una sola coppia A/B (chiptune) e i controlli B0. Ipotesi L1–L13.
+- **Voci senza ascolto:** 3, 9 e 10, per le quali valgono le misure.
+
+**Ascolto cumulativo: materiali pronti (2026-11-18), D-M2-50.**
+- **Render offline di un percorso della tabella:** `ProbeAnalysisCapture::fixtureVariant`. Quando è attivo, tutti i golden risultano NOT_APPLICABLE; il riferimento ha ancora il golden PCM PASS.
+- **Scenario `cumulative_listening_v1`:**
+  - brano 1, il riferimento: −19,60 LUFS;
+  - brano 2, il seed 34 scelto dalla regola dichiarata: Trama dalla frase 6, spostamento dalla frase 13, pausa del kick nella frase 20, cella di AURA in A e in B, giro con la sensibile; −20,13 LUFS.
+- **Generatore del pacchetto:** pagina `ascolto.html` nello stile di CYMATICA, audio e chiave separata. Vedi [materiali](research/experiments/m25_cumulative_listening/README.md).
+- **Bozza controllata nel browser:** audio, salvataggio ed esportazione del testo. Non verificati la ricerca nell'audio da file locale e l'apertura su un altro computer.
+- **Test:** `[cumulative_listening]`, con la regola del seed e i golden non applicabili; Release e Debug `/WX` 315/315.
+- **Pacchetto da rigenerare dopo il commit,** con l'hash del commit nella chiave. Non inviato.
