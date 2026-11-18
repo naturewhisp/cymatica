@@ -1,0 +1,77 @@
+{
+  "alternatives": [
+    {
+      "adapted_notes": 340,
+      "alternative": 0,
+      "change_chord_tones": 1600,
+      "change_onsets": 1600,
+      "distinct_corpo_groups": 18,
+      "false_relations": 0,
+      "leading_tone_onsets": {
+        "corpo": 0,
+        "pulso": 0,
+        "trama": 0,
+        "vettore": 0
+      },
+      "plans_ok": 64,
+      "real_change_chord_tones": 1600,
+      "real_change_onsets": 1600,
+      "register_unmet_phrases": 0,
+      "repaired_bars": 411,
+      "vettore_corpo_clashes": 0
+    },
+    {
+      "adapted_notes": 862,
+      "alternative": 1,
+      "change_chord_tones": 1984,
+      "change_onsets": 1984,
+      "distinct_corpo_groups": 16,
+      "false_relations": 0,
+      "leading_tone_onsets": {
+        "corpo": 0,
+        "pulso": 0,
+        "trama": 0,
+        "vettore": 0
+      },
+      "plans_ok": 64,
+      "real_change_chord_tones": 2048,
+      "real_change_onsets": 2048,
+      "register_unmet_phrases": 0,
+      "repaired_bars": 698,
+      "vettore_corpo_clashes": 0
+    },
+    {
+      "adapted_notes": 1863,
+      "alternative": 2,
+      "change_chord_tones": 1984,
+      "change_onsets": 1984,
+      "distinct_corpo_groups": 11,
+      "false_relations": 0,
+      "leading_tone_onsets": {
+        "corpo": 0,
+        "pulso": 0,
+        "trama": 765,
+        "vettore": 0
+      },
+      "plans_ok": 64,
+      "real_change_chord_tones": 2048,
+      "real_change_onsets": 2048,
+      "register_unmet_phrases": 0,
+      "repaired_bars": 171,
+      "vettore_corpo_clashes": 0
+    }
+  ],
+  "drawn_count": [
+    19,
+    27,
+    18
+  ],
+  "manifest": "artifacts/cacp\\harmony_alternatives_v1_manifest.json",
+  "reasons": [],
+  "scenario": "harmony_alternatives_v1",
+  "seeds": [
+    1,
+    64
+  ],
+  "status": "MEASURED"
+}

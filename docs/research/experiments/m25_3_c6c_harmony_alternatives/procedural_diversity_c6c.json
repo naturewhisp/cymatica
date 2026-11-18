@@ -1,0 +1,598 @@
+{
+ "status": "MEASURED",
+ "outcome": "DISTRIBUTIONS",
+ "distinct_fingerprints": 62,
+ "distinct_variants": 62,
+ "m1_identical_pair_share": 0.000992063492063492,
+ "pairs_with_distinct_content": 2014,
+ "seeds": {
+  "first": 1,
+  "last": 64,
+  "n": 64
+ },
+ "variant_table": "fixture-variants-v1 (D-M2-47, D-M2-49); seed 1337 reference fixture unchanged",
+ "variants": [
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 3,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 10,
+   "b_harmony": 2,
+   "seed": 1
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 2,
+   "aura_motif_a": true,
+   "aura_motif_b": false,
+   "b_displacement_start": 13,
+   "b_harmony": 1,
+   "seed": 2
+  },
+  {
+   "a_prime_kick_rest": 20,
+   "a_trama_entry": 3,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 11,
+   "b_harmony": 0,
+   "seed": 3
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 6,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 12,
+   "b_harmony": 2,
+   "seed": 4
+  },
+  {
+   "a_prime_kick_rest": 20,
+   "a_trama_entry": 3,
+   "aura_motif_a": false,
+   "aura_motif_b": false,
+   "b_displacement_start": 11,
+   "b_harmony": 1,
+   "seed": 5
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 4,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 11,
+   "b_harmony": 1,
+   "seed": 6
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 3,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 13,
+   "b_harmony": 1,
+   "seed": 7
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 2,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 12,
+   "b_harmony": 0,
+   "seed": 8
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 4,
+   "aura_motif_a": false,
+   "aura_motif_b": false,
+   "b_displacement_start": 13,
+   "b_harmony": 2,
+   "seed": 9
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 4,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 10,
+   "b_harmony": 2,
+   "seed": 10
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 3,
+   "aura_motif_a": true,
+   "aura_motif_b": false,
+   "b_displacement_start": 11,
+   "b_harmony": 1,
+   "seed": 11
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 3,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 12,
+   "b_harmony": 0,
+   "seed": 12
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 6,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 13,
+   "b_harmony": 2,
+   "seed": 13
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 4,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 12,
+   "b_harmony": 2,
+   "seed": 14
+  },
+  {
+   "a_prime_kick_rest": 20,
+   "a_trama_entry": 6,
+   "aura_motif_a": true,
+   "aura_motif_b": false,
+   "b_displacement_start": 12,
+   "b_harmony": 1,
+   "seed": 15
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 3,
+   "aura_motif_a": false,
+   "aura_motif_b": false,
+   "b_displacement_start": 12,
+   "b_harmony": 0,
+   "seed": 16
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 2,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 10,
+   "b_harmony": 2,
+   "seed": 17
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 3,
+   "aura_motif_a": true,
+   "aura_motif_b": false,
+   "b_displacement_start": 11,
+   "b_harmony": 0,
+   "seed": 18
+  },
+  {
+   "a_prime_kick_rest": 20,
+   "a_trama_entry": 3,
+   "aura_motif_a": true,
+   "aura_motif_b": false,
+   "b_displacement_start": 13,
+   "b_harmony": 1,
+   "seed": 19
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 4,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 11,
+   "b_harmony": 0,
+   "seed": 20
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 4,
+   "aura_motif_a": true,
+   "aura_motif_b": false,
+   "b_displacement_start": 11,
+   "b_harmony": 2,
+   "seed": 21
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 2,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 10,
+   "b_harmony": 1,
+   "seed": 22
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 4,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 11,
+   "b_harmony": 1,
+   "seed": 23
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 3,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 11,
+   "b_harmony": 0,
+   "seed": 24
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 6,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 12,
+   "b_harmony": 2,
+   "seed": 25
+  },
+  {
+   "a_prime_kick_rest": 20,
+   "a_trama_entry": 2,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 13,
+   "b_harmony": 1,
+   "seed": 26
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 2,
+   "aura_motif_a": true,
+   "aura_motif_b": false,
+   "b_displacement_start": 11,
+   "b_harmony": 2,
+   "seed": 27
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 2,
+   "aura_motif_a": true,
+   "aura_motif_b": false,
+   "b_displacement_start": 11,
+   "b_harmony": 1,
+   "seed": 28
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 6,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 10,
+   "b_harmony": 0,
+   "seed": 29
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 4,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 13,
+   "b_harmony": 2,
+   "seed": 30
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 6,
+   "aura_motif_a": false,
+   "aura_motif_b": false,
+   "b_displacement_start": 13,
+   "b_harmony": 1,
+   "seed": 31
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 3,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 12,
+   "b_harmony": 1,
+   "seed": 32
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 3,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 10,
+   "b_harmony": 1,
+   "seed": 33
+  },
+  {
+   "a_prime_kick_rest": 20,
+   "a_trama_entry": 6,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 13,
+   "b_harmony": 2,
+   "seed": 34
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 4,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 13,
+   "b_harmony": 2,
+   "seed": 35
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 2,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 13,
+   "b_harmony": 0,
+   "seed": 36
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 6,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 10,
+   "b_harmony": 0,
+   "seed": 37
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 6,
+   "aura_motif_a": false,
+   "aura_motif_b": false,
+   "b_displacement_start": 11,
+   "b_harmony": 1,
+   "seed": 38
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 6,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 10,
+   "b_harmony": 0,
+   "seed": 39
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 4,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 11,
+   "b_harmony": 1,
+   "seed": 40
+  },
+  {
+   "a_prime_kick_rest": 20,
+   "a_trama_entry": 6,
+   "aura_motif_a": true,
+   "aura_motif_b": false,
+   "b_displacement_start": 10,
+   "b_harmony": 0,
+   "seed": 41
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 3,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 10,
+   "b_harmony": 1,
+   "seed": 42
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 6,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 11,
+   "b_harmony": 0,
+   "seed": 43
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 4,
+   "aura_motif_a": true,
+   "aura_motif_b": false,
+   "b_displacement_start": 12,
+   "b_harmony": 0,
+   "seed": 44
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 4,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 11,
+   "b_harmony": 1,
+   "seed": 45
+  },
+  {
+   "a_prime_kick_rest": 20,
+   "a_trama_entry": 2,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 10,
+   "b_harmony": 1,
+   "seed": 46
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 2,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 10,
+   "b_harmony": 0,
+   "seed": 47
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 4,
+   "aura_motif_a": false,
+   "aura_motif_b": false,
+   "b_displacement_start": 12,
+   "b_harmony": 1,
+   "seed": 48
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 6,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 10,
+   "b_harmony": 1,
+   "seed": 49
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 2,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 11,
+   "b_harmony": 2,
+   "seed": 50
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 4,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 13,
+   "b_harmony": 1,
+   "seed": 51
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 4,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 11,
+   "b_harmony": 1,
+   "seed": 52
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 4,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 13,
+   "b_harmony": 2,
+   "seed": 53
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 4,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 11,
+   "b_harmony": 0,
+   "seed": 54
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 3,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 10,
+   "b_harmony": 1,
+   "seed": 55
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 6,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 11,
+   "b_harmony": 2,
+   "seed": 56
+  },
+  {
+   "a_prime_kick_rest": 22,
+   "a_trama_entry": 4,
+   "aura_motif_a": false,
+   "aura_motif_b": false,
+   "b_displacement_start": 12,
+   "b_harmony": 1,
+   "seed": 57
+  },
+  {
+   "a_prime_kick_rest": 20,
+   "a_trama_entry": 4,
+   "aura_motif_a": true,
+   "aura_motif_b": false,
+   "b_displacement_start": 12,
+   "b_harmony": 2,
+   "seed": 58
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 2,
+   "aura_motif_a": false,
+   "aura_motif_b": false,
+   "b_displacement_start": 13,
+   "b_harmony": 0,
+   "seed": 59
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 3,
+   "aura_motif_a": false,
+   "aura_motif_b": false,
+   "b_displacement_start": 10,
+   "b_harmony": 2,
+   "seed": 60
+  },
+  {
+   "a_prime_kick_rest": -1,
+   "a_trama_entry": 3,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 11,
+   "b_harmony": 1,
+   "seed": 61
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 3,
+   "aura_motif_a": false,
+   "aura_motif_b": true,
+   "b_displacement_start": 13,
+   "b_harmony": 0,
+   "seed": 62
+  },
+  {
+   "a_prime_kick_rest": 21,
+   "a_trama_entry": 2,
+   "aura_motif_a": false,
+   "aura_motif_b": false,
+   "b_displacement_start": 10,
+   "b_harmony": 0,
+   "seed": 63
+  },
+  {
+   "a_prime_kick_rest": 20,
+   "a_trama_entry": 4,
+   "aura_motif_a": true,
+   "aura_motif_b": true,
+   "b_displacement_start": 10,
+   "b_harmony": 1,
+   "seed": 64
+  }
+ ],
+ "m1_identical_phrase_share_per_role": {
+  "corpo": 0.587115575396827,
+  "pulso": 0.5921378968253963,
+  "trama": 0.4871858465608464,
+  "vettore": 0.25673776455026553
+ }
+}

@@ -422,6 +422,16 @@ TriadVoicing voiceTriad(const ChordSpec& chord, std::optional<std::int16_t> prev
     return v;
 }
 
+std::int32_t chordToneMidi(const ModalScale& scale, const ChordSpec& chord, std::int32_t degree) noexcept {
+    const bool isThird = (((degree - chord.thirdDegree) % 7) + 7) % 7 == 0;
+    return degreeToMidiNote(scale, degree, isThird ? chord.thirdChromaticOffset : static_cast<std::int8_t>(0));
+}
+
+std::int32_t naturalThirdPitchClass(const ModalScale& scale, const ChordSpec& chord) noexcept {
+    if (chord.thirdChromaticOffset == 0) return -1;
+    return ((degreeToMidiNote(scale, chord.thirdDegree) % 12) + 12) % 12;
+}
+
 
 // --- 4. Simulated Voice Tracker (Cross-Phrase State Tracking, INC3-R02) ---
 
@@ -732,6 +742,17 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
         ChordSpec{6, 1, 3, HarmonicFunction::Tension, false},
         ChordSpec{0, 2, 4, HarmonicFunction::Resolution, false}
     };
+    // Pacchetto 6c (D-M2-49): harmony alternatives of B (AURA source notes, A5). Phrases 8..14 end on v or V, which
+    // resolves to the i of the next phrase; the cadence phrase 15 returns to i, so the pad into A' stays G minor.
+    const ChordSpec bTonic{0, 2, 4, HarmonicFunction::Stability, false};
+    const ChordSpec bSubmediant{5, 0, 2, HarmonicFunction::Preparation, false};
+    const ChordSpec bSubdominant{3, 5, 0, HarmonicFunction::Preparation, false};
+    const std::int8_t leadingTone = (variant.bHarmony == 2) ? std::int8_t{1} : std::int8_t{0};
+    const ChordSpec bDominant{4, 6, 1, HarmonicFunction::Tension, false, leadingTone};
+    const std::array<ChordSpec, 4> chordsBLoop{bTonic, bSubmediant, bSubdominant, bDominant};
+    const std::array<ChordSpec, 4> chordsBCadence{bTonic, bSubdominant, bDominant,
+                                                  ChordSpec{0, 2, 4, HarmonicFunction::Resolution, false}};
+    const bool bAlternative = (variant.bHarmony == 1 || variant.bHarmony == 2);
 
     // NoteOff frames for cross-section open pads: S * beatsPerBar + 1 beat (ADR-0005 D-M2-08)
     const std::uint64_t noteOffAtoB = clock.frameAtBeat(32 * 4 + 1);      // 1 beat into Section B (frame 3,092,571)
@@ -760,7 +781,7 @@ std::array<PhrasePlan, 24> MusicPlanner::makeFixtureM24V1Phrases(const MusicCloc
 
     // 2. Section B: phrases 8..15 (bars 32..63)
     for (std::uint32_t p = 0; p < 8; ++p) {
-        std::array<ChordSpec, 4> ch = chordsB;
+        std::array<ChordSpec, 4> ch = !bAlternative ? chordsB : (p == 7) ? chordsBCadence : chordsBLoop;
         bool isCrossPad = false;
         std::uint64_t crossOff = 0;
         if (p == 7) {
@@ -953,6 +974,7 @@ FixtureVariant MusicPlanner::drawFixtureVariant(std::uint64_t runSeed, core::Pol
     v.aPrimeKickRest = kVariantKickRests[draw(2) % kVariantKickRests.size()];
     v.auraMotifA = (draw(3) % 2) == 1;
     v.auraMotifB = (draw(4) % 2) == 1;
+    v.bHarmony = static_cast<std::uint8_t>(draw(5) % kVariantBHarmonyCount); // pacchetto 6c (D-M2-49)
     return v;
 }
 
@@ -1201,7 +1223,7 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
             // other chord tone forms none, Corpo swaps its upper voice and the upper role takes the tone it leaves.
             if (repairDyad) {
                 const auto contradicts = [&](std::int16_t harmonyDegree) noexcept {
-                    const std::int32_t h = degreeToMidiNote(phrase.scale, harmonyDegree);
+                    const std::int32_t h = chordToneMidi(phrase.scale, chord, harmonyDegree);
                     const Motif& vm = cand.transformedMotif;
                     for (std::size_t m = 0; m < vm.noteCount; ++m) {
                         const auto& note = vm.notes[m];
@@ -1272,9 +1294,9 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
                     const std::uint32_t stepsPerBeat = grid.stepsPerBeat[0];
                     onFrame = grid.stepFrame(0, stepsPerBeat);
                 }
-                pushEvent(cand, makeEvent(onFrame, offFrame, MusicRole::Corpo, degreeToMidiNote(phrase.scale, barVoicing.corpoBassDegree),
+                pushEvent(cand, makeEvent(onFrame, offFrame, MusicRole::Corpo, chordToneMidi(phrase.scale, chord, barVoicing.corpoBassDegree),
                                           0.85f, 0.40f, isBarOpenPad));
-                pushEvent(cand, makeEvent(onFrame, offFrame, MusicRole::Corpo, degreeToMidiNote(phrase.scale, barVoicing.corpoHarmonyDegree),
+                pushEvent(cand, makeEvent(onFrame, offFrame, MusicRole::Corpo, chordToneMidi(phrase.scale, chord, barVoicing.corpoHarmonyDegree),
                                           0.75f, 0.40f, isBarOpenPad));
                 if (prevVoicing.has_value()) vlDistance += voicingDistance(barVoicing, *prevVoicing);
                 cand.lastCorpoVoicing = barVoicing;
@@ -1291,7 +1313,7 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
                     const std::int16_t deg = (s % 2 == 0) ? barVoicing.upperColorDegree : barVoicing.corpoHarmonyDegree;
                     const std::uint64_t tramaOffFrame = std::min(grid.stepFrame(b, s + cand.tramaSustainSteps), maxPhraseOffFrame);
                     pushEvent(cand, makeEvent(grid.stepFrame(b, s), tramaOffFrame, MusicRole::Trama,
-                                              degreeToMidiNote(phrase.scale, deg + 7), 0.70f, 0.50f, false));
+                                              chordToneMidi(phrase.scale, chord, deg + 7), 0.70f, 0.50f, false));
                     ++melodicRhythmicOnsets;
                 }
             }
@@ -1302,8 +1324,10 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
             // voice, moves to the nearest chord tone in semitones (ties downward). Onsets and durations unchanged.
             const bool readChord = repairDyad && config_.vettoreReadsChord;
             const auto pcOf = [&](std::int32_t deg) noexcept {
-                return ((degreeToMidiNote(phrase.scale, deg) % 12) + 12) % 12;
+                return ((chordToneMidi(phrase.scale, chord, deg) % 12) + 12) % 12;
             };
+            // Pacchetto 6c (D-M2-49): natural pitch class of an altered third (false relation), -1 when none
+            const std::int32_t naturalThirdPc = naturalThirdPitchClass(phrase.scale, chord);
             const std::array<std::int32_t, 3> chordPcs{pcOf(chord.rootDegree), pcOf(chord.thirdDegree), pcOf(chord.fifthDegree)};
             const auto isChordPc = [&](std::int32_t midi) noexcept {
                 const std::int32_t pc = ((midi % 12) + 12) % 12;
@@ -1312,12 +1336,15 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
             const ChordSpec& prevChord = (b > 0) ? phrase.chords[(b - 1) % 4] : phrase.chords[(grid.barCount - 1) % 4];
             const bool chordChange = (b == 0 && phrase.phraseIndex == 0) ||
                                      prevChord.rootDegree != chord.rootDegree || prevChord.thirdDegree != chord.thirdDegree ||
-                                     prevChord.fifthDegree != chord.fifthDegree;
+                                     prevChord.fifthDegree != chord.fifthDegree ||
+                                     prevChord.thirdChromaticOffset != chord.thirdChromaticOffset;
             std::array<std::int32_t, 2> corpoMidi{};
             const bool corpoSounding = prevVoicing.has_value();
             if (corpoSounding) {
-                corpoMidi = {degreeToMidiNote(phrase.scale, prevVoicing->corpoBassDegree),
-                             degreeToMidiNote(phrase.scale, prevVoicing->corpoHarmonyDegree)};
+                // The sounding Corpo chord: this bar's when Corpo attacked in it, else the open pad of bar 0
+                const ChordSpec& soundingChord = emitCorpo ? chord : phrase.chords[0];
+                corpoMidi = {chordToneMidi(phrase.scale, soundingChord, prevVoicing->corpoBassDegree),
+                             chordToneMidi(phrase.scale, soundingChord, prevVoicing->corpoHarmonyDegree)};
             }
             const Motif& motif = cand.transformedMotif;
             for (std::size_t m = 0; m < motif.noteCount; ++m) {
@@ -1340,7 +1367,8 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
                         }
                     }
                     const bool offChordOnChange = chordChange && note.stepOffset == 0 && !isChordPc(vMidi);
-                    if ((clash || offChordOnChange) && cand.vettoreAdaptedNotes < kMaxVettoreAdaptations) {
+                    const bool falseRelation = naturalThirdPc >= 0 && ((vMidi % 12) + 12) % 12 == naturalThirdPc;
+                    if ((clash || offChordOnChange || falseRelation) && cand.vettoreAdaptedNotes < kMaxVettoreAdaptations) {
                         const std::int32_t before = vMidi;
                         for (std::int32_t dist = 1; dist <= 6; ++dist) {
                             if (isChordPc(vMidi - dist)) { vMidi -= dist; break; }
@@ -1444,8 +1472,8 @@ void MusicPlanner::buildFallbackLevel(FallbackKind level,
         // L2: Corpo root + fifth sustained from the horizon to the phrase end
         if (safeStart < phrase.endFrame) {
             const TriadVoicing v = voiceTriad(phrase.chords[0]);
-            pushEvent(out, makeEvent(safeStart, phrase.endFrame, MusicRole::Corpo, degreeToMidiNote(phrase.scale, v.corpoBassDegree), 0.70f, 0.20f, false));
-            pushEvent(out, makeEvent(safeStart, phrase.endFrame, MusicRole::Corpo, degreeToMidiNote(phrase.scale, v.corpoHarmonyDegree), 0.60f, 0.20f, false));
+            pushEvent(out, makeEvent(safeStart, phrase.endFrame, MusicRole::Corpo, chordToneMidi(phrase.scale, phrase.chords[0], v.corpoBassDegree), 0.70f, 0.20f, false));
+            pushEvent(out, makeEvent(safeStart, phrase.endFrame, MusicRole::Corpo, chordToneMidi(phrase.scale, phrase.chords[0], v.corpoHarmonyDegree), 0.60f, 0.20f, false));
             out.voicing = v;
             out.lastCorpoVoicing = v;
         }

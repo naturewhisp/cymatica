@@ -153,7 +153,16 @@ struct ChordSpec {
     std::int16_t fifthDegree{4};
     HarmonicFunction function{HarmonicFunction::Stability};
     bool openPadSustain{false}; // chords[0].openPadSustain: Corpo plays one open pad (durationFrames == 0) per phrase
+    // Pacchetto 6c (D-M2-49): declared alteration of the third in semitones (0 or +1, e.g. the leading tone of V in
+    // Aeolian). Every chord tone goes through chordToneMidi.
+    std::int8_t thirdChromaticOffset{0};
 };
+
+// Pacchetto 6c (D-M2-49): MIDI note of a chord tone `degree` (root, third or fifth of `chord` in any octave), with the
+// declared alteration when the degree is the third
+[[nodiscard]] std::int32_t chordToneMidi(const ModalScale& scale, const ChordSpec& chord, std::int32_t degree) noexcept;
+// Pitch class (0..11) of the unaltered third of a chord that alters it; -1 when the chord declares no alteration
+[[nodiscard]] std::int32_t naturalThirdPitchClass(const ModalScale& scale, const ChordSpec& chord) noexcept;
 
 // Orchestrates a triad across the 2-voice Corpo budget + Trama/Vettore (INC3-R02)
 struct TriadVoicing {
@@ -266,10 +275,14 @@ struct FixtureVariant {
     std::int8_t aPrimeKickRest{22};       // A' phrase without Pulso: 22, 21, 20 or -1 (none)
     bool auraMotifA{false};               // opening motif of A and A': the AURA cell instead of the authored motif
     bool auraMotifB{false};               // opening motif of B: the AURA cell instead of the authored motif
+    // Pacchetto 6c (D-M2-49): harmony of B. 0 = i-VI-VII-i (reference); 1 = i-VI-iv-v, cadence i-iv-v-i;
+    // 2 = i-VI-iv-V with the leading tone, cadence i-iv-V-i
+    std::uint8_t bHarmony{0};
 
     [[nodiscard]] constexpr bool operator==(const FixtureVariant& other) const noexcept = default;
 };
 inline constexpr FixtureVariant kFixtureReferenceVariant{};
+inline constexpr std::uint8_t kVariantBHarmonyCount = 3;
 inline constexpr std::array<std::uint8_t, 4> kVariantTramaEntries{4, 2, 6, 3};
 inline constexpr std::array<std::uint8_t, 4> kVariantDisplacementStarts{12, 10, 11, 13};
 inline constexpr std::array<std::int8_t, 4> kVariantKickRests{22, 21, 20, -1};

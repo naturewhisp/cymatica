@@ -38,6 +38,8 @@ struct FixturePlan {
 // Contract point 6 (D-M2-47): plans the path of fixture-variants-v1 drawn from the seed (procedural runs). The
 // reference fixture, every golden and every measurement keep planFixtureM24V1.
 [[nodiscard]] FixturePlan planFixtureM24V1Procedural(std::uint64_t seed);
+// Plans fixture-m2-4-v1 on the given path of fixture-variants-v1 (pacchetto 6c, D-M2-49: paired comparisons)
+[[nodiscard]] FixturePlan planFixtureVariant(std::uint64_t seed, const audio::FixtureVariant& variant);
 
 // Per-phrase content fingerprint (frames relative to the phrase start, all roles or one role; DIF-5e.0-02):
 // only the NoteOffs bound to the phrase's own NoteOns are joined. nullopt on an invalid fingerprint.

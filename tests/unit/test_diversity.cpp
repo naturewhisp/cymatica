@@ -108,6 +108,10 @@ TEST_CASE("Seed diversity of the fixture is measured over the declared scan (5e-
     std::size_t auraA = 0, auraB = 0;
     for (const auto& v : d.variants) { auraA += v.auraMotifA ? 1 : 0; auraB += v.auraMotifB ? 1 : 0; }
     CHECK(auraA > 0); CHECK(auraA < 64); CHECK(auraB > 0); CHECK(auraB < 64);
+    // Pacchetto 6c (D-M2-49, H4): every harmony alternative of B drawn at least 10 times
+    std::array<std::size_t, 3> harmony{};
+    for (const auto& v : d.variants) ++harmony[v.bHarmony % 3];
+    for (const auto n : harmony) CHECK(n >= 10);
     // The reference fixture (seed 1337) is not drawn: it keeps the authored profile
     CHECK(planFixtureM24V1(1337).variant == cymatica::audio::kFixtureReferenceVariant);
     // Planning is deterministic: same seed, same plan

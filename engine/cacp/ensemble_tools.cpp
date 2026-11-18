@@ -396,7 +396,7 @@ std::vector<SectionVertical> fixtureVerticalStats(const FixturePlan& plan) {
             const audio::ChordSpec& chord = pp.chords[bar % 4];
             bool chordTone = false;
             for (const auto degree : {chord.rootDegree, chord.thirdDegree, chord.fifthDegree}) {
-                const int pc = ((audio::degreeToMidiNote(pp.scale, degree) % 12) + 12) % 12;
+                const int pc = ((audio::chordToneMidi(pp.scale, chord, degree) % 12) + 12) % 12; // D-M2-49
                 if (t.midi >= 0 && t.midi % 12 == pc) chordTone = true;
             }
             if (t.onset % kEnsembleStepsPerBar == 0) {

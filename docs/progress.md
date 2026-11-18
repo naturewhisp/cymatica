@@ -3681,3 +3681,20 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
   - 7 clip.
 - **Registro:** voce 16.
 - **Build e suite:** Release e Debug `/WX` 310/310; `full_m2_suite` verde salvo `acao02_v1`. Non committato. La decisione resta a CP-3, dopo l'ascolto cumulativo.
+
+**Decisione del titolare sulle alternative armoniche (2026-11-18):** «Entrambe in tabella». Fonte: voce A5 delle [note su AURA](research/AURA_Music_Source_Notes.md), giro i–VI–iv–V con la sensibile sul V.
+
+**M2.5.3–4, pacchetto 6c, alternative armoniche di B: pre-registrazione** [M2_5_3_C6c_Harmony_Alternatives_Preregistration.md](research/M2_5_3_C6c_Harmony_Alternatives_Preregistration.md), SHA-256 (LF) `4ee3320a0fe8fad822d9338a7378ad15d5d7cc343205438971ac8357312aa5a4`.
+- **Variabile:** terza alterata dichiarata in `ChordSpec`; regola della falsa relazione nella lettura dell'accordo; dimensione `bHarmony` di `fixture-variants-v1`, con tre alternative: riferimento, i–VI–iv–v, i–VI–iv–V con il Fa♯. La frase cadenzale torna sul i.
+- **Criteri:** H1–H5. Il riferimento resta invariato.
+
+**M2.5.3–4, pacchetto 6c, alternative armoniche di B, risultati (2026-11-18):** [M2_5_3_C6c_Harmony_Alternatives_Results.md](research/M2_5_3_C6c_Harmony_Alternatives_Results.md), ADR-0007 D-M2-49. **Adottato: H1–H5 superati.**
+- **Riferimento invariato:** tutti i golden uguali.
+- **Su 64 seed appaiati:** 0 false relazioni; 0 conflitti Vettore–Corpo; note dell'accordo sui cambi 1984/1984 nelle alternative 1 e 2.
+- **Tabella:** 768 cammini; 62 brani distinti su 64 seed (prima 58); alternative estratte 19, 27 e 18 volte. Frasi di Corpo identiche fra seed dal 70% al 59%.
+- **Previsioni descrittive mancate:**
+  - il Fa♯ suona solo nella Trama (765 attacchi), mai in Corpo né in Vettore;
+  - meno gruppi distinti di Corpo in B con le alternative (16 e 11 contro 18).
+- **Da sentire:** gli adattamenti della melodia salgono da 340 a 1863 con la sensibile (voce 17 del registro).
+- **Seguito possibile,** con nuova pre-registrazione e dopo l'ascolto: Fa♯ nel Corpo.
+- **Build e suite:** Release e Debug `/WX` 313/313; `full_m2_suite` verde salvo `acao02_v1`. Non committato.
