@@ -223,6 +223,8 @@ public:
     // Offline kick-decay experiment (M2.5.2 F4c): multiplier of the Pulso decay length; offline engine only,
     // refused unless finite and 0.25 <= scale <= 4.
     bool setPulsoDecayScale(float scale) noexcept;
+    // Spike R-M25-9: timbre palette of every role; offline engine only (same rule as setNoteReleaseFrames)
+    bool setTimbrePalette(TimbrePalette palette) noexcept;
     // Rule of setNoteReleaseFrames, testable without hardware: offline engine and no device running
     [[nodiscard]] static constexpr bool noteReleaseOverrideAllowed(bool offlineEngine, bool deviceStarted) noexcept {
         return offlineEngine && !deviceStarted;

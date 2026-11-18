@@ -102,7 +102,8 @@ struct SyntheticRender {
     audio::VoiceConfounders confounders{};
 };
 [[nodiscard]] SyntheticRender renderSyntheticWithRelease(audio::MusicRole role, const std::vector<SynthNote>& notes,
-                                                         StemCapture& cap, std::uint32_t releaseFrames);
+                                                         StemCapture& cap, std::uint32_t releaseFrames,
+                                                         audio::TimbrePalette palette = audio::TimbrePalette::Production);
 
 [[nodiscard]] ReleaseAbResult runReleaseAbV1(const std::string& outputDir = "artifacts/cacp", bool writeFiles = true);
 

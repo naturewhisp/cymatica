@@ -15,6 +15,17 @@ namespace cymatica::audio {
 class AudioEngine;
 
 // Voice lifecycle states according to Spec §16, §20.2 and ADR-0003 D-M2-03
+// Timbre palette (spike R-M25-9, docs/research/M2_5_Chiptune_Palette_Spike_Preregistration.md): Production is the only
+// palette of the game; Chiptune8Bit exists only on offline engines, through AudioEngine::setTimbrePalette.
+enum class TimbrePalette : std::uint8_t {
+    Production   = 0,
+    Chiptune8Bit = 1
+};
+// Loudness compensation of the chiptune palette per role (Pulso, Corpo, Trama, Vettore), dB, set by the declared
+// two-pass calibration of the pre-registration (stem loudness matched to production, rounded to 0.5 dB). Pass 1 at
+// 0 dB measured -1.66, -1.70, -6.19, -1.76 LU (docs/research/experiments/m25_chiptune_spike/chiptune_ab_pass1_calibration.json)
+inline constexpr std::array<float, 4> kChiptuneRoleGainDb{1.5f, 1.5f, 6.0f, 2.0f};
+
 enum class VoiceState : std::uint8_t {
     Idle = 0,
     Attack = 1,
@@ -231,6 +242,13 @@ private:
     void setNoteReleaseFrames(std::uint32_t frames) noexcept { noteReleaseOverride_ = frames; }
     // Offline kick-decay experiment (M2.5.2 F4c): multiplier of the Pulso decay length, 1 = production
     void setPulsoDecayScale(float scale) noexcept { pulsoDecayScale_ = scale; }
+    // Spike R-M25-9: palette and its per-role linear gains, computed here and never in the callback
+    void setTimbrePalette(TimbrePalette palette) noexcept {
+        palette_ = palette;
+        for (std::size_t r = 0; r < chiptuneRoleGain_.size(); ++r) {
+            chiptuneRoleGain_[r] = std::pow(10.0f, kChiptuneRoleGainDb[r] / 20.0f);
+        }
+    }
     [[nodiscard]] static std::uint32_t perRole(const std::array<std::uint32_t, kRoleCount>& a, MusicRole role) noexcept {
         const auto r = static_cast<std::size_t>(role);
         return r < kRoleCount ? a[r] : 0U;
@@ -250,6 +268,8 @@ private:
     std::array<std::uint32_t, kRoleCount> roleReleaseOverlaps_{};
     FadeEventLog* fadeLog_{nullptr};
     float pulsoDecayScale_{1.0f};
+    TimbrePalette palette_{TimbrePalette::Production};
+    std::array<float, 4> chiptuneRoleGain_{1.0f, 1.0f, 1.0f, 1.0f};
     std::uint64_t lastLogicalFrame_{0};   // logical frame of the latest rendered slice (fade log of Stop/Pause)
 
     // Inc-2 Role buses and Telemetry

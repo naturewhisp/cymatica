@@ -3646,3 +3646,38 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
   - 6, gli archetipi con la loro direzione sonora (DESIGN §12).
 - **PDF di 6 pagine,** nello stile del PDF di F7 e con le istruzioni F7 complete: generatore in [expert_music_guide](research/experiments/expert_music_guide/README.md); il file `artifacts/expert/CYMATICA_guida_musicale.pdf` non è versionato.
 - **Verifica:** pagine controllate a vista; nessun testo tagliato; nessun nome dell'esperto.
+
+**Spike R-M25-9, palette chiptune 8-bit offline: pre-registrazione** [M2_5_Chiptune_Palette_Spike_Preregistration.md](research/M2_5_Chiptune_Palette_Spike_Preregistration.md), SHA-256 (LF) `ed096c32c2eff2a51c8de706a5a139086197df8d4c29dbf166f1abb9dadae85e`.
+- **Interruttore** solo offline; cambiano solo forma d'onda e filtro per ruolo.
+- **Calibrazione:** dichiarata in anticipo, a 0,5 dB per ruolo.
+- **Criteri:** X1–X6; la riconoscibilità dei ruoli è misurata con il pacchetto 5.
+
+**Ascolto delle clip A del chiptune da parte di un modello (Gemini, 2026-11-18), riportato dal titolare.** Non è un ascolto umano né un gate: è un'indicazione da verificare.
+- **Cosa dice:**
+  - nella prima clip (produzione) «l'assenza di una batteria vera e propria»;
+  - nella seconda (chiptune) «cassa e rullante su canale noise», più spinta, «raddoppi di ottava», mix «più denso» nelle medie;
+  - la melodia «chiara, cantabile» in entrambe;
+  - proposta: le due palette nello stesso brano, la più spoglia per introduzione o bridge, la più piena per le sezioni concitate.
+- **Verificato con la misura** (energia per banda, clip A, mono):
+  - 20–150 Hz −3,5 / −3,2 dB;
+  - 150–500 Hz −7,4 / −8,5 dB;
+  - 500–2000 Hz −5,0 / −4,9 dB;
+  - 2–6 kHz −13,0 / −13,6 dB;
+  - 6–20 kHz −32,0 / −20,8 dB.
+- **Supportato:** la differenza vera è sopra 6 kHz (+11 dB). La porta il click del kick, che nel chiptune è rumore senza filtro e si sente come un rullante.
+- **Non supportato:** le medie sono uguali, quindi il «mix più denso nelle medie» non regge. Non ci sono raddoppi d'ottava, perché le note e gli eventi sono identici per costruzione.
+- **Coerente con un rilievo noto:** il kick di produzione percepito come assente (voce 5 del registro, F4).
+- **Destinazioni:**
+  - il click di rumore che si sente come rullante, scelta da rivedere nella palette chiptune (A/B click filtrato contro non filtrato, CP-3);
+  - «due palette nello stesso brano secondo la sezione» va con la voce A4 delle note su AURA (lo stato cambia la tessitura), a M3 e CP-3.
+
+**Spike R-M25-9, palette chiptune, risultati (2026-11-18):** [M2_5_Chiptune_Palette_Spike_Results.md](research/M2_5_Chiptune_Palette_Spike_Results.md).
+- **X1–X6 superati:**
+  - produzione intatta, con tutti i golden uguali;
+  - interruttore solo offline;
+  - render finito e ripetibile;
+  - loudness calibrata entro ± 0,31 LU per stem (costanti +1,5, +1,5, +6,0 e +2,0 dB);
+  - ruoli distinti, con accuratezza 1,0 per coppia (produzione 1,0, 1,0 e 0,92);
+  - 7 clip.
+- **Registro:** voce 16.
+- **Build e suite:** Release e Debug `/WX` 310/310; `full_m2_suite` verde salvo `acao02_v1`. Non committato. La decisione resta a CP-3, dopo l'ascolto cumulativo.

@@ -1,0 +1,78 @@
+{
+  "calibration_current_gain_db": [
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "calibration_suggested_gain_db": [
+    1.5,
+    1.5,
+    6.0,
+    2.0
+  ],
+  "chiptune": {
+    "capture_invalid": "",
+    "finite": true,
+    "golden_pcm_status": "NOT_APPLICABLE",
+    "max_gain_reduction_db": 0.0,
+    "mix_lufs": -21.358805225284907,
+    "pcm_content_hash": "10500299215301889085",
+    "stem_lufs_pulso_corpo_trama_vettore": [
+      -26.354170040727386,
+      -26.718455971602356,
+      -39.358705897762334,
+      -25.241963895779843
+    ],
+    "true_peak_dbtp": -7.069034099578857
+  },
+  "clips": [
+    "chip_A_production.wav",
+    "chip_A_chiptune_aligned.wav",
+    "chip_B_production.wav",
+    "chip_B_chiptune_aligned.wav",
+    "chip_Aprime_production.wav",
+    "chip_Aprime_chiptune_aligned.wav",
+    "chip_full_chiptune.wav"
+  ],
+  "gate": false,
+  "preregistration": "docs/research/M2_5_Chiptune_Palette_Spike_Preregistration.md",
+  "production": {
+    "capture_invalid": "",
+    "finite": true,
+    "golden_pcm_status": "PASS",
+    "max_gain_reduction_db": 0.0,
+    "mix_lufs": -19.601272117666234,
+    "pcm_content_hash": "13522047511299799422",
+    "stem_lufs_pulso_corpo_trama_vettore": [
+      -24.698693718980802,
+      -25.023058200460724,
+      -33.17070194535488,
+      -23.479618601135833
+    ],
+    "true_peak_dbtp": -6.242743492126465
+  },
+  "reasons": [],
+  "scenario": "chiptune_ab_v1",
+  "status": "MEASURED",
+  "x3_chiptune_repeat_identical": true,
+  "x4_loudness_matched": false,
+  "x4_mix_delta_lu": -1.7575331076186735,
+  "x4_stem_delta_lu": [
+    -1.6554763217465833,
+    -1.6953977711416321,
+    -6.188003952407456,
+    -1.7623452946440104
+  ],
+  "x5_accuracy_chiptune_tc_tv_cv": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "x5_accuracy_production_tc_tv_cv": [
+    1.0,
+    1.0,
+    0.9166666666666666
+  ],
+  "x5_roles_distinct": true
+}

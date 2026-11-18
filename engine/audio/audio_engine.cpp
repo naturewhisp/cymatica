@@ -961,6 +961,16 @@ bool AudioEngine::setPulsoDecayScale(float scale) noexcept {
     return true;
 }
 
+bool AudioEngine::setTimbrePalette(TimbrePalette palette) noexcept {
+    if (!pImpl_) return false;
+    if (!noteReleaseOverrideAllowed(!pImpl_->deviceInitialized, pImpl_->deviceStarted.load(std::memory_order_acquire))) {
+        return false; // offline engines only: the game keeps the production palette
+    }
+    if (palette != TimbrePalette::Production && palette != TimbrePalette::Chiptune8Bit) return false;
+    pImpl_->voiceAllocator.setTimbrePalette(palette);
+    return true;
+}
+
 bool AudioEngine::scheduledEventQueueEmpty() const noexcept {
     if (!pImpl_) return true;
     ScheduledAudioEvent e{};

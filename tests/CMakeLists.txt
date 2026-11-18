@@ -1,5 +1,6 @@
 add_executable(cymatica_tests
     unit/test_smoke.cpp
+    unit/test_chiptune_palette.cpp
     unit/test_random.cpp
     unit/test_music_clock.cpp
     unit/test_fixed_step.cpp

@@ -40,6 +40,8 @@ add_library(cymatica_cacp STATIC
     plan_export.h
     lineage_measures.cpp
     lineage_measures.h
+    chiptune_ab.cpp
+    chiptune_ab.h
     png_writer.cpp
     png_writer.h
     presence_stats.cpp

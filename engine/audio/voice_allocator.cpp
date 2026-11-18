@@ -17,6 +17,29 @@ constexpr float kPulsoClickQ = 0.9f;
 constexpr float kVettoreGlideTauMs = 15.0f;       // one-pole portamento
 constexpr float kPulsoDecayBaseSec = 0.075f;     // 1.5 x 50 ms (F4c)
 constexpr float kPulsoDecayTimbreSec = 0.105f;   // 1.5 x 70 ms (F4c)
+// Spike R-M25-9, chiptune palette (offline only): waveform shapes and fixed low-pass "analogue detail"
+constexpr float kChipBassHz = 165.0f;          // Corpo voices below: triangle bass
+constexpr float kChipCorpoDuty = 0.25f;
+constexpr float kChipTramaDuty = 0.125f;
+constexpr float kChipVettorePwmDepth = 0.15f;  // duty 0.5 +/- 0.15
+constexpr float kChipVettorePwmHz = 0.7f;
+constexpr float kChipCorpoCutoffHz = 6000.0f;
+constexpr float kChipLeadCutoffHz = 8000.0f;   // Trama and Vettore
+constexpr float kChipFilterQ = 0.707f;
+
+// Naive triangle from the oscillator phase in [0, 2 pi): its harmonics fall at 12 dB per octave
+float chipTriangle(float phaseRad) noexcept {
+    const float x = phaseRad / kTwoPi;
+    return 4.0f * std::fabs(x - 0.5f) - 1.0f;
+}
+
+// Band-limited pulse of duty d as the difference of two PolyBLEP saws a duty apart (zero mean, peak 1)
+float chipPulse(PolyBlepOscillator& osc, float phaseRad, float phaseInc, float duty) noexcept {
+    float shifted = phaseRad + kTwoPi * duty;
+    if (shifted >= kTwoPi) shifted -= kTwoPi;
+    return 0.5f * (osc.nextSample(phaseRad, phaseInc) - osc.nextSample(shifted, phaseInc));
+}
+
 constexpr float kTramaCentrePan = 0.790569415f;   // sqrt((1^2 + 0.5^2) / 2): same power as the old L 1.0 / R 0.5 pan
 constexpr float kTramaFmRatio = 1.0f;             // FM modulator:carrier of Trama (M2.5.2, was 1 + 1.76 t)
 constexpr float kVettoreVibratoHz = 5.5f;
@@ -323,6 +346,10 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
     if (slot.role == MusicRole::Vettore) {
         lastVettorePitchHz_ = slot.pitchHz;
     }
+    if (palette_ == TimbrePalette::Chiptune8Bit) {
+        slot.filter.reset();     // the chiptune palette filters every role
+        if (slot.role == MusicRole::Vettore) slot.fmModPhase = 0.0f; // PWM LFO phase
+    }
 
     return idx;
 }
@@ -595,7 +622,8 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
                                 const float instFreq = fBase + (fStart - fBase) * slot.pitchSweepEnv;
                                 slot.phaseIncrement = (kTwoPi * std::max(instFreq, 1.0f)) / fs;
 
-                                const float body = std::sin(slot.phase);
+                                const bool chip = palette_ == TimbrePalette::Chiptune8Bit;
+                                const float body = chip ? chipTriangle(slot.phase) : std::sin(slot.phase);
                                 float click = 0.0f;
                                 if (slot.noteFrameIndex < pulsoClickFrames_) {
                                     // 15 ms deterministic staffordMix13 noise burst through a TPT SVF band-pass,
@@ -605,7 +633,8 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
                                         ? 0.0f
                                         : pulsoClickSample(slot.eventId, slot.noteFrameIndex, slot.slotIndex);
                                     const float fc = kPulsoClickMinHz + (kPulsoClickMaxHz - kPulsoClickMinHz) * slot.timbreParam;
-                                    const float bp = slot.filter.process(noise, fc, kPulsoClickQ, sampleRate_).bp;
+                                    // Chiptune: the raw noise burst of a console noise channel, without the band-pass
+                                    const float bp = chip ? 0.5f * noise : slot.filter.process(noise, fc, kPulsoClickQ, sampleRate_).bp;
                                     const float clickEnv = 1.0f - static_cast<float>(slot.noteFrameIndex) /
                                                                   static_cast<float>(pulsoClickFrames_);
                                     click = bp * clickEnv * (0.6f + 0.6f * slot.timbreParam);
@@ -613,18 +642,26 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
                                 if (!isTransportPaused) {
                                     slot.pitchSweepEnv = flushSubnormal(slot.pitchSweepEnv * pulsoSweepMul_);
                                 }
-                                s = body + click;
+                                s = (body + click) * (chip ? chiptuneRoleGain_[0] : 1.0f);
                                 sampleL = s * slot.velocity * slot.envelopeLevel * kNominalVoiceScale;
                                 sampleR = sampleL;
                                 break;
                             }
                         case MusicRole::Corpo: {
+                            if (palette_ == TimbrePalette::Chiptune8Bit) {
+                                // Chiptune: triangle bass below kChipBassHz, 25% pulse above, fixed low-pass
+                                const float raw = (slot.pitchHz < kChipBassHz)
+                                    ? chipTriangle(slot.phase)
+                                    : chipPulse(slot.osc, slot.phase, slot.phaseIncrement, kChipCorpoDuty);
+                                s = slot.filter.processLowpass(raw, kChipCorpoCutoffHz, kChipFilterQ, fs) * chiptuneRoleGain_[1];
+                            } else {
                             // PolyBLEP saw + TPT SVF lowpass
                             const float saw = slot.osc.nextSample(slot.phase, slot.phaseIncrement);
                             const float baseCutoff = std::min(slot.pitchHz * 3.0f, 1500.0f) * (1.0f + 1.5f * slot.timbreParam);
                             const float cutoff = std::clamp(baseCutoff + slot.envelopeLevel * 1200.0f, 60.0f, 0.42f * fs);
                             const float q = 0.8f + 0.4f * slot.timbreParam;
                             s = slot.filter.processLowpass(saw, cutoff, q, fs);
+                            }
                             const float scaled = s * slot.velocity * slot.envelopeLevel * kNominalVoiceScale;
                             // Subtle stereo spread
                             if (slot.slotIndex == 2) {
@@ -646,7 +683,10 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
                             const float maxIdx = carsonMaxModulationIndex(slot.pitchHz, modFreq, fs) *
                                                  std::clamp(slot.timbreParam + 0.25f, 0.0f, 1.0f);
                             const float modSignal = std::sin(slot.fmModPhase) * (maxIdx * slot.envelopeLevel);
-                            s = std::sin(slot.phase + modSignal);
+                            s = (palette_ == TimbrePalette::Chiptune8Bit)
+                                ? slot.filter.processLowpass(chipPulse(slot.osc, slot.phase, slot.phaseIncrement, kChipTramaDuty),
+                                                             kChipLeadCutoffHz, kChipFilterQ, fs) * chiptuneRoleGain_[2]
+                                : std::sin(slot.phase + modSignal);
                             const float scaled = s * slot.velocity * slot.envelopeLevel * kNominalVoiceScale;
                             // Centred, constant power (M2.5.2 F2): was L 1.0 / R 0.5 on slot 4 (the only slot ever used,
                             // AG-MM-12), which lateralised the Trama to the left. The stereo micro-delay still gives width.
@@ -669,9 +709,18 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
                             const float instFreq = std::clamp(glidedFreq * (1.0f + vibrato), 20.0f, 0.45f * fs);
                             const float dynInc = (kTwoPi * instFreq) / fs;
                             slot.phaseIncrement = dynInc;
+                            if (palette_ == TimbrePalette::Chiptune8Bit) {
+                                // Chiptune: PWM pulse (duty 0.5 +/- 0.15 at 0.7 Hz), same glide and vibrato, fixed low-pass
+                                const float duty = 0.5f + kChipVettorePwmDepth * std::sin(slot.fmModPhase);
+                                s = slot.filter.processLowpass(chipPulse(slot.osc, slot.phase, dynInc, duty), kChipLeadCutoffHz,
+                                                               kChipFilterQ, fs) * chiptuneRoleGain_[3];
+                                slot.fmModPhase += kTwoPi * kChipVettorePwmHz / fs;
+                                if (slot.fmModPhase >= kTwoPi) slot.fmModPhase -= kTwoPi;
+                            } else {
                             const float saw = slot.osc.nextSample(slot.phase, dynInc);
                             const float cutoff = std::clamp(instFreq * 2.5f + slot.envelopeLevel * 1500.0f, 100.0f, 0.42f * fs);
                             s = slot.filter.processLowpass(saw, cutoff, 1.0f, fs);
+                            }
                             const float scaled = s * slot.velocity * slot.envelopeLevel * kNominalVoiceScale;
                             if (slot.slotIndex == 6) {
                                 sampleL = scaled;

@@ -117,7 +117,8 @@ struct SynthRender {
 };
 
 // Isolated notes of one role through the real engine (offline), with the release override and the confounders
-SynthRender renderSynthetic(audio::MusicRole role, const std::vector<SynthNote>& notes, StemCapture& cap, std::uint32_t releaseFrames) {
+SynthRender renderSynthetic(audio::MusicRole role, const std::vector<SynthNote>& notes, StemCapture& cap, std::uint32_t releaseFrames,
+                            audio::TimbrePalette palette = audio::TimbrePalette::Production) {
     SynthRender out;
     cap.reset();
     audio::AudioEngine engine;
@@ -129,6 +130,10 @@ SynthRender renderSynthetic(audio::MusicRole role, const std::vector<SynthNote>&
     (void)engine.setAppliedEventLog(&log);
     (void)engine.setRoleStemSink(cap.sink());
     (void)engine.setNoteReleaseFrames(releaseFrames);
+    if (palette != audio::TimbrePalette::Production && !engine.setTimbrePalette(palette)) {
+        out.check.probeFailure = "timbre palette refused";
+        return out;
+    }
     audio::AudioScheduler scheduler({.lookaheadFrames = 7200, .sampleRate = kFs});
     engine.sendCommand(audio::AudioCommand{.commandId = 1, .type = audio::AudioCommandType::Start, .targetSampleFrame = 0});
     std::uint64_t id = 1;
@@ -231,8 +236,8 @@ bool ReleaseSetMeasure::analysesValid() const noexcept {
 std::uint32_t releaseOverrideFrames(double ms) noexcept { return releaseFramesOf(ms); }
 
 SyntheticRender renderSyntheticWithRelease(audio::MusicRole role, const std::vector<SynthNote>& notes, StemCapture& cap,
-                                           std::uint32_t releaseFrames) {
-    SynthRender r = renderSynthetic(role, notes, cap, releaseFrames);
+                                           std::uint32_t releaseFrames, audio::TimbrePalette palette) {
+    SynthRender r = renderSynthetic(role, notes, cap, releaseFrames, palette);
     return {std::move(r.check), std::move(r.applied), r.confounders};
 }
 

@@ -2504,7 +2504,8 @@ std::string ProfileProbeResult::toJson() const {
 
 std::string fixturePcmGoldenStatus(const FixtureProbeResult& r, std::uint64_t expected) {
     if (!r.goldenApplicable || r.injectedFault != FixtureInjectedFault::None || r.noteReleaseOverride != 0 ||
-        r.pulsoBusGainScaleOverride != 1.0f || r.tramaBusGainScaleOverride != 1.0f || r.pulsoDecayScaleOverride != 1.0f) {
+        r.pulsoBusGainScaleOverride != 1.0f || r.tramaBusGainScaleOverride != 1.0f || r.pulsoDecayScaleOverride != 1.0f ||
+        r.timbrePaletteOverride != TimbrePalette::Production) {
         return "NOT_APPLICABLE";
     }
     return r.pcmContentHash == expected ? "PASS" : "FAIL";
@@ -2641,6 +2642,14 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
             return result;
         }
         result.pulsoDecayScaleOverride = capture->pulsoDecayScale;
+    }
+    if (capture != nullptr && capture->timbrePalette != TimbrePalette::Production) {
+        if (!engine.setTimbrePalette(capture->timbrePalette)) {
+            result.passed = false;
+            result.failureReason = "timbre palette refused by the engine";
+            return result;
+        }
+        result.timbrePaletteOverride = capture->timbrePalette;
     }
     result.contentEndFrame = coordinator.contentEndFrame();
     result.lookaheadFrames = coordinator.lookaheadFrames();

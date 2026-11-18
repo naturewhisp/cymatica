@@ -6,6 +6,7 @@
 #include "event_chain_log.h"
 #include "music_intent.h"
 #include "input_dispatcher.h"
+#include "voice_allocator.h"
 
 #include <array>
 #include <atomic>
@@ -387,6 +388,7 @@ struct FixtureProbeResult {
     float pulsoBusGainScaleOverride{1.0f};    // M2.5.2 F4a offline kick-level experiment (1 = production)
     float tramaBusGainScaleOverride{1.0f};    // measurement package 4b offline Trama-level experiment (1 = production)
     float pulsoDecayScaleOverride{1.0f};      // M2.5.2 F4c offline kick-decay experiment (1 = production)
+    TimbrePalette timbrePaletteOverride{TimbrePalette::Production}; // spike R-M25-9, offline chiptune palette
     std::uint64_t expectedEngineEvents{0}; // 2 x generatedEvents: one NoteOn and one NoteOff per intent
     // O3 chain and plan identities (ADR-0006 D-M2-12, Inc-5 phase 5a)
     std::uint64_t jitPlanHash{0};             // canonicalPlanHash of the intents the Coordinator planned just in time
@@ -538,6 +540,7 @@ struct ProbeAnalysisCapture {
     float pulsoBusGainScale{1.0f};
     float tramaBusGainScale{1.0f};                         // measurement package 4b, offline Trama-level experiment
     float pulsoDecayScale{1.0f};                           // M2.5.2 F4c, offline kick-decay experiment
+    TimbrePalette timbrePalette{TimbrePalette::Production}; // spike R-M25-9, offline timbre palette
     FadeEventLog* fadeLog{nullptr};                        // measurement package 2b, fixture scenario only
     VoiceConfounders* confounders{nullptr};                // voice drops, release cuts and overlaps of the run
 };
