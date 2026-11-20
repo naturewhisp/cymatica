@@ -3714,3 +3714,63 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
 - **Bozza controllata nel browser:** audio, salvataggio ed esportazione del testo. Non verificati la ricerca nell'audio da file locale e l'apertura su un altro computer.
 - **Test:** `[cumulative_listening]`, con la regola del seed e i golden non applicabili; Release e Debug `/WX` 315/315.
 - **Pacchetto da rigenerare dopo il commit,** con l'hash del commit nella chiave. Non inviato.
+
+**Ascolto cumulativo, ascoltatore A (2026-11-19):** resoconto poi esteso all'esperto (voce seguente).
+- **Chi:** un musicista con pratica strumentale indicato dal titolare. Non è l'esperto, le cui risposte si attendono ancora. Ha compilato anche la sezione del secondo ascoltatore con lo stesso testo, quindi conta come un solo ascoltatore.
+- **Materiale e durata:** pacchetto `b6b21dc`; 15 minuti.
+- **Confermate:** L4 (ritorno), L9 (variazione dello stesso brano; preferito il brano 2), L10 (nessun accordo fuori posto con la sensibile), L13.
+- **Mancate:**
+  - L1, coerenza 4 (interesse 5 e ripetitività 5 confermati);
+  - L2, tempo forte: piede a tempo «mai» in A;
+  - L3, passaggio A→B «brusco»;
+  - L5, melodia sentita come «figura che si ripete»;
+  - L6, arpeggio che «si perde»;
+  - L7, kick «debole»;
+  - L8, entrate e uscite che «interrompono».
+- **Controlli:**
+  - chiptune preferito in modo coerente col duplicato (L11);
+  - coppia identica giudicata diversa (L12 fallita), quindi gli A/B valgono come indicazione debole.
+- **Segnali convergenti con ascolti precedenti:** kick e tempo forte, passaggio A→B, forma lunga senza raccordi. Nuovo suggerimento in ADR-0007 §8.1: cambiare qualcosa ogni 8 battute, interludi o bridge.
+- **Nessuna decisione presa:** si attende l'esperto prima di agire sui segnali di un solo ascoltatore.
+
+**Ascolto cumulativo, esperto (2026-11-19), ricevuto il 2026-11-20:** [resoconto dei due ascoltatori](m2_5_cumulative_listening_2026-11-19.md).
+- **Controlli B0 superati:** coppia identica giudicata uguale e duplicato coerente, quindi i suoi A/B valgono. Durata 24 minuti.
+- **Confermate:** L2 (tempo forte sempre; spostamento voluto), L4, L6 (arpeggio giusto: −9 dB resta), L7 (kick giusto, ma «un po' più presente»), L8, L9 (variazione; preferito il brano 2 per la parte centrale), L10, L12, L13.
+- **Mancate:**
+  - L1: interesse 4, ripetitività **6**, che fa scattare la soglia pre-registrata;
+  - L3: passaggio A→B «brusco», come per l'ascoltatore A e il 2026-11-03;
+  - L5: melodia sentita come «figura che si ripete», come per l'ascoltatore A.
+- **L11, chiptune:** preferita la produzione in entrambe le coppie («acido, stanca»), opposta all'ascoltatore A.
+- **Osservazioni:**
+  - «manca un basso»;
+  - kick più presente;
+  - nessun cambio di nota sul kick. Verificato: il kick segue la tonica della sezione.
+  Nuove voci in ADR-0007 §8.1.
+- **Materiale ricevuto:** stem e MIDI di una produzione dell'esperto, per analisi. Non versionato; la nota contiene dati personali.
+- **Nessuna decisione presa:** le proposte vanno al titolare (§3 del resoconto).
+
+**Analisi della produzione inviata dall'esperto: pre-registrazione (2026-11-20)** [M2_5_Expert_Production_Analysis_Preregistration.md](research/M2_5_Expert_Production_Analysis_Preregistration.md), SHA-256 (LF) `9ba02618794e71f6228480fbcf6d48c426bc8f8f530daeac456cbf08cfa2d81e`.
+- **Decisione del titolare:** «Analisi del regalo».
+- **Misure:**
+  - MIDI: D1–D6 (backbeat, kick sul tempo 1, ghost notes, basso nella scala, arpeggio, periodo del basso);
+  - stem: S1–S4 (frequenza dei cambiamenti, sidechain, loudness, tagli delle basse), soggetti all'approvazione della decodifica MP3.
+- **Materiale fuori dal repository.**
+
+**Analisi della produzione inviata dall'esperto, risultati (2026-11-20):** [M2_5_Expert_Production_Analysis_Results.md](research/M2_5_Expert_Production_Analysis_Results.md).
+- **Confermate:**
+  - D2, kick sul tempo 1 all'81 %;
+  - D3, ghost notes al 35 %;
+  - D4, basso al 98,8 % in Fa frigio;
+  - S1, intervallo mediano fra cambiamenti di 1 battuta;
+  - S3, −8,41 LUFS;
+  - S4, basse tagliate negli stem non di basso.
+- **Mancate:**
+  - D1, backbeat al 32 %, perché lo schema è da breakbeat;
+  - S2, sidechain sullo stem del basso di +1,7 dB, misurato dopo una correzione dichiarata di 69 ms nell'allineamento del MIDI.
+- **Non misurabile:** D5, perché il MIDI dell'arpeggio contiene gli accordi d'ingresso.
+- **Confronto con CYMATICA:**
+  - cambiamenti ogni 10–12 battute, contro 1 dell'esperto;
+  - un cambiamento nel 50 % delle finestre di 8 battute, contro l'81 %;
+  - ritmo armonico più veloce del suo, perché la varietà dell'esperto sta negli strati, nella batteria e nel basso;
+  - la voce più grave di Corpo ha solo il 3–5 % dell'energia sotto 100 Hz, contro il 90–99 % dei suoi bassi: «manca un basso» è confermato dalla misura.
+- **Strumenti:** decodifica MP3 con l'FFmpeg di sistema, approvata dal titolare solo per questa analisi (`docs/dependencies.md`). Lo scenario `cumulative_listening_v1` ora scrive anche gli stem per ruolo; i brani restano identici negli hash.

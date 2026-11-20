@@ -193,6 +193,10 @@ Registro unico dei suggerimenti raccolti il [2026-10-28](../m2_4_human_listening
 | Compressori solo come scelta stilistica | M2.5.2, nessun compressore di default |
 | Transizioni meno brusche: rampe di BPM o modulazioni ritmiche | F3, CP-3 |
 | Variazione melodica decisa o nuovo suono dopo il secondo loop | F3 e F5, CP-3 |
+| Kick con altezza fissa: non accordarlo sulla tonalità di ogni sezione, ma per qualità sonora; «non ho gradito il cambio di nota sul kick» ([2026-11-19](../m2_5_cumulative_listening_2026-11-19.md)). Verificato: Pulso suona la tonica della sezione due ottave sotto (Re2 in A e A′, Sol1 in B) | F4, CP-3: altezza del kick indipendente dalla sezione, con una pre-registrazione |
+| Kick «un po' più presente» e «manca un basso» (2026-11-19), ripetuti rispetto al 2026-11-03 | Le voci del kick e della linea di basso già in tabella; conferma della priorità a CP-3 |
+| Il suono chiptune è «molto acido e stanca subito l'orecchio» (2026-11-19), preferita la produzione in entrambe le coppie | R-M25-9, CP-3: A/B del click di rumore filtrato contro non filtrato prima di ogni altro uso della palette |
+| Cambiare qualcosa ogni 8 battute; aggiungere interludi o bridge, perché le parti sono «troppo lunghe e ripetitive» (ascoltatore A, [2026-11-19](../m2_5_cumulative_listening_2026-11-19.md); non è l'esperto) | Forma e sviluppo, M2.5.5 e CP-3: sezioni di raccordo e cambio d'armonia o di sezione entro 8 battute, con una pre-registrazione. Converge con la voce precedente |
 | VST open source con preset. Il determinismo non lo esclude a priori: su molti synth la fase degli oscillatori si può bloccare; provare render ripetuti e con blocchi diversi, e distinguere il bit esatto dei golden dal replay, che dipende da eventi e piano | R-M25-9 |
 | Viste con nomi di strumenti e griglia | P-M25-08, M2.5.1 |
 | Ascoltare a un volume che permetta di giudicare il kick | **Adottata** a CP-1 nel protocollo d'ascolto (D-M2-27, D-M2-29) |

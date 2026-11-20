@@ -1,0 +1,53 @@
+CYMATICA - ascolto cumulativo - cymatica_ascolto_cumulativo_2026-11-18
+
+ascoltatore: secondo ascoltatore
+data_ora: -
+apparecchiatura: -
+volume: -
+1_descrizione: -
+1_coerenza: -
+1_interesse: -
+1_ripetitivita: -
+2_tempo_p1: -
+2_tempo_p2: -
+2_tempo_p3: -
+2_spostamento: -
+2_passaggio: -
+2_ritorno: -
+2_melodia_forma: -
+2_melodia_segue: -
+2_melodia_acuti: -
+2_melodia_prevedibile: -
+2_arpeggio_livello: -
+2_arpeggio_timbro: -
+2_kick: -
+2_entrate: -
+3_calo: -
+3_confronto: -
+3_preferito: -
+3_perche: -
+3_fuori_posto: -
+3_fuori_posto_dove: -
+4_c1_differenza: -
+4_c1_preferita: -
+4_c1_perche: -
+4_c2_differenza: -
+4_c2_preferita: -
+4_c2_perche: -
+4_c3_differenza: -
+4_c3_preferita: -
+4_c3_perche: -
+5_scatti: -
+5_acuti: -
+5_osservazioni: -
+5_affaticamento: -
+5_durata: -
+S_descrizione: 3 strumenti principali, 1 batteria/basso, 1 lead synth (forse 2 in armonico), 1 synth arpeggiator.
+La canzone è divisa in due dove a metà cambia tonalità, e ritorna poi come prima
+Il Lead sembra seguire sempre un pattern di 3 note mentre il ritmo della batteria cambia spesso
+S_piaciuto: 5
+S_noia: Non annoiato né stancato, ho ascoltato con attenzione, forse sulle parti delle coppie iniziava ad essere ripetitivo tutto
+S_parti: Primo brano cambia più o meno a metà poi riprende come la prima parte
+S_tempo: a tratti
+S_rumori: No
+S_coppia1: diverse, preferisco la prima

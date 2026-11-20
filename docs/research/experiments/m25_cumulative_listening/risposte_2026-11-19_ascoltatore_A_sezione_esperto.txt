@@ -1,0 +1,53 @@
+CYMATICA - ascolto cumulativo - cymatica_ascolto_cumulativo_2026-11-18
+
+ascoltatore: esperto
+data_ora: 19/11/2026 12:40
+apparecchiatura: Steelseries Artics Nova Pro Wireless
+volume: si
+1_descrizione: 3 strumenti principali, 1 batteria/basso, 1 lead synth (forse 2 in armonico), 1 synth arpeggiator.
+La canzone è divisa in due dove a metà cambia tonalità, e ritorna poi come prima
+Il Lead sembra seguire sempre un pattern di 3 note mentre il ritmo della batteria cambia spesso
+1_coerenza: 4
+1_interesse: 5
+1_ripetitivita: 5
+2_tempo_p1: mai
+2_tempo_p2: a tratti
+2_tempo_p3: a tratti
+2_spostamento: sì, e sembra voluto
+2_passaggio: brusco
+2_ritorno: sì
+2_melodia_forma: una figura che si ripete
+2_melodia_segue: sì
+2_melodia_acuti: gradevoli
+2_melodia_prevedibile: 3
+2_arpeggio_livello: si perde
+2_arpeggio_timbro: no
+2_kick: è debole
+2_entrate: lo interrompano
+3_calo: 1:50
+3_confronto: una variazione dello stesso brano
+3_preferito: brano 2
+3_perche: Cambia leggermente di più in ritmo un po' più orecchiabile
+3_fuori_posto: no
+3_fuori_posto_dove: -
+4_c1_differenza: sì
+4_c1_preferita: la prima
+4_c1_perche: Forse la prima perché ha una frequenza più alta
+4_c2_differenza: sì
+4_c2_preferita: nessuna
+4_c2_perche: La differenza è così minima che non ho un preferito
+4_c3_differenza: sì
+4_c3_preferita: la seconda
+4_c3_perche: L'armonico mi piace di più nella seconda
+5_scatti: No
+5_acuti: equilibrati
+5_osservazioni: Quello che fa sembrare più monotono o artificiale è la composizione, ci sono parti troppo lunghe e ripetitive senza interlude o bridge, di solito ogni 8 battute la canzone dovrebbe cambiare invece durano molto di più.
+5_affaticamento: Non annoiato né stancato, ho ascoltato con attenzione, forse sulle parti delle coppie iniziava ad essere ripetitivo tutto
+5_durata: 15 minuti
+S_descrizione: -
+S_piaciuto: -
+S_noia: -
+S_parti: -
+S_tempo: -
+S_rumori: -
+S_coppia1: -

@@ -3,6 +3,7 @@
 #include "audio_probe.h"
 #include "evaluation_pack.h"
 #include "loudness.h"
+#include "stem_analysis.h"
 
 #include <nlohmann/json.hpp>
 
@@ -10,6 +11,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <span>
 
 namespace cymatica::cacp {
 
@@ -19,6 +21,7 @@ namespace {
 
 constexpr std::uint32_t kFs = 48000;
 constexpr std::uint64_t kReferenceSeed = 1337;
+constexpr std::size_t kStemCaptureFrames = 8'900'000; // > 8,825,200 frames of fixture_probe_v1
 
 json variantJson(const audio::FixtureVariant& v) {
     return json{{"a_trama_entry", v.aTramaEntry},   {"b_displacement_start", v.bDisplacementStart},
@@ -40,7 +43,7 @@ json pieceJson(const ListeningPiece& p) {
 }
 
 ListeningPiece renderPiece(std::uint64_t seed, const audio::FixtureVariant& variant, const std::string& outputDir,
-                           std::vector<float>& stereo) {
+                           std::vector<float>& stereo, StemCapture& stems) {
     ListeningPiece p;
     p.seed = seed;
     p.variant = variant;
@@ -49,6 +52,8 @@ ListeningPiece renderPiece(std::uint64_t seed, const audio::FixtureVariant& vari
     pc.fixtureSeed = seed;
     pc.stereo = &stereo;
     pc.fixtureVariant = variant;
+    stems.reset();
+    pc.stems = stems.sink(); // role stems for the form measures of the expert production analysis (S1)
     const auto probe = audio::runFixtureProbeV1Offline(outputDir, false, audio::FixtureInjectedFault::None, &pc);
     p.probePassed = probe.passed;
     p.failureReason = probe.failureReason;
@@ -64,7 +69,7 @@ ListeningPiece renderPiece(std::uint64_t seed, const audio::FixtureVariant& vari
     return p;
 }
 
-bool writeWav(const std::filesystem::path& path, const std::vector<float>& pcm) {
+bool writeWav(const std::filesystem::path& path, std::span<const float> pcm) {
     const auto bytes = encodeWavStereo16(pcm, kFs);
     std::ofstream out(path, std::ios::binary);
     out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
@@ -115,18 +120,29 @@ CumulativeListeningResult runCumulativeListeningV1(const std::string& outputDir,
     if (writeFiles) fs::create_directories(dir, ec);
 
     std::vector<float> stereo;
-    r.reference = renderPiece(kReferenceSeed, audio::kFixtureReferenceVariant, outputDir, stereo);
+    StemCapture stems(kStemCaptureFrames);
+    static constexpr std::array<const char*, 4> kStemRoleNames{"pulso", "corpo", "trama", "vettore"};
+    const auto writeStems = [&](const std::string& prefix) {
+        if (stems.overflowFrames() > 0) r.reasons.push_back(prefix + ": stem capture overflow");
+        for (std::size_t role = 0; role < kStemRoleNames.size(); ++role) {
+            const std::string name = prefix + "_" + kStemRoleNames[role] + ".wav";
+            if (!writeWav(dir / name, stems.stem(role))) r.reasons.push_back("cannot write " + name);
+        }
+    };
+    r.reference = renderPiece(kReferenceSeed, audio::kFixtureReferenceVariant, outputDir, stereo, stems);
     r.reference.file = "brano_riferimento.wav";
     if (!r.reference.probePassed) r.reasons.push_back("reference render failed: " + r.reference.failureReason);
     if (r.reference.goldenPcmStatus != "PASS") r.reasons.push_back("reference PCM golden " + r.reference.goldenPcmStatus);
     if (writeFiles && !writeWav(dir / r.reference.file, stereo)) r.reasons.push_back("cannot write " + r.reference.file);
+    if (writeFiles) writeStems("stem_riferimento");
 
     const auto variant2 = audio::MusicPlanner::drawFixtureVariant(*seed2, audio::kPlannerPolicyVersion);
-    r.second = renderPiece(*seed2, variant2, outputDir, stereo);
+    r.second = renderPiece(*seed2, variant2, outputDir, stereo, stems);
     r.second.file = "brano_seed_" + std::to_string(*seed2) + ".wav";
     if (!r.second.probePassed) r.reasons.push_back("second render failed: " + r.second.failureReason);
     if (r.second.goldenPcmStatus != "NOT_APPLICABLE") r.reasons.push_back("second PCM golden " + r.second.goldenPcmStatus);
     if (writeFiles && !writeWav(dir / r.second.file, stereo)) r.reasons.push_back("cannot write " + r.second.file);
+    if (writeFiles) writeStems("stem_seed_" + std::to_string(*seed2));
 
     r.status = r.reasons.empty() ? "MEASURED" : "INCONCLUSIVE";
     if (writeFiles) {

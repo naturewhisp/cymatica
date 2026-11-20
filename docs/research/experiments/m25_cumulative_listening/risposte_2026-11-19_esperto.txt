@@ -1,0 +1,58 @@
+CYMATICA - ascolto cumulativo - cymatica_ascolto_cumulativo_2026-11-18
+
+ascoltatore: esperto
+data_ora: un freddo Giovedì 19 novembre 2026 alle 21:26
+apparecchiatura: Cuffie Monitor Audio Technica ATH-M50x attraverso scheda audio Behringer UMC 204 HD
+volume: Windows 100%, potenziometro su scheda audio a circa 1/4.
+1_descrizione: Un brano molto carino, mixato un po' meglio delle prove scorse, con un buon uso di qualche effetto (mi pare di sentire un po' di delay + reverb sporadico) e un buon gioco di panning.
+
+Ci sono tre synth monofonici:
+- Una lead (saw wave)
+- Una "counter lead" (sono 99% sicuro che questa sia parafonica) che tiene una contromelodia
+- Un FM synth che aggiunge degli abbellimenti alla melodia
+
+C'è anche un kick che passa alterna tra ritmi sincopati e un "four on the floor".
+1_coerenza: 5
+1_interesse: 4
+1_ripetitivita: 6
+2_tempo_p1: sempre
+2_tempo_p2: sempre
+2_tempo_p3: sempre
+2_spostamento: sì, e sembra voluto
+2_passaggio: brusco
+2_ritorno: sì
+2_melodia_forma: una figura che si ripete
+2_melodia_segue: sì
+2_melodia_acuti: gradevoli
+2_melodia_prevedibile: 5
+2_arpeggio_livello: è giusto
+2_arpeggio_timbro: no
+2_kick: è giusto
+2_entrate: diano forma al brano
+3_calo: 0:15, 1:32, 2:00, 2:20, 2:38, 2:46
+3_confronto: una variazione dello stesso brano
+3_preferito: brano 2
+3_perche: La parte centrale è più figa e ha dei bei passaggi
+3_fuori_posto: no
+3_fuori_posto_dove: -
+4_c1_differenza: sì
+4_c1_preferita: la seconda
+4_c1_perche: Il sound design sulla prima traccia è molto acido e stanca subito l'orecchio (prendo pausa di un minuto).
+4_c2_differenza: no
+4_c2_preferita: nessuna
+4_c2_perche: al mio orecchio suonano completamente uguali.
+4_c3_differenza: sì
+4_c3_preferita: la prima
+4_c3_perche: il sound design sulla seconda è troppo acido per questa parte.
+5_scatti: No.
+5_acuti: equilibrati
+5_osservazioni: Manca un basso. Meglio sul fronte mix, anche se gradirei un kick un po' più presente. Non ho gradito molto nel primo brano il cambio di nota sul kick. Molta della letteratura che si trova là fuori dice di intonare la nota fondamentale del kick all'arrangiamento poichè è in teoria più facile da mixare. Bugie. Nel mondo reale il 99% delle accordature sulle batterie acustiche (e prendo questo genere come riferimento poichè le produzioni acustiche hanno molti più anni di storia e di letteratura rispetto a quelle puramente elettroniche) si fa PER QUALITÀ SONORA. I rari casi in cui si accorda verso una frequenza o una nota è perchè il produttore della batteria (DW lo fa molto) ti dà la nota a cui naturalmente risuona quel fusto e IN TEORIA il tamburo ha più risposta OPPURE per ottenere accordature sempre ripetibili.
+5_affaticamento: In generale al terzo o quarto loop
+5_durata: 24 minuti.
+S_descrizione: -
+S_piaciuto: -
+S_noia: -
+S_parti: -
+S_tempo: -
+S_rumori: -
+S_coppia1: -

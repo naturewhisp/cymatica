@@ -1,0 +1,219 @@
+{
+ "expert": {
+  "duration_s": 308.16,
+  "bar_s": 1.4814814814814814,
+  "stems_in_S1": [
+   "21-Drum Rack",
+   "8-A# (Riversa coda) (Riversa coda)",
+   "808 Bass",
+   "Arp",
+   "Crashes",
+   "DX 7 Mangled",
+   "DX 7 PAD",
+   "Filtered BB",
+   "Filthy Break",
+   "Filthy Break Transition",
+   "Hi-Shaker",
+   "Low-Shaker",
+   "Rev Crashes",
+   "Reverse Ride Bell",
+   "Rhythmic Chaos",
+   "Ride Bell",
+   "Ride Glitched",
+   "Strings",
+   "Strings (Riversa)",
+   "Sub Bass",
+   "Tamb",
+   "Tamb Fade",
+   "Vocal Scream",
+   "White Noise"
+  ],
+  "S1": {
+   "bars": 208,
+   "change_bars": 84,
+   "flips_total": 137,
+   "S1_median_interval_bars": 1.0,
+   "interval_quartiles_bars": [
+    1.0,
+    2.0
+   ],
+   "interval_histogram_bars": {
+    "1": 44,
+    "2": 21,
+    "3": 8,
+    "4": 4,
+    "5": 1,
+    "6": 1,
+    "7": 1,
+    "12": 2,
+    "28": 1
+   },
+   "eight_bar_windows_with_change_share": 0.8076923076923077,
+   "first_change_bars": [
+    1,
+    5,
+    17,
+    19,
+    24,
+    30,
+    32,
+    33,
+    35,
+    36,
+    37,
+    41
+   ]
+  },
+  "active_bars_per_stem": {
+   "21-Drum Rack": 113,
+   "8-A# (Riversa coda) (Riversa coda)": 14,
+   "808 Bass": 120,
+   "Arp": 110,
+   "Crashes": 52,
+   "DX 7 Mangled": 111,
+   "DX 7 PAD": 56,
+   "Filtered BB": 57,
+   "Filthy Break Transition": 6,
+   "Filthy Break": 79,
+   "Hi-Shaker": 161,
+   "Low-Shaker": 162,
+   "Rev Crashes": 40,
+   "Reverse Ride Bell": 85,
+   "Rhythmic Chaos": 100,
+   "Ride Bell": 160,
+   "Ride Glitched": 49,
+   "Strings (Riversa)": 16,
+   "Strings": 118,
+   "Sub Bass": 96,
+   "Tamb Fade": 16,
+   "Tamb": 149,
+   "Vocal Scream": 37,
+   "White Noise": 11
+  },
+  "S3_integrated_lufs": -8.4066669640853,
+  "S4_low_share_per_stem": {
+   "Strings": 7.28534286674456e-05,
+   "Strings (Riversa)": 0.00038321323236671493,
+   "DX 7 PAD": 7.399170150478692e-06,
+   "Arp": 1.440273563013491e-06,
+   "Crashes": 3.9514795276752045e-07,
+   "Rev Crashes": 3.2227231955555994e-07,
+   "Ride Bell": 1.1231419031731206e-06,
+   "Reverse Ride Bell": 8.083149142418556e-07,
+   "Ride Glitched": 1.8258984682468223e-07,
+   "Hi-Shaker": 2.9822719570551694e-08,
+   "Low-Shaker": 5.251938441569993e-08
+  },
+  "S4_median_low_share": 8.083149142418556e-07,
+  "low_share_808 Bass": 0.8952696737672058,
+  "low_share_Sub Bass": 0.9927018959266557,
+  "midi_audio_alignment": {
+   "kicks": 328,
+   "median_onset_rise_db": -7.487514867294053
+  },
+  "S2_unaligned": {
+   "kicks_with_bass": 320,
+   "S2_median_ducking_db": -4.997490824789338,
+   "ducking_quartiles_db": [
+    -6.020133936596668,
+    -2.614697329681133
+   ]
+  },
+  "midi_offset_s": 0.069,
+  "midi_audio_alignment_after_offset": {
+   "kicks": 328,
+   "median_onset_rise_db": 4.627289843627054
+  },
+  "S2": {
+   "kicks_with_bass": 319,
+   "S2_median_ducking_db": 1.7030493621477705,
+   "ducking_quartiles_db": [
+    0.9209964012629669,
+    2.3582651433918027
+   ]
+  }
+ },
+ "cymatica_riferimento": {
+  "S1": {
+   "bars": 96,
+   "change_bars": 7,
+   "flips_total": 7,
+   "S1_median_interval_bars": 12.0,
+   "interval_quartiles_bars": [
+    7.25,
+    16.0
+   ],
+   "interval_histogram_bars": {
+    "4": 1,
+    "7": 1,
+    "8": 1,
+    "16": 2,
+    "25": 1
+   },
+   "eight_bar_windows_with_change_share": 0.5,
+   "first_change_bars": [
+    16,
+    41,
+    48,
+    64,
+    80,
+    88,
+    92
+   ]
+  },
+  "active_bars_per_role": {
+   "pulso": 92,
+   "corpo": 96,
+   "trama": 57,
+   "vettore": 96
+  },
+  "integrated_lufs": -19.60153626474669,
+  "low_share_per_role": {
+   "pulso": 0.8185393750034302,
+   "corpo": 0.048346008750625634,
+   "trama": 1.1953527539570491e-05,
+   "vettore": 2.0673778438876273e-05
+  }
+ },
+ "cymatica_seed_34": {
+  "S1": {
+   "bars": 96,
+   "change_bars": 7,
+   "flips_total": 7,
+   "S1_median_interval_bars": 10.0,
+   "interval_quartiles_bars": [
+    8.0,
+    15.0
+   ],
+   "interval_histogram_bars": {
+    "4": 1,
+    "8": 2,
+    "12": 1,
+    "16": 2
+   },
+   "eight_bar_windows_with_change_share": 0.5,
+   "first_change_bars": [
+    28,
+    44,
+    52,
+    64,
+    80,
+    84,
+    92
+   ]
+  },
+  "active_bars_per_role": {
+   "pulso": 92,
+   "corpo": 96,
+   "trama": 32,
+   "vettore": 96
+  },
+  "integrated_lufs": -20.126918557917183,
+  "low_share_per_role": {
+   "pulso": 0.8174014033505048,
+   "corpo": 0.027847569564473373,
+   "trama": 3.6531704933783824e-05,
+   "vettore": 3.0951397608155604e-05
+  }
+ }
+}
