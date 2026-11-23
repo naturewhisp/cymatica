@@ -1,0 +1,82 @@
+{
+ "T1": 0.000213623046875,
+ "T2": 0.0,
+ "z_peak_dbfs": -5.159984811851509,
+ "z_lufs": -18.97233574722902,
+ "conflicts": {
+  "c": 0,
+  "z": 0
+ },
+ "T4": {
+  "A": {
+   "R_coincident_db": 12.870989662916976,
+   "n": 33
+  },
+  "B": {
+   "R_coincident_db": 15.518889221465628,
+   "n": 38
+  },
+  "C": {
+   "R_coincident_db": 13.395113103520353,
+   "n": 32
+  }
+ },
+ "renders": [
+  {
+   "backpressure_drops": 0,
+   "dispatched": 486,
+   "events": 243,
+   "max_gain_reduction_db": 0.0,
+   "name": "bass_today",
+   "orphans": 0,
+   "staged_at_end": 0,
+   "voice_drops": 0
+  },
+  {
+   "backpressure_drops": 0,
+   "dispatched": 516,
+   "events": 258,
+   "max_gain_reduction_db": 0.0,
+   "name": "bass_z",
+   "orphans": 0,
+   "staged_at_end": 0,
+   "voice_drops": 0
+  },
+  {
+   "backpressure_drops": 0,
+   "dispatched": 2792,
+   "events": 1396,
+   "max_gain_reduction_db": 0.0,
+   "name": "k3_today",
+   "orphans": 0,
+   "staged_at_end": 0,
+   "voice_drops": 0
+  },
+  {
+   "backpressure_drops": 0,
+   "dispatched": 2678,
+   "events": 1339,
+   "max_gain_reduction_db": 0.0,
+   "name": "k3_z",
+   "orphans": 0,
+   "staged_at_end": 0,
+   "voice_drops": 0
+  },
+  {
+   "backpressure_drops": 0,
+   "dispatched": 872,
+   "events": 436,
+   "max_gain_reduction_db": 0.0,
+   "name": "k3_zkick",
+   "orphans": 0,
+   "staged_at_end": 0,
+   "voice_drops": 0
+  }
+ ],
+ "outcome": {
+  "T1": true,
+  "T2": true,
+  "T3": true,
+  "T4": true
+ }
+}

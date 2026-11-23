@@ -91,6 +91,12 @@ std::string runWarpedPlanRenderV1(const std::string& outputDir) {
             out["reasons"].push_back(name + ": offline engine initialisation failed");
             continue;
         }
+        // CP-3 expert package: files named k3_* play the candidate kick (C2, click +3 dB), offline only
+        if (name.rfind("k3_", 0) == 0 &&
+            (!engine.setPulsoFixedMidi(36) || !engine.setPulsoClickScale(static_cast<float>(std::pow(10.0, 3.0 / 20.0))))) {
+            out["reasons"].push_back(name + ": kick override refused");
+            continue;
+        }
         audio::AudioScheduler scheduler({.lookaheadFrames = 7200, .sampleRate = kFs});
         engine.sendCommand(audio::AudioCommand{.commandId = 1, .type = audio::AudioCommandType::Start, .targetSampleFrame = 0});
         std::uint64_t end = 0;
