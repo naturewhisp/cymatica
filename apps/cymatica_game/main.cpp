@@ -24,6 +24,7 @@
 #include "kick_presence_ab.h"
 #include "bass_prototype.h"
 #include "form_investigation.h"
+#include "warped_plan_render.h"
 #include "stem_export.h"
 #include "timbre_descriptors.h"
 #include "release_ab.h"
@@ -316,6 +317,10 @@ int main(int argc, char** argv) {
                 const auto res = cymatica::cacp::runChiptuneAbV1("artifacts/cacp", true);
                 std::printf("%s\n", res.toJson().c_str());
                 return (res.status == "MEASURED" && res.manifestWriteSuccess) ? 0 : 1;
+            } else if (std::strcmp(scenario, "warped_plan_render") == 0 || std::strcmp(scenario, "warped_plan_render_v1") == 0) {
+                const std::string json = cymatica::cacp::runWarpedPlanRenderV1("artifacts/cacp");
+                std::printf("%s\n", json.empty() ? "[cacp] warped_plan_render_v1: FAILED" : json.c_str());
+                return json.empty() ? 1 : 0;
             } else if (std::strcmp(scenario, "form_investigation") == 0 || std::strcmp(scenario, "form_investigation_v1") == 0) {
                 const std::string path = cymatica::cacp::runFormInvestigationV1("artifacts/cacp");
                 std::printf("[cacp] form_investigation_v1: %s\n", path.empty() ? "FAILED" : path.c_str());
@@ -373,7 +378,7 @@ int main(int argc, char** argv) {
                 return (res.completed && res.inputValid) ? 0 : 1;
             } else {
                 std::fprintf(stderr, "[cacp] ERROR: unknown scenario '%s' (known: tone_test, voice_test, "
-                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, device_probe, onset_parity, acao02, evaluation_pack, procedural, release_ab, kick_level_ab, trama_stereo, discontinuity, fade_events, binaural, stem_export, stem_export_v2, stem_export_v3, kick_decay_ab, meter_change, development_measures, plan_export, lineage_measures, chiptune_ab, harmony_alternatives, cumulative_listening, kick_presence_ab, bass_prototype, form_investigation, timbre_descriptors, trama_miss_diagnosis, full_m2_suite "
+                                     "synth_test, timbre_test, planner_test, fixture_test, profile_test, device_probe, onset_parity, acao02, evaluation_pack, procedural, release_ab, kick_level_ab, trama_stereo, discontinuity, fade_events, binaural, stem_export, stem_export_v2, stem_export_v3, kick_decay_ab, meter_change, development_measures, plan_export, lineage_measures, chiptune_ab, harmony_alternatives, cumulative_listening, kick_presence_ab, bass_prototype, form_investigation, warped_plan_render, timbre_descriptors, trama_miss_diagnosis, full_m2_suite "
                                      "and their *_v* aliases)\n",
                              scenario);
                 return 2;

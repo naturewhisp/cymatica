@@ -52,6 +52,8 @@ add_library(cymatica_cacp STATIC
     bass_prototype.h
     form_investigation.cpp
     form_investigation.h
+    warped_plan_render.cpp
+    warped_plan_render.h
     png_writer.cpp
     png_writer.h
     presence_stats.cpp

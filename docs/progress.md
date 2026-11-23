@@ -3856,3 +3856,11 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
 
 **CP-3, I5, parere del titolare e correzione (2026-11-23):** per il titolare la causa è il cambio di tempo. L'esperto l'aveva già detto il 2026-11-03 («la transizione di tempo tra A e B molto brusca. Tra B e A' è più fluida»): evidenza trascurata e ora registrata ([§5](research/M2_5_CP3_I5_Transition_Investigation_Results.md)). F3 non è bastato, quindi la condizione di ADR-0007 per valutare la rampa di tempo è soddisfatta. Resta da spiegare perché B→A′ sia più fluido.
 Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo ascolto la rafforza. Decisione: commit e prototipo della rampa di tempo.
+
+**CP-3, I5, prototipo della rampa: pre-registrazione (2026-11-23)** [documento](research/M2_5_CP3_I5_Tempo_Ramp_Prototype_Preregistration.md), SHA-256 (LF) `544196474a8ccbf8414f76a418c93d3368d02f8bc0ebcafb1a5f57c15198eed0`. V1–V4.
+
+**CP-3, I5, prototipo della rampa (2026-11-23):** V1–V4 confermate ([risultati](research/M2_5_CP3_I5_Tempo_Ramp_Prototype_Results.md)); salto massimo fra tempi consecutivi dal 14,3 al 2,0 %. Estratti ciechi pronti per il titolare, durate pareggiate per deviazione dichiarata. Ascolto in attesa.
+
+**CP-3, I5, ascolto cieco della rampa, titolare (2026-11-23):** risposte registrate prima della chiave. Rampa (d) e B a 120 (b) non brusche; oggi (a) il più brusco, «sempre sul tempo»: previsione sostenuta. Il raccordo (c) non è una prova valida, per un pad tenuto 4,43 s del prototipo ([risultati](research/M2_5_CP3_I5_Tempo_Ramp_Prototype_Results.md)).
+- **Rilievo nuovo, B→A′:** tempo fluido, ma cambio di tonalità «forzato» circa 2 s dopo il confine: coincide col Sol maggiore (Si) dopo il Sol minore di B (Si♭). Ipotesi da isolare.
+- Nulla adottato. Non committato.

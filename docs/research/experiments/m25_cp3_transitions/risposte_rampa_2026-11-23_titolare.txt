@@ -1,0 +1,6 @@
+Ascolto alla cieca del titolare, registrato prima di aprire la chiave.
+estratto 1: si sente distintamente la rampa e non appare brusco
+estratto 2: la rampa è più mascherata e non appare brusco
+estratto 3: c'è una nota che viene mantenuta a lungo nel passaggio di tempo e suona brutto
+estratto 4: suona più brusco dei 4 estratti anche se meglio di prima, sempre sul tempo
+riferimento_B_Aprime.wav: mi sembra abbastanza fluido, a 0:16 mi pare ci sia invece un cambio brusco di tonalità che mi sembra forzato e innaturale, ma il tempo è fluido.

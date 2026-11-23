@@ -1,0 +1,80 @@
+{
+ "manifest": {
+  "reasons": [],
+  "renders": [
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2792,
+    "events": 1396,
+    "max_gain_reduction_db": 0.0,
+    "name": "a",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2792,
+    "events": 1396,
+    "max_gain_reduction_db": 0.0,
+    "name": "b",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2810,
+    "events": 1405,
+    "max_gain_reduction_db": 0.0,
+    "name": "c",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2792,
+    "events": 1396,
+    "max_gain_reduction_db": 0.0,
+    "name": "d",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   }
+  ],
+  "scenario": "warped_plan_render_v1",
+  "status": "MEASURED"
+ },
+ "V1_max_abs_difference": 0.000213623046875,
+ "boundary_s_a": 64.0,
+ "boundary_s_b": 64.0,
+ "boundary_s_c": 66.0,
+ "boundary_s_d": 63.69961631585419,
+ "V2_max_beat_length_jump": {
+  "a": 0.1428571428571429,
+  "b": 0.0,
+  "c": 0.1428571428571429,
+  "d": 0.02020340863969705
+ },
+ "V4_lufs": {
+  "a": -19.67378054532031,
+  "b": -19.80535236260707,
+  "c": -19.695200178239265,
+  "d": -19.6308634591788,
+  "e": -19.560488212523175
+ },
+ "clip_seconds": {
+  "a": 29.714270833333334,
+  "b": 29.714270833333334,
+  "c": 29.714270833333334,
+  "d": 29.714270833333334,
+  "e": 29.714270833333334
+ },
+ "outcome": {
+  "V1": true,
+  "V2": true,
+  "V3": true,
+  "V4": true
+ }
+}
