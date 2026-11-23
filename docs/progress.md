@@ -3877,3 +3877,11 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, I5c, versioni pronte (2026-11-23):** X1–X6 confermate dopo la ridefinizione di u; riserva su v e r. Estratti ciechi consegnati; ascolto in attesa. Non committato.
 
 **CP-3, I5c, ascolto cieco del titolare (2026-11-23):** [risultati](research/M2_5_CP3_I5c_Melody_Approach_Results.md). v e r più dolci a 0:16 (previsioni confermate) ma bruschi a 0:24 (riserva confermata, +17 semitoni); **u mancata**: salto di 7, disturbo come oggi. Prossima ipotesi: ingresso basso (v) e salita raccordata al registro di oggi, da pre-registrare. Nulla adottato. Non committato.
+
+**CP-3, I5d (ingresso basso e ritorno raccordato), pre-registrazione (2026-11-23)** [documento](research/M2_5_CP3_I5d_Register_Return_Preregistration.md), SHA-256 (LF) `790515f808a678783d34cb6f03de6c269e12ea5f042eead0d71bc77efa4bb61d`. Y1–Y6. I5c committata (58bb78b).
+
+**CP-3, I5d, versioni pronte (2026-11-23):** Y1–Y6 confermate ([risultati](research/M2_5_CP3_I5d_Register_Return_Results.md)). Estratti ciechi consegnati; ascolto in attesa. Non committato.
+
+**CP-3, I5d, ascolto cieco del titolare (2026-11-23):** [risultati](research/M2_5_CP3_I5d_Register_Return_Results.md). Previsioni (a) e (b) confermate; preferito **x** (prime due battute un'ottava sotto, Corpo compreso), candidato per B→A′ da confermare con l'esperto. La «rampa di tempo» sentita in x non c'è: attacchi identici a oggi. Nulla adottato. Non committato.
+
+**CP-3, I5d, precisazione (2026-11-23):** la «rampa» sentita in x è di note, non di tempo. Prime note di battuta in x: 69 74 76 81 81 86, mai discendenti (solo x). Ipotesi post hoc, non provata.

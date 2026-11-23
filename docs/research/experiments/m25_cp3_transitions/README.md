@@ -15,3 +15,7 @@
 ## Ingresso di A′ senza salto (I5c)
 
 `melody_approach.py`, stesso schema: [pre-registrazione](../../M2_5_CP3_I5c_Melody_Approach_Preregistration.md), [bis](../../M2_5_CP3_I5c_Melody_Approach_Preregistration_bis.md), [risultati](../../M2_5_CP3_I5c_Melody_Approach_Results.md).
+
+## Ingresso basso e ritorno raccordato (I5d)
+
+`register_return.py` (stesso schema, con `--out`): [pre-registrazione](../../M2_5_CP3_I5d_Register_Return_Preregistration.md), [risultati](../../M2_5_CP3_I5d_Register_Return_Results.md).
