@@ -11,3 +11,7 @@
 ## Salto A→B e respiri (I4+I6 bis)
 
 `breath_variants.py` (uso in testa al file): [pre-registrazione](../../M2_5_CP3_I4_I6b_Breath_Preregistration.md), [risultati](../../M2_5_CP3_I4_I6b_Breath_Results.md).
+
+## Coppie ripetute al confine (I4+I6 ter)
+
+`boundary_pairs.py`: [pre-registrazione](../../M2_5_CP3_I4_I6c_Boundary_Pairs_Preregistration.md), [risultati](../../M2_5_CP3_I4_I6c_Boundary_Pairs_Results.md).

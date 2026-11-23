@@ -3899,3 +3899,9 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, I4+I6 bis, versioni pronte (2026-11-23):** W1–W6 confermate per costruzione ([risultati](research/M2_5_CP3_I4_I6b_Breath_Results.md)); salto A→B da −19 a −7. Prototipo committato (3f63d36). Estratti ciechi consegnati; ascolto in attesa. Non committato.
 
 **CP-3, I4+I6 bis, ascolto cieco del titolare (2026-11-23):** [risultati](research/M2_5_CP3_I4_I6b_Breath_Results.md). Preferito c, poi e: i respiri restano. Previsioni (a) mista, (b) e (c) non confermate. c e d sono identici al confine ma giudicati diversi: rumore del giudizio. Correzione del salto non decidibile (b contro c da ripetere). Nulla adottato. Non committato.
+
+**CP-3, I4+I6 ter (confine A→B, coppie ripetute b/c), pre-registrazione (2026-11-23)** [documento](research/M2_5_CP3_I4_I6c_Boundary_Pairs_Preregistration.md), SHA-256 (LF) `842bc0302a233447aafbd01f266901f8a2c672a1ae447a57d6998d8e7cbf706d`. Q1–Q3. I4+I6 bis committata.
+
+**CP-3, I4+I6 ter, coppie pronte (2026-11-23):** 8 coppie (6 b/c, 2 identiche) consegnate; ascolto in attesa. Non committato.
+
+**CP-3, I4+I6 ter, confronto cieco ripetuto (2026-11-23):** [risultati](research/M2_5_CP3_I4_I6c_Boundary_Pairs_Results.md). c preferita a b 6 su 6 (regola: confermata), una coppia identica su due giudicata diversa (rumore). Ma il titolare ha giudicato ciò che precede il confine; al confine «ugualmente bruschi»: la bruschezza resta da attribuire (candidato: rampa di tempo, da provare sopra c). Nulla adottato. Non committato.
