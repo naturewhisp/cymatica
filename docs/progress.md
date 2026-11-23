@@ -3885,3 +3885,11 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, I5d, ascolto cieco del titolare (2026-11-23):** [risultati](research/M2_5_CP3_I5d_Register_Return_Results.md). Previsioni (a) e (b) confermate; preferito **x** (prime due battute un'ottava sotto, Corpo compreso), candidato per B→A′ da confermare con l'esperto. La «rampa di tempo» sentita in x non c'è: attacchi identici a oggi. Nulla adottato. Non committato.
 
 **CP-3, I5d, precisazione (2026-11-23):** la «rampa» sentita in x è di note, non di tempo. Prime note di battuta in x: 69 74 76 81 81 86, mai discendenti (solo x). Ipotesi post hoc, non provata.
+
+**CP-3, I4+I6 (prototipo dei motivi di due battute), pre-registrazione (2026-11-23)** [documento](research/M2_5_CP3_I4_I6_Two_Bar_Prototype_Preregistration.md), SHA-256 (LF) `27106e98679cecb2075c92200b0c33c94881482dbfc4870c3612bb325e68dc19`. Z1–Z8. I5d committata (e874e5f).
+
+**CP-3, I4+I6, prototipo pronto (2026-11-23):** Z1–Z8 confermate, in gran parte per costruzione ([risultati](research/M2_5_CP3_I4_I6_Two_Bar_Prototype_Results.md)). Difetto trovato: salto A→B della melodia da −12 a −19 semitoni in m e b. Estratti ciechi consegnati; ascolto in attesa. Non committato.
+
+**CP-3, I4+I6, ascolto cieco del titolare (2026-11-23):** [risultati](research/M2_5_CP3_I4_I6_Two_Bar_Prototype_Results.md). Ripetitività p 6, m 4, t 4, b 3. Previsione (a) confermata, (b) non valutabile, (c) mancata in parte (t = m). Preferito m, poi b; t meno forzato. Da correggere: salto A→B (19) e collocazione dei respiri. Nulla adottato. Non committato.
+
+**CP-3, I4+I6, precisazione non cieca (2026-11-23):** il titolare, riascoltando, preferisce ora b (poi m) e vi sente «un inizio e una fine». Il giudizio cieco (m, poi b) resta agli atti; sostegno debole.
