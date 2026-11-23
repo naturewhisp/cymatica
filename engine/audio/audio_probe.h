@@ -392,6 +392,7 @@ struct FixtureProbeResult {
     float pulsoDecayScaleOverride{1.0f};      // M2.5.2 F4c offline kick-decay experiment (1 = production)
     std::int32_t pulsoFixedMidiOverride{0};   // CP-3 I1 (0 = production)
     float pulsoClickScaleOverride{1.0f};      // CP-3 I2 (1 = production)
+    bool corpoBassOctaveDownOverride{false};  // CP-3 I3 prototype V1
     TimbrePalette timbrePaletteOverride{TimbrePalette::Production}; // spike R-M25-9, offline chiptune palette
     bool fixtureVariantOverride{false};       // cumulative listening (D-M2-50): a non-reference path was rendered
     std::uint64_t expectedEngineEvents{0}; // 2 x generatedEvents: one NoteOn and one NoteOff per intent
@@ -547,6 +548,7 @@ struct ProbeAnalysisCapture {
     float pulsoDecayScale{1.0f};                           // M2.5.2 F4c, offline kick-decay experiment
     std::int32_t pulsoFixedMidi{0};                        // CP-3 I1, offline fixed kick pitch, 0 = production
     float pulsoClickScale{1.0f};                           // CP-3 I2, offline kick click scale, 1 = production
+    bool corpoBassOctaveDown{false};                       // CP-3 I3 prototype V1, every golden NOT_APPLICABLE
     TimbrePalette timbrePalette{TimbrePalette::Production}; // spike R-M25-9, offline timbre palette
     // Cumulative listening (D-M2-50): offline render of a path of fixture-variants-v1; every golden NOT_APPLICABLE
     std::optional<FixtureVariant> fixtureVariant{};

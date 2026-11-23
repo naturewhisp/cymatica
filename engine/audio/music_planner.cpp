@@ -1294,7 +1294,8 @@ void MusicPlanner::generateCandidates(const PhrasePlan& phrase,
                     const std::uint32_t stepsPerBeat = grid.stepsPerBeat[0];
                     onFrame = grid.stepFrame(0, stepsPerBeat);
                 }
-                pushEvent(cand, makeEvent(onFrame, offFrame, MusicRole::Corpo, chordToneMidi(phrase.scale, chord, barVoicing.corpoBassDegree),
+                pushEvent(cand, makeEvent(onFrame, offFrame, MusicRole::Corpo,
+                                          chordToneMidi(phrase.scale, chord, barVoicing.corpoBassDegree) - (config_.corpoBassOctaveDown ? 12 : 0),
                                           0.85f, 0.40f, isBarOpenPad));
                 pushEvent(cand, makeEvent(onFrame, offFrame, MusicRole::Corpo, chordToneMidi(phrase.scale, chord, barVoicing.corpoHarmonyDegree),
                                           0.75f, 0.40f, isBarOpenPad));

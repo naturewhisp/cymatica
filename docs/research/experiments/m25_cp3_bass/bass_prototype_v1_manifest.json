@@ -1,0 +1,69 @@
+{
+  "bass_lines": [
+    {
+      "name": "bass_now_s0",
+      "notes": 243
+    },
+    {
+      "name": "bass_now_s1",
+      "notes": 243
+    },
+    {
+      "name": "bass_c2_s0",
+      "notes": 243
+    },
+    {
+      "name": "bass_c2_s1",
+      "notes": 243
+    }
+  ],
+  "reasons": [],
+  "renders": [
+    {
+      "golden_pcm_status": "PASS",
+      "max_gain_reduction_db": 0.0,
+      "mix_integrated_lufs": -19.601272117666234,
+      "same_corpo": true,
+      "same_pulso": true,
+      "same_trama": true,
+      "same_vettore": true,
+      "tag": "now_v0",
+      "true_peak_dbtp": -6.242743492126465
+    },
+    {
+      "golden_pcm_status": "NOT_APPLICABLE",
+      "max_gain_reduction_db": 0.0,
+      "mix_integrated_lufs": -19.723433475586276,
+      "same_corpo": false,
+      "same_pulso": true,
+      "same_trama": true,
+      "same_vettore": true,
+      "tag": "now_v1",
+      "true_peak_dbtp": -6.082201957702637
+    },
+    {
+      "golden_pcm_status": "NOT_APPLICABLE",
+      "max_gain_reduction_db": 0.0,
+      "mix_integrated_lufs": -19.540902452247852,
+      "same_corpo": true,
+      "same_pulso": true,
+      "same_trama": true,
+      "same_vettore": true,
+      "tag": "c2_v0",
+      "true_peak_dbtp": -5.813947677612305
+    },
+    {
+      "golden_pcm_status": "NOT_APPLICABLE",
+      "max_gain_reduction_db": 0.0,
+      "mix_integrated_lufs": -19.633008112239047,
+      "same_corpo": false,
+      "same_pulso": true,
+      "same_trama": true,
+      "same_vettore": true,
+      "tag": "c2_v1",
+      "true_peak_dbtp": -6.03092098236084
+    }
+  ],
+  "scenario": "bass_prototype_v1",
+  "status": "MEASURED"
+}

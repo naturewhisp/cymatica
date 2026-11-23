@@ -579,6 +579,8 @@ struct MusicPlannerConfig {
     std::uint64_t lookaheadFrames{AudioSchedulerConfig{}.lookaheadFrames}; // Window of the SPSC density constraint
     // Contract point 2 (D-M2-42): the winner's Vettore reads the chord after selection; false = ablation (C1c plan)
     bool vettoreReadsChord{true};
+    // CP-3 I3 offline prototype (V1): the Corpo bass voice sounds one octave lower; selection and scores unchanged
+    bool corpoBassOctaveDown{false};
 };
 
 class MusicPlanner {

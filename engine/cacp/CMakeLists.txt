@@ -48,6 +48,8 @@ add_library(cymatica_cacp STATIC
     cumulative_listening.h
     kick_presence_ab.cpp
     kick_presence_ab.h
+    bass_prototype.cpp
+    bass_prototype.h
     png_writer.cpp
     png_writer.h
     presence_stats.cpp

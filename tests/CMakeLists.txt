@@ -4,6 +4,7 @@ add_executable(cymatica_tests
     unit/test_harmony_alternatives.cpp
     unit/test_cumulative_listening.cpp
     unit/test_kick_overrides.cpp
+    unit/test_bass_prototype.cpp
     unit/test_random.cpp
     unit/test_music_clock.cpp
     unit/test_fixed_step.cpp

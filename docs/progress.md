@@ -3824,3 +3824,13 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
 - **Vincoli del prototipo:** registro 41–78 Hz, nessuna separazione dal kick come base e alternanza come confronto, basso legato al kick ma non sovrapposto, salti ampi ammessi, livello da variare.
 - **Archetipi (domanda del titolare):** un basso è compatibile con tutti in DESIGN §12, una linea ritmica fissa no: deve poter essere pedale o silenzio.
 - Nessun codice del motore. Non committato.
+
+**CP-3, I3, prototipo del basso: pre-registrazione (2026-11-23)** [documento](research/M2_5_CP3_I3_Bass_Prototype_Preregistration.md), SHA-256 (LF) `5e944654c4cc05a92ab21daa42c4e773dead0976de7b3f7319739e6d1670b78e`. Tre versioni, P1–P7.
+
+**CP-3, I3, prototipo del basso, risultati (2026-11-23):** [documento](research/M2_5_CP3_I3_Bass_Prototype_Results.md). P1–P7 superate con entrambi i kick: per la regola V2 **merita un ADR**; nulla adottato.
+- V1 (voce di Corpo un'ottava sotto) riempie le basse quasi quanto V2 (circa 20 contro 26 %). Il vantaggio di V2 è la linea propria, in parte vero per costruzione: lo decide l'ascolto.
+- L'alternanza col kick non conferma il guadagno dell'indagine (0,5 dB, non 17).
+- Le finestre di 8 battute con un cambiamento passano solo dal 50 al 58 %: I4 resta necessario.
+- **Build e suite:** 100% tests passed, 0 tests failed out of 319;100% tests passed, 0 tests failed out of 319;[full_m2_suite] acao02_v1                      measurement  INCONCLUSIVE NOT OK (10.5 s);[cacp] Verdict: FAIL; Non committato.
+
+**CP-3, I3, ascolto del titolare (2026-11-23), non cieco:** sulle clip con kick Do2, «a me sembra che in V2 il basso si senta molto meglio! Ma questo è il mio parere». È un orientamento, non una conferma: il titolare conosceva le etichette, e V2 ha più energia di V1 nelle basse (25,8–29,4 % contro 19,3–20,5 %), quindi «si sente meglio» può dipendere anche dal livello. Per l'ascolto di conferma V1 e V2 vanno pareggiate anche nelle basse.

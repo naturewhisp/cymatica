@@ -2017,10 +2017,11 @@ public:
     enum class State : std::uint8_t { Running, Failed, Stopped };
 
     FixtureCoordinator(const MusicClock& clock, const FormPlan& form, const std::array<PhrasePlan, 24>& phrases,
-                       FixtureInjectedFault fault = FixtureInjectedFault::None, std::uint64_t seed = kFixtureSeed)
+                       FixtureInjectedFault fault = FixtureInjectedFault::None, std::uint64_t seed = kFixtureSeed,
+                       bool corpoBassOctaveDown = false)
         : clock_(clock), form_(form), phrases_(phrases), fault_(fault), seed_(seed),
           planner_({.runSeed = seed, .candidateCount = 8, .sampleRate = kInc4SampleRate,
-                    .lookaheadFrames = AudioSchedulerConfig{}.lookaheadFrames}) {
+                    .lookaheadFrames = AudioSchedulerConfig{}.lookaheadFrames, .corpoBassOctaveDown = corpoBassOctaveDown}) {
         planner_.setFormPlan(form_);
         for (std::size_t i = 0; i < 2; ++i) {
             const std::uint32_t boundaryBar = form_.sections[i + 1].startBar;
@@ -2507,7 +2508,7 @@ std::string fixturePcmGoldenStatus(const FixtureProbeResult& r, std::uint64_t ex
     if (!r.goldenApplicable || r.injectedFault != FixtureInjectedFault::None || r.noteReleaseOverride != 0 ||
         r.pulsoBusGainScaleOverride != 1.0f || r.tramaBusGainScaleOverride != 1.0f || r.pulsoDecayScaleOverride != 1.0f ||
         r.timbrePaletteOverride != TimbrePalette::Production || r.fixtureVariantOverride ||
-        r.pulsoFixedMidiOverride != 0 || r.pulsoClickScaleOverride != 1.0f) {
+        r.pulsoFixedMidiOverride != 0 || r.pulsoClickScaleOverride != 1.0f || r.corpoBassOctaveDownOverride) {
         return "NOT_APPLICABLE";
     }
     return r.pcmContentHash == expected ? "PASS" : "FAIL";
@@ -2532,7 +2533,9 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
                                  !(*capture->fixtureVariant == kFixtureReferenceVariant);
     const FixtureVariant variant = variantOverride ? *capture->fixtureVariant : kFixtureReferenceVariant;
     result.fixtureVariantOverride = variantOverride;
-    result.goldenApplicable = (seed == kFixtureSeed) && !variantOverride;
+    const bool bassDown = capture != nullptr && capture->corpoBassOctaveDown;
+    result.corpoBassOctaveDownOverride = bassDown;
+    result.goldenApplicable = (seed == kFixtureSeed) && !variantOverride && !bassDown;
 
     const auto optClock = MusicPlanner::makeFixtureM24V1Clock();
     if (!optClock.has_value()) {
@@ -2554,7 +2557,7 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
 
     auto runPlanningPass = [&]() -> PlanRun {
         MusicPlanner p({.runSeed = seed, .candidateCount = 8, .sampleRate = kInc4SampleRate,
-                        .lookaheadFrames = AudioSchedulerConfig{}.lookaheadFrames});
+                        .lookaheadFrames = AudioSchedulerConfig{}.lookaheadFrames, .corpoBassOctaveDown = bassDown});
         p.setFormPlan(form);
         PlanRun run;
         run.intents.resize(phrases.size());
@@ -2617,7 +2620,7 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
     AudioProbe probe(AudioProbe::kDefaultCapacityFrames, 2, engine.sampleRate());
     engine.attachAudioProbe(&probe);
 
-    FixtureCoordinator coordinator(clock, form, phrases, fault, seed);
+    FixtureCoordinator coordinator(clock, form, phrases, fault, seed, bassDown);
     AppliedEventLog appliedLog(kEventChainLogCapacity);
     (void)engine.setAppliedEventLog(&appliedLog); // offline engine: quiescent by construction
     if (capture != nullptr) (void)engine.setRoleStemSink(capture->stems);
