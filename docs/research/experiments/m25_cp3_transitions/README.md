@@ -11,3 +11,7 @@
 ## Ingresso di A′ (I5b)
 
 `aprime_entry.py` (stesso schema `write`, `warped_plan_render_v1`, `measure`): [pre-registrazione](../../M2_5_CP3_I5b_BAprime_Harmony_Preregistration.md), [risultati](../../M2_5_CP3_I5b_BAprime_Harmony_Results.md). Prima di `write` la cartella non deve contenere altri CSV.
+
+## Ingresso di A′ senza salto (I5c)
+
+`melody_approach.py`, stesso schema: [pre-registrazione](../../M2_5_CP3_I5c_Melody_Approach_Preregistration.md), [bis](../../M2_5_CP3_I5c_Melody_Approach_Preregistration_bis.md), [risultati](../../M2_5_CP3_I5c_Melody_Approach_Results.md).

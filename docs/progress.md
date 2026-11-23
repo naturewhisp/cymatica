@@ -3870,3 +3870,10 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, I5b, versioni pronte (2026-11-23):** U1, U2 e U4 confermate; U3 mancata per le due versioni con il IV minore (un conflitto in più). Estratti ciechi consegnati al titolare; ascolto in attesa. Non committato.
 
 **CP-3, I5b, ascolto cieco del titolare (2026-11-23):** ordine s, r, p, q, cioè melodia più bassa in testa. Previsione R (registro) sostenuta, H (IV minore) respinta come causa ([risultati](research/M2_5_CP3_I5b_BAprime_Harmony_Results.md)). Il punto è il confine (0:16): il Vettore salta di **19 semitoni** (Re4 → La5) insieme al cambio di tempo e centro. Abbassarlo rompe D-M2-43: 2 note su 16 sopra Corpo (oggi 16). Alternative: salita graduale in B, o Corpo più basso. Nulla adottato. Non committato.
+
+**CP-3, I5c (ingresso di A′ senza salto), pre-registrazione (2026-11-23)** [documento](research/M2_5_CP3_I5c_Melody_Approach_Preregistration.md), SHA-256 (LF) `a2f0b5e9de13c6a7f7c01ef8e4e0b44d951a464d6a87bd7f49d47240ff737fa6`. X1–X6.
+**CP-3, I5c bis, u ridefinita prima dell'ascolto (2026-11-23)** [documento](research/M2_5_CP3_I5c_Melody_Approach_Preregistration_bis.md), SHA-256 (LF) `3270167de13b97c99ad2f33daf29aa8353f71733a087fe66096bad6ef4ce1638`.
+
+**CP-3, I5c, versioni pronte (2026-11-23):** X1–X6 confermate dopo la ridefinizione di u; riserva su v e r. Estratti ciechi consegnati; ascolto in attesa. Non committato.
+
+**CP-3, I5c, ascolto cieco del titolare (2026-11-23):** [risultati](research/M2_5_CP3_I5c_Melody_Approach_Results.md). v e r più dolci a 0:16 (previsioni confermate) ma bruschi a 0:24 (riserva confermata, +17 semitoni); **u mancata**: salto di 7, disturbo come oggi. Prossima ipotesi: ingresso basso (v) e salita raccordata al registro di oggi, da pre-registrare. Nulla adottato. Non committato.
