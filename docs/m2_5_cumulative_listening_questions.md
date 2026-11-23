@@ -12,6 +12,9 @@
   - le voci 4 e 6 sono una riga di controllo;
   - le voci 3, 9 e 10 restano alle misure; la 10 torna come A/B solo se la melodia risulta prevedibile.
   Le domande proposte qui sotto restano il riferimento; nella pagina sono riformulate in forma breve.
+- **Esito (2026-11-19, D-M2-51):** con il giudizio dell'esperto si chiudono le voci 1, 2, 4, 6, 7, 12, 13, 16 e 17.
+  - Restano aperte, come interventi del [piano di CP-3](M2_5_CP3_Expert_Plan.md): 5 (kick, I1–I2), 8 (passaggio A→B, I5), 11 e 15 (melodia, I6) e 14 (varietà, con I4).
+  - Le voci 3, 9 e 10 restano alle misure.
 
 | # | Voce | Misura che la motiva | Domanda proposta | Origine |
 |---|---|---|---|---|

@@ -3774,3 +3774,22 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
   - ritmo armonico più veloce del suo, perché la varietà dell'esperto sta negli strati, nella batteria e nel basso;
   - la voce più grave di Corpo ha solo il 3–5 % dell'energia sotto 100 Hz, contro il 90–99 % dei suoi bassi: «manca un basso» è confermato dalla misura.
 - **Strumenti:** decodifica MP3 con l'FFmpeg di sistema, approvata dal titolare solo per questa analisi (`docs/dependencies.md`). Lo scenario `cumulative_listening_v1` ora scrive anche gli stem per ruolo; i brani restano identici negli hash.
+
+**CP-3, decisione del titolare (2026-11-20), D-M2-51:** «mi fido dell'esperto, mettiamo a piano gli interventi e le indagini necessarie ad avvalorare e confermare il giudizio dell'esperto». Vedi il [piano di CP-3](M2_5_CP3_Expert_Plan.md).
+- **Si chiudono con il giudizio dell'esperto:**
+  - Trama a −9 dB (D-M2-36);
+  - tempo forte e F1;
+  - maschere;
+  - sensibile in B;
+  - ripresa;
+  - scatti e acuti;
+  - chiptune che resta uno spike.
+- **Interventi a piano, in ordine:**
+  - I1, kick ad altezza fissa;
+  - I2, kick più presente;
+  - I3, linea di basso;
+  - I4, più cambiamenti entro 8 battute;
+  - I5, raccordi fra le sezioni;
+  - I6, melodia oltre la battuta.
+  Ognuno con un'indagine prima (misure e fonti verificate) e una pre-registrazione; alla fine, un ascolto di conferma breve con l'esperto.
+- **Non avviato.**

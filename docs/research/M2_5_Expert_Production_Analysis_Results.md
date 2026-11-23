@@ -37,7 +37,7 @@ Stessa definizione di S1 sugli stem dei quattro ruoli.
 | Finestre di 8 battute con almeno un cambiamento | 81 % | 50 % | 50 % |
 | Cambiamenti, cioè entrate o uscite, per strato e per 8 battute | 0,22 (24 stem) | 0,15 (4 ruoli) | 0,15 |
 | Ritmo armonico | 1 accordo ogni 4 battute | 1 accordo per battuta | 1 accordo per battuta |
-| Il basso ripete la finestra di 4 battute precedente | mai | sempre: giro identico per 32 battute | sempre |
+| Il basso ripete la finestra di 4 battute precedente | mai | sì, dal piano (non misurato): stesso giro per 32 battute | dal piano (non misurato): sì, salvo la frase cadenzale 15 di B |
 | Quota sotto 100 Hz della voce più grave non percussiva | basso 808 90 %, sub 99 % | Corpo **4,8 %** | Corpo 2,8 % |
 | Loudness integrata | −8,4 LUFS | −19,6 LUFS | −20,1 LUFS |
 
