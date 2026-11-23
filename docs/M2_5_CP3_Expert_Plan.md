@@ -60,3 +60,18 @@ L'ordine segue due criteri:
 - **I3:** basso come seconda voce di Corpo o come ruolo nuovo. È una decisione d'architettura, da prendere dopo l'indagine.
 - **I5:** se serve, la rampa di tempo, che estende `MusicClock`.
 - **I1–I3:** ordine di lavoro proposto: I1 e I2 insieme, poi I3. Si può invertire se il basso ha la precedenza.
+
+## 5. Stato delle indagini (2026-11-23)
+
+Tutte concluse; nessuna adozione. Le decisioni si prendono insieme.
+
+| # | Esito dell'indagine | Candidato | Sostegno |
+|---|---|---|---|
+| I1 | [risultati](research/M2_5_CP3_I1_I2_Kick_Results.md): al confine il kick perde anche 1,26 dB | Do2 fisso | Buono; deroga alla regola |
+| I2 | stesso documento: presenza mancante nel transiente di A e A′ | click +3 dB | Discreto |
+| I3 | [indagine](research/M2_5_CP3_I3_Bass_Investigation_Results.md) e [prototipo](research/M2_5_CP3_I3_Bass_Prototype_Results.md) | V2, quinto ruolo (ADR); V1 come confronto | Fattibile; superiorità da sentire |
+| I4 | [risultati](research/M2_5_CP3_I4_Form_Investigation_Results.md): pattern di una battuta | pattern di 2–4 battute | Diagnosi forte; rimedio da sentire |
+| I6 | [risultati](research/M2_5_CP3_I6_Melody_Investigation_Results.md): nessuna chiusura, stesso contorno 89 % | motivo di 2 battute, con I4 | Diagnosi forte; il seed preferito è il più ripetitivo |
+| I5 | [risultati](research/M2_5_CP3_I5_Transition_Investigation_Results.md): misure negative; esperto e titolare indicano il cambio di tempo | rampa di tempo, da provare contro B a tempo uguale e raccordo | Discreto, dagli ascolti |
+
+**Ancora da rifare:** kick e basso insieme (stessa banda). **Da preparare:** prototipo di I4 e I6, ablazione di I5, poi un solo ascolto cieco con l'esperto, con V1 e V2 del basso pareggiate nelle basse.

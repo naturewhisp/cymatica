@@ -1,0 +1,185 @@
+{
+ "reference": {
+  "A_to_B": {
+   "spectrum": {
+    "value": 33.81228601010055,
+    "rank": 6,
+    "of": 91,
+    "percentile": 93.4065934065934
+   },
+   "chroma": {
+    "value": 0.5426427693430821,
+    "rank": 5,
+    "of": 91,
+    "percentile": 94.5054945054945
+   },
+   "level_step_db": -0.580584048855691,
+   "prep_level_db": -0.1491803668660623,
+   "prep_high_db": -2.611625483588668,
+   "prepared": true
+  },
+  "B_to_Aprime": {
+   "spectrum": {
+    "value": 37.43911587064548,
+    "rank": 5,
+    "of": 91,
+    "percentile": 94.5054945054945
+   },
+   "chroma": {
+    "value": 0.3277342278456198,
+    "rank": 31,
+    "of": 91,
+    "percentile": 65.93406593406593
+   },
+   "level_step_db": 0.6808319893467569,
+   "prep_level_db": 0.10427359002791547,
+   "prep_high_db": 0.42381352827655405,
+   "prepared": false
+  },
+  "prepared_share_other_barlines": 0.4044943820224719
+ },
+ "seed_34": {
+  "A_to_B": {
+   "spectrum": {
+    "value": 31.769217390236246,
+    "rank": 6,
+    "of": 91,
+    "percentile": 93.4065934065934
+   },
+   "chroma": {
+    "value": 0.5028698330403321,
+    "rank": 1,
+    "of": 91,
+    "percentile": 98.9010989010989
+   },
+   "level_step_db": -0.5665844117159793,
+   "prep_level_db": -0.06753964708833138,
+   "prep_high_db": -2.247611638169083,
+   "prepared": true
+  },
+  "B_to_Aprime": {
+   "spectrum": {
+    "value": 36.01818423850471,
+    "rank": 5,
+    "of": 91,
+    "percentile": 94.5054945054945
+   },
+   "chroma": {
+    "value": 0.13990288510626425,
+    "rank": 82,
+    "of": 91,
+    "percentile": 9.89010989010989
+   },
+   "level_step_db": 0.6502762699349809,
+   "prep_level_db": 0.016358623851022713,
+   "prep_high_db": -0.7395063729061988,
+   "prepared": false
+  },
+  "prepared_share_other_barlines": 0.39325842696629215
+ },
+ "expert": {
+  "47": {
+   "spectrum": {
+    "value": 23.002387620829854,
+    "rank": 21,
+    "of": 203,
+    "percentile": 89.65517241379311
+   },
+   "chroma": {
+    "value": 0.04013864186476512,
+    "rank": 108,
+    "of": 203,
+    "percentile": 46.79802955665024
+   },
+   "level_step_db": -0.7197218496968922,
+   "prep_level_db": 0.938105177543898,
+   "prep_high_db": 2.2971343905673933,
+   "prepared": true,
+   "bar": 32
+  },
+  "121": {
+   "spectrum": {
+    "value": 17.426574551607132,
+    "rank": 41,
+    "of": 203,
+    "percentile": 79.80295566502463
+   },
+   "chroma": {
+    "value": 0.007982805675697757,
+    "rank": 180,
+    "of": 203,
+    "percentile": 11.330049261083744
+   },
+   "level_step_db": -0.6881709742732793,
+   "prep_level_db": -1.7333979247802205,
+   "prep_high_db": -8.738534891665523,
+   "prepared": true,
+   "bar": 82
+  },
+  "165": {
+   "spectrum": {
+    "value": 43.46287196856397,
+    "rank": 4,
+    "of": 203,
+    "percentile": 98.0295566502463
+   },
+   "chroma": {
+    "value": 0.11881973850635119,
+    "rank": 47,
+    "of": 203,
+    "percentile": 76.84729064039408
+   },
+   "level_step_db": 0.636871232346409,
+   "prep_level_db": 0.4409892507140416,
+   "prep_high_db": -6.572209302052038,
+   "prepared": true,
+   "bar": 111
+  },
+  "230": {
+   "spectrum": {
+    "value": 8.219445318936359,
+    "rank": 133,
+    "of": 203,
+    "percentile": 34.48275862068966
+   },
+   "chroma": {
+    "value": 0.08681817036749673,
+    "rank": 60,
+    "of": 203,
+    "percentile": 70.44334975369459
+   },
+   "level_step_db": 0.5388191077668765,
+   "prep_level_db": -0.5949346917647418,
+   "prep_high_db": -1.1230875604737705,
+   "prepared": false,
+   "bar": 155
+  },
+  "prepared_share_other_barlines": 0.507537688442211
+ },
+ "T7": {
+  "held_midi": [
+   50,
+   65
+  ],
+  "attacks_midi_role": [
+   [
+    67,
+    3
+   ],
+   [
+    74,
+    2
+   ]
+  ],
+  "semitone_pairs": 0
+ },
+ "outcome": {
+  "T1": false,
+  "T2": true,
+  "T3": false,
+  "T4": true,
+  "T5": false,
+  "T6": false,
+  "T7": false
+ }
+}

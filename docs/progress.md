@@ -3849,3 +3849,10 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
 **Tesi di Plut:** letta in parte (testo fino a pagina 173); corretta un'attribuzione errata del report di Gemini ([dossier §5](research/M2_5_CP3_Kick_Bass_Form_Sources.md)). Non committato.
 - **Contro-evidenza su I4 e I6:** il seed 34, preferito da entrambi gli ascoltatori, è più ripetitivo del riferimento per contorni, contenuto informativo e finali. La leva va provata all'ascolto prima dell'adozione.
 **Tesi di Plut, aggiornamento (2026-11-23):** il PDF locale si estrae per intero; lette le sezioni 6.3–6.6 ([dossier §6](research/M2_5_CP3_Kick_Bass_Form_Sources.md)). Il riassunto era corretto su generativa contro adattiva composta; il questionario non riporta test di significatività.
+
+**CP-3, I5 (raccordi), indagine: pre-registrazione (2026-11-23)** [documento](research/M2_5_CP3_I5_Transition_Investigation_Preregistration.md), SHA-256 (LF) `1b287b3e2c6a861c89e820fe4b832ab99922c3e2786bd0890ed35f90c112b42a`. T1–T7.
+
+**CP-3, I5, indagine sui raccordi, risultati (2026-11-23):** [documento](research/M2_5_CP3_I5_Transition_Investigation_Results.md). **Causa non trovata:** 5 previsioni su 7 mancate (T1, T3, T5, T6, T7). La misura di preparazione non distingue. Resta per esclusione il cambio di tempo: si propone un'ablazione all'ascolto. Con I5 le indagini di CP-3 sono concluse; stato nel [piano §5](M2_5_CP3_Expert_Plan.md). Non committato.
+
+**CP-3, I5, parere del titolare e correzione (2026-11-23):** per il titolare la causa è il cambio di tempo. L'esperto l'aveva già detto il 2026-11-03 («la transizione di tempo tra A e B molto brusca. Tra B e A' è più fluida»): evidenza trascurata e ora registrata ([§5](research/M2_5_CP3_I5_Transition_Investigation_Results.md)). F3 non è bastato, quindi la condizione di ADR-0007 per valutare la rampa di tempo è soddisfatta. Resta da spiegare perché B→A′ sia più fluido.
+Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo ascolto la rafforza. Decisione: commit e prototipo della rampa di tempo.
