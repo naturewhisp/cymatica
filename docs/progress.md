@@ -3864,3 +3864,9 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, I5, ascolto cieco della rampa, titolare (2026-11-23):** risposte registrate prima della chiave. Rampa (d) e B a 120 (b) non brusche; oggi (a) il più brusco, «sempre sul tempo»: previsione sostenuta. Il raccordo (c) non è una prova valida, per un pad tenuto 4,43 s del prototipo ([risultati](research/M2_5_CP3_I5_Tempo_Ramp_Prototype_Results.md)).
 - **Rilievo nuovo, B→A′:** tempo fluido, ma cambio di tonalità «forzato» circa 2 s dopo il confine: coincide col Sol maggiore (Si) dopo il Sol minore di B (Si♭). Ipotesi da isolare.
 - Nulla adottato. Non committato.
+
+**CP-3, I5b (ingresso di A′), pre-registrazione (2026-11-23)** [documento](research/M2_5_CP3_I5b_BAprime_Harmony_Preregistration.md), SHA-256 (LF) `a213fa05b6188b031cae65206b82744ad8ddce267e58181f908fdd4b33810fdd`. U1–U4.
+
+**CP-3, I5b, versioni pronte (2026-11-23):** U1, U2 e U4 confermate; U3 mancata per le due versioni con il IV minore (un conflitto in più). Estratti ciechi consegnati al titolare; ascolto in attesa. Non committato.
+
+**CP-3, I5b, ascolto cieco del titolare (2026-11-23):** ordine s, r, p, q, cioè melodia più bassa in testa. Previsione R (registro) sostenuta, H (IV minore) respinta come causa ([risultati](research/M2_5_CP3_I5b_BAprime_Harmony_Results.md)). Il punto è il confine (0:16): il Vettore salta di **19 semitoni** (Re4 → La5) insieme al cambio di tempo e centro. Abbassarlo rompe D-M2-43: 2 note su 16 sopra Corpo (oggi 16). Alternative: salita graduale in B, o Corpo più basso. Nulla adottato. Non committato.
