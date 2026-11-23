@@ -1,0 +1,221 @@
+{
+ "reference": {
+  "pulso": {
+   "G1_same_rhythm_within_phrase": 1.0,
+   "same_content_within_phrase": 1.0,
+   "G2_phrases_with_bar4_fill": 0,
+   "phrases_playing_all_bars": 23,
+   "G3_phrase_rhythm_changes": 0.5789473684210527,
+   "longest_same_rhythm_run_bars": 20
+  },
+  "corpo": {
+   "G1_same_rhythm_within_phrase": 0.9722222222222222,
+   "same_content_within_phrase": 0.0,
+   "G2_phrases_with_bar4_fill": 0,
+   "phrases_playing_all_bars": 24,
+   "G3_phrase_rhythm_changes": 0.09523809523809523,
+   "longest_same_rhythm_run_bars": 32
+  },
+  "trama": {
+   "G1_same_rhythm_within_phrase": 1.0,
+   "same_content_within_phrase": 0.0,
+   "G2_phrases_with_bar4_fill": 0,
+   "phrases_playing_all_bars": 14,
+   "G3_phrase_rhythm_changes": 0.6,
+   "longest_same_rhythm_run_bars": 20
+  },
+  "vettore": {
+   "G1_same_rhythm_within_phrase": 1.0,
+   "same_content_within_phrase": 0.0,
+   "G2_phrases_with_bar4_fill": 0,
+   "phrases_playing_all_bars": 24,
+   "G3_phrase_rhythm_changes": 0.7619047619047619,
+   "longest_same_rhythm_run_bars": 16
+  },
+  "change_bars": [
+   16,
+   40,
+   48,
+   64,
+   80,
+   88,
+   92
+  ],
+  "windows_share": 0.5
+ },
+ "seed_34": {
+  "pulso": {
+   "G1_same_rhythm_within_phrase": 1.0,
+   "same_content_within_phrase": 1.0,
+   "G2_phrases_with_bar4_fill": 0,
+   "phrases_playing_all_bars": 23,
+   "G3_phrase_rhythm_changes": 0.5263157894736842,
+   "longest_same_rhythm_run_bars": 24
+  },
+  "corpo": {
+   "G1_same_rhythm_within_phrase": 0.9722222222222222,
+   "same_content_within_phrase": 0.0,
+   "G2_phrases_with_bar4_fill": 0,
+   "phrases_playing_all_bars": 24,
+   "G3_phrase_rhythm_changes": 0.09523809523809523,
+   "longest_same_rhythm_run_bars": 32
+  },
+  "trama": {
+   "G1_same_rhythm_within_phrase": 1.0,
+   "same_content_within_phrase": 0.0,
+   "G2_phrases_with_bar4_fill": 0,
+   "phrases_playing_all_bars": 8,
+   "G3_phrase_rhythm_changes": 0.5,
+   "longest_same_rhythm_run_bars": 8
+  },
+  "vettore": {
+   "G1_same_rhythm_within_phrase": 1.0,
+   "same_content_within_phrase": 0.0,
+   "G2_phrases_with_bar4_fill": 0,
+   "phrases_playing_all_bars": 24,
+   "G3_phrase_rhythm_changes": 0.2857142857142857,
+   "longest_same_rhythm_run_bars": 44
+  },
+  "change_bars": [
+   28,
+   44,
+   52,
+   64,
+   80,
+   84,
+   92
+  ],
+  "windows_share": 0.5
+ },
+ "seeds_1_64": {
+  "G6_windows_median": 0.5,
+  "G6_min_max": [
+   0.4166666666666667,
+   0.5833333333333334
+  ],
+  "per_role": {
+   "pulso": {
+    "G1_median": 1.0,
+    "G2_fills": 0,
+    "G2_phrases": 1492,
+    "G3_median": 0.47368421052631576
+   },
+   "corpo": {
+    "G1_median": 0.9722222222222222,
+    "G2_fills": 0,
+    "G2_phrases": 1536,
+    "G3_median": 0.09523809523809523
+   },
+   "trama": {
+    "G1_median": 1.0,
+    "G2_fills": 0,
+    "G2_phrases": 819,
+    "G3_median": 0.4166666666666667
+   },
+   "vettore": {
+    "G1_median": 1.0,
+    "G2_fills": 0,
+    "G2_phrases": 1536,
+    "G3_median": 0.5714285714285714
+   }
+  }
+ },
+ "expert": {
+  "Kick & Snare": {
+   "bars_with_previous": 111,
+   "G4_same_as_previous": 0.0,
+   "G5_last_of_4_differs": 1.0,
+   "G5_other_bars_differ": 1.0,
+   "first_of_4_differs": 1.0
+  },
+  "808_Bass": {
+   "bars_with_previous": 24,
+   "G4_same_as_previous": 0.0,
+   "G5_last_of_4_differs": 1.0,
+   "G5_other_bars_differ": 1.0,
+   "first_of_4_differs": 1.0
+  }
+ },
+ "expert_post_hoc_lags": {
+  "all": {
+   "1": 0.0,
+   "2": 0.0,
+   "4": 0.2761904761904762,
+   "8": 0.5567010309278351,
+   "16": 0.5432098765432098
+  },
+  "differs_from_8_bars_earlier_by_position": {
+   "0": 0.5384615384615384,
+   "1": 0.5,
+   "2": 0.16666666666666666,
+   "3": 0.4166666666666667,
+   "4": 0.5,
+   "5": 0.5,
+   "6": 0.16666666666666666,
+   "7": 0.75
+  },
+  "bars_per_position": {
+   "0": 13,
+   "1": 12,
+   "2": 12,
+   "3": 12,
+   "4": 12,
+   "5": 12,
+   "6": 12,
+   "7": 12
+  },
+  "kick": {
+   "1": 0.07207207207207207,
+   "2": 0.0,
+   "4": 0.41904761904761906,
+   "8": 0.7319587628865979,
+   "16": 0.6049382716049383
+  },
+  "snare": {
+   "1": 0.20909090909090908,
+   "2": 0.14814814814814814,
+   "4": 0.25961538461538464,
+   "8": 0.5625,
+   "16": 0.55
+  }
+ },
+ "G7": {
+  "drops": [
+   {
+    "t_s": 15,
+    "bar": 7,
+    "bars_since_change": 7
+   },
+   {
+    "t_s": 92,
+    "bar": 48,
+    "bars_since_change": 4
+   },
+   {
+    "t_s": 120,
+    "bar": 64,
+    "bars_since_change": 0
+   },
+   {
+    "t_s": 140,
+    "bar": 74,
+    "bars_since_change": 10
+   },
+   {
+    "t_s": 158,
+    "bar": 83,
+    "bars_since_change": 3
+   },
+   {
+    "t_s": 166,
+    "bar": 87,
+    "bars_since_change": 3
+   }
+  ],
+  "median": 3.5
+ },
+ "G8": {
+  "covered_windows": 6,
+  "needed_for_9_of_12": 3
+ }
+}

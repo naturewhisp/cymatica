@@ -50,3 +50,28 @@ Sostituisce il §2 per le fonti elencate qui. PDF del titolare, fuori dal reposi
 5. **Ripetizione non è sempre un difetto** (Agres): conta che lo schema sia coerente. È in linea con «ricordi, sviluppi, sorprenda e ritorni».
 
 Ancora da leggere: Fenton e altri (I2), Ma e altri (I3), la tesi di Plut (I5) e le parti non lette indicate sopra.
+
+## 5. Tesi di Plut (2022) e riassunto automatico (letti il 2026-11-23)
+
+**Lettura.** Il testo estratto arriva a pagina 173 del PDF: il capitolo 6 con i risultati della valutazione finale manca. Letti i passaggi su transizioni, ripetizione e conclusioni del capitolo 3; il resto no.
+
+| Affermazione | Verifica sul testo |
+|---|---|
+| Riordinare segmenti richiede tonalità e tempi compatibili; transizioni non curate suonano «jarring» | Sì, per più sistemi (iMuse, DOOM, nln-player). È una rassegna di vincoli, non un test d'ascolto |
+| «coerenti in tonalità, tempo e modo» riferito a *Red Dead Redemption* (primo report di Gemini) | **Attribuzione errata:** la frase riguarda il nln-player. RDR è tutto in la minore a 130 BPM e usa il crossfade |
+| NOLF cambia tonalità e tempo della musica per evitare scarti | Sì: è un precedente per I5, senza misura d'ascolto |
+| Troppa ripetizione «can break immersion» | Sì, come affermazione citata da altri, senza misura propria |
+| Aggiungere o togliere strumenti riduce la «fatigue from repetition» (Halo, Dark Void) | Sì, come descrizione |
+| La musica adattiva aumenta la tensione riportata | Sì; per l'autore conta più l'adattività della congruenza emotiva |
+| La musica generativa **supera nettamente** quella adattiva composta a mano (riassunto) | **Non verificabile** nel testo disponibile. L'introduzione dice solo che è «comparable» a quella lineare |
+
+**Conseguenza per I5.** La tesi indica due strade usate nell'industria: rendere compatibili tempo e tonalità, oppure un breve ponte d'accordi. Nessuna prova d'ascolto con cambio simultaneo di tempo e modo. I5 si misura da noi.
+
+## 6. Tesi di Plut, aggiornamento del §5 (2026-11-23)
+
+Il PDF locale del titolare (237 pagine) si estrae per intero con Poppler. Lette per intero le sezioni 6.3–6.6 (pp. 171–180 della tesi); il resto come nel §5. Il «non verificabile» del §5 è **superato**:
+
+- **48 osservatori di video** (non giocatori), che scelgono un video su quattro per ciascuna di quattro domande: nessuna musica, lineare, adattiva composta, generativa. La musica **lineare è prima in tutte e quattro**; la generativa è «a close second» per congruenza emotiva, immersione e preferenza; l'adattiva composta è più distante, ma supera di poco la generativa nell'aderenza agli eventi.
+- Il riassunto è quindi **corretto** su generativa contro adattiva composta, ma sul confronto del **questionario** la sezione non riporta alcun test di significatività; le annotazioni in tempo reale non distinguono le condizioni musicali.
+- **Utile per I5 (ipotesi dell'autore, non misura):** la musica lineare è l'unica con «composed transitions», e può essere preferita per la loro scorrevolezza. L'adattiva composta ha poco materiale per livello, quindi i passaggi possono suonare «jarring and/or repetitive».
+- **Limite per noi:** tutte le musiche sono a 130 BPM e con la stessa armatura. Il nostro passaggio A→B cambia insieme tempo, centro e modo.

@@ -3834,3 +3834,18 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
 - **Build e suite:** 100% tests passed, 0 tests failed out of 319;100% tests passed, 0 tests failed out of 319;[full_m2_suite] acao02_v1                      measurement  INCONCLUSIVE NOT OK (10.5 s);[cacp] Verdict: FAIL; Non committato.
 
 **CP-3, I3, ascolto del titolare (2026-11-23), non cieco:** sulle clip con kick Do2, «a me sembra che in V2 il basso si senta molto meglio! Ma questo è il mio parere». È un orientamento, non una conferma: il titolare conosceva le etichette, e V2 ha più energia di V1 nelle basse (25,8–29,4 % contro 19,3–20,5 %), quindi «si sente meglio» può dipendere anche dal livello. Per l'ascolto di conferma V1 e V2 vanno pareggiate anche nelle basse.
+
+**CP-3, I4 (forma), indagine: pre-registrazione (2026-11-23)** [documento](research/M2_5_CP3_I4_Form_Investigation_Preregistration.md), SHA-256 (LF) `63112be030c67f0b2ebf3c8116d7263d4c757f0b3dd69e8bcdacc9f93d67841d`. G1–G8.
+
+**CP-3, I4, indagine sulla forma, risultati (2026-11-23):** [documento](research/M2_5_CP3_I4_Form_Investigation_Results.md).
+- **Confermate:** G1 (stesso ritmo dentro la frase al 100 %), G2 (0 riempimenti), G3, G4 (satura), G6 (50 %), G8. **Mancate:** G5, G7.
+- **Causa:** il pattern dura una battuta e si ripete quattro volte; il loop della batteria dell'esperto, letto dopo i dati, ne dura 8.
+- **Leve proposte:** pattern di 2–4 battute e motivo di Vettore di 2 battute (I4 e I6 insieme); tre entrate o uscite in più come complemento. Nulla adottato.
+- **Build:** Release e Debug `/WX` 319/319. Non committato.
+
+**CP-3, I6 (melodia), indagine: pre-registrazione (2026-11-23)** [documento](research/M2_5_CP3_I6_Melody_Investigation_Preregistration.md), SHA-256 (LF) `9e763b537ad4ef4ed6ff572b54ceeb83d97b8411d88cff2a48d83ca1d90c17b1`. M1–M6; modello a breve termine al posto di IDyOM, non installato.
+
+**CP-3, I6, indagine sulla melodia, risultati (2026-11-23):** [documento](research/M2_5_CP3_I6_Melody_Investigation_Results.md). M1, M2, M4 (di misura), M5 e M6 confermate; M3 mancata. Stesso contorno della prima battuta nell'89 % dei casi; nessuna frase del riferimento finisce sulla tonica o respira. Leva: motivo di due battute con domanda e risposta, insieme a I4. Nulla adottato.
+**Tesi di Plut:** letta in parte (testo fino a pagina 173); corretta un'attribuzione errata del report di Gemini ([dossier §5](research/M2_5_CP3_Kick_Bass_Form_Sources.md)). Non committato.
+- **Contro-evidenza su I4 e I6:** il seed 34, preferito da entrambi gli ascoltatori, è più ripetitivo del riferimento per contorni, contenuto informativo e finali. La leva va provata all'ascolto prima dell'adozione.
+**Tesi di Plut, aggiornamento (2026-11-23):** il PDF locale si estrae per intero; lette le sezioni 6.3–6.6 ([dossier §6](research/M2_5_CP3_Kick_Bass_Form_Sources.md)). Il riassunto era corretto su generativa contro adattiva composta; il questionario non riporta test di significatività.

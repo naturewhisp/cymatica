@@ -50,6 +50,8 @@ add_library(cymatica_cacp STATIC
     kick_presence_ab.h
     bass_prototype.cpp
     bass_prototype.h
+    form_investigation.cpp
+    form_investigation.h
     png_writer.cpp
     png_writer.h
     presence_stats.cpp
