@@ -11,3 +11,7 @@
 1. `bass_prototype.py write` scrive le linee V2 in CSV;
 2. `cymatica_game --cacp-run bass_prototype_v1` rende V0, V1 e le linee;
 3. `bass_prototype.py measure --clips <cartella>` scrive `bass_prototype.json` e le clip allineate.
+
+## Kick e basso insieme
+
+`kick_bass_joint.py` (uso in testa al file): [pre-registrazione](../../M2_5_CP3_I1_I3_Kick_Bass_Joint_Preregistration.md), [risultati](../../M2_5_CP3_I1_I3_Kick_Bass_Joint_Results.md).
