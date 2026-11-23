@@ -3815,3 +3815,12 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
 **CP-3, decisione del titolare (2026-11-23):** per ora solo il commit dell'indagine sul kick; l'adozione si decide **a valle di tutte le indagini** I1–I6. Il kick Do2 con click +3 dB resta candidato: va rimisurato insieme al basso (I3), che occupa la stessa banda.
 
 **CP-3, fonti (2026-11-23):** altri sette documenti del titolare, due letti per intero e cinque in parte ([dossier §3–4](research/M2_5_CP3_Kick_Bass_Form_Sources.md)). Contro-evidenza registrata per I4: in Szpunar (2004) la sazietà compare solo nell'ascolto attento. Nessuna fonte confronta sidechain e alternanza ritmica per I3. Non committato.
+
+**CP-3, I3 (basso):** il titolare propende per un ruolo dedicato e approva un prototipo offline a tre versioni (senza basso, Corpo un'ottava sotto, basso autonomo), **dopo** l'indagine pianificata; l'ADR segue le evidenze. Il parere del revisore è stato verificato su HEAD: il suo profilo a otto slot taglierebbe 40 dissolvenze di Trama su 252 nel riferimento.
+**Indagine I3: pre-registrazione (2026-11-23)** [documento](research/M2_5_CP3_I3_Bass_Investigation_Preregistration.md), SHA-256 (LF) `430b75a8ef0d776d6c26bdb042c371f9f25cd9d67fa9d17d24272afed6928be2`.
+
+**CP-3, I3, indagine sul basso, risultati (2026-11-23):** [documento](research/M2_5_CP3_I3_Bass_Investigation_Results.md).
+- **Confermate:** A2, A3, B1, B2, C1–C4. **Mancate:** A1 (36 %, non ≥ 50), A4 (11 %, non ≥ 40), A5 per l'808 (61 %, non ≤ 60).
+- **Vincoli del prototipo:** registro 41–78 Hz, nessuna separazione dal kick come base e alternanza come confronto, basso legato al kick ma non sovrapposto, salti ampi ammessi, livello da variare.
+- **Archetipi (domanda del titolare):** un basso è compatibile con tutti in DESIGN §12, una linea ritmica fissa no: deve poter essere pedale o silenzio.
+- Nessun codice del motore. Non committato.

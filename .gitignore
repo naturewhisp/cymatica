@@ -82,3 +82,7 @@ scripts/export_notebook_bundle.ps1
 # Offline oracle environment (tools/pyenv): local venv and downloaded wheels, never committed
 tools/pyenv/.venv/
 tools/pyenv/wheels/
+
+# Python bytecode
+__pycache__/
+*.pyc
