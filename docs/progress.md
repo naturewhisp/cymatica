@@ -3893,3 +3893,9 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, I4+I6, ascolto cieco del titolare (2026-11-23):** [risultati](research/M2_5_CP3_I4_I6_Two_Bar_Prototype_Results.md). Ripetitività p 6, m 4, t 4, b 3. Previsione (a) confermata, (b) non valutabile, (c) mancata in parte (t = m). Preferito m, poi b; t meno forzato. Da correggere: salto A→B (19) e collocazione dei respiri. Nulla adottato. Non committato.
 
 **CP-3, I4+I6, precisazione non cieca (2026-11-23):** il titolare, riascoltando, preferisce ora b (poi m) e vi sente «un inizio e una fine». Il giudizio cieco (m, poi b) resta agli atti; sostegno debole.
+
+**CP-3, I4+I6 bis (salto A→B e respiri), pre-registrazione (2026-11-23)** [documento](research/M2_5_CP3_I4_I6b_Breath_Preregistration.md), SHA-256 (LF) `406fa72ba6c305ac6bd82ab39a22938bc0b0de847ed38fa22c699bcf1fc768e5`. W1–W6. Prototipo committato.
+
+**CP-3, I4+I6 bis, versioni pronte (2026-11-23):** W1–W6 confermate per costruzione ([risultati](research/M2_5_CP3_I4_I6b_Breath_Results.md)); salto A→B da −19 a −7. Prototipo committato (3f63d36). Estratti ciechi consegnati; ascolto in attesa. Non committato.
+
+**CP-3, I4+I6 bis, ascolto cieco del titolare (2026-11-23):** [risultati](research/M2_5_CP3_I4_I6b_Breath_Results.md). Preferito c, poi e: i respiri restano. Previsioni (a) mista, (b) e (c) non confermate. c e d sono identici al confine ma giudicati diversi: rumore del giudizio. Correzione del salto non decidibile (b contro c da ripetere). Nulla adottato. Non committato.

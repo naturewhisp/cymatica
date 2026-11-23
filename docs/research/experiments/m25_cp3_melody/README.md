@@ -7,3 +7,7 @@
 ## Prototipo dei motivi di due battute (I4+I6)
 
 `two_bar_prototype.py` (uso in testa al file): [pre-registrazione](../../M2_5_CP3_I4_I6_Two_Bar_Prototype_Preregistration.md), [risultati](../../M2_5_CP3_I4_I6_Two_Bar_Prototype_Results.md).
+
+## Salto A→B e respiri (I4+I6 bis)
+
+`breath_variants.py` (uso in testa al file): [pre-registrazione](../../M2_5_CP3_I4_I6b_Breath_Preregistration.md), [risultati](../../M2_5_CP3_I4_I6b_Breath_Results.md).
