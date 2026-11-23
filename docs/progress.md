@@ -3905,3 +3905,9 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, I4+I6 ter, coppie pronte (2026-11-23):** 8 coppie (6 b/c, 2 identiche) consegnate; ascolto in attesa. Non committato.
 
 **CP-3, I4+I6 ter, confronto cieco ripetuto (2026-11-23):** [risultati](research/M2_5_CP3_I4_I6c_Boundary_Pairs_Results.md). c preferita a b 6 su 6 (regola: confermata), una coppia identica su due giudicata diversa (rumore). Ma il titolare ha giudicato ciò che precede il confine; al confine «ugualmente bruschi»: la bruschezza resta da attribuire (candidato: rampa di tempo, da provare sopra c). Nulla adottato. Non committato.
+
+**CP-3, I5e (rampa di tempo sopra c, coppie ripetute), pre-registrazione (2026-11-23)** [documento](research/M2_5_CP3_I5e_Ramp_Over_C_Preregistration.md), SHA-256 (LF) `84e86a35ab675652011d12490467b21c4baae165a7f332841ace9359381eb6c9`. R1–R4. Confronto b/c committato.
+
+**CP-3, I5e, coppie pronte (2026-11-23):** R1–R4 confermate; 12 coppie consegnate, ascolto in attesa. Confronto b/c committato (677880a). Non committato.
+
+**CP-3, I5e, confronto cieco ripetuto (2026-11-23):** [risultati](research/M2_5_CP3_I5e_Ramp_Over_C_Results.md). n/r8: r8 4 su 6, 2 uguali (regola: non distinguibili, previsione mancata); r8/r16: r16 2 su 4, 2 uguali (si tiene r8). Una identica su due ha ricevuto un lato. La rampa non è dimostrata: nessun ADR da sola; all'esperto. Nulla adottato. Non committato.

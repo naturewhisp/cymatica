@@ -1,0 +1,66 @@
+{
+ "manifest": {
+  "reasons": [],
+  "renders": [
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2678,
+    "events": 1339,
+    "max_gain_reduction_db": 0.0,
+    "name": "n",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2678,
+    "events": 1339,
+    "max_gain_reduction_db": 0.0,
+    "name": "r16",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2678,
+    "events": 1339,
+    "max_gain_reduction_db": 0.0,
+    "name": "r8",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   }
+  ],
+  "scenario": "warped_plan_render_v1",
+  "status": "MEASURED"
+ },
+ "R1_differences": {
+  "n_vs_c": 0.0,
+  "r8_before_ramp": 0.0,
+  "r16_before_ramp": 0.0
+ },
+ "R2_jump": {
+  "n": 0.1428571428571429,
+  "r8": 0.02020340863969705,
+  "r16": 0.010256591010990523
+ },
+ "lufs": {
+  "n": -19.810997258353982,
+  "r8": -19.700363202353085,
+  "r16": -19.74218555387755
+ },
+ "peak_int16": 15785,
+ "boundary_s": {
+  "n": 64.0,
+  "r8": 63.69961631585419,
+  "r16": 63.39923263170839
+ },
+ "outcome": {
+  "R1": true,
+  "R2": true,
+  "R3": true,
+  "R4": true
+ }
+}
