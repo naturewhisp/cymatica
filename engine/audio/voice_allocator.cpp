@@ -259,6 +259,7 @@ int VoiceAllocator::onNoteOn(const ScheduledAudioEvent& event) noexcept {
         const float maxPitch = std::max(1.0f, 0.45f * static_cast<float>(sampleRate_));
         pitch = std::clamp(event.valueA, 1.0f, maxPitch);
     }
+    if (slot.role == MusicRole::Pulso && pulsoFixedPitchHz_ > 0.0f) pitch = pulsoFixedPitchHz_; // offline only
     slot.pitchHz = pitch;
 
     float vel = 1.0f;
@@ -637,7 +638,7 @@ void VoiceAllocator::renderBlock(float* pOut, std::uint32_t frameCount, std::uin
                                     const float bp = chip ? 0.5f * noise : slot.filter.process(noise, fc, kPulsoClickQ, sampleRate_).bp;
                                     const float clickEnv = 1.0f - static_cast<float>(slot.noteFrameIndex) /
                                                                   static_cast<float>(pulsoClickFrames_);
-                                    click = bp * clickEnv * (0.6f + 0.6f * slot.timbreParam);
+                                    click = bp * clickEnv * (0.6f + 0.6f * slot.timbreParam) * pulsoClickScale_;
                                 }
                                 if (!isTransportPaused) {
                                     slot.pitchSweepEnv = flushSubnormal(slot.pitchSweepEnv * pulsoSweepMul_);

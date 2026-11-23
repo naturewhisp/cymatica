@@ -1,0 +1,109 @@
+{
+  "k5_events_identical": true,
+  "k5_trama_vettore_identical": true,
+  "reasons": [],
+  "scenario": "kick_presence_ab_v1",
+  "status": "MEASURED",
+  "variants": [
+    {
+      "click_db": 0.0,
+      "fixed_midi": 0,
+      "golden_pcm_status": "PASS",
+      "max_gain_reduction_db": 0.0,
+      "mix_integrated_lufs": -19.601272117666234,
+      "pulso_voice_drops_total": 0,
+      "tag": "base",
+      "true_peak_dbtp": -6.242743492126465
+    },
+    {
+      "click_db": 0.0,
+      "fixed_midi": 31,
+      "golden_pcm_status": "NOT_APPLICABLE",
+      "max_gain_reduction_db": 0.0,
+      "mix_integrated_lufs": -19.82485125372439,
+      "pulso_voice_drops_total": 0,
+      "tag": "pitch31",
+      "true_peak_dbtp": -6.306497573852539
+    },
+    {
+      "click_db": 0.0,
+      "fixed_midi": 33,
+      "golden_pcm_status": "NOT_APPLICABLE",
+      "max_gain_reduction_db": 0.0,
+      "mix_integrated_lufs": -19.70642250624796,
+      "pulso_voice_drops_total": 0,
+      "tag": "pitch33",
+      "true_peak_dbtp": -6.125309944152832
+    },
+    {
+      "click_db": 0.0,
+      "fixed_midi": 35,
+      "golden_pcm_status": "NOT_APPLICABLE",
+      "max_gain_reduction_db": 0.0,
+      "mix_integrated_lufs": -19.601478908155915,
+      "pulso_voice_drops_total": 0,
+      "tag": "pitch35",
+      "true_peak_dbtp": -6.3144989013671875
+    },
+    {
+      "click_db": 0.0,
+      "fixed_midi": 36,
+      "golden_pcm_status": "NOT_APPLICABLE",
+      "max_gain_reduction_db": 0.0,
+      "mix_integrated_lufs": -19.55925415711828,
+      "pulso_voice_drops_total": 0,
+      "tag": "pitch36",
+      "true_peak_dbtp": -6.36073112487793
+    },
+    {
+      "click_db": 0.0,
+      "fixed_midi": 38,
+      "golden_pcm_status": "NOT_APPLICABLE",
+      "max_gain_reduction_db": 0.0,
+      "mix_integrated_lufs": -19.47883902504802,
+      "pulso_voice_drops_total": 0,
+      "tag": "pitch38",
+      "true_peak_dbtp": -6.242743492126465
+    },
+    {
+      "click_db": 3.0,
+      "fixed_midi": 0,
+      "golden_pcm_status": "NOT_APPLICABLE",
+      "max_gain_reduction_db": 0.0,
+      "mix_integrated_lufs": -19.582704634354922,
+      "pulso_voice_drops_total": 0,
+      "tag": "click3",
+      "true_peak_dbtp": -5.927353382110596
+    },
+    {
+      "click_db": 6.0,
+      "fixed_midi": 0,
+      "golden_pcm_status": "NOT_APPLICABLE",
+      "max_gain_reduction_db": 0.0,
+      "mix_integrated_lufs": -19.546166693660012,
+      "pulso_voice_drops_total": 0,
+      "tag": "click6",
+      "true_peak_dbtp": -4.868592262268066
+    },
+    {
+      "click_db": 9.0,
+      "fixed_midi": 0,
+      "golden_pcm_status": "NOT_APPLICABLE",
+      "max_gain_reduction_db": 0.0,
+      "mix_integrated_lufs": -19.474736510009425,
+      "pulso_voice_drops_total": 0,
+      "tag": "click9",
+      "true_peak_dbtp": -3.468888759613037
+    },
+    {
+      "click_db": 3.0,
+      "fixed_midi": 36,
+      "golden_pcm_status": "NOT_APPLICABLE",
+      "max_gain_reduction_db": 0.0,
+      "mix_integrated_lufs": -19.540902452247852,
+      "pulso_voice_drops_total": 0,
+      "tag": "combo36click3",
+      "true_peak_dbtp": -5.813947677612305
+    }
+  ]
+}

@@ -46,6 +46,8 @@ add_library(cymatica_cacp STATIC
     harmony_alternatives.h
     cumulative_listening.cpp
     cumulative_listening.h
+    kick_presence_ab.cpp
+    kick_presence_ab.h
     png_writer.cpp
     png_writer.h
     presence_stats.cpp

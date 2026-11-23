@@ -1,6 +1,7 @@
 # M2.5 CP-3 — Piano degli interventi dopo l'ascolto cumulativo
 
 - **Stato:** proposto il 2026-11-20. Ogni intervento si avvia con una sua pre-registrazione.
+- **Ordine delle decisioni (titolare, 2026-11-23):** prima tutte le indagini I1–I6, poi le adozioni insieme. I1–I2: indagine conclusa, candidato Do2 (MIDI 36) con click +3 dB, da rimisurare con il basso.
 - **Decisione del titolare (D-M2-51):** «mi fido dell'esperto, mettiamo a piano gli interventi e le indagini necessarie ad avvalorare e confermare il giudizio dell'esperto».
   - Dove i due ascoltatori del 2026-11-19 non concordano, vale l'esperto, i cui controlli B0 sono superati.
   - Ogni giudizio dell'esperto va **avvalorato** da misure e fonti verificate prima di intervenire, e **confermato** da un ascolto mirato dopo.

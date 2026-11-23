@@ -961,6 +961,26 @@ bool AudioEngine::setPulsoDecayScale(float scale) noexcept {
     return true;
 }
 
+bool AudioEngine::setPulsoFixedMidi(std::int32_t midi) noexcept {
+    if (!pImpl_) return false;
+    if (!noteReleaseOverrideAllowed(!pImpl_->deviceInitialized, pImpl_->deviceStarted.load(std::memory_order_acquire))) {
+        return false; // offline engines only
+    }
+    if (midi < 24 || midi > 48) return false;
+    pImpl_->voiceAllocator.setPulsoFixedPitchHz(440.0f * std::pow(2.0f, (static_cast<float>(midi) - 69.0f) / 12.0f));
+    return true;
+}
+
+bool AudioEngine::setPulsoClickScale(float scale) noexcept {
+    if (!pImpl_) return false;
+    if (!noteReleaseOverrideAllowed(!pImpl_->deviceInitialized, pImpl_->deviceStarted.load(std::memory_order_acquire))) {
+        return false; // offline engines only
+    }
+    if (!std::isfinite(scale) || scale < 0.25f || scale > 4.0f) return false;
+    pImpl_->voiceAllocator.setPulsoClickScale(scale);
+    return true;
+}
+
 bool AudioEngine::setTimbrePalette(TimbrePalette palette) noexcept {
     if (!pImpl_) return false;
     if (!noteReleaseOverrideAllowed(!pImpl_->deviceInitialized, pImpl_->deviceStarted.load(std::memory_order_acquire))) {

@@ -2506,7 +2506,8 @@ std::string ProfileProbeResult::toJson() const {
 std::string fixturePcmGoldenStatus(const FixtureProbeResult& r, std::uint64_t expected) {
     if (!r.goldenApplicable || r.injectedFault != FixtureInjectedFault::None || r.noteReleaseOverride != 0 ||
         r.pulsoBusGainScaleOverride != 1.0f || r.tramaBusGainScaleOverride != 1.0f || r.pulsoDecayScaleOverride != 1.0f ||
-        r.timbrePaletteOverride != TimbrePalette::Production || r.fixtureVariantOverride) {
+        r.timbrePaletteOverride != TimbrePalette::Production || r.fixtureVariantOverride ||
+        r.pulsoFixedMidiOverride != 0 || r.pulsoClickScaleOverride != 1.0f) {
         return "NOT_APPLICABLE";
     }
     return r.pcmContentHash == expected ? "PASS" : "FAIL";
@@ -2648,6 +2649,22 @@ FixtureProbeResult runFixtureProbeV1Offline(const std::string& outputDir, bool w
             return result;
         }
         result.pulsoDecayScaleOverride = capture->pulsoDecayScale;
+    }
+    if (capture != nullptr && capture->pulsoFixedMidi != 0) {
+        if (!engine.setPulsoFixedMidi(capture->pulsoFixedMidi)) {
+            result.passed = false;
+            result.failureReason = "fixed Pulso pitch refused by the engine";
+            return result;
+        }
+        result.pulsoFixedMidiOverride = capture->pulsoFixedMidi;
+    }
+    if (capture != nullptr && capture->pulsoClickScale != 1.0f) {
+        if (!engine.setPulsoClickScale(capture->pulsoClickScale)) {
+            result.passed = false;
+            result.failureReason = "Pulso click scale refused by the engine";
+            return result;
+        }
+        result.pulsoClickScaleOverride = capture->pulsoClickScale;
     }
     if (capture != nullptr && capture->timbrePalette != TimbrePalette::Production) {
         if (!engine.setTimbrePalette(capture->timbrePalette)) {

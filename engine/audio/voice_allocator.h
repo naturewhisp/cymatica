@@ -242,6 +242,9 @@ private:
     void setNoteReleaseFrames(std::uint32_t frames) noexcept { noteReleaseOverride_ = frames; }
     // Offline kick-decay experiment (M2.5.2 F4c): multiplier of the Pulso decay length, 1 = production
     void setPulsoDecayScale(float scale) noexcept { pulsoDecayScale_ = scale; }
+    // CP-3 I1-I2 offline kick experiments: fixed Pulso pitch in Hz (0 = the event pitch) and click scale (1 = production)
+    void setPulsoFixedPitchHz(float hz) noexcept { pulsoFixedPitchHz_ = hz; }
+    void setPulsoClickScale(float scale) noexcept { pulsoClickScale_ = scale; }
     // Spike R-M25-9: palette and its per-role linear gains, computed here and never in the callback
     void setTimbrePalette(TimbrePalette palette) noexcept {
         palette_ = palette;
@@ -268,6 +271,8 @@ private:
     std::array<std::uint32_t, kRoleCount> roleReleaseOverlaps_{};
     FadeEventLog* fadeLog_{nullptr};
     float pulsoDecayScale_{1.0f};
+    float pulsoFixedPitchHz_{0.0f};
+    float pulsoClickScale_{1.0f};
     TimbrePalette palette_{TimbrePalette::Production};
     std::array<float, 4> chiptuneRoleGain_{1.0f, 1.0f, 1.0f, 1.0f};
     std::uint64_t lastLogicalFrame_{0};   // logical frame of the latest rendered slice (fade log of Stop/Pause)

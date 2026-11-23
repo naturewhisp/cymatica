@@ -3793,3 +3793,23 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
   - I6, melodia oltre la battuta.
   Ognuno con un'indagine prima (misure e fonti verificate) e una pre-registrazione; alla fine, un ascolto di conferma breve con l'esperto.
 - **Non avviato.**
+
+**CP-3, I1–I2 (kick), indagine: pre-registrazione (2026-11-23)** [M2_5_CP3_I1_I2_Kick_Preregistration.md](research/M2_5_CP3_I1_I2_Kick_Preregistration.md), SHA-256 (LF) `c381dad6576dd40afa947d7f9ae6943df53d193acf29ef31f93d7f27ebca9d5e`.
+- **Strumento:** override solo offline dell'altezza e del click di Pulso, scenario `kick_presence_ab_v1`.
+- **Previsioni:** K1–K5; la regola di selezione propone, non adotta.
+
+**CP-3, I1–I2 (kick), risultati dell'indagine (2026-11-23):** [M2_5_CP3_I1_I2_Kick_Results.md](research/M2_5_CP3_I1_I2_Kick_Results.md).
+- **K1–K5 confermate.** Al confine A→B il kick perde anche 1,26 dB pesati K; con l'altezza fissa la differenza è ≤ 0,03 dB. La presenza manca nel transiente in A e A′, non nel corpo.
+- **Mancata:** la regola non sceglie il Re2 previsto (quota sotto 100 Hz 0,71) ma il Si1 (MIDI 35), che non sta nella scala di B. Il Do2 (36) è a 0,14 dB e sta in entrambe le scale: scelta al titolare.
+- **Click:** +3 dB è il solo guadagno ammesso dalla regola.
+- **Nulla adottato;** la combinazione non è misurata. Override solo offline. Non committato.
+- **Esito build e suite:** 100% tests passed, 0 tests failed out of 317;100% tests passed, 0 tests failed out of 317;[full_m2_suite] acao02_v1                      measurement  INCONCLUSIVE NOT OK (10.4 s);[cacp] Verdict: FAIL;
+- **Fonti non lette:** PMC4104866 e PMC5293018 (pagine bloccate), Deruty in parte.
+
+**CP-3, I1–I2, combinazione Do2 e click +3 dB: pre-registrazione (2026-11-23)** [documento](research/M2_5_CP3_I1_I2_Kick_Combination_Preregistration.md), SHA-256 (LF) `931cd01729c424c2e42de7c66e18cabf57053eb4ee5b8662cf75a029db08b9e4`. Deroga del titolare alla parità della regola; previsioni C1–C5.
+
+**CP-3, I1–I2, combinazione Do2 e click +3 dB, risultati (2026-11-23):** C1–C5 confermate, combinazione **proponibile**, non adottata ([risultati §7](research/M2_5_CP3_I1_I2_Kick_Results.md)). Differenza di livello A–B da 1,26 a 0,02 dB; mix +0,06 LU; margine su Q100 di 0,004.
+- **Fonti:** tre articoli letti per intero ([dossier](research/M2_5_CP3_Kick_Bass_Form_Sources.md)); nessuno è contrario al Do2. La superiorità temporale dei bassi (Hove 2014) è contestata da Wojtczak 2017 e non si usa.
+- **Test:** 100% tests passed, 0 tests failed out of 317;100% tests passed, 0 tests failed out of 317; Non committato.
+
+**CP-3, decisione del titolare (2026-11-23):** per ora solo il commit dell'indagine sul kick; l'adozione si decide **a valle di tutte le indagini** I1–I6. Il kick Do2 con click +3 dB resta candidato: va rimisurato insieme al basso (I3), che occupa la stessa banda.
