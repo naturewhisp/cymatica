@@ -26,3 +26,27 @@ Conosciute solo da estratti o dal report di Gemini.
 | I5, raccordi | Tesi di Plut (SFU) | Musica generativa nei giochi; secondo il report di Gemini nessun test su cambio simultaneo di tempo e modo |
 
 Doughty e Garner (1947, 1948) sulla durata minima perché un suono abbia altezza servirebbero a I1, ma l'accesso è a pagamento: non si acquistano senza approvazione.
+
+## 3. Secondo gruppo (letto il 2026-11-23)
+
+Sostituisce il §2 per le fonti elencate qui. PDF del titolare, fuori dal repository; il testo è quello estratto, quindi le figure non sono state viste.
+
+| Fonte | Lettura | Che cosa dice | Limiti per noi |
+|---|---|---|---|
+| Wakefield e Dewey (2015), AES 138 | Intera | 11 studenti, cursori senza etichetta, sette coppie di strumenti, fra cui basso e cassa. In complesso piace di più separare le due tracce nel panorama; **il solo taglio del mascherante è il meno gradito in tutti gli scenari**. Nessuna differenza fra i tre modi di dividere lo spettro | Campione piccolo; frequenze e Q fissi. I valori di basso e cassa stanno nelle figure, non lette. Il panorama non è una soluzione naturale per le basse. Non prova sidechain né alternanza ritmica |
+| Lenc e altri (2018), PNAS 115(32), 10.1073/pnas.1801421115 | In parte: abstract, risultati e inizio della discussione | 14 persone, una sola voce a 130 o 1237 Hz. Il tono grave rafforza la risposta EEG alla frequenza del battito (F(1,13) = 9,46; P = 0,009); per l'intero metro solo nel ritmo sincopato. L'effetto sparisce se l'attenzione non va al tempo | 130 Hz non è sub-basso. Nel **tapping nessuna differenza significativa**; nel ritmo sincopato la rilevazione delle deviazioni era **peggiore** col tono grave. Non misura gradimento |
+| Bürgel, Mares e Siedenburg (2024), 10.3758/s13414-024-02971-x | In parte: metodo, risultati e inizio della discussione | 25 e 30 persone. Si riconoscono meglio le melodie ai **bordi** dello spettro (d′ 2,54 contro 1,93; 2,66 contro 2,10), qualunque sia la regione assoluta | Toni puri e riconoscimento di melodie; niente kick, sub-basso o gradimento |
+| Eigenfeldt e Pasquier (2013), GECCO | Intera | 100 brani trascritti in quattro generi. Frasi di 8 battute: meno del 2 % delle 621 frasi di Breaks fa eccezione. Le parti entrano o escono **all'inizio di una frase**; dentro la frase restano ferme, salvo riempimenti e colpi isolati. Da 1 a 5 pattern per parte | Descrive un corpus, non il gradimento. Generi da ballo, non musica per gioco |
+| Agres e altri (2017), Front. Psychol. 7:1999 | In parte: metodo, risultati categoriali e relativa discussione | 20 ascoltatori di trance, 14 strutture d'accordi di 16 battute. Più gradite sia strutture varie (ABCD-BCDB, 4,38) sia molto ripetitive (AABB-AABB, 4,33); meno AABB-BBAA (3,45) | Cambia solo l'armonia; estratti di 30 s; differenze piccole |
+| Chmiel e Schubert (2017), Psychol. Music 45(6) | In parte: abstract, tabella e risultati principali | 57 studi, 50 «compatibili» con la U rovesciata, ma **solo 15 la sostengono davvero**: gli altri 35 mostrano un tratto della curva | Rassegna eterogenea, per lo più ascolti ripetuti di brani |
+| Szpunar, Schellenberg e Pliner (2004), JEP:LMC 30(2) | In parte: abstract, esperimenti 1 e 2 | Estratti orchestrali di 15 s, 40 persone. **Ascolto attento:** il gradimento sale fino a 8 ascolti e cala a 32, tornando al livello di partenza. **Ascolto distratto:** sale sempre, fino a 32, senza sazietà | Ripetizioni di estratti sparsi fra altri, non loop consecutivi. Esperimento 3 non letto |
+
+## 4. Che cosa cambia per gli interventi
+
+1. **Bassi e tempo:** il §1 resta valido su Hove, ma il quadro è più sfumato. Lenc trova un vantaggio neurale del grave sul battito, non spiegato dal modello cocleare. Wojtczak e Lenc misurano cose diverse. Nessuno dei due giustifica un basso sotto 100 Hz, né dice che piaccia di più.
+2. **I3, basso:** la sua ragione resta l'esperto più la misura delle basse. Per separarlo dal kick il solo taglio di uno dei due non ha sostegno; sidechain e alternanza non sono stati confrontati da nessuna fonte letta, quindi si misurano da noi.
+3. **I4, forma:** «ogni 8 battute» trova un riscontro descrittivo in un corpus. La nostra frase è di 4 battute, e i cambi stanno già ai confini di frase come in quel corpus: mancano i riempimenti e la frequenza dei cambi.
+4. **Contro-evidenza da tenere presente (I4):** la sazietà misurata riguarda l'ascolto **attento**, come quello delle nostre sessioni. Nel gioco l'ascolto è in buona parte distratto, e lì Szpunar non trova sazietà. Le sessioni potrebbero quindi **sovrastimare** la noia di chi gioca: ipotesi da verificare quando si potrà giocare (M3 e M4). Il giudizio dell'esperto resta la base del piano.
+5. **Ripetizione non è sempre un difetto** (Agres): conta che lo schema sia coerente. È in linea con «ricordi, sviluppi, sorprenda e ritorni».
+
+Ancora da leggere: Fenton e altri (I2), Ma e altri (I3), la tesi di Plut (I5) e le parti non lette indicate sopra.

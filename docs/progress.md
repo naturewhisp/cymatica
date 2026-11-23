@@ -3813,3 +3813,5 @@ Il registro di A′ viene dal vincitore OctaveShift −1, scelto con un margine 
 - **Test:** 100% tests passed, 0 tests failed out of 317;100% tests passed, 0 tests failed out of 317; Non committato.
 
 **CP-3, decisione del titolare (2026-11-23):** per ora solo il commit dell'indagine sul kick; l'adozione si decide **a valle di tutte le indagini** I1–I6. Il kick Do2 con click +3 dB resta candidato: va rimisurato insieme al basso (I3), che occupa la stessa banda.
+
+**CP-3, fonti (2026-11-23):** altri sette documenti del titolare, due letti per intero e cinque in parte ([dossier §3–4](research/M2_5_CP3_Kick_Bass_Form_Sources.md)). Contro-evidenza registrata per I4: in Szpunar (2004) la sazietà compare solo nell'ascolto attento. Nessuna fonte confronta sidechain e alternanza ritmica per I3. Non committato.
