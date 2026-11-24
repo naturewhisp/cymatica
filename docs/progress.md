@@ -3942,3 +3942,11 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, I3 bis, livello del basso (2026-11-24):** [risultati](research/M2_5_CP3_I3b_Bass_Level_Results.md). Scelto L = −3 LU rispetto a Corpo (previsione confermata), lo stesso di `c2_V2`. V2m era più basso di 1,6 / 3,4 / 1,7 dB. Nulla adottato. Non committato.
 
 **CP-3, I3 bis (2026-11-24):** il titolare conferma che il basso «molto meglio» era V2 (`c2_V2`, −3 LU).
+
+**CP-3, I9 (motivi nuovi, tre alternative), pre-registrazione (2026-11-24)** [documento](research/M2_5_CP3_I9_New_Motif_Preregistration.md), SHA-256 (LF) `441b55903aad3d97101a21fc987cb9f0bbbe025e5c0d6e5089c33682106a542c`. O1–O8. Livello del basso committato (f5b1719).
+
+**CP-3, I9, alternative pronte (2026-11-24):** O1, O3–O8 confermate, **O2 fallita** (N1 e N2 ritmicamente simili, 0,77). Estratti ciechi consegnati; ascolto in attesa. Non committato.
+
+**CP-3, I9, ascolto cieco del titolare (2026-11-24):** [risultati](research/M2_5_CP3_I9_New_Motif_Results.md). Preferito N2 (arco), poi N1; oggi il peggiore. Il basso, identico in tutte, è percepito diverso. Esito: N2 candidato per A; prossimo: estenderlo a B e A'. Nulla adottato. Non committato.
+
+**CP-3, I9, precisazione non cieca (2026-11-24):** il titolare sente una progressione in N1, N2 e N3, non in oggi. Sostegno debole, dopo la chiave.
