@@ -1,0 +1,137 @@
+{
+ "versions": {
+  "B0": {
+   "boundary_AB": 7,
+   "boundary_BA": 12,
+   "max_leap": 17,
+   "conflicts": 0,
+   "above_min_share": 0.5833333333333334,
+   "tonic_per_section": [
+    5,
+    0,
+    5
+   ],
+   "last_on_tonic": true,
+   "same_contour_B": 0.6666666666666666,
+   "notes_per_section": [
+    78,
+    172,
+    76
+   ],
+   "moved": {
+    "0": 2,
+    "1": 0,
+    "2": 1
+   },
+   "peak_dbfs": -5.1805226670127364
+  },
+  "B1": {
+   "boundary_AB": 7,
+   "boundary_BA": 7,
+   "max_leap": 9,
+   "conflicts": 0,
+   "above_min_share": 1.0,
+   "tonic_per_section": [
+    5,
+    5,
+    5
+   ],
+   "last_on_tonic": true,
+   "same_contour_B": 0.041666666666666664,
+   "notes_per_section": [
+    78,
+    78,
+    76
+   ],
+   "moved": {
+    "0": 2,
+    "1": 4,
+    "2": 1
+   },
+   "peak_dbfs": -5.1805226670127364
+  },
+  "B2": {
+   "boundary_AB": 5,
+   "boundary_BA": 5,
+   "max_leap": 9,
+   "conflicts": 0,
+   "above_min_share": 1.0,
+   "tonic_per_section": [
+    5,
+    5,
+    5
+   ],
+   "last_on_tonic": true,
+   "same_contour_B": 0.0,
+   "notes_per_section": [
+    78,
+    78,
+    76
+   ],
+   "moved": {
+    "0": 2,
+    "1": 12,
+    "2": 1
+   },
+   "peak_dbfs": -5.1805226670127364
+  }
+ },
+ "ref_difference": 0.0,
+ "manifest": {
+  "reasons": [],
+  "renders": [
+   {
+    "backpressure_drops": 0,
+    "dispatched": 486,
+    "events": 243,
+    "max_gain_reduction_db": 0.0,
+    "name": "bass_line",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2412,
+    "events": 1206,
+    "max_gain_reduction_db": 0.0,
+    "name": "k3_B0",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2224,
+    "events": 1112,
+    "max_gain_reduction_db": 0.0,
+    "name": "k3_B1",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2224,
+    "events": 1112,
+    "max_gain_reduction_db": 0.0,
+    "name": "k3_B2",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   }
+  ],
+  "scenario": "warped_plan_render_v1",
+  "status": "MEASURED"
+ },
+ "outcome": {
+  "U1": true,
+  "U2": true,
+  "U3": true,
+  "U4": true,
+  "U5": true,
+  "U6": true,
+  "U7": true,
+  "U8": true
+ }
+}

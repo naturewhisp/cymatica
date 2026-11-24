@@ -3950,3 +3950,13 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, I9, ascolto cieco del titolare (2026-11-24):** [risultati](research/M2_5_CP3_I9_New_Motif_Results.md). Preferito N2 (arco), poi N1; oggi il peggiore. Il basso, identico in tutte, è percepito diverso. Esito: N2 candidato per A; prossimo: estenderlo a B e A'. Nulla adottato. Non committato.
 
 **CP-3, I9, precisazione non cieca (2026-11-24):** il titolare sente una progressione in N1, N2 e N3, non in oggi. Sostegno debole, dopo la chiave.
+
+**CP-3, I9 bis (N2 sul brano intero), pre-registrazione (2026-11-24)** [documento](research/M2_5_CP3_I9b_Whole_Piece_Preregistration.md), SHA-256 (LF) `b2e2906aa7040165ece9989ac3e67d564cbea0dcc42b7e79b525025c24ee0e6c`. U1–U8. I9 committata.
+
+**CP-3, I9 bis, versioni pronte (2026-11-24):** U1–U8 confermate, in gran parte per costruzione. Estratti ciechi consegnati; ascolto in attesa. I9 committata (ecfc09c). Non committato.
+
+**CP-3, I9 bis, ascolto cieco del titolare (2026-11-24):** [risultati](research/M2_5_CP3_I9b_Whole_Piece_Results.md). B2 7, B1 6 e 5 (duplicato coerente), B0 4: B2 va all'esperto. (a) non confermata, (b) confermata di poco, (c) coerente. Con il salto di tempo invariato i confini di B1 e B2 sono «naturali». Nulla adottato. Non committato.
+
+**CP-3, I9 bis, precisazione non cieca (2026-11-24):** «stesso brano variato» = variazioni riconoscibili del tema; B2 il più diverso, non stona. «Cambi bruschi in 4» ambiguo (estratto 4 o voto 4), chiesto.
+
+**CP-3, I9 bis (2026-11-24):** ambiguità chiarita: i cambi bruschi sono in B0 (estratto 1). Controllo duplicato coerente.
