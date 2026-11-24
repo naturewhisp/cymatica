@@ -15,3 +15,7 @@
 ## Kick e basso insieme
 
 `kick_bass_joint.py` (uso in testa al file): [pre-registrazione](../../M2_5_CP3_I1_I3_Kick_Bass_Joint_Preregistration.md), [risultati](../../M2_5_CP3_I1_I3_Kick_Bass_Joint_Results.md).
+
+## Livello del basso
+
+`bass_level.py`: [pre-registrazione](../../M2_5_CP3_I3b_Bass_Level_Preregistration.md), [risultati](../../M2_5_CP3_I3b_Bass_Level_Results.md).

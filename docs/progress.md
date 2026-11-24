@@ -3936,3 +3936,9 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, indicazione del titolare (2026-11-24), D-M2-52:** i consigli dell'esperto non si seguono alla cieca; quelli di gusto rischiano di far imitare il suo stile. Emenda D-M2-51. Prima dell'ascolto del prototipo I8 il titolare ha chiesto una spiegazione in parole semplici: data senza indicare versioni.
 
 **CP-3, I8, ascolto del titolare (2026-11-24):** [risultati](research/M2_5_CP3_I8_Accent_Prototype_Results.md). (a) non valutabile, (b) mancata, duplicato incoerente: indicazione debole. Costante: basso appena percettibile (circa 6 LU sotto Corpo, 8 sotto il kick), come l'esperto. Proposta: livello del basso con misure, poi ascolto cumulativo. Non committato.
+
+**CP-3, I3 bis (livello del basso), pre-registrazione (2026-11-24)** [documento](research/M2_5_CP3_I3b_Bass_Level_Preregistration.md), SHA-256 (LF) `8f8c8f863af76a4a9481b9d07bab1ce70bea171920502bfb05219c8eda26ac51`. N1–N5. Il basso che il titolare sentiva bene era V2 a −3 LU. I8 e D-M2-52 committati (d60d2dc).
+
+**CP-3, I3 bis, livello del basso (2026-11-24):** [risultati](research/M2_5_CP3_I3b_Bass_Level_Results.md). Scelto L = −3 LU rispetto a Corpo (previsione confermata), lo stesso di `c2_V2`. V2m era più basso di 1,6 / 3,4 / 1,7 dB. Nulla adottato. Non committato.
+
+**CP-3, I3 bis (2026-11-24):** il titolare conferma che il basso «molto meglio» era V2 (`c2_V2`, −3 LU).
