@@ -3960,3 +3960,7 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, I9 bis, precisazione non cieca (2026-11-24):** «stesso brano variato» = variazioni riconoscibili del tema; B2 il più diverso, non stona. «Cambi bruschi in 4» ambiguo (estratto 4 o voto 4), chiesto.
 
 **CP-3, I9 bis (2026-11-24):** ambiguità chiarita: i cambi bruschi sono in B0 (estratto 1). Controllo duplicato coerente.
+
+**CP-3, secondo ascolto dell'esperto, disegno e ipotesi (2026-11-24)** [documento](research/M2_5_CP3_Expert_Listening_2_Hypotheses.md), SHA-256 (LF) `71d41e54378568eb63e145e5a99d304282113b85caa976ed7f92b1f7640dc206`. H1–H6, V1–V4. I9 bis committata.
+
+**CP-3, secondo pacchetto per l'esperto pronto (2026-11-24):** `cymatica_ascolto_due_2026-11-24.zip`, SHA-256 `4b493fc2a18bafca577812c7d2077a9cd4a2d77cd9f40fe2a36c6dfd3b8d650a`, codice cf1c1b3 più il generatore. V1–V4 superate; V3 era fallita due volte per la numerazione «B2.n» delle domande (non una versione), rinominata prima della consegna, con un nuovo rimescolamento a ogni ricostruzione. Pagina: 11 lettori, avviso delle domande vuote funzionante (provato sulla prima costruzione). Consegna: la fa il titolare. Non committato.
