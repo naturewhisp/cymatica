@@ -3927,3 +3927,12 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, I8 (accenti comuni batteria-basso), indagine, pre-registrazione (2026-11-24)** [documento](research/M2_5_CP3_I8_Accent_Investigation_Preregistration.md), SHA-256 (LF) `d4c266e4c328651ad0bf33d293ea8c13d723b39eb350abb664a1d60d2cef349d`. A1–A6. Esito dell'ascolto committato (2f22e03).
 
 **CP-3, I8, indagine eseguita (2026-11-24):** [risultati](research/M2_5_CP3_I8_Accent_Investigation_Results.md). A1, A2, A3 confermate; A4, A5, A6 mancate. Regola non soddisfatta (2 su 4): prototipo solo come scelta d'autore. Il legame kick-basso sopra il caso è 17,7 punti nell'esperto e 4,0 in Z. Nulla adottato. Non committato.
+
+**CP-3, I8 (prototipo degli accenti), pre-registrazione (2026-11-24)** [documento](research/M2_5_CP3_I8_Accent_Prototype_Preregistration.md), SHA-256 (LF) `d5f88037f2ae3a8892663cb3589e7fe1090e0d65dcdb28d01717f6136bb8e6c2`. B1–B7. Indagine committata.
+**CP-3, I8 bis, estratto corretto prima dell'ascolto (2026-11-24)** [documento](research/M2_5_CP3_I8_Accent_Prototype_Preregistration_bis.md), SHA-256 (LF) `cc8e7600a0e6f84f48a822db855a5b15cb77ce678bc98d40d0939485e941cdaa`.
+
+**CP-3, I8, prototipo pronto (2026-11-24):** B1, B3–B7 confermate, **B2 fallita** (basso di g2 0,63 > 0,60). Estratti ciechi consegnati (4, uno duplicato); ascolto in attesa. Non committato.
+
+**CP-3, indicazione del titolare (2026-11-24), D-M2-52:** i consigli dell'esperto non si seguono alla cieca; quelli di gusto rischiano di far imitare il suo stile. Emenda D-M2-51. Prima dell'ascolto del prototipo I8 il titolare ha chiesto una spiegazione in parole semplici: data senza indicare versioni.
+
+**CP-3, I8, ascolto del titolare (2026-11-24):** [risultati](research/M2_5_CP3_I8_Accent_Prototype_Results.md). (a) non valutabile, (b) mancata, duplicato incoerente: indicazione debole. Costante: basso appena percettibile (circa 6 LU sotto Corpo, 8 sotto il kick), come l'esperto. Proposta: livello del basso con misure, poi ascolto cumulativo. Non committato.

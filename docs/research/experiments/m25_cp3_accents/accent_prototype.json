@@ -1,0 +1,218 @@
+{
+ "manifest": {
+  "reasons": [],
+  "renders": [
+   {
+    "backpressure_drops": 0,
+    "dispatched": 486,
+    "events": 243,
+    "max_gain_reduction_db": 0.0,
+    "name": "bass_g0",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 456,
+    "events": 228,
+    "max_gain_reduction_db": 0.0,
+    "name": "bass_g1",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 504,
+    "events": 252,
+    "max_gain_reduction_db": 0.0,
+    "name": "bass_g2",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2792,
+    "events": 1396,
+    "max_gain_reduction_db": 0.0,
+    "name": "k3_g0",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 872,
+    "events": 436,
+    "max_gain_reduction_db": 0.0,
+    "name": "k3_g0kick",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2752,
+    "events": 1376,
+    "max_gain_reduction_db": 0.0,
+    "name": "k3_g1",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 832,
+    "events": 416,
+    "max_gain_reduction_db": 0.0,
+    "name": "k3_g1kick",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2792,
+    "events": 1396,
+    "max_gain_reduction_db": 0.0,
+    "name": "k3_g2",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 872,
+    "events": 436,
+    "max_gain_reduction_db": 0.0,
+    "name": "k3_g2kick",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   }
+  ],
+  "scenario": "warped_plan_render_v1",
+  "status": "MEASURED"
+ },
+ "versions": {
+  "g0": {
+   "A1_excess": 0.04273504273504275,
+   "kicks_with_bass": 0.2403846153846154,
+   "bass_on_kick": 0.3640776699029126,
+   "lhl_kick": 0.8717948717948718,
+   "lhl_bass": 0.7669902912621359,
+   "windows_changed": 1.0,
+   "semitone_share": 0.00823045267489712,
+   "bass_notes": 243,
+   "kicks": 436,
+   "A": {
+    "P_body_db": 7.931388350317665,
+    "R_coincident_db": 12.408331899853923,
+    "coincident": 33,
+    "kicks": 148
+   },
+   "B": {
+    "P_body_db": 9.606936190246344,
+    "R_coincident_db": 15.399802238919206,
+    "coincident": 35,
+    "kicks": 152
+   },
+   "C": {
+    "P_body_db": 8.83650141203237,
+    "R_coincident_db": 13.189832713521202,
+    "coincident": 31,
+    "kicks": 136
+   },
+   "peak_dbfs": -5.198619766545658,
+   "bass_gain_db": [
+    0.3405135610150231,
+    -2.0865969134189006,
+    -0.178453013954469
+   ],
+   "lufs": -18.90491416386717
+  },
+  "g1": {
+   "A1_excess": 0.43423423423423424,
+   "kicks_with_bass": 0.5945945945945946,
+   "bass_on_kick": 0.9166666666666666,
+   "lhl_kick": 0.1891891891891892,
+   "lhl_bass": 0.4166666666666667,
+   "windows_changed": 0.6666666666666666,
+   "semitone_share": 0.008771929824561403,
+   "bass_notes": 228,
+   "kicks": 416,
+   "A": {
+    "P_body_db": 8.285446788921039,
+    "R_coincident_db": 13.298273023851449,
+    "coincident": 56,
+    "kicks": 144
+   },
+   "B": {
+    "P_body_db": 9.341950139097996,
+    "R_coincident_db": 15.697137993155469,
+    "coincident": 80,
+    "kicks": 144
+   },
+   "C": {
+    "P_body_db": 8.892595529227277,
+    "R_coincident_db": 13.762978772123589,
+    "coincident": 64,
+    "kicks": 128
+   },
+   "peak_dbfs": -4.3997591687383375,
+   "bass_gain_db": [
+    -0.0810838509913149,
+    -2.248203616659324,
+    -0.40850719807226743
+   ],
+   "lufs": -18.768995988910035
+  },
+  "g2": {
+   "A1_excess": 0.4632478632478634,
+   "kicks_with_bass": 0.6410256410256411,
+   "bass_on_kick": 0.9259259259259259,
+   "lhl_kick": 0.8717948717948718,
+   "lhl_bass": 0.6296296296296297,
+   "windows_changed": 0.7142857142857143,
+   "semitone_share": 0.015873015873015872,
+   "bass_notes": 252,
+   "kicks": 436,
+   "A": {
+    "P_body_db": 7.470770744537262,
+    "R_coincident_db": 12.643286157113764,
+    "coincident": 68,
+    "kicks": 148
+   },
+   "B": {
+    "P_body_db": 8.577223284183091,
+    "R_coincident_db": 14.360201404648143,
+    "coincident": 88,
+    "kicks": 152
+   },
+   "C": {
+    "P_body_db": 7.795027928794823,
+    "R_coincident_db": 13.166014944941724,
+    "coincident": 68,
+    "kicks": 136
+   },
+   "peak_dbfs": -5.161848096704871,
+   "bass_gain_db": [
+    0.5662991199225089,
+    -1.9236462785102135,
+    0.04528673675260108
+   ],
+   "lufs": -18.788747598578464
+  }
+ },
+ "outcome": {
+  "B1": true,
+  "B2": false,
+  "B3": true,
+  "B4": true,
+  "B5": true,
+  "B6": true,
+  "B7": true
+ }
+}
