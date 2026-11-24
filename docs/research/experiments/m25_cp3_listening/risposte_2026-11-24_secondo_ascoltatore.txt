@@ -1,0 +1,46 @@
+CYMATICA - ascolto di conferma - cymatica_ascolto_cp3_2026-11-23
+
+data_ora: 24/11/2026
+apparecchiatura: SteelSeries Arctis Nova Pro Wireless
+volume: Si
+1_descrizione: Lead, Basso, Arpeggiatore e Batteria. Musica elettronica con un semplice riff di Lead accompagnato dal Basso e batteria. Lievemente si sente l'arpeggiatore. Ad un terzo cambia tonalità e a due terzi della musica torna alta con un giro di basso molto più interessante
+1_calo: 1:57
+1_coerenza: 5
+1_interesse: 4
+1_ripetitivita: 5
+1_melodia: una figura che si ripete
+1_tempo_p1: a tratti
+1_tempo_p2: a tratti
+1_tempo_p3: a tratti
+1_kick: è debole
+1_basso: lo sento ed è distinto dalla cassa
+1_basso_livello: giusto
+1_passaggio_12: brusco
+1_passaggio_23: naturale
+1_fuori_posto: no
+1_fuori_posto_dove: -
+2_c1_differenza: no
+2_c1_preferita: nessuna
+2_c1_perche: Mi sembrano uguali
+2_c2_differenza: sì
+2_c2_preferita: la seconda
+2_c2_perche: La seconda perché la doppia nota alta sulla prima mi sembra di troppo
+2_c3_differenza: sì
+2_c3_preferita: la seconda
+2_c3_perche: La seconda perché le basse mi piacciono di più
+2_c4_differenza: no
+2_c4_preferita: nessuna
+2_c4_perche: Anche qui mi sembrano uguali
+2_c5_differenza: no
+2_c5_preferita: nessuna
+2_c5_perche: Anche qui sembrano uguali
+2_c6_differenza: sì
+2_c6_preferita: la prima
+2_c6_perche: La prima perché nella seconda le alte sono troppo esagerate
+2_c7_differenza: no
+2_c7_preferita: nessuna
+2_c7_perche: Anche queste sembrano uguali
+3_scatti: No
+3_osservazioni: Continua a sentirsi la mancanza di una composizione classica con cambi di melodia
+3_affaticamento: Dalla 5 Coppia
+3_durata: 30 minuti

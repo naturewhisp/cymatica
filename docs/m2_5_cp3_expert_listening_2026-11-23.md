@@ -50,3 +50,36 @@ Nel [registro](adr/0007-m2-5-entry-decisions.md) §8.1. In breve: più suoni per
 
 - Un ascoltatore, controllo identico fallito, due risposte incomplete (R, livello del basso), ascolto della sesta coppia forse saltato.
 - Z unisce c, x, kick e basso: il calo di coerenza non si attribuisce.
+
+## 6. Secondo ascoltatore, risposte arrivate in ritardo (2026-11-24)
+
+- **Stesso pacchetto e stessa chiave.** [Trascrizione](research/experiments/m25_cp3_listening/risposte_2026-11-24_secondo_ascoltatore.txt). Arrivate **dopo** che la chiave era stata aperta e discussa: l'ascoltatore non l'ha vista, per quanto risulta, ma l'analisi non è più cieca.
+- **Chi:** il secondo ascoltatore indicato dal titolare; le cuffie sono lo stesso modello dell'ascoltatore A del 2026-11-19. Non è l'esperto. Il disegno prevedeva l'esperto da solo, quindi è un **dato aggiuntivo**, non una replica prevista.
+- **Volume:** risposta «Si», non utilizzabile. Durata 30 minuti; stanco «dalla 5 coppia».
+
+| Voce | Esperto | Secondo ascoltatore |
+|---|---|---|
+| B0, coppia identica (5) | diversa: **fallito** | uguale: **superato** |
+| B0, duplicato di V (3 e 7) | coerente | **incoerente:** in 3 differenza e V1, in 7 «uguali» |
+| Coerenza / interesse / ripetitività | 3 / 4 / 4 | 5 / 4 / **5** |
+| Melodia | figura che si ripete | figura che si ripete |
+| Kick in Z | giusto | **debole** |
+| Basso / livello | distinto / senza risposta | distinto / giusto |
+| A→B / B→A′ | brusco / brusco | brusco / naturale |
+| K, kick | candidato | nessuna differenza |
+| M, c contro oggi | oggi (non so) | **oggi**, differenza sì: in c «la doppia nota alta» è di troppo |
+| V | V2m | V1 in 3, nessuna differenza in 7 |
+| T, rampa | nessuna | nessuna differenza |
+| R, x contro oggi | senza risposta | **x**, differenza sì: in oggi «le alte sono troppo esagerate» |
+
+**Lettura**
+- Ciascun ascoltatore fallisce un controllo diverso: tutte le coppie restano **indicazione debole**.
+- **Concordano:** melodia «figura che si ripete»; A→B brusco; **c non preferita** (per lui con differenza rilevata e un motivo); nessun effetto della rampa; basso distinto dalla cassa.
+- **x** ha un primo riscontro, dove l'esperto non aveva risposto: preferito con motivo, coerente con il titolare in I5d. Debole.
+- **Kick:** non sente differenza in K e lo dice debole; per l'esperto è giusto. **Disaccordo,** come il 2026-11-19.
+- **V1 o V2m:** nessun accordo; la scelta di V2m resta fragile.
+- **Nota alta in c:** in c le code invertite ripetono la nota più acuta della battuta (per esempio 86–83–86), verificato sul piano; nelle battute di oggi non accade. Spiegazione compatibile, non provata.
+- **Calo a 1:57:** poco prima del confine B→A′ (1:59). Un solo istante, con ritardo ignoto.
+- **«Composizione classica con cambi di melodia»:** difetto percepito (D-M2-52), che converge con «tutt'altro motivo» dell'esperto. Riguarda Z; N2 e B2 non erano ancora in prova.
+
+**Regole registrate:** nessun esito cambia. I5d (x) non si adotta né si scarta; la rampa resta senza ADR; c non si propone.

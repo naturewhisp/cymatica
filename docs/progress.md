@@ -3964,3 +3964,9 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, secondo ascolto dell'esperto, disegno e ipotesi (2026-11-24)** [documento](research/M2_5_CP3_Expert_Listening_2_Hypotheses.md), SHA-256 (LF) `71d41e54378568eb63e145e5a99d304282113b85caa976ed7f92b1f7640dc206`. H1–H6, V1–V4. I9 bis committata.
 
 **CP-3, secondo pacchetto per l'esperto pronto (2026-11-24):** `cymatica_ascolto_due_2026-11-24.zip`, SHA-256 `4b493fc2a18bafca577812c7d2077a9cd4a2d77cd9f40fe2a36c6dfd3b8d650a`, codice cf1c1b3 più il generatore. V1–V4 superate; V3 era fallita due volte per la numerazione «B2.n» delle domande (non una versione), rinominata prima della consegna, con un nuovo rimescolamento a ogni ricostruzione. Pagina: 11 lettori, avviso delle domande vuote funzionante (provato sulla prima costruzione). Consegna: la fa il titolare. Non committato.
+
+**CP-3, secondo ascoltatore, risposte tardive (2026-11-24):** [§6](m2_5_cp3_expert_listening_2026-11-23.md). Coppia identica superata, duplicato incoerente: indicazione debole. Melodia figura, A→B brusco, c non preferita, rampa senza differenza; x preferito; kick debole. Nessuna regola cambia. Non committato.
+
+**Voci sospese di M2.5, proposta D-M2-53 (2026-11-24, da approvare):** [proposta](M2_5_D-M2-53_Proposal.md). LFO, saturazione, supersaw, modulazioni e R-M25-3 a M7; F2b chiusa con condizione di riapertura. Origine: revisione di Gemini, ricontrollata sul repository; Gemini non è usato come ascoltatore. ADR-0007 invariato. Non committato.
+
+**D-M2-53 approvata dal titolare (2026-11-24), applicata ad ADR-0007:** inclusa la chiusura di F2b, con quattro correzioni: riferimento della saturazione (specifica §16.8, DESIGN §12.3 e §16.4; non la piastra §17.7), riapertura non subordinata ai B0, §3 di F2b completato, vincolo D-M2-25 esplicito su R-M25-3. Solo documenti; build e test non applicabili. Non committato.
