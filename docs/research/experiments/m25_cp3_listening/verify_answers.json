@@ -1,0 +1,82 @@
+{
+ "pairs": {
+  "1": {
+   "max_abs_difference": 0.490234375,
+   "difference_rms_rel_db": -1.5162367922180744
+  },
+  "2": {
+   "max_abs_difference": 0.40863037109375,
+   "difference_rms_rel_db": -6.437879199996229
+  },
+  "3": {
+   "max_abs_difference": 0.157501220703125,
+   "difference_rms_rel_db": -6.101847020286684
+  },
+  "4": {
+   "max_abs_difference": 0.528656005859375,
+   "difference_rms_rel_db": 0.6304286982030226
+  },
+  "5": {
+   "max_abs_difference": 0.0,
+   "difference_rms_rel_db": -118.41002460953621
+  },
+  "6": {
+   "max_abs_difference": 0.218597412109375,
+   "difference_rms_rel_db": -8.179890037279483
+  },
+  "7": {
+   "max_abs_difference": 0.157501220703125,
+   "difference_rms_rel_db": -6.092193246202264
+  }
+ },
+ "pair2_first_correlation": {
+  "oggi": 0.8869937588543826,
+  "c": 0.9996050572088094
+ },
+ "today": {
+  "A": {
+   "bass_onsets_on_kick": 0.373134328358209,
+   "kicks_with_bass_onset": 0.22297297297297297,
+   "kicks_on_beat": 0.6486486486486487,
+   "bass_onsets_on_beat": 0.417910447761194
+  },
+  "B": {
+   "bass_onsets_on_kick": 0.36486486486486486,
+   "kicks_with_bass_onset": 0.23529411764705882,
+   "kicks_on_beat": 0.42483660130718953,
+   "bass_onsets_on_beat": 0.5675675675675675
+  },
+  "C": {
+   "bass_onsets_on_kick": 0.2948717948717949,
+   "kicks_with_bass_onset": 0.2222222222222222,
+   "kicks_on_beat": 0.5851851851851851,
+   "bass_onsets_on_beat": 0.44871794871794873
+  }
+ },
+ "z": {
+  "A": {
+   "bass_onsets_on_kick": 0.36231884057971014,
+   "kicks_with_bass_onset": 0.22297297297297297,
+   "kicks_on_beat": 0.6013513513513513,
+   "bass_onsets_on_beat": 0.391304347826087
+  },
+  "B": {
+   "bass_onsets_on_kick": 0.36585365853658536,
+   "kicks_with_bass_onset": 0.2549019607843137,
+   "kicks_on_beat": 0.39869281045751637,
+   "bass_onsets_on_beat": 0.5121951219512195
+  },
+  "C": {
+   "bass_onsets_on_kick": 0.2891566265060241,
+   "kicks_with_bass_onset": 0.22962962962962963,
+   "kicks_on_beat": 0.5481481481481482,
+   "bass_onsets_on_beat": 0.40963855421686746
+  }
+ },
+ "dip_bars": {
+  "47": 23.5,
+  "84": 43.66666666666667,
+  "123": 66.07142857142857,
+  "129": 69.07142857142857
+ }
+}

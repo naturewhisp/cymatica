@@ -6,3 +6,5 @@
 2. `make_cp3_package.py --date <data> --commit <sha> --checks cp3_package_checks.json`: pagina, audio e chiave in `artifacts/expert_listening/` (non versionati). La chiave `_NON_INVIARE` resta a chi conduce.
 
 Servono i render delle prove precedenti in `artifacts/cacp/` (`tempo_ramp_v1_i5d`, `_i5e`, `_i46`, `_i46b`, `bass_prototype_v1`).
+
+- Risposte dell'esperto: [esito](../../../m2_5_cp3_expert_listening_2026-11-23.md), trascrizione `risposte_2026-11-23_esperto.txt`; controlli post hoc `verify_answers.py` e `.json`.

@@ -1,0 +1,70 @@
+CYMATICA - ascolto di conferma - cymatica_ascolto_cp3_2026-11-23
+
+data_ora: Un freddo Giovedì 23 Novembre, 22:34
+apparecchiatura: Audio Technica ATH M50x + Behringer UMC 204 HD
+volume: 100% + Potenziometro volume a 1/4 sulla scheda audio esterna
+1_descrizione: Un pezzo più articolato rispetto agli ascolti precedenti.
+
+Ci sono:
+- Un lead synth (saw) che fa la melodia principale.
+- Una mezza lead (saw) sotto che fa da accompagnamento per la melodia 
+- Una tastiera/FM che aggiunge degli abbelimenti
+- UN BASSO!!!!!
+- Un kick
+
+Mixato meglio ma molto più frenetico e a tratti un po' randomico. Uso di effetti stereofonici (un po' di delay corto/reverb alla fine e creativo uso del panning).
+1_calo: 0:47, 1:24, 2:03, 2:09
+1_coerenza: 3
+1_interesse: 4
+1_ripetitivita: 4
+1_melodia: una figura che si ripete
+1_tempo_p1: sempre
+1_tempo_p2: sempre
+1_tempo_p3: sempre
+1_kick: è giusto
+1_basso: lo sento ed è distinto dalla cassa
+1_basso_livello: -
+1_passaggio_12: brusco
+1_passaggio_23: brusco
+1_fuori_posto: no
+1_fuori_posto_dove: -
+2_c1_differenza: sì
+2_c1_preferita: la prima
+2_c1_perche: Kick più presente.
+2_c2_differenza: non so
+2_c2_preferita: la seconda
+2_c2_perche: Se non sto definitivamente impazzendo: la seconda ha un'immagine stereo leggermente più alta.
+2_c3_differenza: sì
+2_c3_preferita: la prima
+2_c3_perche: Il basso accompagna meglio l'arrangiamento.
+2_c4_differenza: non so
+2_c4_preferita: nessuna
+2_c4_perche: -
+2_c5_differenza: sì
+2_c5_preferita: la seconda
+2_c5_perche: Se non sto definitivamente impazzendo pt 2: nel secondo arrangiamento, l'abbellimento FM ha una coda più lunga (ipotizzo data da una combinazione di release + riverbero), mi piace di più.
+2_c6_differenza: -
+2_c6_preferita: -
+2_c6_perche: -
+2_c7_differenza: sì
+2_c7_preferita: la seconda
+2_c7_perche: Il basso sostiene meglio l'arrangiamento.
+3_scatti: No.
+3_osservazioni: A livello musicale inizia sempre di più a prendere forma. Tocca lavorare adesso sulla sezione percussiva:
+- Drums: hanno bisogno di molto più di un kick. Inserire suoni percussivi in più (avendo quindi drums + percs, come in una band raggae/latin aiuta molto, fai riferimento ai layer percussivi per il materiale [titolo della produzione dell'esperto] che vi ho girato)
+- Basso: deve essere un po' più presente sullo spettro delle basse frequenze e deve seguire meglio la batteria. Basso e Batteria hanno una relazione mooooooolto stretta e l'arrangiamento cade a pezzi se loro due non sono ben allineati, sia in termini di tempo, sia in termini di ritmo. Il basso ha ovviamente una certa libertà creativa, ma dovreste cercare di creare un sistema per il quale i due elementi si parlano.
+
+Un'idea può essere quella che ho accennato in ufficio a [il titolare] parlando di come improvviso con il mio chitarrista funk (io sono alla batteria): normalmente lui dà degli accenti e io tiro sul momento una parte che cerca quanto più possibile di valorizzarli. Se lui suona qualcosa di complesso, io suono qualcosa di semplice. Se io suono complicato, lui suona semplice.
+
+Potreste iniziare a tirare su un rudimentale sistema di accenti e a "squadrare" di più i ritmi: in questo momento c'è troppa sincope tra il kick e il basso. 
+
+Con il sistema di accenti intendo:
+- Inizia la partita
+- Sulla misura si scelgono degli accenti da seguire
+- ALMENO il midi della batteria e del basso, dovranno porre enfasi su quegli accenti.
+
+Per capire meglio come funzionano Basso & Batteria, ho trovato delle risorse online per il basso:
+- https://www.musiclessonswithross.com/blog-1/how-to-lock-in-with-drums-on-bass
+- https://www.tunelark.com/blog/how-bass-and-drums-lock-together/
+3_affaticamento: Sì. C'è generalmente bisogno di tutt'altro motivo, sentire sempre più o meno le stesse melodie diventa molto stancante tra una sessione e l'altra.
+3_durata: Circa mezz'ora.

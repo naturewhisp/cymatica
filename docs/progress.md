@@ -3919,3 +3919,7 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, ascolto di conferma dell'esperto, disegno e ipotesi (2026-11-23)** [documento](research/M2_5_CP3_Expert_Listening_Hypotheses.md), SHA-256 (LF) `394b66a16c058832015429759d4b0379b57e5bb005f324683a94776095d7b0bf`. T1–T6, E1–E7. Misura kick e basso committata (0d955f4).
 
 **CP-3, pacchetto per l'esperto pronto (2026-11-23):** zip `cymatica_ascolto_cp3_2026-11-23.zip`, SHA-256 `da5c11a4e4597d5a90ffc34b302ce977238108129d4b09de4f32edaac5ba2417`, build non ancora committata (0d955f4 più l'override `k3_` di `warped_plan_render_v1`). T1 2·10⁻⁴, T2 0, T3 (limiter 0, picco −5,2 dBFS, conflitti 0), T4 (R coincidenti 12,9 / 15,5 / 13,4 dB), T5 (loudness entro 0,004 LU), T6: superate ([materiale](research/experiments/m25_cp3_listening/README.md)). Pagina controllata nel browser: 15 lettori, 44 campi, nessun errore; salti nell'audio non provati. Release e Debug `/WX` 319/319. Consegna all'esperto: la fa il titolare. Non committato.
+
+**CP-3, pacchetto per l'esperto, commit del materiale:** `fec1a70`. La chiave riporta `0d955f4+warped_plan_render`: stesso codice; pacchetto non rifatto.
+
+**CP-3, ascolto dell'esperto eseguito (2026-11-23):** [esito](m2_5_cp3_expert_listening_2026-11-23.md). E1, E3, E4 confermate; E2, E5, E7 mancate; E6 senza risposta. Coppia identica giudicata diversa: confronti deboli; duplicato coerente. V2m preferita due volte; rampa senza preferenza, nessun ADR. Coerenza 3 (era 5). Sette voci nuove in ADR-0007 §8.1. Nulla adottato. Non committato.
