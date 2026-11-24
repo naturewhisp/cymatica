@@ -3923,3 +3923,7 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, pacchetto per l'esperto, commit del materiale:** `fec1a70`. La chiave riporta `0d955f4+warped_plan_render`: stesso codice; pacchetto non rifatto.
 
 **CP-3, ascolto dell'esperto eseguito (2026-11-23):** [esito](m2_5_cp3_expert_listening_2026-11-23.md). E1, E3, E4 confermate; E2, E5, E7 mancate; E6 senza risposta. Coppia identica giudicata diversa: confronti deboli; duplicato coerente. V2m preferita due volte; rampa senza preferenza, nessun ADR. Coerenza 3 (era 5). Sette voci nuove in ADR-0007 §8.1. Nulla adottato. Non committato.
+
+**CP-3, I8 (accenti comuni batteria-basso), indagine, pre-registrazione (2026-11-24)** [documento](research/M2_5_CP3_I8_Accent_Investigation_Preregistration.md), SHA-256 (LF) `d4c266e4c328651ad0bf33d293ea8c13d723b39eb350abb664a1d60d2cef349d`. A1–A6. Esito dell'ascolto committato (2f22e03).
+
+**CP-3, I8, indagine eseguita (2026-11-24):** [risultati](research/M2_5_CP3_I8_Accent_Investigation_Results.md). A1, A2, A3 confermate; A4, A5, A6 mancate. Regola non soddisfatta (2 su 4): prototipo solo come scelta d'autore. Il legame kick-basso sopra il caso è 17,7 punti nell'esperto e 4,0 in Z. Nulla adottato. Non committato.

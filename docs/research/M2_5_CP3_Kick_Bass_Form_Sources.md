@@ -75,3 +75,9 @@ Il PDF locale del titolare (237 pagine) si estrae per intero con Poppler. Lette 
 - Il riassunto è quindi **corretto** su generativa contro adattiva composta, ma sul confronto del **questionario** la sezione non riporta alcun test di significatività; le annotazioni in tempo reale non distinguono le condizioni musicali.
 - **Utile per I5 (ipotesi dell'autore, non misura):** la musica lineare è l'unica con «composed transitions», e può essere preferita per la loro scorrevolezza. L'adattiva composta ha poco materiale per livello, quindi i passaggi possono suonare «jarring and/or repetitive».
 - **Limite per noi:** tutte le musiche sono a 130 BPM e con la stessa armatura. Il nostro passaggio A→B cambia insieme tempo, centro e modo.
+
+## 7. Basso e batteria: le due risorse indicate dall'esperto (lette il 2026-11-24)
+
+- **Sandlin**, [How To Lock In With Drums On Bass](https://www.musiclessonswithross.com/blog-1/how-to-lock-in-with-drums-on-bass): testo per intero, immagini no. Metodo di ascolto e mappatura, nessuna regola di collocazione. Opinione di docente.
+- **Heath**, [How Bass and Drums Lock Together](https://www.tunelark.com/blog/how-bass-and-drums-lock-together/): testo per intero, figure illeggibili. Attacchi simultanei con il kick, accenti su 1 e 3, levare aggiunti uno alla volta, nota fermata sul rullante o lasciata suonare per scelta. Opinione di docente; cita un libro e un elenco di rudimenti.
+- Nessuna delle due misura o confronta. Concordano con l'esperto sulla pratica; non sono evidenza indipendente sul gradimento.

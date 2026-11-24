@@ -1,0 +1,147 @@
+{
+ "expert_808": {
+  "bars": 63,
+  "A1_kicks_with_bass": 0.32972972972972975,
+  "A1_chance": 0.15315315315315312,
+  "A1_excess": 0.17657657657657663,
+  "A2_bass_on_kick_or_snare": 0.6946107784431138,
+  "bass_on_kick": 0.3652694610778443,
+  "A3_lhl_per_onset_joint": 0.2920962199312715,
+  "lhl_per_onset_kick": 0.4,
+  "lhl_per_onset_bass": 0.49700598802395207,
+  "A5_spearman": 0.2924869971704343,
+  "A6_shared_positions": [
+   0
+  ],
+  "both_share_by_position": [
+   0.6825396825396826,
+   0.0,
+   0.031746031746031744,
+   0.0,
+   0.0,
+   0.0,
+   0.06349206349206349,
+   0.0,
+   0.1111111111111111,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.07936507936507936,
+   0.0
+  ],
+  "A4_velocity_on_kick_minus_others": 0.0,
+  "velocity_distinct_values": 7
+ },
+ "expert_sub": {
+  "bars": 34,
+  "A1_kicks_with_bass": 0.4444444444444444,
+  "A1_chance": 0.2222222222222222,
+  "A1_excess": 0.2222222222222222,
+  "A2_bass_on_kick_or_snare": 0.6535433070866141,
+  "bass_on_kick": 0.3464566929133858,
+  "A3_lhl_per_onset_joint": 0.2967032967032967,
+  "lhl_per_onset_kick": 0.45454545454545453,
+  "lhl_per_onset_bass": 0.3858267716535433,
+  "A5_spearman": 0.17604916959716027,
+  "A6_shared_positions": [
+   0
+  ],
+  "both_share_by_position": [
+   0.8823529411764706,
+   0.0,
+   0.058823529411764705,
+   0.0,
+   0.0,
+   0.0,
+   0.11764705882352941,
+   0.0,
+   0.08823529411764706,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.14705882352941177,
+   0.0
+  ],
+  "A4_velocity_on_kick_minus_others": 0.0,
+  "velocity_distinct_values": 3
+ },
+ "today": {
+  "bars": 64,
+  "A1_kicks_with_bass": 0.2403846153846154,
+  "A1_chance": 0.19764957264957264,
+  "A1_excess": 0.04273504273504275,
+  "A2_bass_on_kick_or_snare": 0.3640776699029126,
+  "bass_on_kick": 0.3640776699029126,
+  "A3_lhl_per_onset_joint": 0.3792325056433409,
+  "lhl_per_onset_kick": 0.8717948717948718,
+  "lhl_per_onset_bass": 0.7669902912621359,
+  "A5_spearman": -0.10661163924391327,
+  "A6_shared_positions": [
+   0
+  ],
+  "both_share_by_position": [
+   0.546875,
+   0.0,
+   0.046875,
+   0.0,
+   0.0,
+   0.0,
+   0.140625,
+   0.0,
+   0.125,
+   0.0,
+   0.015625,
+   0.0,
+   0.265625,
+   0.0,
+   0.03125,
+   0.0
+  ]
+ },
+ "Z": {
+  "bars": 64,
+  "A1_kicks_with_bass": 0.2532051282051282,
+  "A1_chance": 0.21346153846153842,
+  "A1_excess": 0.03974358974358977,
+  "A2_bass_on_kick_or_snare": 0.35909090909090907,
+  "bass_on_kick": 0.35909090909090907,
+  "A3_lhl_per_onset_joint": 0.35320088300220753,
+  "lhl_per_onset_kick": 0.8653846153846154,
+  "lhl_per_onset_bass": 0.7363636363636363,
+  "A5_spearman": 0.02398932712361685,
+  "A6_shared_positions": [
+   0
+  ],
+  "both_share_by_position": [
+   0.703125,
+   0.0,
+   0.03125,
+   0.0,
+   0.0,
+   0.0,
+   0.21875,
+   0.0,
+   0.0,
+   0.0,
+   0.015625,
+   0.0,
+   0.15625,
+   0.0,
+   0.109375,
+   0.0
+  ]
+ },
+ "outcome": {
+  "A1": true,
+  "A2": true,
+  "A3": true,
+  "A4": false,
+  "A5": false,
+  "A6": false
+ },
+ "rule_three_of_A1_A3_A5_A6": false
+}
