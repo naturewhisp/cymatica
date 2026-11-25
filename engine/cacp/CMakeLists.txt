@@ -17,6 +17,8 @@ add_library(cymatica_cacp STATIC
     ensemble_tools.cpp
     fade_events.cpp
     fade_events.h
+    release_null.cpp
+    release_null.h
     ensemble_tools.h
     evaluation_pack.cpp
     evaluation_pack.h

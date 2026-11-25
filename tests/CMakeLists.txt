@@ -34,6 +34,7 @@ add_executable(cymatica_tests
     unit/test_labeled_calibration.cpp
     unit/test_discontinuity.cpp
     unit/test_fade_event_log.cpp
+    unit/test_release_null.cpp
     unit/test_binaural.cpp
     unit/test_timbre_descriptors.cpp
     unit/test_meter_change.cpp
