@@ -1,0 +1,242 @@
+{
+ "versions": {
+  "R1": {
+   "boundary_AB": 5,
+   "boundary_BA": 5,
+   "max_leap": 9,
+   "conflicts": 0,
+   "above_min_share": 1.0,
+   "tonic_per_section": [
+    5,
+    5,
+    5
+   ],
+   "last_on_tonic": true,
+   "same_contour_B": 0.0,
+   "notes_per_section": [
+    81,
+    81,
+    79
+   ],
+   "empty_bars": [],
+   "tonic_openings": [
+    8,
+    8,
+    8
+   ],
+   "tonic_duration_share": [
+    0.22265625,
+    0.2187496914332763,
+    0.234375
+   ],
+   "moved": {
+    "0": 2,
+    "1": 13,
+    "2": 1
+   },
+   "entry": [
+    [
+     79,
+     88
+    ],
+    [
+     79,
+     88
+    ],
+    [
+     79,
+     88
+    ],
+    [
+     79,
+     88
+    ]
+   ],
+   "differs_from_sp": [
+    2,
+    2,
+    2,
+    2
+   ],
+   "peak_dbfs": -5.119615184462018
+  },
+  "V1": {
+   "boundary_AB": 5,
+   "boundary_BA": 5,
+   "max_leap": 7,
+   "conflicts": 0,
+   "above_min_share": 1.0,
+   "tonic_per_section": [
+    5,
+    5,
+    5
+   ],
+   "last_on_tonic": true,
+   "same_contour_B": 0.0,
+   "notes_per_section": [
+    81,
+    81,
+    79
+   ],
+   "empty_bars": [],
+   "tonic_openings": [
+    8,
+    8,
+    8
+   ],
+   "tonic_duration_share": [
+    0.26953125,
+    0.2187496914332763,
+    0.28125
+   ],
+   "moved": {
+    "0": 2,
+    "1": 13,
+    "2": 1
+   },
+   "entry": [
+    [
+     79,
+     86
+    ],
+    [
+     79,
+     86
+    ],
+    [
+     79,
+     86
+    ],
+    [
+     79,
+     86
+    ]
+   ],
+   "differs_from_sp": [
+    2,
+    2,
+    2,
+    2
+   ],
+   "peak_dbfs": -5.119615184462018
+  },
+  "V2": {
+   "boundary_AB": 5,
+   "boundary_BA": 5,
+   "max_leap": 7,
+   "conflicts": 0,
+   "above_min_share": 1.0,
+   "tonic_per_section": [
+    5,
+    5,
+    5
+   ],
+   "last_on_tonic": true,
+   "same_contour_B": 0.0,
+   "notes_per_section": [
+    81,
+    81,
+    79
+   ],
+   "empty_bars": [],
+   "tonic_openings": [
+    8,
+    8,
+    8
+   ],
+   "tonic_duration_share": [
+    0.22265625,
+    0.2187496914332763,
+    0.234375
+   ],
+   "moved": {
+    "0": 3,
+    "1": 13,
+    "2": 2
+   },
+   "entry": [
+    [
+     83,
+     88
+    ],
+    [
+     84,
+     88
+    ],
+    [
+     83,
+     88
+    ],
+    [
+     84,
+     88
+    ]
+   ],
+   "differs_from_sp": [
+    3,
+    3,
+    3,
+    3
+   ],
+   "peak_dbfs": -5.119615184462018
+  }
+ },
+ "R1_render_difference": 0.0,
+ "clips_lufs_spread": 0.026377730419579137,
+ "clips_peak_dbfs": -5.328703109033949,
+ "manifest": {
+  "reasons": [],
+  "renders": [
+   {
+    "backpressure_drops": 0,
+    "dispatched": 486,
+    "events": 243,
+    "max_gain_reduction_db": 0.0,
+    "name": "bass_line",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2242,
+    "events": 1121,
+    "max_gain_reduction_db": 0.0,
+    "name": "k3_R1",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2242,
+    "events": 1121,
+    "max_gain_reduction_db": 0.0,
+    "name": "k3_V1",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   },
+   {
+    "backpressure_drops": 0,
+    "dispatched": 2242,
+    "events": 1121,
+    "max_gain_reduction_db": 0.0,
+    "name": "k3_V2",
+    "orphans": 0,
+    "staged_at_end": 0,
+    "voice_drops": 0
+   }
+  ],
+  "scenario": "warped_plan_render_v1",
+  "status": "MEASURED"
+ },
+ "outcome": {
+  "Y1": true,
+  "Y2": true,
+  "Y3": true,
+  "Y4": true,
+  "Y5": true,
+  "Y6": true
+ }
+}

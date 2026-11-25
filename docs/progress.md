@@ -4001,3 +4001,9 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, I9 quater, estratti pronti (2026-11-25):** Z1–Z3 superate (scarto 0,01 LU, picco −5,4 dBFS). Otto estratti ciechi consegnati; chiave non letta. Non committato.
 
 **CP-3, I9 quater, ascolto cieco del titolare (2026-11-25):** [risultati](research/M2_5_CP3_I9d_Breath_Confirmation_Results.md). Q1–Q3 confermate (vuoto 4 su 4 in Y, 0 su 4 in R1, forzato 0): **respiro pieno candidato** offline. Rilievo spontaneo, post hoc: sei estratti su otto «forzati» circa 4 s dopo, sul salto di 9 semitoni della frase V (Mi6). Nulla adottato. Non committato.
+
+**CP-3, I9 quinquies (salto della frase V), pre-registrazione (2026-11-25)** [documento](research/M2_5_CP3_I9e_V_Leap_Preregistration.md), SHA-256 (LF) `6c7c074fead24d5466a0f574bfddd6855db259e444d96b07fc4957a887045466`. Y1–Y6, S1–S3. I9 quater committata. Codice e misure non iniziati. Non committato.
+
+**CP-3, I9 quinquies, versioni pronte (2026-11-25):** [risultati](research/M2_5_CP3_I9e_V_Leap_Results.md). Y1–Y6 confermate; V1 aumenta la quota sulla tonica (effetto non previsto); scostamento per la battuta 90 dichiarato. Dodici estratti ciechi consegnati; chiave non letta. Non committato.
+
+**CP-3, I9 quinquies, ascolto cieco del titolare (2026-11-25):** [risultati](research/M2_5_CP3_I9e_V_Leap_Results.md). S1 confermata (4 su 4); S2 e S3 **mancate**: V1 e V2 segnalate 4 su 4. Il punto è reale (12 istanti su 12), il salto non ne è la causa. Regola 4: R1 resta, V non si ritocca senza nuova pre-registrazione. Limite: nessun estratto senza V, nessuna intensità. Nulla adottato. Non committato.

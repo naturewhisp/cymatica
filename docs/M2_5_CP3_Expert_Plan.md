@@ -78,4 +78,4 @@ Tutte concluse; nessuna adozione. Le decisioni si prendono insieme.
 
 **Secondo ascolto dell’esperto (2026-11-25):** [esito](m2_5_cp3_expert_listening_2026-11-25.md). Coerenza 6, interesse 6, ripetitività 5. H6 confermata (B2); H1, H2, H4, H5 mancate, H3 «non so»; basso resta −3 LU. Coppie deboli. N2 si rivede, con B2; primo punto il respiro della battuta 55. Nulla adottato.
 
-**Revisione di N2:** [I9 ter](research/M2_5_CP3_I9c_N2_Revision_Results.md), casa ridotta non candidata; [I9 quater](research/M2_5_CP3_I9d_Breath_Confirmation_Results.md), **respiro pieno candidato**. Aperti: salto della frase V, ritmo uguale in sette frasi su otto.
+**Revisione di N2:** [I9 ter](research/M2_5_CP3_I9c_N2_Revision_Results.md), casa ridotta non candidata; [I9 quater](research/M2_5_CP3_I9d_Breath_Confirmation_Results.md), **respiro pieno candidato**. [I9 quinquies](research/M2_5_CP3_I9e_V_Leap_Results.md): il salto non spiega il punto forzato di V, R1 resta. Aperti: causa del punto forzato di V, ritmo uguale in sette frasi su otto.
