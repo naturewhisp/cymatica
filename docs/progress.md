@@ -3988,3 +3988,9 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, precisazione dell'esperto ricevuta (2026-11-25):** [§9](m2_5_cp3_expert_listening_2026-11-25.md). Batteria «problema», synth «entrambi»: condizione di D-M2-53 soddisfatta, riesame a CP-4 (saturazione esclusa). Indicazione del titolare: non anticipare troppo i tempi, molte voci sono in milestone future. Strati ritmici senza milestone futura assegnata: destinazione da decidere con le adozioni. Nulla adottato. Non committato.
 
 **CP-3, «chip-tune» (2026-11-25):** per l'esperto «è più o meno il genere»; lettura probabile del titolare: suoni elettronici artificiali con pochi effetti, cioè il suono attuale. §9 aggiornato. Non committato.
+
+**CP-3, I9 ter (revisione di N2: respiro e nota «casa»), pre-registrazione (2026-11-25)** [documento](research/M2_5_CP3_I9c_N2_Revision_Preregistration.md), SHA-256 (LF) `ecf1267f62214da8415281ea5a08de569e31dc8660a051b5f83b4577cbf9f690`. X1–X9. Esito del secondo ascolto committato (5a939ef). Codice e misure non iniziati. Non committato.
+
+**CP-3, I9 ter, versioni pronte (2026-11-25):** [risultati](research/M2_5_CP3_I9c_N2_Revision_Results.md). X1–X9 confermate, in gran parte per costruzione. Cinque estratti ciechi consegnati; chiave non letta, ascolto in attesa. Non committato.
+
+**CP-3, I9 ter, ascolto cieco del titolare (2026-11-25):** [risultati](research/M2_5_CP3_I9c_N2_Revision_Results.md). R1 10, Y 8, R12 6, R2 5 e 8: duplicato con scarto 3, indicazione debole. (a) confermata (vuoto solo in Y e R2), (b) non confermata, (c) non segnalata. Nessuna leva candidata: il respiro pieno aspetta una conferma, la casa ridotta è scartata come candidata. Nulla adottato. Non committato.
