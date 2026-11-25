@@ -3994,3 +3994,10 @@ Il titolare precisa: avendogli esposto l'ipotesi «per esclusione», il suo asco
 **CP-3, I9 ter, versioni pronte (2026-11-25):** [risultati](research/M2_5_CP3_I9c_N2_Revision_Results.md). X1–X9 confermate, in gran parte per costruzione. Cinque estratti ciechi consegnati; chiave non letta, ascolto in attesa. Non committato.
 
 **CP-3, I9 ter, ascolto cieco del titolare (2026-11-25):** [risultati](research/M2_5_CP3_I9c_N2_Revision_Results.md). R1 10, Y 8, R12 6, R2 5 e 8: duplicato con scarto 3, indicazione debole. (a) confermata (vuoto solo in Y e R2), (b) non confermata, (c) non segnalata. Nessuna leva candidata: il respiro pieno aspetta una conferma, la casa ridotta è scartata come candidata. Nulla adottato. Non committato.
+
+**CP-3, I9 quater (conferma del respiro pieno), pre-registrazione (2026-11-25)** [documento](research/M2_5_CP3_I9d_Breath_Confirmation_Preregistration.md), SHA-256 (LF) `2828dc8d784abf6d8625792ba7ab3f9a6b4c75da11f4b461a2e0ff6c8a499d34`. Z1–Z3, Q1–Q3. I9 ter committata. Codice ed estratti non iniziati. Non committato.
+ Errata, documento firmato non modificato: il massimo del 2,3 % è a p ≈ 0,39, non 0,43; la regola non cambia.
+
+**CP-3, I9 quater, estratti pronti (2026-11-25):** Z1–Z3 superate (scarto 0,01 LU, picco −5,4 dBFS). Otto estratti ciechi consegnati; chiave non letta. Non committato.
+
+**CP-3, I9 quater, ascolto cieco del titolare (2026-11-25):** [risultati](research/M2_5_CP3_I9d_Breath_Confirmation_Results.md). Q1–Q3 confermate (vuoto 4 su 4 in Y, 0 su 4 in R1, forzato 0): **respiro pieno candidato** offline. Rilievo spontaneo, post hoc: sei estratti su otto «forzati» circa 4 s dopo, sul salto di 9 semitoni della frase V (Mi6). Nulla adottato. Non committato.
