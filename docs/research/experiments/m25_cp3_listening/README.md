@@ -9,4 +9,4 @@ Servono i render delle prove precedenti in `artifacts/cacp/` (`tempo_ramp_v1_i5d
 
 - Risposte dell'esperto: [esito](../../../m2_5_cp3_expert_listening_2026-11-23.md), trascrizione `risposte_2026-11-23_esperto.txt`; controlli post hoc `verify_answers.py` e `.json`.
 
-- Secondo ascolto: `make_cp3b_package.py` ([ipotesi](../../M2_5_CP3_Expert_Listening_2_Hypotheses.md)), controlli `cp3b_package_checks.json`.
+- Secondo ascolto: `make_cp3b_package.py` ([ipotesi](../../M2_5_CP3_Expert_Listening_2_Hypotheses.md)), controlli `cp3b_package_checks.json`. Risposte dell’esperto del 2026-11-25: [esito](../../../m2_5_cp3_expert_listening_2026-11-25.md), trascrizione `risposte_2026-11-25_esperto.txt`, controlli post hoc `verify_answers_2.py` e `.json`.

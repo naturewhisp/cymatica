@@ -1,0 +1,63 @@
+CYMATICA - ascolto di conferma - cymatica_ascolto_due_2026-11-24
+
+data_ora: Un freddo martedì 25/11/2026, alle 21:08, a stomaco pieno
+apparecchiatura: Audio Technica ATH M50x + Behringer UMC 204HD
+volume: 100% su Windows, potenziometro scheda audio a 1/4.
+1_descrizione: Una canzoncina ben strutturata. 
+
+Questi strumenti:
+- Un kick
+- Un lead synth
+- Un lead synth che suona note di accompagnamento rispetto alla melodia principale
+- Un basso
+- Una tastiera che suona note complementari all'arrangiamento, ben ritmate
+1_calo: 1:44
+1_coerenza: 6
+1_interesse: 6
+1_ripetitivita: 5
+1_melodia: una figura che si ripete
+1_tempo_p1: sempre
+1_tempo_p2: sempre
+1_tempo_p3: sempre
+1_melodia_nuova: simile ma diversa
+1_stanca: 5
+1_kick: è giusto
+1_basso: lo sento ed è distinto dalla cassa
+1_basso_livello: non so
+1_passaggio_12: brusco
+1_passaggio_23: poco marcato
+1_fuori_posto: no
+1_fuori_posto_dove: -
+2_c1_differenza: sì
+2_c1_preferita: nessuna
+2_c1_perche: nonostante la gigantesca differenza di arrangiamento, non riesco a dare un peso maggiore a livello musicale di nessuna soluzione e secondo me il confronto è concettualmente sbagliato: una parte funziona o meno nel giusto contesto. Non inserirei in una canzone triste di solo pianoforte un gravity blast e non inserirei in una canzone dei Meshuggah un guiro.
+2_c2_differenza: no
+2_c2_preferita: nessuna
+2_c2_perche: -
+2_c3_differenza: sì
+2_c3_preferita: la seconda
+2_c3_perche: nonostante ribadisca quanto detto sopra circa il contesto di una soluzione musicale, a 'sto giro preferisco la seconda perchè mi piace di più la dinamica di tensione/risoluzione tra le due lead.
+2_c4_differenza: no
+2_c4_preferita: nessuna
+2_c4_perche: -
+2_c5_differenza: sì
+2_c5_preferita: la seconda
+2_c5_perche: Il mood della seconda mi piace di più. Vale sempre e comunque quello che ho detto prima riguardo al contesto.
+3_scatti: No.
+3_osservazioni: Qui ci sono solo osservazioni basate sul gusto.
+
+Basso: buon livello nel mix, lo gradirei forse mezzo/un dB più alto ma buono, anche a livello di ritmica.
+
+Arrangiamento generale: mi sembra migliorato, soprattutto per una questione tensione/risoluzione armonica. L'unico punto che ho segnato in cui cala l'attenzione è perchè il contenuto armonico si riduce drasticamente visto il cambio di ottave della lead. La lead di accompagnamento, invece, suona la stessa nota un'ottava sotto per cui il risultato è che al posto di avere 3 voci distine, ne hai praticamente due.
+
+Una buona regola da seguire è che il livello di forza del tuo arrangiamento è tale e quale al livello di novità che riesci a portare all'interno della traccia.
+
+In questo momento il vostro collo di bottiglia più grande sono i suoni:
+- Avete disperatamente bisogno di un drumkit vero e proprio (usate i campioni! vi facilitate mille volte di più la vita e non pesano così tanto. Con una 909 ci fate qualsiasi cosa e di campioni online gratis se ne trovano infiniti)
+- Due saw wave con pochissima modulazione e quasi zero effetti sono molto limitate e stancano in fretta, soprattutto nell'era di TikTok. Avete i synth, che sono gli strumenti più versatili del mondo, sbizzarritevi!
+
+A livello invece di arrangiamento generale:
+- Mi piacerebbe sentire qualcosa che gioca di più con gli accenti
+- Tendete a rimanere troppo sullo stesso mood generale a livello di motivo, noto spesso che tornate tanto ad una nota che vi siete prefissati come "casa". Va bene eh, ma è un sottilissimo bilanciamento che ci va tanto ad azzeccarlo.
+3_affaticamento: Le comparazioni sono forse la parte più noiosa.
+3_durata: 22 minuti

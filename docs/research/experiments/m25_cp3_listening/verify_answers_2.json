@@ -1,0 +1,816 @@
+{
+ "dip_1_44_bar_0_based": 55.33391666666667,
+ "Y": {
+  "sections": {
+   "A": {
+    "vettore_notes": 78,
+    "vettore_median_midi": 79.0,
+    "share_same_pitch_class_as_corpo": 0.4230769230769231,
+    "share_exactly_one_octave_above_corpo": 0.07692307692307693,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.19230769230769232,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "B": {
+    "vettore_notes": 78,
+    "vettore_median_midi": 74.0,
+    "share_same_pitch_class_as_corpo": 0.3076923076923077,
+    "share_exactly_one_octave_above_corpo": 0.16666666666666666,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.1794871794871795,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "C": {
+    "vettore_notes": 76,
+    "vettore_median_midi": 79.0,
+    "share_same_pitch_class_as_corpo": 0.4473684210526316,
+    "share_exactly_one_octave_above_corpo": 0.09210526315789473,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.18421052631578946,
+    "distinct_pitch_classes_all_roles": 7
+   }
+  },
+  "four_bar_windows": {
+   "0-3": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 79.0,
+    "share_same_pitch_class_as_corpo": 0.5,
+    "share_exactly_one_octave_above_corpo": 0.2,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.1,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "4-7": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 78.0,
+    "share_same_pitch_class_as_corpo": 0.5,
+    "share_exactly_one_octave_above_corpo": 0.1,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.2,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "8-11": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 78.0,
+    "share_same_pitch_class_as_corpo": 0.5,
+    "share_exactly_one_octave_above_corpo": 0.1,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.2,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "12-15": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 78.0,
+    "share_same_pitch_class_as_corpo": 0.4,
+    "share_exactly_one_octave_above_corpo": 0.0,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.2,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "16-19": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 79.0,
+    "share_same_pitch_class_as_corpo": 0.4,
+    "share_exactly_one_octave_above_corpo": 0.1,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.1,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "20-23": {
+    "vettore_notes": 8,
+    "vettore_median_midi": 78.0,
+    "share_same_pitch_class_as_corpo": 0.375,
+    "share_exactly_one_octave_above_corpo": 0.125,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.25,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "24-27": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 78.0,
+    "share_same_pitch_class_as_corpo": 0.4,
+    "share_exactly_one_octave_above_corpo": 0.0,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.2,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "28-31": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 78.0,
+    "share_same_pitch_class_as_corpo": 0.3,
+    "share_exactly_one_octave_above_corpo": 0.0,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.3,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "32-35": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 74.0,
+    "share_same_pitch_class_as_corpo": 0.3,
+    "share_exactly_one_octave_above_corpo": 0.3,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.1,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "36-39": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 74.5,
+    "share_same_pitch_class_as_corpo": 0.3,
+    "share_exactly_one_octave_above_corpo": 0.1,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.2,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "40-43": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 74.5,
+    "share_same_pitch_class_as_corpo": 0.3,
+    "share_exactly_one_octave_above_corpo": 0.1,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.2,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "44-47": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 74.5,
+    "share_same_pitch_class_as_corpo": 0.3,
+    "share_exactly_one_octave_above_corpo": 0.1,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.2,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "48-51": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 74.0,
+    "share_same_pitch_class_as_corpo": 0.4,
+    "share_exactly_one_octave_above_corpo": 0.3,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.1,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "52-55": {
+    "vettore_notes": 8,
+    "vettore_median_midi": 74.0,
+    "share_same_pitch_class_as_corpo": 0.375,
+    "share_exactly_one_octave_above_corpo": 0.25,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.25,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "56-59": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 74.5,
+    "share_same_pitch_class_as_corpo": 0.3,
+    "share_exactly_one_octave_above_corpo": 0.1,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.2,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "60-63": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 74.0,
+    "share_same_pitch_class_as_corpo": 0.2,
+    "share_exactly_one_octave_above_corpo": 0.1,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.2,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "64-67": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 79.0,
+    "share_same_pitch_class_as_corpo": 0.4,
+    "share_exactly_one_octave_above_corpo": 0.2,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.1,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "68-71": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 78.0,
+    "share_same_pitch_class_as_corpo": 0.4,
+    "share_exactly_one_octave_above_corpo": 0.0,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.2,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "72-75": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 78.0,
+    "share_same_pitch_class_as_corpo": 0.5,
+    "share_exactly_one_octave_above_corpo": 0.1,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.2,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "76-79": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 78.0,
+    "share_same_pitch_class_as_corpo": 0.5,
+    "share_exactly_one_octave_above_corpo": 0.1,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.2,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "80-83": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 79.0,
+    "share_same_pitch_class_as_corpo": 0.4,
+    "share_exactly_one_octave_above_corpo": 0.1,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.1,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "84-87": {
+    "vettore_notes": 8,
+    "vettore_median_midi": 78.0,
+    "share_same_pitch_class_as_corpo": 0.5,
+    "share_exactly_one_octave_above_corpo": 0.25,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.25,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "88-91": {
+    "vettore_notes": 10,
+    "vettore_median_midi": 78.0,
+    "share_same_pitch_class_as_corpo": 0.4,
+    "share_exactly_one_octave_above_corpo": 0.0,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.2,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "92-95": {
+    "vettore_notes": 8,
+    "vettore_median_midi": 79.0,
+    "share_same_pitch_class_as_corpo": 0.5,
+    "share_exactly_one_octave_above_corpo": 0.0,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.25,
+    "distinct_pitch_classes_all_roles": 7
+   }
+  },
+  "bars_48_59": {
+   "48": {
+    "vettore": [
+     79,
+     75,
+     74
+    ],
+    "corpo": [
+     43,
+     58
+    ],
+    "trama_notes": 5
+   },
+   "49": {
+    "vettore": [
+     70,
+     72
+    ],
+    "corpo": [
+     51,
+     55
+    ],
+    "trama_notes": 5
+   },
+   "50": {
+    "vettore": [
+     69,
+     72
+    ],
+    "corpo": [
+     53,
+     60
+    ],
+    "trama_notes": 5
+   },
+   "51": {
+    "vettore": [
+     74,
+     77,
+     74
+    ],
+    "corpo": [
+     43,
+     62
+    ],
+    "trama_notes": 5
+   },
+   "52": {
+    "vettore": [
+     79,
+     74,
+     74
+    ],
+    "corpo": [
+     43,
+     62
+    ],
+    "trama_notes": 5
+   },
+   "53": {
+    "vettore": [
+     70,
+     72
+    ],
+    "corpo": [
+     51,
+     55
+    ],
+    "trama_notes": 5
+   },
+   "54": {
+    "vettore": [
+     79,
+     75,
+     74
+    ],
+    "corpo": [
+     53,
+     60
+    ],
+    "trama_notes": 5
+   },
+   "55": {
+    "vettore": [],
+    "corpo": [
+     43,
+     62
+    ],
+    "trama_notes": 5
+   },
+   "56": {
+    "vettore": [
+     79,
+     75,
+     74
+    ],
+    "corpo": [
+     43,
+     58
+    ],
+    "trama_notes": 2
+   },
+   "57": {
+    "vettore": [
+     70,
+     72
+    ],
+    "corpo": [
+     51,
+     55
+    ],
+    "trama_notes": 2
+   },
+   "58": {
+    "vettore": [
+     65,
+     69
+    ],
+    "corpo": [
+     53,
+     60
+    ],
+    "trama_notes": 2
+   },
+   "59": {
+    "vettore": [
+     75,
+     77,
+     79
+    ],
+    "corpo": [
+     43,
+     58
+    ],
+    "trama_notes": 2
+   }
+  }
+ },
+ "today": {
+  "sections": {
+   "A": {
+    "vettore_notes": 188,
+    "vettore_median_midi": 77.0,
+    "share_same_pitch_class_as_corpo": 0.34574468085106386,
+    "share_exactly_one_octave_above_corpo": 0.19680851063829788,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.15425531914893617,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "B": {
+    "vettore_notes": 172,
+    "vettore_median_midi": 62.0,
+    "share_same_pitch_class_as_corpo": 0.37790697674418605,
+    "share_exactly_one_octave_above_corpo": 0.13372093023255813,
+    "share_unison_with_corpo": 0.1511627906976744,
+    "share_on_section_tonic": 0.09302325581395349,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "C": {
+    "vettore_notes": 156,
+    "vettore_median_midi": 77.0,
+    "share_same_pitch_class_as_corpo": 0.42948717948717946,
+    "share_exactly_one_octave_above_corpo": 0.25,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.16025641025641027,
+    "distinct_pitch_classes_all_roles": 7
+   }
+  },
+  "four_bar_windows": {
+   "0-3": {
+    "vettore_notes": 16,
+    "vettore_median_midi": 76.5,
+    "share_same_pitch_class_as_corpo": 0.5,
+    "share_exactly_one_octave_above_corpo": 0.3125,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.1875,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "4-7": {
+    "vettore_notes": 20,
+    "vettore_median_midi": 77.0,
+    "share_same_pitch_class_as_corpo": 0.45,
+    "share_exactly_one_octave_above_corpo": 0.3,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.15,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "8-11": {
+    "vettore_notes": 24,
+    "vettore_median_midi": 77.0,
+    "share_same_pitch_class_as_corpo": 0.4166666666666667,
+    "share_exactly_one_octave_above_corpo": 0.2916666666666667,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.125,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "12-15": {
+    "vettore_notes": 28,
+    "vettore_median_midi": 77.0,
+    "share_same_pitch_class_as_corpo": 0.2857142857142857,
+    "share_exactly_one_octave_above_corpo": 0.14285714285714285,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.14285714285714285,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "16-19": {
+    "vettore_notes": 28,
+    "vettore_median_midi": 77.0,
+    "share_same_pitch_class_as_corpo": 0.2857142857142857,
+    "share_exactly_one_octave_above_corpo": 0.14285714285714285,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.14285714285714285,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "20-23": {
+    "vettore_notes": 28,
+    "vettore_median_midi": 77.0,
+    "share_same_pitch_class_as_corpo": 0.2857142857142857,
+    "share_exactly_one_octave_above_corpo": 0.14285714285714285,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.14285714285714285,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "24-27": {
+    "vettore_notes": 28,
+    "vettore_median_midi": 77.0,
+    "share_same_pitch_class_as_corpo": 0.2857142857142857,
+    "share_exactly_one_octave_above_corpo": 0.14285714285714285,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.14285714285714285,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "28-31": {
+    "vettore_notes": 16,
+    "vettore_median_midi": 78.0,
+    "share_same_pitch_class_as_corpo": 0.375,
+    "share_exactly_one_octave_above_corpo": 0.1875,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.25,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "32-35": {
+    "vettore_notes": 16,
+    "vettore_median_midi": 61.0,
+    "share_same_pitch_class_as_corpo": 0.4375,
+    "share_exactly_one_octave_above_corpo": 0.125,
+    "share_unison_with_corpo": 0.25,
+    "share_on_section_tonic": 0.125,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "36-39": {
+    "vettore_notes": 20,
+    "vettore_median_midi": 62.0,
+    "share_same_pitch_class_as_corpo": 0.3,
+    "share_exactly_one_octave_above_corpo": 0.1,
+    "share_unison_with_corpo": 0.1,
+    "share_on_section_tonic": 0.1,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "40-43": {
+    "vettore_notes": 24,
+    "vettore_median_midi": 62.0,
+    "share_same_pitch_class_as_corpo": 0.2916666666666667,
+    "share_exactly_one_octave_above_corpo": 0.08333333333333333,
+    "share_unison_with_corpo": 0.125,
+    "share_on_section_tonic": 0.08333333333333333,
+    "distinct_pitch_classes_all_roles": 6
+   },
+   "44-47": {
+    "vettore_notes": 28,
+    "vettore_median_midi": 62.0,
+    "share_same_pitch_class_as_corpo": 0.2857142857142857,
+    "share_exactly_one_octave_above_corpo": 0.07142857142857142,
+    "share_unison_with_corpo": 0.14285714285714285,
+    "share_on_section_tonic": 0.07142857142857142,
+    "distinct_pitch_classes_all_roles": 6
+   },
+   "48-51": {
+    "vettore_notes": 24,
+    "vettore_median_midi": 61.0,
+    "share_same_pitch_class_as_corpo": 0.5,
+    "share_exactly_one_octave_above_corpo": 0.08333333333333333,
+    "share_unison_with_corpo": 0.3333333333333333,
+    "share_on_section_tonic": 0.08333333333333333,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "52-55": {
+    "vettore_notes": 20,
+    "vettore_median_midi": 73.0,
+    "share_same_pitch_class_as_corpo": 0.65,
+    "share_exactly_one_octave_above_corpo": 0.45,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.1,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "56-59": {
+    "vettore_notes": 24,
+    "vettore_median_midi": 62.0,
+    "share_same_pitch_class_as_corpo": 0.2916666666666667,
+    "share_exactly_one_octave_above_corpo": 0.08333333333333333,
+    "share_unison_with_corpo": 0.125,
+    "share_on_section_tonic": 0.08333333333333333,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "60-63": {
+    "vettore_notes": 16,
+    "vettore_median_midi": 61.0,
+    "share_same_pitch_class_as_corpo": 0.3125,
+    "share_exactly_one_octave_above_corpo": 0.125,
+    "share_unison_with_corpo": 0.125,
+    "share_on_section_tonic": 0.125,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "64-67": {
+    "vettore_notes": 16,
+    "vettore_median_midi": 76.5,
+    "share_same_pitch_class_as_corpo": 0.4375,
+    "share_exactly_one_octave_above_corpo": 0.25,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.1875,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "68-71": {
+    "vettore_notes": 16,
+    "vettore_median_midi": 76.5,
+    "share_same_pitch_class_as_corpo": 0.5,
+    "share_exactly_one_octave_above_corpo": 0.25,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.1875,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "72-75": {
+    "vettore_notes": 20,
+    "vettore_median_midi": 77.0,
+    "share_same_pitch_class_as_corpo": 0.45,
+    "share_exactly_one_octave_above_corpo": 0.3,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.15,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "76-79": {
+    "vettore_notes": 24,
+    "vettore_median_midi": 77.0,
+    "share_same_pitch_class_as_corpo": 0.4166666666666667,
+    "share_exactly_one_octave_above_corpo": 0.2916666666666667,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.125,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "80-83": {
+    "vettore_notes": 20,
+    "vettore_median_midi": 77.0,
+    "share_same_pitch_class_as_corpo": 0.4,
+    "share_exactly_one_octave_above_corpo": 0.2,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.15,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "84-87": {
+    "vettore_notes": 20,
+    "vettore_median_midi": 77.0,
+    "share_same_pitch_class_as_corpo": 0.45,
+    "share_exactly_one_octave_above_corpo": 0.3,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.15,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "88-91": {
+    "vettore_notes": 24,
+    "vettore_median_midi": 76.5,
+    "share_same_pitch_class_as_corpo": 0.3333333333333333,
+    "share_exactly_one_octave_above_corpo": 0.16666666666666666,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.125,
+    "distinct_pitch_classes_all_roles": 7
+   },
+   "92-95": {
+    "vettore_notes": 16,
+    "vettore_median_midi": 78.0,
+    "share_same_pitch_class_as_corpo": 0.5,
+    "share_exactly_one_octave_above_corpo": 0.25,
+    "share_unison_with_corpo": 0.0,
+    "share_on_section_tonic": 0.25,
+    "distinct_pitch_classes_all_roles": 7
+   }
+  },
+  "bars_48_59": {
+   "48": {
+    "vettore": [
+     67,
+     62,
+     60,
+     62,
+     62,
+     62
+    ],
+    "corpo": [
+     43,
+     58
+    ],
+    "trama_notes": 5
+   },
+   "49": {
+    "vettore": [
+     63,
+     58,
+     58,
+     58,
+     58,
+     58
+    ],
+    "corpo": [
+     51,
+     55
+    ],
+    "trama_notes": 5
+   },
+   "50": {
+    "vettore": [
+     65,
+     60,
+     58,
+     60,
+     60,
+     60
+    ],
+    "corpo": [
+     53,
+     60
+    ],
+    "trama_notes": 5
+   },
+   "51": {
+    "vettore": [
+     67,
+     62,
+     60,
+     62,
+     62,
+     62
+    ],
+    "corpo": [
+     43,
+     62
+    ],
+    "trama_notes": 5
+   },
+   "52": {
+    "vettore": [
+     79,
+     74,
+     72,
+     74,
+     74
+    ],
+    "corpo": [
+     43,
+     62
+    ],
+    "trama_notes": 5
+   },
+   "53": {
+    "vettore": [
+     75,
+     70,
+     70,
+     70,
+     70
+    ],
+    "corpo": [
+     51,
+     55
+    ],
+    "trama_notes": 5
+   },
+   "54": {
+    "vettore": [
+     77,
+     72,
+     70,
+     72,
+     72
+    ],
+    "corpo": [
+     53,
+     60
+    ],
+    "trama_notes": 5
+   },
+   "55": {
+    "vettore": [
+     79,
+     74,
+     72,
+     74,
+     74
+    ],
+    "corpo": [
+     43,
+     62
+    ],
+    "trama_notes": 5
+   },
+   "56": {
+    "vettore": [
+     67,
+     62,
+     60,
+     62,
+     62,
+     63
+    ],
+    "corpo": [
+     43,
+     58
+    ],
+    "trama_notes": 2
+   },
+   "57": {
+    "vettore": [
+     63,
+     58,
+     58,
+     58,
+     58,
+     60
+    ],
+    "corpo": [
+     51,
+     55
+    ],
+    "trama_notes": 2
+   },
+   "58": {
+    "vettore": [
+     65,
+     60,
+     58,
+     60,
+     60,
+     62
+    ],
+    "corpo": [
+     53,
+     60
+    ],
+    "trama_notes": 2
+   },
+   "59": {
+    "vettore": [
+     67,
+     62,
+     60,
+     62,
+     62,
+     63
+    ],
+    "corpo": [
+     43,
+     58
+    ],
+    "trama_notes": 2
+   }
+  }
+ }
+}
